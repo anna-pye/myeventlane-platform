@@ -4,20 +4,42 @@
  * MyEventLane category pills block template - Global MEL Category Pill System.
  *
  * Variables:
- * - categories: Array of items with keys: tid, label, color, slug (added by preprocess).
+ * - categories: Array of items with keys: tid, label, color, slug, icon (added by preprocess).
+ * - hero_icons: When TRUE, render hero category icon cards via mel-event-ui-icons.
+ * - show_icons: When TRUE (default), render compact icons on non-hero pills.
+ * - active_tid: Optional active category term ID for discovery headers.
  *
- * Note: Homepage template provides .mel-category-strip wrapper.
+ * Note: Homepage hero provides .mel-home-hero__categories-scroll wrapper.
  */
 #}
 {% for c in categories %}
   {% set pill_mod = c.pill_color|default(c.slug)|default(c.label|lower|replace({' ': '-', '&': 'and', '+': ''}))|trim|lower|default('default') %}
+  {% set is_active = active_tid is not null and c.tid == active_tid %}
   <a
     href="{{ c.url|default(path('view.upcoming_events.page_category', {'arg_0': c.slug|default(c.tid)})) }}"
-    class="mel-category-pill mel-category-pill--{{ pill_mod|clean_class }}"
+    class="mel-category-pill mel-category-pill--{{ pill_mod|clean_class }}{% if is_active %} is-active{% endif %}"
     aria-label="{{ 'View events in'|t }} {{ c.label }}"
+    {% if is_active %}aria-current="page"{% endif %}
   >
+    {% if hero_icons|default(false) %}
+      <span class="mel-home-hero__category-icon mel-home-hero__category-icon--{{ pill_mod|clean_class }}" aria-hidden="true">
+        {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+          icon: c.icon|default('calendar'),
+          class: 'mel-home-hero__category-glyph',
+          size: 24
+        } only %}
+      </span>
+    {% elseif show_icons|default(true) %}
+      <span class="mel-category-pill__icon" aria-hidden="true">
+        {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with {
+          icon: c.icon|default('calendar'),
+          class: 'mel-category-pill__glyph',
+          size: 16
+        } only %}
+      </span>
+    {% endif %}
     <span class="mel-category-pill__label">{{ c.label }}</span>
-    {% if c.count is defined %}
+    {% if c.count is defined and not hero_icons|default(false) %}
       <span class="mel-category-pill__count" aria-hidden="true">{{ c.count }}</span>
     {% endif %}
   </a>

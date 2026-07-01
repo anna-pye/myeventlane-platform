@@ -189,7 +189,7 @@ final class VendorEventTabsService {
 
     $rows[] = [
       'key' => 'analytics',
-      'label' => (string) $t->translate('Analytics'),
+      'label' => (string) $t->translate('Insights'),
       'route' => 'myeventlane_vendor.console.event_analytics',
       'params' => ['event' => $id],
       'disabled' => FALSE,

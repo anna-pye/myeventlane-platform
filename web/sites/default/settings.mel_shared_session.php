@@ -56,7 +56,9 @@ $mel_trusted_staging_prod = [
 
 if (getenv('IS_DDEV_PROJECT') === 'true') {
   $settings['trusted_host_patterns'] = $mel_trusted_ddev;
-  $settings['container_yamls'][] = dirname(__DIR__) . '/development.services.yml';
+  // Local mail: never use Postmark in DDEV. MessagingManager reads delivery_provider
+  // from config; production keeps postmark in config/sync — override only here.
+  $config['myeventlane_messaging.settings']['delivery_provider'] = 'drupal_mail';
 }
 else {
   $settings['trusted_host_patterns'] = array_values(array_unique(array_merge(
@@ -206,4 +208,66 @@ if ($mel_postmark_server_token !== '') {
 $mel_postmark_webhook_secret = $melGetEnv('MEL_POSTMARK_WEBHOOK_SECRET');
 if ($mel_postmark_webhook_secret !== '') {
   $config['myeventlane_messaging.settings']['postmark']['webhook_secret'] = $mel_postmark_webhook_secret;
+}
+
+// ---------------------------------------------------------------------------
+// Ticket QR signing: secret from settings/env — never export to config/sync.
+//
+// TicketQrPayload reads $settings['myeventlane_qr_secret'] first, then
+// MEL_QR_SECRET. Do not store signing material in myeventlane_tickets.settings.
+//
+//   MEL_QR_SECRET — HMAC signing secret for mel:v1 QR payloads
+//
+// DDEV: optional in .ddev/config.local.yaml; otherwise a local-only default
+// applies. Staging and production must set MEL_QR_SECRET on the host.
+// ---------------------------------------------------------------------------
+$mel_qr_secret = $melGetEnv('MEL_QR_SECRET');
+if ($mel_qr_secret !== '') {
+  $settings['myeventlane_qr_secret'] = $mel_qr_secret;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $settings['myeventlane_qr_secret'] = 'local-dev-only-change-me';
+}
+
+// ---------------------------------------------------------------------------
+// Multi-domain URLs: from environment — never export hosts to config/sync.
+//
+//   MEL_PUBLIC_DOMAIN=https://staging.myeventlane.com.au
+//   MEL_VENDOR_DOMAIN=https://vendor.staging.myeventlane.com.au
+//   MEL_ADMIN_DOMAIN=https://admin.staging.myeventlane.com.au
+//   MEL_FORCE_DOMAIN_REDIRECTS=1
+//
+// Staging/production: set on PHP-FPM and CLI (deploy Drush). DDEV defaults
+// apply when env vars are unset locally.
+// ---------------------------------------------------------------------------
+$mel_public_domain = $melGetEnv('MEL_PUBLIC_DOMAIN');
+if ($mel_public_domain !== '') {
+  $config['myeventlane_core.domain_settings']['public_domain'] = $mel_public_domain;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['public_domain'] = 'https://myeventlane.ddev.site';
+}
+
+$mel_vendor_domain = $melGetEnv('MEL_VENDOR_DOMAIN');
+if ($mel_vendor_domain !== '') {
+  $config['myeventlane_core.domain_settings']['vendor_domain'] = $mel_vendor_domain;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['vendor_domain'] = 'https://vendor.myeventlane.ddev.site';
+}
+
+$mel_admin_domain = $melGetEnv('MEL_ADMIN_DOMAIN');
+if ($mel_admin_domain !== '') {
+  $config['myeventlane_core.domain_settings']['admin_domain'] = $mel_admin_domain;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['admin_domain'] = 'https://admin.myeventlane.ddev.site';
+}
+
+$mel_force_domain_redirects = $melGetEnv('MEL_FORCE_DOMAIN_REDIRECTS');
+if ($mel_force_domain_redirects === '1') {
+  $config['myeventlane_core.domain_settings']['force_redirects'] = TRUE;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_core.domain_settings']['force_redirects'] = TRUE;
 }

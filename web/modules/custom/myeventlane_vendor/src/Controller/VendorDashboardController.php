@@ -25,6 +25,9 @@ use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_growth\Service\GrowthInsightService;
 use Drupal\myeventlane_growth\Service\GrowthTrackingService;
 use Drupal\myeventlane_pro\Service\EventInsightService;
+use Drupal\myeventlane_pro\Service\ProSubscriptionStatusService;
+use Drupal\myeventlane_pro\Service\VendorProState;
+use Drupal\user\UserDataInterface;
 use Drupal\myeventlane_vendor\Service\CategoryAudienceService;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
@@ -142,6 +145,21 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   protected ?EventInsightService $insightService;
 
   /**
+   * Canonical Pro state resolver (optional, from myeventlane_pro).
+   */
+  protected ?VendorProState $vendorProState = NULL;
+
+  /**
+   * Canonical Pro subscription status service (optional, from myeventlane_pro).
+   */
+  protected ?ProSubscriptionStatusService $proSubscriptionStatus = NULL;
+
+  /**
+   * Per-user key/value store for the one-time Pro welcome flag.
+   */
+  protected ?UserDataInterface $userData = NULL;
+
+  /**
    * Growth insight service (optional).
    */
   protected ?GrowthInsightService $growthInsight;
@@ -224,8 +242,14 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     mixed $boost_performance = NULL,
     ?MelOperationalPolicyManager $operational_policy_manager = NULL,
     ?MelWorkflowManager $mel_workflow_manager = NULL,
+    ?VendorProState $vendor_pro_state = NULL,
+    ?ProSubscriptionStatusService $pro_subscription_status = NULL,
+    ?UserDataInterface $user_data = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
+    $this->vendorProState = $vendor_pro_state;
+    $this->proSubscriptionStatus = $pro_subscription_status;
+    $this->userData = $user_data;
     $this->dashboardViewModelBuilder = $dashboard_view_model_builder;
     $this->vendorEventRemoval = $vendor_event_removal;
     $this->routeProvider = $route_provider;
@@ -294,6 +318,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $container->has('myeventlane_boost.performance') ? $container->get('myeventlane_boost.performance') : NULL,
       $container->has('myeventlane_surface.operational_policy_manager') ? $container->get('myeventlane_surface.operational_policy_manager') : NULL,
       $container->has('myeventlane_surface.workflow_manager') ? $container->get('myeventlane_surface.workflow_manager') : NULL,
+      $container->has('myeventlane_pro.vendor_pro_state') ? $container->get('myeventlane_pro.vendor_pro_state') : NULL,
+      $container->has('myeventlane_pro.subscription_status') ? $container->get('myeventlane_pro.subscription_status') : NULL,
+      $container->get('user.data'),
     );
   }
 
@@ -558,6 +585,62 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         \Drupal::logger('myeventlane_vendor')->warning('Growth cards failed on dashboard: @m', ['@m' => $e->getMessage()]);
       }
     }
+
+    // Pro visibility: drive the dashboard Pro status block from the canonical
+    // Pro state service. No entitlement logic is duplicated here — VendorProState
+    // delegates to ProActiveResolver. When myeventlane_pro is not installed the
+    // service is NULL and the block stays hidden, matching prior behaviour.
+    if ($this->vendorProState !== NULL) {
+      $isPro = $this->vendorProState->isPro();
+      $pageVars['is_pro'] = $isPro;
+      $pageVars['show_pro_prompt'] = !$isPro;
+      $pageVars['pro_upgrade_url'] = $isPro
+        ? NULL
+        : Url::fromRoute('myeventlane_pro.overview')->toString();
+
+      // Enrich with canonical status only when Pro (drives the premium card,
+      // account validation and checklist). Reuses ProSubscriptionStatusService;
+      // no entitlement logic is recomputed here.
+      if ($isPro && $this->proSubscriptionStatus !== NULL) {
+        $proUser = $this->entityTypeManager->getStorage('user')->load($userId);
+        if ($proUser instanceof UserInterface) {
+          $status = $this->proSubscriptionStatus->getStatusForUser($proUser);
+          $pageVars['pro_status'] = [
+            'plan_label' => $status['plan_label'],
+            'status_label' => $status['status_label'],
+            'state' => $status['state'],
+            'has_active_subscription' => $status['has_active_subscription'],
+            'is_manual_pro' => $status['is_manual_pro'],
+            'is_in_grace' => $status['is_in_grace'],
+            'can_cancel' => $status['can_cancel'],
+            'renews_label' => $status['renews_label'] ?? NULL,
+            'manage_url' => Url::fromRoute('myeventlane_pro.manage')->toString(),
+          ];
+
+          // One-time "Welcome to MEL Pro" celebration, persisted per user via
+          // user.data (no new entity, no onboarding framework). Shown once, then
+          // the flag is set so subsequent loads render the normal dashboard.
+          if ($this->userData !== NULL) {
+            $welcomeSeen = (bool) $this->userData->get('myeventlane_pro', $userId, 'welcome_seen');
+            if (!$welcomeSeen) {
+              $pageVars['show_pro_welcome'] = TRUE;
+              $this->userData->set('myeventlane_pro', $userId, 'welcome_seen', 1);
+              // This render carries the one-time banner; do not store it so the
+              // next request (flag now set) serves the normal cached dashboard.
+              $pageVars['#cache']['max-age'] = 0;
+            }
+          }
+        }
+      }
+    }
+
+    // Pro state is per-user (subscription-derived) and role-derived, so vary the
+    // dashboard cache on both. The route is vendor-only (authenticated), so these
+    // contexts do not affect anonymous page caching.
+    $pageVars['#cache']['contexts'] = array_values(array_unique(array_merge(
+      $pageVars['#cache']['contexts'] ?? [],
+      ['user', 'user.roles'],
+    )));
 
     return $this->buildVendorPage('myeventlane_vendor_dashboard', $pageVars);
   }
@@ -2471,12 +2554,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     usort($items, static fn(array $a, array $b): int => ((int) ($b['timestamp'] ?? 0)) <=> ((int) ($a['timestamp'] ?? 0)));
-    $items = array_slice($items, 0, 6);
-    foreach ($items as &$item) {
-      unset($item['timestamp']);
-    }
 
-    return $items;
+    return array_slice($items, 0, 6);
   }
 
   /**

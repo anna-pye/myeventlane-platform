@@ -46,7 +46,7 @@ final class PublicFooterNavigationBuilder {
       $this->routeLink('Today', 'view.upcoming_events.page_today'),
       $this->routeLink('This weekend', 'view.upcoming_events.page_this_weekend'),
       $this->routeLink('Free events', 'view.upcoming_events.page_free'),
-      $this->routeLink('Community Favourites', 'view.upcoming_events.page_popular'),
+      $this->routeLink('Community', 'view.upcoming_events.page_popular'),
     ]));
     $discover_links = array_merge($discover_links, $this->buildCategoryLinks());
 

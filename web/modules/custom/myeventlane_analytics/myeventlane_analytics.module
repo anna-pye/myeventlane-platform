@@ -18,6 +18,8 @@ function myeventlane_analytics_theme(): array {
         'summary_stats' => [],
         'event_analytics' => [],
         'mel_analytics_events_empty' => NULL,
+        // Presentation-only: existing GrowthInsightService cards, surfaced here.
+        'growth_cards' => [],
       ],
       'template' => 'analytics-dashboard',
     ],
@@ -35,6 +37,9 @@ function myeventlane_analytics_theme(): array {
         'bottlenecks' => [],
         'total_revenue' => 0.0,
         'total_tickets' => 0,
+        // Presentation-only: plain-language health line + next-step actions.
+        'event_health' => [],
+        'growth_actions' => [],
       ],
       'template' => 'analytics-event',
     ],

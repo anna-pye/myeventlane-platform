@@ -11,7 +11,7 @@ services:
       - '@module_handler'
       - '@logger.channel.myeventlane_vendor'
       - '@cache.default'
-      - '@?myeventlane_stripe.vendor_stripe'
+      - '@?myeventlane_stripe.vendor_payout'
 
   logger.channel.myeventlane_vendor:
     parent: logger.channel_base
@@ -303,6 +303,16 @@ services:
       - '@current_user'
       - '@myeventlane_commerce.vendor_operational_addon_order_builder'
       - '@myeventlane_core.event_state_resolver'
+
+  myeventlane_vendor.nav_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorNavBuilder
+    arguments:
+      - '@access_manager'
+      - '@current_user'
+      - '@current_route_match'
+      - '@module_handler'
+      - '@request_stack'
+      - '@string_translation'
 
   myeventlane_vendor.event_workspace_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorEventWorkspaceViewModelBuilder

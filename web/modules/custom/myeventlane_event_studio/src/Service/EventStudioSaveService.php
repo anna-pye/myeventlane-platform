@@ -113,15 +113,15 @@ final class EventStudioSaveService {
     }
 
     // Keep Content Moderation aligned with the requested published flag.
-    // Draft revisions are not default revisions in the editorial workflow, so
-    // unpublishing a live event must use the unpublished default state.
+    // Unpublishing a live event returns organisers to draft so update access and
+    // Event Studio remain available (archived blocks vendor edit transitions).
     if (!$draft && $node->hasField('moderation_state') && !$node->get('moderation_state')->isEmpty()) {
       $moderationState = (string) $node->get('moderation_state')->value;
       if ($willPublish && $moderationState !== 'published') {
         $node->set('moderation_state', 'published');
       }
       if (!$willPublish && $moderationState === 'published') {
-        $node->set('moderation_state', 'archived');
+        $node->set('moderation_state', 'draft');
       }
     }
 
@@ -165,13 +165,16 @@ final class EventStudioSaveService {
 
     $ticket_errors = $this->applyTicketPayload($node, $payload, $event_type, $draft);
     if ($ticket_errors !== []) {
-      return ['node' => NULL, 'errors' => $ticket_errors];
+      return $this->abortSectionScopedSave($ticket_errors, $payload);
     }
 
     $this->applyDonationPayload($node, $payload);
 
     $choice = (string) ($payload['venue_choice'] ?? 'one_off');
     $location_values = NULL;
+    $venue_for_display = NULL;
+    $create_venue_name = NULL;
+    $address_row_for_display = NULL;
 
     $skip_venue_location = $draft && (
       ($choice === 'saved' && (int) ($payload['venue_id'] ?? 0) < 1)
@@ -184,30 +187,31 @@ final class EventStudioSaveService {
     elseif ($choice === 'saved') {
       $vid = (int) ($payload['venue_id'] ?? 0);
       if ($vid < 1) {
-        return ['node' => NULL, 'errors' => ['Select a saved venue.']];
+        return $this->abortSectionScopedSave(['Select a saved venue.'], $payload);
       }
-      $venue = $this->entityTypeManager->getStorage('myeventlane_venue')->load($vid);
-      if (!$venue instanceof Venue) {
-        return ['node' => NULL, 'errors' => ['Venue not found.']];
+      $venue_for_display = $this->entityTypeManager->getStorage('myeventlane_venue')->load($vid);
+      if (!$venue_for_display instanceof Venue) {
+        return $this->abortSectionScopedSave(['Venue not found.'], $payload);
       }
       $node->set('field_venue', ['target_id' => $vid]);
-      $primary = $this->venueManager->getPrimaryLocation($venue);
+      $primary = $this->venueManager->getPrimaryLocation($venue_for_display);
       $location_values = $primary ? [$this->addressFromVenueLocation($primary)] : [];
+      $address_row_for_display = $location_values[0] ?? NULL;
     }
     elseif ($choice === 'create') {
-      $name = trim((string) ($payload['new_venue_name'] ?? ''));
-      if ($name === '') {
-        return ['node' => NULL, 'errors' => ['Venue name is required.']];
+      $create_venue_name = trim((string) ($payload['new_venue_name'] ?? ''));
+      if ($create_venue_name === '') {
+        return $this->abortSectionScopedSave(['Venue name is required.'], $payload);
       }
       $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
       if ($row === NULL) {
-        return ['node' => NULL, 'errors' => ['Enter an address for the new venue.']];
+        return $this->abortSectionScopedSave(['Enter an address for the new venue.'], $payload);
       }
       try {
-        $venue = $this->venueManager->createVenueWithLocation(
-          ['name' => $name, 'visibility' => Venue::VISIBILITY_SHARED, 'description' => ''],
+        $venue_for_display = $this->venueManager->createVenueWithLocation(
+          ['name' => $create_venue_name, 'visibility' => Venue::VISIBILITY_SHARED, 'description' => ''],
           [
-            'title' => $name,
+            'title' => $create_venue_name,
             'address_text' => $this->formatAddressText($row),
             'lat' => $payload['field_location_latitude'] ?? NULL,
             'lng' => $payload['field_location_longitude'] ?? NULL,
@@ -217,10 +221,11 @@ final class EventStudioSaveService {
       }
       catch (\Throwable $e) {
         $this->logger->error('Studio venue create failed: @m', ['@m' => $e->getMessage()]);
-        return ['node' => NULL, 'errors' => ['Could not create venue.']];
+        return $this->abortSectionScopedSave(['Could not create venue.'], $payload);
       }
-      $node->set('field_venue', ['target_id' => $venue->id()]);
+      $node->set('field_venue', ['target_id' => $venue_for_display->id()]);
       $location_values = [$row];
+      $address_row_for_display = $row;
     }
     else {
       if ($node->hasField('field_venue')) {
@@ -228,26 +233,33 @@ final class EventStudioSaveService {
       }
       $row = $this->normalizeAddressRow($payload['field_location'] ?? []);
       if (!$draft && $row === NULL) {
-        return ['node' => NULL, 'errors' => ['Location is required.']];
+        return $this->abortSectionScopedSave(['Location is required.'], $payload);
       }
       $location_values = $row !== NULL ? [$row] : [];
+      $address_row_for_display = $row;
     }
 
     if ($node->hasField('field_location') && $location_values !== NULL) {
       $node->set('field_location', $location_values);
     }
 
+    if (!$skip_venue_location) {
+      $this->applyVenueDisplayName($node, $choice, $address_row_for_display, $venue_for_display, $create_venue_name);
+    }
+
     $this->applyOptionalCoordinates($node, $payload);
 
-    $image_errors = $this->applyHeroImagePayload($node, $payload, $draft);
-    if ($image_errors !== []) {
-      return ['node' => NULL, 'errors' => $image_errors];
+    if ($this->shouldApplyHeroImagePayload($payload)) {
+      $image_errors = $this->applyHeroImagePayload($node, $payload, $draft);
+      if ($image_errors !== []) {
+        return $this->abortSectionScopedSave($image_errors, $payload);
+      }
     }
 
     if (array_key_exists('event_highlights_items_state', $payload)) {
       $highlight_errors = $this->eventHighlightHelper->validateHighlightItemsStateJson((string) ($payload['event_highlights_items_state'] ?? ''));
       if ($highlight_errors !== []) {
-        return ['node' => NULL, 'errors' => $highlight_errors];
+        return $this->abortSectionScopedSave($highlight_errors, $payload);
       }
     }
 
@@ -256,28 +268,28 @@ final class EventStudioSaveService {
     }
     catch (\Throwable $e) {
       $this->logger->error('Studio event highlights sync failed: @m', ['@m' => $e->getMessage()]);
-      return ['node' => NULL, 'errors' => ['Could not save event highlights.']];
+      return $this->abortSectionScopedSave(['Could not save event highlights.'], $payload);
     }
 
     $attendee_errors = $this->syncAttendeeQuestions($node, $payload, $account);
     if ($attendee_errors !== []) {
-      return ['node' => NULL, 'errors' => $attendee_errors];
+      return $this->abortSectionScopedSave($attendee_errors, $payload);
     }
 
     $visibility_errors = $this->applyVisibilityPayload($node, $payload);
     if ($visibility_errors !== []) {
-      return ['node' => NULL, 'errors' => $visibility_errors];
+      return $this->abortSectionScopedSave($visibility_errors, $payload);
     }
 
     $capability_errors = $this->applyOperationalCapabilitiesPayload($node, $payload);
     if ($capability_errors !== []) {
-      return ['node' => NULL, 'errors' => $capability_errors];
+      return $this->abortSectionScopedSave($capability_errors, $payload);
     }
 
     if (!$draft && $willPublish) {
       $eligibility = $this->publishEligibilityEvaluator->evaluate($node, $account);
       if (!$eligibility['allowed']) {
-        return ['node' => NULL, 'errors' => $eligibility['messages']];
+        return $this->abortSectionScopedSave($eligibility['messages'], $payload);
       }
     }
 
@@ -287,7 +299,7 @@ final class EventStudioSaveService {
     }
     catch (\Throwable $e) {
       $this->logger->error('Studio event save failed: @m', ['@m' => $e->getMessage()]);
-      return ['node' => NULL, 'errors' => ['Save failed.']];
+      return $this->abortSectionScopedSave(['Save failed.'], $payload);
     }
 
     return ['node' => $node, 'errors' => []];
@@ -488,7 +500,7 @@ final class EventStudioSaveService {
         $node->set('moderation_state', 'published');
       }
       if (!$published && $moderationState === 'published') {
-        $node->set('moderation_state', 'archived');
+        $node->set('moderation_state', 'draft');
       }
     }
     EventNodeRevisionSave::prepare($node, $revision_log);
@@ -570,6 +582,56 @@ final class EventStudioSaveService {
       $address_row['administrative_area'] ?? '',
       $address_row['postal_code'] ?? '',
     ], static fn ($p) => $p !== ''));
+  }
+
+  /**
+   * Writes field_venue_name for hero/card location summaries.
+   *
+   * One-off events have no venue entity; reuse the saved address row so public
+   * heroes and cards can show a location line without a separate venue profile.
+   * Clears the field when location processing yields no display label.
+   */
+  private function applyVenueDisplayName(
+    NodeInterface $node,
+    string $choice,
+    ?array $address_row,
+    ?Venue $venue = NULL,
+    ?string $create_name = NULL,
+  ): void {
+    if (!$node->hasField('field_venue_name')) {
+      return;
+    }
+
+    $display_name = '';
+    if ($choice === 'saved' && $venue instanceof Venue) {
+      $display_name = trim((string) $venue->label());
+    }
+    elseif ($choice === 'create' && $create_name !== NULL) {
+      $display_name = trim($create_name);
+    }
+    elseif ($choice === 'one_off' && is_array($address_row)) {
+      $display_name = $this->deriveVenueDisplayNameFromAddressRow($address_row);
+    }
+
+    if ($display_name === '') {
+      $node->set('field_venue_name', NULL);
+      return;
+    }
+
+    $node->set('field_venue_name', $display_name);
+  }
+
+  /**
+   * @param array<string, string> $address_row
+   */
+  private function deriveVenueDisplayNameFromAddressRow(array $address_row): string {
+    $locality = trim((string) ($address_row['locality'] ?? ''));
+    $administrative_area = trim((string) ($address_row['administrative_area'] ?? ''));
+    if ($locality !== '') {
+      return $administrative_area !== '' ? $locality . ', ' . $administrative_area : $locality;
+    }
+
+    return trim((string) ($address_row['address_line1'] ?? ''));
   }
 
   /**
@@ -1021,18 +1083,30 @@ final class EventStudioSaveService {
       $mel_values = [];
     }
 
-    $synced_hero_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
     $user_input = $form_state->getUserInput();
     $input_fragment = is_array($user_input['mel'] ?? NULL)
       ? ($user_input['mel']['field_event_image'] ?? NULL)
       : NULL;
     $values_fragment = $mel_values['field_event_image'] ?? NULL;
-    $this->logger->info('Branding hero sync for node @nid: input=@input values=@values resolved_fid=@fid', [
+    $request_fragment = $this->brandingHeroMelFieldFragmentFromRequest();
+    $synced_hero_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
+    $input_fid = is_array($input_fragment) ? $this->brandingHeroFidFromMelFieldFragment($input_fragment) : 0;
+    $request_fid = is_array($request_fragment) ? $this->brandingHeroFidFromMelFieldFragment($request_fragment) : 0;
+    $this->logger->info('Branding hero save diagnostic for node @nid: existing_target=@existing input_fid=@input_fid request_fid=@request_fid values_fid=@values_fid resolved_fid=@resolved input=@input values=@values request=@request', [
       '@nid' => (string) $node->id(),
+      '@existing' => (string) $previous_hero_fid,
+      '@input_fid' => (string) $input_fid,
+      '@request_fid' => (string) $request_fid,
+      '@values_fid' => (string) (is_array($values_fragment) ? $this->brandingHeroFidFromMelFieldFragment($values_fragment) : 0),
+      '@resolved' => (string) $synced_hero_fid,
       '@input' => $this->brandingHeroSyncSnapshot($input_fragment),
       '@values' => $this->brandingHeroSyncSnapshot($values_fragment),
-      '@fid' => (string) $synced_hero_fid,
+      '@request' => $this->brandingHeroSyncSnapshot($request_fragment),
     ]);
+
+    $mel_structure = $this->normalizeBrandingMelFormStructure(
+      is_array($mel_structure) ? $mel_structure : [],
+    );
 
     $items = $node->get('field_event_image');
     try {
@@ -1043,6 +1117,11 @@ final class EventStudioSaveService {
         '@nid' => (string) $node->id(),
         '@message' => $e->getMessage(),
       ]);
+    }
+
+    $mel_values = $form_state->getValue('mel') ?? [];
+    if (!is_array($mel_values)) {
+      $mel_values = [];
     }
 
     $synced_hero_fid_after_extract = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values)['fid'];
@@ -1065,15 +1144,40 @@ final class EventStudioSaveService {
     if ($fid < 1) {
       $fid = $hero['fid'];
     }
+    if ($fid < 1) {
+      $fid = $this->resolveBrandingHeroFidFromFormState($form_state);
+    }
     if ($alt === '' && $hero['alt'] !== '') {
       $alt = $hero['alt'];
+    }
+    if ($alt === '' && is_array($user_input['mel'] ?? NULL)) {
+      $alt = trim((string) ($user_input['mel']['field_event_image_alt'] ?? ''));
     }
 
     $warnings = [];
     $saved_hero_file = NULL;
+    $hero_file_status_before = NULL;
 
     if ($fid < 1) {
-      $node->set('field_event_image', []);
+      $input_fid = is_array($input_fragment)
+        ? $this->brandingHeroFidFromMelFieldFragment($input_fragment)
+        : 0;
+      if ($input_fid < 1) {
+        $input_fid = $request_fid;
+      }
+      if ($input_fid > 0) {
+        return [
+          'node' => NULL,
+          'errors' => [$this->brandingHeroUnsavedUploadErrorMessage()],
+          'warnings' => [],
+        ];
+      }
+      if ($previous_hero_fid > 0 && !$this->brandingHeroExplicitRemovalRequested($input_fragment)) {
+        $this->applyBrandingHeroAltToExistingNode($node, $mel_values);
+      }
+      else {
+        $node->set('field_event_image', []);
+      }
     }
     else {
       if ($alt === '' && !$draft) {
@@ -1085,8 +1189,9 @@ final class EventStudioSaveService {
           '@fid' => (string) $fid,
           '@nid' => (string) $node->id(),
         ]);
-        return ['node' => NULL, 'errors' => ['The uploaded image could not be loaded. Try uploading again.'], 'warnings' => []];
+        return ['node' => NULL, 'errors' => [$this->brandingHeroUnsavedUploadErrorMessage()], 'warnings' => []];
       }
+      $hero_file_status_before = (int) $file->isPermanent();
       if (!$this->isHeroFileRenderable($file)) {
         $this->logger->warning('Branding save: hero file @fid is not renderable for node @nid.', [
           '@fid' => (string) $fid,
@@ -1146,6 +1251,18 @@ final class EventStudioSaveService {
     if ($style_errors !== []) {
       return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
     }
+
+    $final_target_id = $node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()
+      ? (int) ($node->get('field_event_image')->target_id ?? 0)
+      : 0;
+    $hero_file_status_after = $saved_hero_file instanceof FileInterface ? (int) $saved_hero_file->isPermanent() : NULL;
+    $this->logger->info('Branding hero save assignment for node @nid: resolved_fid=@resolved final_target=@final file_status_before=@before file_status_after=@after', [
+      '@nid' => (string) $node->id(),
+      '@resolved' => (string) $fid,
+      '@final' => (string) $final_target_id,
+      '@before' => $hero_file_status_before === NULL ? 'n/a' : (string) $hero_file_status_before,
+      '@after' => $hero_file_status_after === NULL ? 'n/a' : (string) $hero_file_status_after,
+    ]);
 
     EventNodeRevisionSave::prepare($node, $draft ? 'Event Studio branding draft.' : 'Event Studio branding save.');
     try {
@@ -1278,8 +1395,8 @@ final class EventStudioSaveService {
     if (!is_array($mel_input)) {
       $mel_input = [];
     }
-    $from_input = $mel_input['field_event_image'] ?? NULL;
-    if (!is_array($from_input) || !$this->brandingHeroMelFragmentHasAuthoritativeInput($from_input)) {
+    $from_input = $this->brandingHeroMelFieldFragmentFromMelArray($mel_input);
+    if ($from_input === NULL) {
       $from_request = $this->brandingHeroMelFieldFragmentFromRequest();
       if ($from_request === NULL) {
         return;
@@ -1353,6 +1470,114 @@ final class EventStudioSaveService {
       $values['mel'] = $mel_values;
       $form_state->setValues($values);
     }
+
+    $this->ensureBrandingHeroFidInFormStateValues($form_state);
+  }
+
+  /**
+   * Ensures mel[field_event_image] form values include the best available fid.
+   */
+  private function ensureBrandingHeroFidInFormStateValues(FormStateInterface $form_state): void {
+    $best_fragment = $this->resolveBestBrandingHeroMelFieldFragment($form_state);
+    if ($best_fragment === NULL) {
+      return;
+    }
+
+    $best_fid = $this->brandingHeroFidFromMelFieldFragment($best_fragment);
+    if ($best_fid < 1) {
+      return;
+    }
+
+    $values = $form_state->getValues();
+    if (!is_array($values)) {
+      return;
+    }
+
+    $mel_values = $values['mel'] ?? NULL;
+    if (!is_array($mel_values)) {
+      $mel_values = [];
+    }
+
+    $current = $mel_values['field_event_image'] ?? NULL;
+    $current_fid = is_array($current) ? $this->brandingHeroFidFromMelFieldFragment($current) : 0;
+    if ($current_fid === $best_fid) {
+      return;
+    }
+
+    if (is_array($current)) {
+      if ($current_fid > 0 && $best_fid !== $current_fid) {
+        $current = $this->stripBrandingHeroCropFromMelFragment($current);
+      }
+      $mel_values['field_event_image'] = $this->mergeBrandingHeroMelFieldFragment($current, $best_fragment);
+    }
+    else {
+      $mel_values['field_event_image'] = $best_fragment;
+    }
+
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (is_array($user_mel)) {
+      $this->applyBrandingHeroAltToMelValues($user_mel, $mel_values);
+    }
+
+    $values['mel'] = $mel_values;
+    $form_state->setValues($values);
+  }
+
+  /**
+   * @return array<string, mixed>|null
+   */
+  private function resolveBestBrandingHeroMelFieldFragment(FormStateInterface $form_state): ?array {
+    $best_fragment = NULL;
+    $best_fid = 0;
+    foreach ($this->brandingHeroMelFieldFragmentCandidates($form_state) as $fragment) {
+      $fid = $this->brandingHeroFidFromMelFieldFragment($fragment);
+      if ($fid > $best_fid) {
+        $best_fid = $fid;
+        $best_fragment = $fragment;
+      }
+    }
+    return $best_fragment;
+  }
+
+  /**
+   * @return list<array<string, mixed>>
+   */
+  private function brandingHeroMelFieldFragmentCandidates(FormStateInterface $form_state): array {
+    $fragments = [];
+    $user_input = $form_state->getUserInput();
+    $user_mel = is_array($user_input) ? ($user_input['mel'] ?? NULL) : NULL;
+    if (is_array($user_mel)) {
+      $user_fragment = $this->brandingHeroMelFieldFragmentFromMelArray($user_mel);
+      if (is_array($user_fragment)) {
+        $fragments[] = $user_fragment;
+      }
+    }
+
+    $request_fragment = $this->brandingHeroMelFieldFragmentFromRequest();
+    if (is_array($request_fragment)) {
+      $fragments[] = $request_fragment;
+    }
+
+    $values_mel = $form_state->getValue('mel');
+    if (is_array($values_mel)) {
+      $values_fragment = $this->brandingHeroMelFieldFragmentFromMelArray($values_mel);
+      if (is_array($values_fragment)) {
+        $fragments[] = $values_fragment;
+      }
+    }
+
+    return $fragments;
+  }
+
+  /**
+   * Resolves the strongest hero fid available from submitted branding sources.
+   */
+  private function resolveBrandingHeroFidFromFormState(FormStateInterface $form_state): int {
+    $best_fragment = $this->resolveBestBrandingHeroMelFieldFragment($form_state);
+    if ($best_fragment === NULL) {
+      return 0;
+    }
+    return $this->brandingHeroFidFromMelFieldFragment($best_fragment);
   }
 
   /**
@@ -1377,11 +1602,41 @@ final class EventStudioSaveService {
     if (!is_array($request_mel)) {
       return NULL;
     }
-    $fragment = $request_mel['field_event_image'] ?? NULL;
-    if (!is_array($fragment) || !$this->brandingHeroMelFragmentHasAuthoritativeInput($fragment)) {
-      return NULL;
+    return $this->brandingHeroMelFieldFragmentFromMelArray($request_mel);
+  }
+
+  /**
+   * Resolves a hero widget fragment from a mel array (direct or wrapper paths).
+   *
+   * image_widget_crop can leave values under field_event_image_wrapper.widget while
+   * POST field names still use mel[field_event_image][…].
+   *
+   * @param array<string, mixed> $mel
+   *
+   * @return array<string, mixed>|null
+   */
+  private function brandingHeroMelFieldFragmentFromMelArray(array $mel): ?array {
+    $candidates = [];
+    if (isset($mel['field_event_image']) && is_array($mel['field_event_image'])) {
+      $candidates[] = $mel['field_event_image'];
     }
-    return $fragment;
+    $wrapper = $mel['field_event_image_wrapper'] ?? NULL;
+    if (is_array($wrapper)) {
+      if (isset($wrapper['widget']) && is_array($wrapper['widget'])) {
+        $candidates[] = $wrapper['widget'];
+      }
+      if (isset($wrapper[0]) && is_array($wrapper[0])) {
+        $candidates[] = $wrapper;
+      }
+    }
+
+    foreach ($candidates as $fragment) {
+      if ($this->brandingHeroMelFragmentHasAuthoritativeInput($fragment)) {
+        return $fragment;
+      }
+    }
+
+    return NULL;
   }
 
   /**
@@ -1403,6 +1658,9 @@ final class EventStudioSaveService {
    * @param array<string, mixed> $field_fragment
    */
   private function brandingHeroMelFragmentHasAuthoritativeInput(array $field_fragment): bool {
+    if ($this->brandingHeroFidFromMelFieldFragment($field_fragment) > 0) {
+      return TRUE;
+    }
     $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($field_fragment);
     return array_key_exists('fids', $delta)
       || array_key_exists('focal_point', $delta)
@@ -1973,6 +2231,96 @@ final class EventStudioSaveService {
     return (string) $this->stringTranslation->translate(
       'The cover image file is missing or unreadable. Upload a new image or remove the cover image.'
     );
+  }
+
+  /**
+   * User-facing error when a submitted hero upload could not be resolved for save.
+   */
+  private function brandingHeroUnsavedUploadErrorMessage(): string {
+    return (string) $this->stringTranslation->translate(
+      'The event image could not be saved. Please reselect the image.'
+    );
+  }
+
+  /**
+   * Hero image is owned by the branding workspace section only.
+   *
+   * @param array<string, mixed> $payload
+   */
+  private function shouldApplyHeroImagePayload(array $payload): bool {
+    $section = trim((string) ($payload['studio_section'] ?? ''));
+    return $section === '';
+  }
+
+  /**
+   * @param list<string> $errors
+   * @param array<string, mixed> $payload
+   *
+   * @return array{node: null, errors: list<string>}
+   */
+  private function abortSectionScopedSave(array $errors, array $payload): array {
+    return ['node' => NULL, 'errors' => $this->enrichSectionScopedSaveErrors($errors, $payload)];
+  }
+
+  /**
+   * Adds workspace section context when a scoped save aborts after content fields apply.
+   *
+   * @param list<string> $errors
+   * @param array<string, mixed> $payload
+   *
+   * @return list<string>
+   */
+  private function enrichSectionScopedSaveErrors(array $errors, array $payload): array {
+    if ($errors === []) {
+      return [];
+    }
+    $section = trim((string) ($payload['studio_section'] ?? ''));
+    if ($section !== 'content') {
+      return $errors;
+    }
+    return [
+      (string) $this->stringTranslation->translate(
+        'Accessibility and content could not be saved because another field failed validation.'
+      ),
+      ...$errors,
+    ];
+  }
+
+  /**
+   * Detects an intentional hero removal from branding widget submission.
+   *
+   * @param array<string, mixed>|null $input_fragment
+   */
+  private function brandingHeroExplicitRemovalRequested(?array $input_fragment): bool {
+    if (!is_array($input_fragment)) {
+      return FALSE;
+    }
+    $delta = EventStudioMelPayloadService::imageWidgetDeltaFromRaw($input_fragment);
+    if (!array_key_exists('fids', $delta)) {
+      return FALSE;
+    }
+    return EventStudioMelPayloadService::firstPositiveIntFromFidsValue($delta['fids'] ?? NULL) < 1;
+  }
+
+  /**
+   * Updates alt text on an existing hero when branding save did not replace the file.
+   *
+   * @param array<string, mixed> $mel_values
+   */
+  private function applyBrandingHeroAltToExistingNode(NodeInterface $node, array $mel_values): void {
+    if ($node->get('field_event_image')->isEmpty()) {
+      return;
+    }
+    $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_values);
+    if ($hero['alt'] === '') {
+      return;
+    }
+    $row = $node->get('field_event_image')->first()?->getValue() ?? [];
+    if (!is_array($row) || (int) ($row['target_id'] ?? 0) < 1) {
+      return;
+    }
+    $row['alt'] = $hero['alt'];
+    $node->set('field_event_image', [$row]);
   }
 
   /**

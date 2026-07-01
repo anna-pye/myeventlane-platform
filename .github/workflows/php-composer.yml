@@ -16,6 +16,12 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Config safety check
+        run: bash scripts/check-config-safety.sh
+
+      - name: Webroot safety check
+        run: bash scripts/check-webroot-safety.sh
+
       - name: Verify config/sync has no DDEV hostnames
         shell: bash
         run: |
@@ -45,6 +51,9 @@ jobs:
 
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
+
+      - name: Run Composer security audit
+        run: composer audit --no-dev
 
       - name: Run Drupal check (optional)
         run: vendor/bin/drupal-check web/modules/custom web/themes/custom

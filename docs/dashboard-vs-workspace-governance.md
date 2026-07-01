@@ -42,6 +42,13 @@ Canonical owner: `EventWorkspaceController`, `VendorEventWorkspaceViewModelBuild
 
 ## Mission Control Principles
 
+> Reconciliation (2026-06-24): The dashboard hero remains organiser-level and the
+> organiser owns the page H1. The current event may visually dominate the page
+> (one strong operational surface) without becoming the page H1. "Giant
+> current-event hero surfaces" below refers to event-level hero banners/imagery,
+> not to a single dominant operational card. See
+> `event-first-dashboard-governance-final.md`.
+
 - The dashboard hero is organiser-level, not event-level.
 - Prefer lightweight account summary: live events, upcoming events, booking activity, priority items, and payout readiness.
 - The dashboard should be scannable on mobile: priority alert, mission control hero, organiser overview, activity, upcoming events, then secondary account details.

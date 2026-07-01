@@ -1,3 +1,6 @@
+# Public continuation handoff. Route must be reachable before login; anonymous users
+# are redirected to core user.login with destination preserved. Authenticated users
+# are redirected by PostAuthRedirectResolver. No sensitive data returned (redirect only).
 myeventlane_auth.mel_continue:
   path: '/mel/auth/continue'
   defaults:
@@ -14,6 +17,8 @@ myeventlane_auth.post_login:
   requirements:
     _user_is_logged_in: 'TRUE'
 
+# Public sign-in placeholder. Anonymous-safe static content linking to core login via
+# mel_continue. No account or token data exposed.
 myeventlane_auth.mel_email_entry:
   path: '/mel/auth/email'
   defaults:
@@ -22,6 +27,9 @@ myeventlane_auth.mel_email_entry:
   requirements:
     _access: 'TRUE'
 
+# OAuth authorization entry. Must be public so unauthenticated users can start SSO.
+# AuthController::login() validates client_id and OAuth params; authorization codes
+# are issued only on authorize (requires authenticated session).
 myeventlane_auth.login:
   path: '/auth/login'
   defaults:
@@ -48,6 +56,8 @@ myeventlane_auth.logout:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
 
+# OAuth token endpoint (authorization_code grant). Route is public; TokenController::token()
+# enforces client_id, client_secret, one-time code, and redirect_uri via TokenGrantService.
 myeventlane_auth.token:
   path: '/auth/token'
   defaults:
@@ -56,6 +66,8 @@ myeventlane_auth.token:
   requirements:
     _access: 'TRUE'
 
+# OAuth refresh endpoint. Route is public; TokenController::refresh() enforces client
+# credentials and a valid refresh token (body or HTTP-only cookie).
 myeventlane_auth.refresh:
   path: '/auth/refresh'
   defaults:
@@ -64,6 +76,8 @@ myeventlane_auth.refresh:
   requirements:
     _access: 'TRUE'
 
+# OAuth userinfo endpoint. Route is public; TokenController::me() requires a valid
+# Bearer access token before returning any user profile fields.
 myeventlane_auth.me:
   path: '/auth/me'
   defaults:
@@ -72,6 +86,8 @@ myeventlane_auth.me:
   requirements:
     _access: 'TRUE'
 
+# OAuth revocation endpoint. Route is public; TokenController::revoke() requires client
+# credentials plus refresh token, or a valid Bearer access token for revoke-all.
 myeventlane_auth.revoke:
   path: '/auth/revoke'
   defaults:
@@ -88,6 +104,9 @@ myeventlane_auth.settings:
   requirements:
     _permission: 'administer myeventlane auth'
 
+# Vendor-host SSO callback after auth-host redirect. Route is public; VendorSsoCallbackController
+# validates OAuth state (HMAC signed state or legacy session state) and exchanges the
+# one-time authorization code before establishing a Drupal session.
 myeventlane_auth.vendor_sso_callback:
   path: '/vendor/sso/callback'
   defaults:

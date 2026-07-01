@@ -99,7 +99,8 @@ function myeventlane_capacity_cart_form_validate(array &$form, FormStateInterfac
 
     // Enforce capacity.
     try {
-      $capacity_service->assertCanBook($event_node, $requested_total);
+      $reservation_key = 'cart:' . $cart->id() . ':event:' . $event_id;
+      $capacity_service->assertCanBook($event_node, $requested_total, $reservation_key);
     }
     catch (CapacityExceededException $e) {
       // Get remaining capacity for user-friendly message.
@@ -147,7 +148,14 @@ function myeventlane_capacity_invalidate_event_cache(EntityInterface $entity): v
   if ($entity->getEntityTypeId() === 'rsvp_submission') {
     if ($entity->hasField('event_id') && !$entity->get('event_id')->isEmpty()) {
       $eventId = (int) $entity->get('event_id')->target_id;
+      if ($eventId) {
+        $capacityService->invalidateCache($eventId);
+        if ($entity->hasField('status') && $entity->get('status')->value === 'confirmed') {
+          $capacityService->releaseReservation('rsvp:event:' . $eventId . ':submission:' . $entity->id());
+        }
+      }
     }
+    return;
   }
 
   // Commerce order item.
@@ -160,11 +168,17 @@ function myeventlane_capacity_invalidate_event_cache(EntityInterface $entity): v
   // Commerce order - check items.
   if ($entity->getEntityTypeId() === 'commerce_order') {
     try {
+      $order_id = (int) $entity->id();
+      $state = $entity->getState()->getId();
       foreach ($entity->getItems() as $item) {
         if ($item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
           $eventId = (int) $item->get('field_target_event')->target_id;
           if ($eventId) {
             $capacityService->invalidateCache($eventId);
+            if ($state === 'completed') {
+              $capacityService->releaseReservation('order:' . $order_id . ':event:' . $eventId);
+              $capacityService->releaseReservation('cart:' . $order_id . ':event:' . $eventId);
+            }
           }
         }
       }

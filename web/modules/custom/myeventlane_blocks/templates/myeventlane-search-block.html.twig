@@ -4,10 +4,25 @@
  * MyEventLane search block template.
  *
  * Pure presentation template for the MEL search input UI.
+ * Submit via Enter or the embedded icon control — no separate CTA button.
  */
 #}
-<form class="mel-front-search" role="search" action="/search" method="get">
-  <label class="visually-hidden" for="mel-front-q">Search events</label>
-  <input id="mel-front-q" class="mel-front-search__input" type="search" name="q" placeholder="Search events, venues, organisers" autocomplete="off" />
-  <button class="mel-front-search__btn" type="submit">Search</button>
+<form class="mel-front-search mel-front-search--header" role="search" action="{{ path('mel_search.view') }}" method="get">
+  <label class="visually-hidden" for="mel-header-search-q">{{ 'Find events, organisers or venues'|t }}</label>
+  <div class="mel-front-search__field">
+    <input
+      id="mel-header-search-q"
+      class="mel-front-search__input"
+      type="search"
+      name="q"
+      placeholder="{{ 'Find events, organisers or venues'|t }}"
+      autocomplete="off"
+    />
+    <button class="mel-front-search__submit-icon" type="submit" aria-label="{{ 'Search'|t }}">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+        <path d="M20 20L16.5 16.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
+    </button>
+  </div>
 </form>

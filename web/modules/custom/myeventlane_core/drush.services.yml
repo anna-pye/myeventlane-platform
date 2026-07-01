@@ -3,5 +3,6 @@ services:
     class: Drupal\myeventlane_core\Commands\MelCoreCommands
     arguments:
       - '@config.factory'
+      - '%app.root%'
     tags:
       - { name: drush.command }

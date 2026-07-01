@@ -8,6 +8,9 @@
   Drupal.behaviors.melHomeHeroSearch = {
     attach: function (context) {
       once('melHomeHeroSearch', '.mel-home-hero__search', context).forEach(function (form) {
+        if (form.getAttribute('data-mel-search-mode') === 'site') {
+          return;
+        }
         form.addEventListener('submit', function (event) {
           var searchInput = form.querySelector('[name="search"]');
           var locationInput = form.querySelector('[name="location"]');

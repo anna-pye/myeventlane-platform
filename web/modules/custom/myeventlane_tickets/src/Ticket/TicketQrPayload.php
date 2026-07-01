@@ -226,26 +226,23 @@ final class TicketQrPayload {
   }
 
   /**
-   * Gets QR signing secret from settings.php first, then config fallback.
+   * Gets QR signing secret from settings.php first, then environment.
    */
   private function getSecret(): string {
-    $from_settings = (string) Settings::get('myeventlane_ticket_qr_secret', '');
-    if ($from_settings !== '') {
-      return $from_settings;
+    $secret = Settings::get('myeventlane_qr_secret');
+    if (empty($secret)) {
+      $secret = Settings::get('myeventlane_ticket_qr_secret');
+    }
+    if (empty($secret)) {
+      $secret = getenv('MEL_QR_SECRET') ?: '';
     }
 
-    $from_config = (string) ($this->configFactory->get('myeventlane_tickets.settings')->get('qr_secret') ?? '');
-    if ($from_config !== '') {
-      return $from_config;
+    if (empty($secret)) {
+      $this->logger->error('MEL QR signing secret is not configured.');
+      throw new \RuntimeException('MEL QR signing secret is not configured.');
     }
 
-    $hash_salt = (string) Settings::get('hash_salt', '');
-    if ($hash_salt !== '') {
-      return $hash_salt . ':myeventlane-ticket-qr';
-    }
-
-    $this->logger->error('QR secret is not configured; falling back to insecure static secret.');
-    return 'myeventlane-ticket-qr-fallback';
+    return (string) $secret;
   }
 
   /**

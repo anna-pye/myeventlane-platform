@@ -1,0 +1,6 @@
+name: 'MyEventLane Governance'
+type: module
+description: 'Cross-cutting governance regression tests for MyEventLane custom modules.'
+package: MyEventLane
+core_version_requirement: ^11
+lifecycle: stable

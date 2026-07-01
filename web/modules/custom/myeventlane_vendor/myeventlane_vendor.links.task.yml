@@ -57,7 +57,7 @@ myeventlane_vendor.event_workspace.rsvps:
   weight: -6
 
 myeventlane_vendor.event_workspace.analytics:
-  title: 'Analytics'
+  title: 'Insights'
   route_name: myeventlane_vendor.console.event_analytics
   base_route: myeventlane_vendor.console.event_workspace
   weight: 10

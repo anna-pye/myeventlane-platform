@@ -23,10 +23,11 @@
 <div class="mel-help-page mel-help-page--embedded">
 {% endif %}
 <section class="mel-help-home{% if is_vendor_context %} mel-help-home--vendor{% endif %}">
+  {% if not mel_discovery_hero_active|default(false) %}
   <header class="mel-help-home__hero mel-help-home__hero--search-first">
     <p class="mel-help-home__eyebrow">{{ 'MyEventLane Help Centre'|t }}</p>
     {% if is_vendor_context %}
-      <h1 class="mel-help-home__title">{{ 'Vendor help'|t }}</h1>
+      <h1 class="mel-help-home__title">{{ 'Organiser help'|t }}</h1>
     {% else %}
       <h1 class="mel-help-home__title">{{ 'What do you need help with today?'|t }}</h1>
     {% endif %}
@@ -44,6 +45,22 @@
       <button type="submit" class="mel-help-home__search-button">{{ 'Search'|t }}</button>
     </form>
   </header>
+  {% else %}
+  <div class="mel-help-home__search-only">
+    <form action="{{ help_search.action }}" method="get" class="mel-help-home__search mel-help-home__search--hero" role="search">
+      <label class="visually-hidden" for="mel-help-search">{{ 'Search help articles'|t }}</label>
+      <input
+        id="mel-help-search"
+        name="q"
+        type="search"
+        class="mel-help-home__search-input"
+        placeholder="{{ help_search.placeholder }}"
+        value="{{ help_search.value }}"
+      />
+      <button type="submit" class="mel-help-home__search-button">{{ 'Search'|t }}</button>
+    </form>
+  </div>
+  {% endif %}
 
   {% if mel_support_layer %}
     <div class="mel-help-home__support-layer-wrap">
@@ -112,11 +129,7 @@
         </article>
         <article class="mel-help-home__card">
           <h3 class="mel-help-home__card-title"><a href="/help/organisers">{{ 'Organiser help'|t }}</a></h3>
-          <p class="mel-help-home__card-excerpt">{{ 'Running an event? Find practical guides for setup, ticketing, and attendee updates.'|t }}</p>
-        </article>
-        <article class="mel-help-home__card">
-          <h3 class="mel-help-home__card-title"><a href="{% if logged_in %}/help/vendors{% else %}/user/login?destination=/help/vendors{% endif %}">{{ 'Vendor help'|t }}</a></h3>
-          <p class="mel-help-home__card-excerpt">{% if logged_in %}{{ 'Looking after your vendor profile and applications? This section keeps it simple.'|t }}{% else %}{{ 'Sign in to browse organiser console guides for your vendor profile and applications.'|t }}{% endif %}</p>
+          <p class="mel-help-home__card-excerpt">{{ 'Running an event? Find practical guides for setup, ticketing, payouts, and day-of operations.'|t }}</p>
         </article>
       </div>
     </section>
@@ -134,10 +147,10 @@
   {% if is_vendor_context %}
     <section class="mel-help-home__section mel-help-home__section--vendor-list" aria-labelledby="mel-vendor-guides-title">
       <div class="mel-help-home__section-head">
-        <h2 id="mel-vendor-guides-title">{{ 'Vendor guides'|t }}</h2>
+        <h2 id="mel-vendor-guides-title">{{ 'Organiser guides'|t }}</h2>
       </div>
       {% if vendors is empty %}
-        <p class="mel-help-home__empty">{{ 'No vendor help articles are available yet.'|t }}</p>
+        <p class="mel-help-home__empty">{{ 'No organiser help articles are available yet.'|t }}</p>
       {% else %}
         {{ vendors }}
       {% endif %}

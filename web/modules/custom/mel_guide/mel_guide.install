@@ -1,0 +1,75 @@
+<?php
+
+/**
+ * @file
+ * Install and update hooks for MEL Guide.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Add v1.1 configuration keys for help panel, version, debug context, position.
+ */
+function mel_guide_update_9001(): void {
+  $config = \Drupal::configFactory()->getEditable('mel_guide.settings');
+
+  if ($config->get('feature_version') === NULL) {
+    $config->set('feature_version', 1);
+  }
+  if ($config->get('enable_help_panel') === NULL) {
+    $config->set('enable_help_panel', FALSE);
+  }
+  if ($config->get('debug_context') === NULL) {
+    $config->set('debug_context', '');
+  }
+  if ($config->get('position') === NULL) {
+    $config->set('position', 'bottom_right');
+  }
+
+  $config->save();
+}
+
+/**
+ * Add uploaded asset file ID configuration for character poses.
+ */
+function mel_guide_update_9002(): void {
+  $config = \Drupal::configFactory()->getEditable('mel_guide.settings');
+
+  if ($config->get('asset_fids') === NULL) {
+    $config->set('asset_fids', [
+      'wave' => 0,
+      'think' => 0,
+      'celebrate' => 0,
+    ]);
+  }
+
+  $config->save();
+}
+
+/**
+ * Restore celebrate message when it was saved as an asset path.
+ */
+function mel_guide_update_9003(): void {
+  $config = \Drupal::configFactory()->getEditable('mel_guide.settings');
+  $messages = $config->get('messages') ?? [];
+  if (!is_array($messages)) {
+    return;
+  }
+
+  $celebrate_message = trim((string) ($messages['celebrate'] ?? ''));
+  $assets = $config->get('assets') ?? [];
+  $celebrate_asset = is_array($assets) ? trim((string) ($assets['celebrate'] ?? '')) : '';
+  $looks_like_asset_path = $celebrate_message !== ''
+    && (
+      $celebrate_message === $celebrate_asset
+      || str_starts_with($celebrate_message, 'themes/')
+      || str_starts_with($celebrate_message, 'public://')
+    );
+
+  if (!$looks_like_asset_path) {
+    return;
+  }
+
+  $messages['celebrate'] = "You're going! 🎉";
+  $config->set('messages', $messages)->save();
+}

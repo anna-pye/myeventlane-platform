@@ -153,7 +153,9 @@ myeventlane_admin_dashboard.payout_batch_transfer:
     _admin_route: TRUE
   methods: [POST]
 
-# Stripe payout webhook — public endpoint, no CSRF, signature-verified in controller.
+# Public endpoint required by Stripe. Access is intentionally open at the Drupal route
+# layer because authenticity is enforced by Stripe signature verification in
+# StripeWebhookController::handle(). Do not expose payload data before signature validation.
 myeventlane_admin_dashboard.stripe_payout_webhook:
   path: '/stripe/webhook/payout'
   defaults:

@@ -45,13 +45,13 @@
         <button type="button" class="mel-footer__accordion-toggle" aria-expanded="false">{{ 'Your Events'|t }}</button>
         <div class="mel-footer__accordion-panel" data-label="{{ 'Your Events'|t }}">
           {% if footer_context.vendor_console_urls.dashboard %}
-          <a href="{{ footer_context.vendor_console_urls.dashboard }}">{{ 'Dashboard'|t }}</a>
+          <a href="{{ footer_context.vendor_console_urls.dashboard }}">{{ 'Home'|t }}</a>
           {% endif %}
           {% if footer_context.vendor_console_urls.events %}
           <a href="{{ footer_context.vendor_console_urls.events }}">{{ 'Manage events'|t }}</a>
           {% endif %}
           {% if footer_context.vendor_console_urls.analytics %}
-          <a href="{{ footer_context.vendor_console_urls.analytics }}">{{ 'Analytics'|t }}</a>
+          <a href="{{ footer_context.vendor_console_urls.analytics }}">{{ 'Insights'|t }}</a>
           {% endif %}
           {% if footer_context.vendor_console_urls.payouts %}
           <a href="{{ footer_context.vendor_console_urls.payouts }}">{{ 'Payouts'|t }}</a>

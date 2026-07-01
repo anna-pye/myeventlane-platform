@@ -3,26 +3,7 @@
  * @file
  * Theme override for the search results page.
  *
- * Adds the MEL page header (title + tagline + search + category pills)
- * above the page content, without changing the results view output.
+ * @see includes/mel-discovery-page-shell.html.twig
  */
 #}
-{% extends "page.html.twig" %}
-
-{% block content %}
-  <div class="mel-container">
-    <div class="mel-content mel-content--search">
-      {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
-        title: 'Search results'|t,
-        show_search: true,
-        show_categories: true,
-        categories: mel_header_categories|default([]),
-        hero_image_url: mel_hero_image_url|default(null),
-        hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
-        hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
-      } only %}
-
-      {{ page.content }}
-    </div>
-  </div>
-{% endblock %}
+{% include '@myeventlane_theme/includes/mel-discovery-page-shell.html.twig' %}

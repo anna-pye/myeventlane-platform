@@ -59,6 +59,14 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_core.event_category_url'
 
+  myeventlane_front.mobile_bottom_navigation:
+    class: Drupal\myeventlane_front\Service\MobileBottomNavigationBuilder
+    arguments:
+      - '@current_route_match'
+      - '@path.matcher'
+      - '@request_stack'
+      - '@current_user'
+
   myeventlane_front.sitemap_builder:
     class: Drupal\myeventlane_front\Service\SitemapBuilder
     arguments:

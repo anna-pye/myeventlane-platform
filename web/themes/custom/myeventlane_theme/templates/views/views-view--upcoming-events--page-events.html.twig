@@ -2,8 +2,6 @@
 /**
  * @file
  * upcoming_events — page_events: browse layout, filters aside, list cards.
- *
- * Canonical runtime owner for /events empty-state copy and recovery CTAs.
  */
 #}
 {{ attach_library('myeventlane_theme/mel-events-discovery') }}
@@ -13,11 +11,8 @@
     {% include '@myeventlane_theme/components/browse/mel-browse-filters.twig' with {
       display_id: view.current_display,
       mel_browse_active_filters: mel_browse_active_filters|default(false),
+      exposed: exposed,
     } %}
-    <div class="mel-filter-panel">
-      <h3 class="mel-filter-panel__title">{{ 'Filter events'|t }}</h3>
-      {{ exposed }}
-    </div>
   </aside>
 
   <div class="mel-browse__results" role="region" aria-labelledby="mel-browse-results-title">

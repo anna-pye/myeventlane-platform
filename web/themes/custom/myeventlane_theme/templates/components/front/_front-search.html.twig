@@ -1,5 +1,13 @@
 <form class="mel-front-search" role="search" action="/search" method="get">
-  <label class="visually-hidden" for="mel-front-q">Search events</label>
-  <input id="mel-front-q" class="mel-front-search__input" type="search" name="q" placeholder="Search events, venues, or organisers" autocomplete="off" />
-  <button class="mel-front-search__btn" type="submit">Search</button>
+  <label class="visually-hidden" for="mel-front-q">{{ 'Search events'|t }}</label>
+  <input
+    id="mel-front-q"
+    class="mel-front-search__input"
+    type="search"
+    name="q"
+    placeholder="{{ 'Search events, venues, or organisers'|t }}"
+    autocomplete="off"
+    {% if search_query|default('') %}value="{{ search_query|e('html_attr') }}"{% endif %}
+  />
+  <button class="mel-front-search__btn" type="submit">{{ 'Search'|t }}</button>
 </form>

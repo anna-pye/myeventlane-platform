@@ -122,25 +122,18 @@ final class AccountLinksService {
 
     $definitions = [
       [
-        'id' => 'discover',
-        'title' => $this->t('Discover'),
-        'url' => $discoverUrl,
-        'in_quick' => TRUE,
-        'routes_match' => [],
-      ],
-      [
         'id' => 'dashboard',
-        'title' => $this->t('Dashboard'),
+        'title' => $this->t('Account'),
         'url' => $dashboardUrl,
         'in_quick' => FALSE,
-        'show_in_sidebar' => FALSE,
+        'show_in_sidebar' => TRUE,
         'routes_match' => [
           'myeventlane_account.dashboard',
         ],
       ],
       [
         'id' => 'tickets',
-        'title' => $this->t('Tickets'),
+        'title' => $this->t('My tickets'),
         'url' => $ticketsUrl,
         'in_quick' => TRUE,
         'show_in_sidebar' => TRUE,
@@ -151,20 +144,11 @@ final class AccountLinksService {
         ],
       ],
       [
-        'id' => 'my_events',
-        'title' => $this->t('All my events'),
-        'url' => $eventsUrl,
-        'in_quick' => TRUE,
-        'show_in_sidebar' => FALSE,
-        'routes_match' => [
-          'myeventlane_dashboard.customer',
-        ],
-      ],
-      [
         'id' => 'saved_events',
         'title' => $this->t('Saved events'),
         'url' => $savedEventsUrl,
         'in_quick' => TRUE,
+        'show_in_sidebar' => TRUE,
         'routes_match' => [
           'view.mel_saved_events.page_1',
         ],
@@ -174,6 +158,7 @@ final class AccountLinksService {
         'title' => $this->t('Categories'),
         'url' => $categoriesUrl,
         'in_quick' => TRUE,
+        'show_in_sidebar' => TRUE,
         'routes_match' => [
           'myeventlane_core.my_categories',
         ],
@@ -183,8 +168,20 @@ final class AccountLinksService {
         'title' => $this->t('Organisers'),
         'url' => $followedOrganisersUrl,
         'in_quick' => TRUE,
+        'show_in_sidebar' => TRUE,
         'routes_match' => [
           'myeventlane_account.followed_organisers',
+        ],
+      ],
+      [
+        'id' => 'notifications',
+        'title' => $this->t('Notifications'),
+        'url' => $notificationsUrl,
+        'in_quick' => TRUE,
+        'show_in_sidebar' => TRUE,
+        'routes_match' => [
+          'myeventlane_notifications.inbox',
+          'myeventlane_notifications.preferences',
         ],
       ],
       [
@@ -192,26 +189,36 @@ final class AccountLinksService {
         'title' => $this->t('Support'),
         'url' => $supportUrl,
         'in_quick' => TRUE,
+        'show_in_sidebar' => TRUE,
         'routes_match' => $supportRoutesMatch,
-      ],
-      [
-        'id' => 'notifications',
-        'title' => $this->t('Notifications'),
-        'url' => $notificationsUrl,
-        'in_quick' => TRUE,
-        'routes_match' => [
-          'myeventlane_notifications.inbox',
-          'myeventlane_notifications.preferences',
-        ],
       ],
       [
         'id' => 'settings',
         'title' => $this->t('Settings'),
         'url' => $settingsUrl,
         'in_quick' => TRUE,
+        'show_in_sidebar' => TRUE,
         'routes_match' => [
           'myeventlane_account.settings',
           'myeventlane_account.settings_redirect',
+        ],
+      ],
+      [
+        'id' => 'discover',
+        'title' => $this->t('Discover'),
+        'url' => $discoverUrl,
+        'in_quick' => TRUE,
+        'show_in_sidebar' => FALSE,
+        'routes_match' => [],
+      ],
+      [
+        'id' => 'my_events',
+        'title' => $this->t('All my events'),
+        'url' => $eventsUrl,
+        'in_quick' => TRUE,
+        'show_in_sidebar' => FALSE,
+        'routes_match' => [
+          'myeventlane_dashboard.customer',
         ],
       ],
       [

@@ -13,6 +13,20 @@
 .site-header {
   position: relative;
   z-index: 100;
+
+  // The mobile drawer panel is a DOM child of .site-header, so this stacking
+  // context (z-index: 100) caps the whole drawer subtree at root-level 100 —
+  // beneath the shared overlay backdrop (body.mel-mobile-overlay-active::before,
+  // z-index 149), whose pointer-events: auto then intercepts every drawer tap.
+  // While the drawer is open, lift the header above the backdrop. Mobile only;
+  // desktop behaviour and the portaled overlays (account/notif/cart) are
+  // unaffected — they escape to #mel-mobile-overlay-portal independently.
+  @include breakpoints.mel-break(md, max) {
+    body.mel-drawer-open & {
+      z-index: 200;
+    }
+  }
+
   background: #fff;
   border-bottom: 1px solid rgba(41, 50, 65, 0.12);
   height: 64px;
@@ -29,33 +43,144 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
+
+    @include breakpoints.mel-break(md, max) {
+      padding: 0 12px;
+      gap: 8px;
+      flex-wrap: nowrap;
+    }
   }
 
   &__left {
     display: flex;
     align-items: center;
-    gap: 20px;
+    gap: 16px;
     min-width: 0;
+    flex: 1 1 auto;
+
+    @include breakpoints.mel-break(md, max) {
+      gap: 8px;
+      flex: 1 1 auto;
+      overflow: hidden;
+    }
   }
 
   &__brand {
     display: flex;
     align-items: center;
+    flex-shrink: 0;
+
+    @include breakpoints.mel-break(md, max) {
+      min-width: 0;
+      flex-shrink: 1;
+    }
 
     img,
     svg {
-      max-height: 32px;
-      height: 32px;
-      width: auto;
       display: block;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+
+      @include breakpoints.mel-break(md) {
+        max-height: 48px;
+        max-width: 160px;
+      }
+
+      @include breakpoints.mel-break(md, max) {
+        max-height: 40px;
+        max-width: min(140px, 45vw);
+      }
+    }
+  }
+
+  &__create-event--desktop {
+    display: flex;
+    align-items: center;
+
+    @include breakpoints.mel-break(md, max) {
+      display: none;
+    }
+  }
+
+  &__create-event--mobile {
+    display: none;
+    align-items: center;
+
+    @include breakpoints.mel-break(md, max) {
+      display: flex;
+    }
+  }
+
+  &__create-event-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: var(--mel-radius-1);
+    color: var(--mel-coral, #f26d5b);
+    text-decoration: none;
+    transition: background 0.15s ease;
+
+    &:hover {
+      background: rgba(242, 109, 91, 0.1);
+      color: var(--mel-coral-hover, #e05a48);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-coral, #f26d5b);
+      outline-offset: 2px;
+    }
+  }
+
+  &__auth {
+    display: none;
+    align-items: center;
+    gap: 4px;
+
+    @include breakpoints.mel-break(md) {
+      display: flex;
+    }
+  }
+
+  &__auth-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 8px;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: var(--mel-radius-1);
+    white-space: nowrap;
+    color: var(--mel-ink);
+    background: transparent;
+
+    &:hover {
+      color: var(--mel-coral);
+      text-decoration: underline;
+      text-underline-offset: 2px;
+      background: transparent;
+    }
+
+    &--sign-in,
+    &--join {
+      color: var(--mel-ink);
+      background: transparent;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-focus);
+      outline-offset: 2px;
     }
   }
 
   &__nav {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 12px;
 
     @include breakpoints.mel-break(md, max) {
       display: none;
@@ -68,16 +193,16 @@
       padding: 0;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 12px;
     }
 
-    // Primary nav links: 40px height, consistent padding, active pill
+    // Primary nav links: compact spacing for header width recovery
     a,
     .mel-nav__link {
       display: inline-flex;
       align-items: center;
       height: 40px;
-      padding: 0 14px;
+      padding: 0 11px;
       color: var(--mel-ink);
       text-decoration: none;
       font-weight: 500;
@@ -108,16 +233,19 @@
   &__right {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
     min-height: 40px;
+    flex-shrink: 0;
   }
 
-  &__create-event {
+  &__utilities {
     display: flex;
     align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 
     @include breakpoints.mel-break(md, max) {
-      display: none;
+      gap: 4px;
     }
   }
 
@@ -160,13 +288,18 @@
     }
   }
 
-  &__organiser,
   &__cart,
   &__notifications,
   &__user {
     display: flex;
     align-items: center;
     min-height: 40px;
+    flex-shrink: 0;
+
+    @include breakpoints.mel-break(md, max) {
+      min-height: 44px;
+      min-width: 44px;
+    }
   }
 
   &__notifications {
@@ -181,6 +314,63 @@
     }
   }
 
+  &__organiser-hosted-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+  }
+
+  &__organiser-logo {
+    display: block;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  &__organiser-initials {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: rgba(41, 50, 65, 0.08);
+    color: var(--mel-ink);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+  }
+
+  &__organiser-name {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 44px;
+    color: var(--mel-ink);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+
+    &:hover {
+      color: var(--mel-coral);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--mel-coral);
+      outline-offset: 2px;
+      border-radius: var(--mel-radius-1);
+    }
+  }
+
+  &__organiser-label {
+    color: rgba(41, 50, 65, 0.72);
+    font-size: 0.8125rem;
+  }
+
   &__cart {
     .mel-cart-block-link {
       display: flex;
@@ -193,6 +383,11 @@
       color: var(--mel-ink);
       border-radius: var(--mel-radius-1);
       transition: background 0.15s ease;
+
+      @include breakpoints.mel-break(md, max) {
+        width: 44px;
+        height: 44px;
+      }
 
       &:hover {
         background: rgba(41, 50, 65, 0.06);

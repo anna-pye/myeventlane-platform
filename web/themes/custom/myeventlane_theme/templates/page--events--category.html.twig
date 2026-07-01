@@ -3,57 +3,7 @@
  * @file
  * Theme override for category filtered events pages.
  *
- * Canonical runtime owner for category-route H1 and discovery lede/subtitle.
- * Results, chips, follow CTA, and empty state remain in the view template.
+ * @see includes/mel-discovery-page-shell.html.twig
  */
 #}
-
-<div class="mel-page mel-page--category">
-
-  {# Skip link #}
-  <a href="#main-content" class="visually-hidden focusable skip-link">
-    {{ 'Skip to main content'|t }}
-  </a>
-
-  {# ==================== HEADER ==================== #}
-  <div class="mel-region-header">
-    {{ site_header }}
-  </div>
-
-  {# ==================== MAIN CONTENT ==================== #}
-  <main id="main-content" class="mel-main">
-    <div class="mel-container mel-container--wide">
-      <div class="mel-content">
-        {% set header_title = (current_category is defined) ? current_category.name : 'Events' %}
-        {% include '@myeventlane_theme/components/mel-page-header.html.twig' with {
-          title: header_title,
-          show_search: true,
-          show_categories: true,
-          categories: mel_header_categories|default([]),
-          hero_image_url: mel_hero_image_url|default(null),
-          hero_image_url_mobile: mel_hero_image_url_mobile|default(null),
-          hero_hide_on_mobile: mel_hero_hide_on_mobile|default(false)
-        } %}
-
-        {% if current_category is defined %}
-          <p class="mel-category-discovery__lede">
-            {{ "Find something you'll love"|t }}
-          </p>
-          <p class="mel-discovery-subtitle">
-            {{ 'Discover events in @name'|t({'@name': current_category.name}) }}
-          </p>
-        {% endif %}
-
-        {{ page.content }}
-      </div>
-
-    </div>
-  </main>
-
-  {# ==================== FOOTER ==================== #}
-  <div class="mel-region-footer">
-    {% include '@myeventlane_theme/includes/footer.html.twig' %}
-  </div>
-
-</div>
-
+{% include '@myeventlane_theme/includes/mel-discovery-page-shell.html.twig' %}

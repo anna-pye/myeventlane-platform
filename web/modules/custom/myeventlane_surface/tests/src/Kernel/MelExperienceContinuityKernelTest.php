@@ -55,7 +55,6 @@ final class MelExperienceContinuityKernelTest extends MelSurfaceGovernanceKernel
       'mail' => $this->randomMachineName() . '@example.com',
       'status' => 1,
     ]);
-    $user->addRole('authenticated');
     $user->save();
     $this->setCurrentUser($user);
     $this->pushRouteRequest('/checkout/order', 'commerce_checkout.order_information', new Route('/checkout/order'));

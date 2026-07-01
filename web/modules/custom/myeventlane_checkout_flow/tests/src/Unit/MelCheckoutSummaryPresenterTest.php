@@ -48,8 +48,8 @@ final class MelCheckoutSummaryPresenterTest extends UnitTestCase {
     $render = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'cart']);
 
     $this->assertSame('mel_checkout_order_summary_grouped', $render['#theme']);
-    $this->assertSame('cart', $render['surface']);
-    $this->assertFalse($render['show_jump_to_payment']);
+    $this->assertSame('cart', $render['#surface']);
+    $this->assertFalse($render['#show_jump_to_payment']);
   }
 
   /**
@@ -81,10 +81,10 @@ final class MelCheckoutSummaryPresenterTest extends UnitTestCase {
     $presenter = new MelCheckoutSummaryPresenter($grouped, $readiness, $templates);
     $render = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'complete']);
 
-    $this->assertSame('complete', $render['surface']);
-    $this->assertFalse($render['show_jump_to_payment']);
-    $this->assertFalse($render['has_grouped_line_items']);
-    $this->assertTrue($render['has_pricing_block']);
+    $this->assertSame('complete', $render['#surface']);
+    $this->assertFalse($render['#show_jump_to_payment']);
+    $this->assertFalse($render['#has_grouped_line_items']);
+    $this->assertTrue($render['#has_pricing_block']);
   }
 
   /**
@@ -123,7 +123,7 @@ final class MelCheckoutSummaryPresenterTest extends UnitTestCase {
     $presenter = new MelCheckoutSummaryPresenter($grouped, $readiness, $templates);
     $render = $presenter->buildGroupedSummaryRenderArray($order, ['surface' => 'complete']);
 
-    $this->assertTrue($render['has_grouped_line_items']);
+    $this->assertTrue($render['#has_grouped_line_items']);
     $this->assertSame('mel_checkout_order_summary_grouped', $render['#theme']);
   }
 

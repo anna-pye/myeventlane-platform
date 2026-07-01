@@ -58,14 +58,29 @@ interface EventCapacityServiceInterface {
   /**
    * Asserts that the event can accept the requested booking.
    *
+   * Atomically checks authoritative sold counts plus active reservations under
+   * a per-event database row lock, then writes or updates a provisional
+   * reservation when capacity allows.
+   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    * @param int $requested
    *   Number of tickets/RSVPs requested.
+   * @param string|null $reservationKey
+   *   Stable hold identifier (e.g. cart:123:event:456). Callers should pass
+   *   an explicit key so repeated checks upsert the same reservation.
    *
    * @throws \Drupal\myeventlane_capacity\Exception\CapacityExceededException
    *   If capacity would be exceeded.
    */
-  public function assertCanBook(NodeInterface $event, int $requested = 1): void;
+  public function assertCanBook(NodeInterface $event, int $requested = 1, ?string $reservationKey = NULL): void;
+
+  /**
+   * Releases a provisional capacity reservation.
+   *
+   * @param string $reservationKey
+   *   The reservation key passed to assertCanBook().
+   */
+  public function releaseReservation(string $reservationKey): void;
 
 }

@@ -6,6 +6,20 @@ services:
       - '@entity.repository'
       - '@file_url_generator'
 
+  myeventlane.page_visual_media_manager:
+    class: Drupal\myeventlane_page_visuals\Service\PageVisualMediaManager
+    arguments:
+      - '@entity_type.manager'
+      - '@entity.repository'
+      - '@file_system'
+      - '@file.usage'
+      - '@current_user'
+      - '@logger.channel.myeventlane_page_visuals'
+
+  logger.channel.myeventlane_page_visuals:
+    parent: logger.channel_base
+    arguments: ['myeventlane_page_visuals']
+
   myeventlane_page_visuals.config_subscriber:
     class: Drupal\myeventlane_page_visuals\EventSubscriber\PageVisualConfigSubscriber
     tags:

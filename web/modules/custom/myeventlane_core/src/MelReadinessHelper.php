@@ -212,8 +212,8 @@ final class MelReadinessHelper {
     if (!$eventsPresent) {
       return [
         'hero_hint' => $this->vendorHeroShellLaunchHint(),
-        'empty_title' => (string) $this->t('Welcome to your organiser dashboard'),
-        'empty_message' => (string) $this->t('Create your first event to start selling tickets or collecting RSVPs.'),
+        'empty_title' => (string) $this->t('Your first event starts here'),
+        'empty_message' => (string) $this->t('You have not created an event yet. RSVP events work without connecting payouts; paid ticket sales need Stripe before publish. Create an event in a few minutes and start inviting your community.'),
         'empty_action_label' => (string) $this->t('Create event'),
         'neutral_empty_hint' => (string) $this->t('Your key setup and event tasks look clear.'),
       ];
@@ -245,7 +245,7 @@ final class MelReadinessHelper {
    * Guest/anonymous notice when analytics routes are reachable without a session.
    */
   public function vendorOrganiserPortalSignInAnalyticsBody(): string {
-    return (string) $this->t('Analytics are available once you sign in as an organiser.');
+    return (string) $this->t('Insights are available once you sign in as an organiser.');
   }
 
   /**
@@ -385,7 +385,7 @@ final class MelReadinessHelper {
   }
 
   public function customerCheckoutCompletionHeadline(): string {
-    return (string) $this->t("Great choice. You're all set.");
+    return (string) $this->t('Booking confirmed');
   }
 
   /**
@@ -394,7 +394,24 @@ final class MelReadinessHelper {
   public function customerCheckoutCompletionHero(): array {
     return [
       'heading' => (string) $this->customerCheckoutCompletionHeadline(),
-      'lead' => (string) $this->t('Your tickets and receipt are on their way to your inbox.'),
+      'lead' => (string) $this->t('Confirmation and tickets have been sent.'),
+    ];
+  }
+
+  /**
+   * Pending-payment checkout completion hero.
+   *
+   * Used when the order is placed but Commerce does not yet consider it paid
+   * (e.g. manual / invoice gateway). Deliberately avoids successful-booking
+   * language so the customer is not told their booking is confirmed before
+   * payment has settled.
+   *
+   * @return array{heading: string, lead: string}
+   */
+  public function customerCheckoutPendingPaymentHero(): array {
+    return [
+      'heading' => (string) $this->t('Order received'),
+      'lead' => (string) $this->t('We’re waiting for payment confirmation. Your booking will be confirmed once payment has been received.'),
     ];
   }
 
@@ -518,6 +535,10 @@ final class MelReadinessHelper {
     return (string) $this->t('Confirmation sent to @email.', ['@email' => $email]);
   }
 
+  public function customerCheckoutPendingPaymentEmailLine(string $email): string {
+    return (string) $this->t('We’ll email @email once payment has been confirmed.', ['@email' => $email]);
+  }
+
   public function customerCheckoutOrderNumberLine(string $order_number): string {
     return (string) $this->t('Order #@number', ['@number' => $order_number]);
   }
@@ -533,15 +554,15 @@ final class MelReadinessHelper {
       'your_tickets_title' => (string) $this->t('Your tickets'),
       'donation_confirmed_title' => (string) $this->t('Donation confirmed'),
       'view_ticket' => (string) $this->t('View ticket'),
-      'view_order' => (string) $this->t('View order'),
+      'view_order' => (string) $this->t('View booking'),
       'view_event' => (string) $this->t('View event'),
       'add_to_calendar' => (string) $this->t('Add to calendar'),
       'google_calendar' => (string) $this->t('Google Calendar'),
       'outlook_calendar' => (string) $this->t('Outlook'),
-      'guest_ticket_email_body' => (string) $this->t('Your ticket link and order details have been sent to your email.'),
+      'guest_ticket_email_body' => (string) $this->t('Check your inbox for ticket PDFs, calendar files, and this order number — you can open them anytime without signing in.'),
       'guest_order_number_intro' => (string) $this->t('Order number:'),
       'what_next_title' => (string) $this->t('What happens next'),
-      'what_next_body' => (string) $this->t('Keep this confirmation handy. The organiser may email closer to the date with practical details.'),
+      'what_next_body' => (string) $this->t('Keep this confirmation handy. Sign in later to find tickets under My tickets, or use the links in your email. The organiser may send practical details closer to the date.'),
       'organiser_trust_title' => (string) $this->t('About your organiser'),
       'organiser_trust_body' => (string) $this->t('Events are hosted by independent organisers. For changes, refunds, or access questions, contact them directly from your tickets.'),
     ];
@@ -775,6 +796,10 @@ final class MelReadinessHelper {
 
   public function customerContinuityViewEventCta(): string {
     return (string) $this->t('View event');
+  }
+
+  public function customerContinuityMyEventsCta(): string {
+    return (string) $this->t('View my events');
   }
 
   public function customerContinuityAddToCalendarCta(): string {
@@ -1630,8 +1655,8 @@ final class MelReadinessHelper {
     return [
       'heading' => (string) $this->t('No attendees yet'),
       'what_happened' => (string) $this->t('We do not show any attendance records for this event.'),
-      'why_empty' => (string) $this->t('RSVPs and ticket purchases appear here as soon as the first one is confirmed.'),
-      'next_action' => (string) $this->t('Share your event link to start collecting RSVPs or ticket sales.'),
+      'why_empty' => (string) $this->t('Your event is live. RSVPs and ticket purchases appear here as soon as the first one is confirmed.'),
+      'next_action' => (string) $this->t('Share your event with your community to start receiving bookings.'),
     ];
   }
 

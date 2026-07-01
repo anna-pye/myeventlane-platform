@@ -5,6 +5,7 @@ dependencies:
     - core.entity_view_mode.myeventlane_vendor.full
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_bio
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_logo
+    - image.style.mel_vendor_logo
   module:
     - image
     - myeventlane_vendor
@@ -26,7 +27,7 @@ content:
     label: hidden
     settings:
       image_link: ''
-      image_style: medium
+      image_style: mel_vendor_logo
       image_loading:
         attribute: lazy
     third_party_settings: {  }

@@ -1,5 +1,5 @@
-public_domain: 'https://staging.myeventlane.com.au'
-vendor_domain: 'https://vendor.staging.myeventlane.com.au'
-admin_domain: 'https://admin.staging.myeventlane.com.au'
-force_redirects: true
-allow_admin_override: true
+public_domain: ''
+vendor_domain: ''
+admin_domain: ''
+force_redirects: false
+allow_admin_override: false

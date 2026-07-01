@@ -72,7 +72,7 @@ $ml-accent-yellow:      #FFEAAA;
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- npm
 
 ### Setup
 

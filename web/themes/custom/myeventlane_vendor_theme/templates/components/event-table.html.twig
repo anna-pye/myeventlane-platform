@@ -78,14 +78,14 @@
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
                     </svg>
-                    {{ 'View Analytics'|t }}
+                    {{ 'View insights'|t }}
                   </a>
                 {% endif %}
                 <a href="{{ event.attendees_url }}" class="mel-actions-menu__item">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                   </svg>
-                  {{ 'Manage Attendees'|t }}
+                  {{ 'Manage attendees'|t }}
                 </a>
                 {# Only show boost link if user has access - access is checked by route #}
                 {% set boost_url = path('myeventlane_boost.boost_page', {'node': event.id}) %}
@@ -93,7 +93,7 @@
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                   </svg>
-                  {{ 'Boost Event'|t }}
+                  {{ 'Grow event'|t }}
                 </a>
               </div>
             </div>
@@ -106,8 +106,8 @@
       <svg class="mel-empty-state__icon mel-empty-state__icon--sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
       </svg>
-      <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to get started.'|t }}</p>
-      <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--cta">{{ 'Create Event'|t }}</a>
+      <p class="mel-empty-state__text">{{ 'No events yet. Create your first event to start selling tickets or collecting RSVPs.'|t }}</p>
+      <a href="{{ path('myeventlane_vendor.create_event_gateway') }}" class="mel-btn mel-btn--cta">{{ 'Create event'|t }}</a>
     </div>
   {% endif %}
 </div>

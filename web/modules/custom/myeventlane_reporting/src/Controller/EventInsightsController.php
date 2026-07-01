@@ -11,6 +11,7 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_attendee\Attendee\TicketAttendee;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
 use Drupal\myeventlane_core\Service\DomainDetector;
@@ -162,7 +163,9 @@ final class EventInsightsController extends VendorConsoleBaseController {
 
     $bySource = ['rsvp' => 0, 'ticket' => 0];
     foreach ($attendees as $attendee) {
-      $source = $attendee->getSource() ?? 'rsvp';
+      // Attendee DTOs (TicketAttendee/RsvpAttendee) expose no getSource();
+      // derive the source bucket from the concrete DTO type.
+      $source = $attendee instanceof TicketAttendee ? 'ticket' : 'rsvp';
       $bySource[$source] = ($bySource[$source] ?? 0) + 1;
     }
 
@@ -440,7 +443,7 @@ final class EventInsightsController extends VendorConsoleBaseController {
     $rsvpCount = 0;
     $repository = $this->repositoryResolver->getRepository($event);
     foreach ($repository->loadByEvent($event) as $attendee) {
-      if (($attendee->getSource() ?? 'rsvp') === 'rsvp') {
+      if (!$attendee instanceof TicketAttendee) {
         $rsvpCount++;
       }
     }

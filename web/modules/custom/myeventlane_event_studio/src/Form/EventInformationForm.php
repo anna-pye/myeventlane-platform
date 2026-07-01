@@ -5,12 +5,36 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\node\NodeInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Isolated Event Studio form for event information.
  */
 final class EventInformationForm extends EventStudioBaseForm {
+
+  private ?EventStudioWorkspacePresentation $workspacePresentation = NULL;
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    $instance = parent::create($container);
+    $instance->ensureInjectedServices();
+    return $instance;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function ensureInjectedServices(): void {
+    parent::ensureInjectedServices();
+    if ($this->workspacePresentation instanceof EventStudioWorkspacePresentation) {
+      return;
+    }
+    $this->workspacePresentation = \Drupal::getContainer()->get('myeventlane_event_studio.workspace_presentation');
+  }
 
   public function getFormId(): string {
     return 'myeventlane_event_studio_information_form';
@@ -33,11 +57,17 @@ final class EventInformationForm extends EventStudioBaseForm {
   }
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Event information saved.'));
+    $has_location = ($saved->hasField('field_venue') && !$saved->get('field_venue')->isEmpty())
+      || ($saved->hasField('field_location') && !$saved->get('field_location')->isEmpty());
+    $this->messenger()->addStatus($has_location
+      ? $this->t('Event information and venue saved.')
+      : $this->t('Event information saved.'));
     $form_state->setRedirect('myeventlane_event_studio.workspace_information', ['node' => $saved->id()]);
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_workspace_location';
+
     $form['mel']['title'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Event title'),
@@ -99,6 +129,10 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['venue_mode'] ?? 'one_off',
       '#prefix' => '<section class="mel-es-field-group mel-es-field-group--location" aria-labelledby="mel-es-location-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-location-title">' . $this->t('Location') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose a saved venue, create a venue, or add a one-off address for this event.') . '</p></header><div class="mel-es-field-group__body">',
     ];
+
+    $this->ensureInjectedServices();
+    $form['mel']['location_saved_summary'] = $this->workspacePresentation->buildSavedLocationSummaryRenderArray($node);
+    $form['mel']['location_saved_summary']['#weight'] = -20;
 
     $form['mel']['venue_saved'] = [
       '#type' => 'entity_autocomplete',

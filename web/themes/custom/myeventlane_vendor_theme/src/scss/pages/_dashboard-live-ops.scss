@@ -1,10 +1,9 @@
 /**
  * @file
- * Vendor dashboard — Slice 4 layout helpers on top of shared live-ops primitives.
+ * Vendor organiser dashboard — overview, attention, focus, upcoming, activity, tools.
  *
- * Structural chrome (hero, stat cards, panels, attendee rows) lives in
- * `@mel-theme/components/live-operations`; this file only handles dashboard-
- * specific composition (event grid, KPI intro + board rhythm, growth strip).
+ * Structural chrome (hero, stat cards, panels) lives in live-operations primitives;
+ * this file handles dashboard-specific composition only.
  */
 
 @use '../tokens/spacing' as *;
@@ -15,145 +14,215 @@
 @use '../tokens/typography' as *;
 
 $mel-dash-lavender: #7c83fd;
+$mel-dash-attention-warning: #F5A623;
+$mel-dash-attention-danger: #D64545;
 
 .mel-vendor-dashboard {
+  --dash-gap: #{$spacing-5};
+  --section-gap: #{$spacing-6};
+
+  display: flex;
+  flex-direction: column;
+  gap: var(--dash-gap);
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+
+  @include respond-to(md) {
+    --dash-gap: #{$spacing-6};
+  }
+
+  &--empty {
+    gap: $spacing-6;
+  }
+
   .mel-live-ops__split {
     margin-top: 0;
   }
 
-  &__priority {
+  // ---------------------------------------------------------------------------
+  // 1 — Organiser header: flat identity surface (~140–180px desktop).
+  // ---------------------------------------------------------------------------
+
+  &__organiser-header,
+  .mel-dashboard-header {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    padding: $spacing-12 0 $spacing-8;
+
+    @include respond-to(md) {
+      padding: $spacing-12 0 $spacing-8;
+    }
+  }
+
+  &__organiser-header-inner {
     display: grid;
     gap: $spacing-4;
-    align-items: center;
-    padding: $spacing-4;
-    border: 1px solid rgba($ml-vendor-navy, 0.12);
-    border-left: 4px solid $info;
-    border-radius: $radius-workspace-card;
-    background: $bg-primary;
-    box-shadow: $shadow-sm;
+    align-items: start;
 
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) auto;
-      padding: $spacing-5;
+      column-gap: $spacing-12;
     }
   }
 
-  &__priority--warn {
-    border-left-color: $warning;
-    background: linear-gradient(135deg, $bg-primary 0%, rgba($warning-light, 0.34) 100%);
+  &__organiser-identity {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
   }
 
-  &__priority--success {
-    border-left-color: $success;
-  }
-
-  &__priority-title {
-    margin: $spacing-1 0 0;
-    color: $text-primary;
-    font-size: $font-size-xl;
+  &__organiser-name {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: clamp(1.75rem, 4.5vw, 2.5rem);
+    font-weight: $font-weight-bold;
     line-height: $line-height-tight;
+    letter-spacing: -0.02em;
   }
 
-  &__priority-message {
-    margin: $spacing-2 0 0;
+  &__organiser-subtitle {
+    margin: 0;
     color: $text-secondary;
+    font-size: $font-size-base;
     line-height: $line-height-normal;
   }
 
-  &__priority-action {
-    width: 100%;
+  &__organiser-subtext {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__header-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-4 $spacing-6;
+    margin: 0;
+    padding: 0;
+    list-style: none;
 
     @include respond-to(md) {
-      width: auto;
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      justify-self: end;
+      align-self: start;
+      gap: $spacing-6;
     }
   }
 
-  &__mission-hero .mel-live-ops__hero-surface {
-    background:
-      radial-gradient(780px circle at 100% 0%, rgba($info, 0.08), transparent 40%),
-      linear-gradient(135deg, $bg-primary 0%, rgba($ml-slate-50, 0.72) 100%);
+  &__header-metric {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
   }
 
-  &__mission-hero {
-    .mel-vendor-dashboard__metric-board.mel-live-ops__metric-board {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: $spacing-2;
-      margin-top: $spacing-4;
-
-      @include respond-to(md) {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: $spacing-3;
-      }
-
-      @include respond-to(lg) {
-        grid-template-columns: repeat(5, minmax(0, 1fr));
-      }
-    }
-
-    .mel-vendor-dashboard__metric-card.mel-live-ops__stat-card {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      justify-content: center;
-      gap: $spacing-1;
-      min-width: 0;
-      min-height: 2.75rem;
-      padding: $spacing-3;
-      border: 1px solid rgba($ml-vendor-navy, 0.08);
-      border-radius: $radius-lg;
-      background: rgba($bg-primary, 0.94);
-      box-shadow: $shadow-xs;
-    }
-
-    .mel-live-ops__stat-value {
-      margin: 0;
-      color: $text-primary;
-      font-size: clamp(1.125rem, 2.5vw, 1.375rem);
-      font-weight: $font-weight-bold;
-      line-height: $line-height-tight;
-    }
-
-    .mel-live-ops__stat-label {
-      margin: 0;
-      color: $text-secondary;
-      font-size: $font-size-xs;
-      font-weight: $font-weight-semibold;
-      letter-spacing: 0.03em;
-      line-height: 1.25;
-      text-transform: uppercase;
-    }
-
-    .mel-live-ops__stat-card--total .mel-live-ops__stat-value {
-      color: $primary;
-    }
-
-    .mel-live-ops__stat-card--ready .mel-live-ops__stat-value {
-      color: $mel-ws-purple;
-    }
-
-    .mel-live-ops__stat-card--capacity .mel-live-ops__stat-value {
-      color: $ml-color-accent;
-    }
+  &__header-metric-value {
+    color: $mel-ws-navy;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    font-variant-numeric: tabular-nums;
   }
 
-  &__mission-hero-layout {
-    @include respond-to(md) {
-      grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.36fr);
-    }
+  &__header-metric-label {
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
   }
 
-  &__mission-summary {
+  &__organiser-actions {
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-2;
-    margin-top: $spacing-4;
+    align-items: center;
+
+    @include respond-to(md) {
+      grid-column: 1;
+    }
   }
 
-  &__mission-actions {
-    display: grid;
-    gap: $spacing-2;
+  // ---------------------------------------------------------------------------
+  // 2 — Workspace overview
+  // ---------------------------------------------------------------------------
+
+  &__workspace-overview {
+    padding: $spacing-6 0;
+    border-top: 1px solid rgba($mel-shell-border, 0.55);
+    background: transparent;
+    box-shadow: none;
   }
+
+  &__workspace-overview-heading {
+    margin: 0 0 $spacing-4;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.15em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
+  }
+
+  &__workspace-overview-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-4 $spacing-6;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  &__workspace-overview-item {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
+  }
+
+  &__workspace-overview-value {
+    color: $mel-ws-navy;
+    font-size: 2rem;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__workspace-overview-label {
+    color: $text-muted;
+    font-size: 0.75rem;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
+  }
+
+  &__workspace-overview-focus {
+    margin: $spacing-4 0 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__workspace-overview-focus-label {
+    color: $text-muted;
+    font-weight: $font-weight-semibold;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 0.75rem;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Shared section rhythm
+  // ---------------------------------------------------------------------------
 
   &__section-head {
     display: flex;
@@ -164,254 +233,448 @@ $mel-dash-lavender: #7c83fd;
     margin-bottom: $spacing-3;
   }
 
-  &__overview-strip,
-  &__attention-strip,
-  &__activity-stream,
-  &__upcoming-strip {
-    padding: $spacing-4;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
-    border-radius: $radius-workspace-card;
-    background: $bg-primary;
-    box-shadow: $shadow-xs;
+  &__section-head--compact {
+    margin-bottom: $spacing-2;
   }
 
-  &__attention-row {
-    display: grid;
-    grid-auto-columns: minmax(16rem, 1fr);
-    grid-auto-flow: column;
-    gap: $spacing-3;
-    overflow-x: auto;
-    padding-bottom: $spacing-1;
-    scroll-snap-type: x proximity;
-
-    @include respond-to(lg) {
-      grid-auto-flow: initial;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      overflow: visible;
-    }
-  }
-
-  &__attention-card {
-    display: grid;
-    gap: $spacing-3;
-    padding: $spacing-3;
-    border: 1px solid rgba($warning, 0.2);
-    border-radius: $radius-lg;
-    background: linear-gradient(135deg, $bg-primary 0%, rgba($warning-light, 0.18) 100%);
-    scroll-snap-align: start;
-  }
-
-  &__overview-items {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: $spacing-2;
-
-    @include respond-to(md) {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    @include respond-to(xl) {
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-    }
-  }
-
-  &__overview-item {
-    display: grid;
-    gap: $spacing-1;
-    min-width: 0;
-    padding: $spacing-3;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
-    border-radius: $radius-lg;
-    background: $bg-primary;
-  }
-
-  &__overview-item--success {
-    border-color: rgba($success, 0.24);
-  }
-
-  &__overview-item--warn {
-    border-color: rgba($warning, 0.28);
-  }
-
-  &__overview-label,
-  &__overview-context,
-  &__upcoming-date,
-  &__upcoming-meta {
-    color: $text-secondary;
-    font-size: $font-size-xs;
-    line-height: $line-height-normal;
-  }
-
-  &__overview-label {
-    text-transform: uppercase;
-    letter-spacing: $letter-spacing-wide;
-  }
-
-  &__overview-value {
-    color: $text-primary;
-    font-size: $font-size-xl;
+  &__section-title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: clamp(1rem, 2vw, 1.125rem);
+    font-weight: $font-weight-bold;
     line-height: $line-height-tight;
   }
 
-  &__metric-strip {
+  &__section--tertiary {
+    margin-top: 0;
+    padding: var(--section-gap) 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.55);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 3 — Needs attention action queue
+  // ---------------------------------------------------------------------------
+
+  &__action-queue.mel-dashboard-needs-attention {
     padding: $spacing-4;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
-    border-radius: $radius-workspace-card;
+    border: 1px solid rgba($mel-shell-border, 0.55);
+    border-left: 4px solid $mel-dash-attention-warning;
+    border-radius: $radius-lg;
     background: $bg-primary;
-    box-shadow: $shadow-sm;
+    box-shadow: none;
 
     @include respond-to(md) {
       padding: $spacing-5;
     }
-  }
 
-  &__metric-board.mel-live-ops__metric-board {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin-top: $spacing-4;
+    .mel-vendor-dashboard__section-title {
+      font-size: 1.5rem;
+    }
 
-    @include respond-to(lg) {
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+    .mel-vendor-dashboard__timeline {
+      display: grid;
+      gap: $spacing-2;
+      margin: 0;
+      padding: 0;
+      border-left: none;
+      list-style: none;
+    }
+
+    .mel-vendor-dashboard__timeline-item {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: $spacing-3;
+      min-height: 4rem;
+      padding: $spacing-3;
+      margin: 0;
+      border: 1px solid rgba($mel-shell-border, 0.45);
+      border-left-width: 3px;
+      border-left-style: solid;
+      border-radius: $radius-md;
+      background: rgba($mel-shell-page-bg, 0.4);
+      box-shadow: none;
+    }
+
+    .mel-vendor-dashboard__timeline-item--warn {
+      border-left-color: $mel-dash-attention-warning;
+    }
+
+    .mel-vendor-dashboard__timeline-item--danger {
+      border-left-color: $mel-dash-attention-danger;
+    }
+
+    .mel-vendor-dashboard__timeline-item--info {
+      border-left-color: $primary;
+    }
+
+    .mel-vendor-dashboard__timeline-item--success {
+      border-left-color: rgba($success, 0.75);
+    }
+
+    .mel-vendor-dashboard__timeline-marker {
+      position: static;
+      flex-shrink: 0;
+      align-self: center;
+      width: auto;
+      height: auto;
+      border: none;
+      background: transparent;
+      color: inherit;
+      font-size: $font-size-base;
+      font-weight: $font-weight-bold;
+      line-height: 1;
+    }
+
+    .mel-vendor-dashboard__timeline-item--warn .mel-vendor-dashboard__timeline-marker {
+      color: $mel-dash-attention-warning;
+    }
+
+    .mel-vendor-dashboard__timeline-item--danger .mel-vendor-dashboard__timeline-marker {
+      color: $mel-dash-attention-danger;
+    }
+
+    .mel-vendor-dashboard__timeline-item--info .mel-vendor-dashboard__timeline-marker {
+      color: $primary;
+    }
+
+    .mel-vendor-dashboard__timeline-content {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: $spacing-2 $spacing-4;
+      flex: 1 1 auto;
+      min-width: 0;
+      width: 100%;
+    }
+
+    .mel-vendor-dashboard__timeline-text {
+      font-size: $font-size-base;
+      font-weight: $font-weight-semibold;
+      color: $text-primary;
+      line-height: $line-height-normal;
+    }
+
+    .mel-vendor-dashboard__timeline-action {
+      flex: 0 0 auto;
+      margin-left: auto;
+      white-space: nowrap;
     }
   }
 
-  &__quick-actions.mel-live-ops__quick-bar {
-    position: static;
-    margin-top: -$spacing-2;
-    margin-bottom: 0;
+  // ---------------------------------------------------------------------------
+  // 4 — Current focus: compact status card
+  // ---------------------------------------------------------------------------
+
+  &__current-event {
+    padding: $spacing-6;
+    border: 1px solid rgba($mel-shell-border, 0.55);
+    border-left: 4px solid $primary;
+    border-radius: $radius-lg;
     background: $bg-primary;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
+    box-shadow: none;
   }
 
-  &__activity-list {
+  &__current-event-body {
     display: grid;
-    gap: $spacing-2;
+    gap: $spacing-3;
 
     @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: $spacing-4;
+    }
+  }
+
+  &__current-event-main {
+    display: grid;
+    gap: $spacing-2;
+    min-width: 0;
+  }
+
+  &__current-event-title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: 1.75rem;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  &__current-event-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    align-items: center;
+  }
+
+  &__current-event-date {
+    color: $text-muted;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__current-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    align-items: center;
+    flex: 0 0 auto;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 5 — Upcoming events cards (planning anchor)
+  // ---------------------------------------------------------------------------
+
+  &__upcoming-strip {
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &__section-title--prominent {
+    font-size: clamp(1.125rem, 2.2vw, 1.375rem);
+  }
+
+  &__summary-cards {
+    display: grid;
+    gap: $spacing-4;
+    grid-template-columns: 1fr;
+
+    @include respond-to(sm) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 
-  &__activity-item {
+  &__summary-card {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    gap: $spacing-2 $spacing-3;
-    align-items: center;
-    padding: $spacing-3;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
-    border-radius: $radius-lg;
-    background: rgba($ml-slate-50, 0.62);
-
-    .mel-live-ops__readiness-link {
-      grid-column: 2;
-    }
-  }
-
-  &__activity-message {
-    margin: 0;
-    color: $text-primary;
-    font-weight: $font-weight-semibold;
-    line-height: $line-height-normal;
-  }
-
-  &__upcoming-row {
-    display: grid;
-    grid-auto-columns: minmax(15rem, 1fr);
-    grid-auto-flow: column;
-    gap: $spacing-3;
-    overflow-x: auto;
-    padding-bottom: $spacing-1;
-    scroll-snap-type: x proximity;
-
-    @include respond-to(lg) {
-      grid-auto-flow: initial;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      overflow: visible;
-    }
-  }
-
-  &__upcoming-card {
-    display: grid;
-    gap: $spacing-3;
-    padding: $spacing-3;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
-    border-radius: $radius-lg;
+    gap: $spacing-1;
+    min-width: 0;
+    padding: $spacing-6;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: 1.25rem;
     background: $bg-primary;
-    scroll-snap-align: start;
+    box-shadow: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    }
   }
 
-  &__attention-card--boosted,
-  &__upcoming-card--boosted,
-  &__event-row--boosted {
-    border-color: rgba(245, 192, 76, 0.55);
-    box-shadow:
-      0 0 0 1px rgba(245, 192, 76, 0.18),
-      0 4px 16px rgba(245, 192, 76, 0.1);
+  &__summary-card-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: $spacing-3;
+    min-width: 0;
+
+    .mel-event-card-thumb {
+      flex-shrink: 0;
+      width: 4.5rem;
+      height: 4.5rem;
+    }
+
+    .mel-event-card-thumb__img {
+      width: 4.5rem;
+      height: 4.5rem;
+      object-fit: cover;
+    }
   }
 
-  &__boost-badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 28px;
-    padding: 0 $spacing-2;
-    border-radius: 999px;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-bold;
-    border: 1px solid rgba(245, 192, 76, 0.65);
-    background: rgba(245, 192, 76, 0.22);
-    color: $text-primary;
+  &__summary-card-body {
+    display: grid;
+    gap: $spacing-1;
+    min-width: 0;
+    flex: 1 1 auto;
   }
 
-  &__boost-badge--inline {
-    min-height: 24px;
-    padding: 0 $spacing-2;
-  }
-
-  &__boost-expiry {
+  &__summary-card-title {
     margin: 0;
-    color: $text-secondary;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
+    color: $text-primary;
+    font-size: 1.375rem;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+  }
+
+  &__summary-card-date {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-sm;
     line-height: $line-height-normal;
   }
 
-  &__boost-performance {
+  &__summary-card-status {
+    margin: 0;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+
+    &--draft {
+      color: $text-muted;
+      background: rgba($ml-vendor-navy, 0.04);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      padding: 0 $spacing-2;
+      width: fit-content;
+    }
+
+    &--upcoming {
+      color: $mel-ws-purple;
+      background: rgba($mel-ws-purple, 0.08);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      padding: 0 $spacing-2;
+      width: fit-content;
+    }
+
+    &--boosted {
+      color: $ml-color-accent;
+      background: rgba($ml-color-accent, 0.12);
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      min-height: 1.75rem;
+      padding: 0 $spacing-2;
+      width: fit-content;
+    }
+  }
+
+  &__summary-card-action {
     display: inline-flex;
     align-items: center;
-    min-height: 44px;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-bold;
-    color: $mel-dash-lavender;
+    min-height: 2.75rem;
+    margin-top: $spacing-1;
+    font-weight: $font-weight-semibold;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6 — Recent activity: compressed flat list
+  // ---------------------------------------------------------------------------
+
+  &__activity-stream {
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  &__activity-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  &__activity-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: $spacing-2 $spacing-4;
+    min-height: 3rem;
+    padding: $spacing-2 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__activity-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: $text-primary;
+    font-size: 0.9375rem;
+    line-height: $line-height-normal;
+  }
+
+  &__activity-link {
+    font-weight: $font-weight-semibold;
     text-decoration: underline;
     text-underline-offset: 3px;
 
-    &:hover {
-      color: $ml-vendor-navy;
-    }
-
     &:focus-visible {
-      outline: 2px solid $mel-dash-lavender;
+      outline: 2px solid rgba($primary, 0.35);
       outline-offset: 2px;
       border-radius: $radius-sm;
     }
   }
 
-  &__upcoming-title {
-    margin: 0;
-    color: $text-primary;
-    font-size: $font-size-base;
-    line-height: $line-height-tight;
+  &__activity-time {
+    flex: none;
+    color: $text-muted;
+    font-size: 0.8125rem;
+    font-weight: $font-weight-semibold;
+    white-space: nowrap;
   }
 
-  &__upcoming-date,
-  &__upcoming-meta {
-    margin: $spacing-1 0 0;
+  // ---------------------------------------------------------------------------
+  // 7 — Tools accordions
+  // ---------------------------------------------------------------------------
+
+  .mel-dashboard-tools {
+    display: grid;
+    gap: $spacing-2;
+    margin-top: var(--section-gap);
+    padding: $spacing-4 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.55);
+    border-radius: 0;
+    box-shadow: none;
+
+    &__title {
+      margin: 0 0 $spacing-1;
+      color: $text-muted;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    > .mel-vendor-dashboard__details {
+      margin: 0;
+      background: $bg-primary;
+      border: 1px solid rgba($mel-shell-border, 0.5);
+      border-radius: $radius-lg;
+      box-shadow: none;
+
+      > summary {
+        min-height: 2.75rem;
+        padding: $spacing-2 $spacing-4;
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+        cursor: pointer;
+      }
+    }
   }
+
+  // ---------------------------------------------------------------------------
+  // Collapsed panels (tools content)
+  // ---------------------------------------------------------------------------
 
   &__details {
     border: 1px solid rgba($ml-vendor-navy, 0.1);
     border-radius: $radius-workspace-card;
     background: $bg-primary;
-    box-shadow: $shadow-xs;
+    box-shadow: none;
 
     > summary {
       min-height: 3.25rem;
@@ -449,16 +712,14 @@ $mel-dash-lavender: #7c83fd;
     }
   }
 
-  &__panel {
-    background: $bg-primary;
+  &__details-grid--single {
+    @include respond-to(lg) {
+      grid-template-columns: 1fr;
+    }
   }
 
-  &__metric-intro {
-    margin-bottom: $spacing-2;
-
-    .mel-live-ops__metric-board {
-      margin-top: $spacing-4;
-    }
+  &__panel {
+    background: $bg-primary;
   }
 
   &__events-scope {
@@ -486,8 +747,6 @@ $mel-dash-lavender: #7c83fd;
       gap: $spacing-3;
       margin-bottom: 0;
       min-width: 0;
-      // Shared live-ops attendee rows switch to two columns at md+; that collides
-      // with the dashboard event card grid and causes overlapping actions.
       grid-template-columns: none;
       align-items: stretch;
     }
@@ -559,12 +818,12 @@ $mel-dash-lavender: #7c83fd;
     margin: 0;
     padding: 0;
     list-style: none;
-  }
 
-  &__growth-feed li {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+    li {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
   }
 
   &__events-empty {
@@ -583,16 +842,6 @@ $mel-dash-lavender: #7c83fd;
     margin-right: auto;
   }
 
-  &__events-empty-actions {
-    margin-top: $spacing-4;
-  }
-
-  &__footer-surfaces {
-    display: grid;
-    gap: $spacing-3;
-    padding-top: $spacing-2;
-  }
-
   &__micro-surface {
     display: flex;
     flex-wrap: wrap;
@@ -604,414 +853,32 @@ $mel-dash-lavender: #7c83fd;
     background: $bg-primary;
   }
 
-  &__section-head--compact {
-    margin-bottom: $spacing-2;
-  }
-
-  &__attention-strip--compact,
-  &__upcoming-strip--compact,
-  &__activity-stream--compact {
-    padding: $spacing-3;
-  }
-
-  &__compact-rows {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
-    border-radius: $radius-lg;
-    overflow: hidden;
-  }
-
-  &__compact-row {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: $spacing-2 $spacing-3;
-    min-height: 2.75rem;
-    padding: $spacing-2 $spacing-3;
-    border-bottom: 1px solid rgba($ml-vendor-navy, 0.06);
-
-    &:last-child {
-      border-bottom: 0;
-    }
-  }
-
-  &__compact-row-main {
-    display: grid;
-    gap: $spacing-1;
-    min-width: 0;
-    flex: 1 1 12rem;
-  }
-
-  &__compact-row-title {
-    color: $text-primary;
-    font-weight: $font-weight-semibold;
-    line-height: $line-height-tight;
-  }
-
-  &__compact-row-meta {
-    color: $text-secondary;
-    font-size: $font-size-sm;
-    line-height: $line-height-normal;
-  }
-
-  &__compact-row-action {
+  &__boost-badge {
     display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
-    white-space: nowrap;
-  }
-
-  &__compact-table-wrap {
-    overflow-x: auto;
-  }
-
-  &__compact-table-event {
-    font-weight: $font-weight-semibold;
-    text-align: left;
-  }
-
-  &__compact-table-action {
-    white-space: nowrap;
-  }
-
-  &__compact-feed {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-  }
-
-  &__compact-feed-item {
-    display: flex;
-    align-items: center;
-    gap: $spacing-2;
-    min-height: 2.75rem;
-    padding: $spacing-1 0;
-    border-bottom: 1px solid rgba($ml-vendor-navy, 0.06);
-    font-size: $font-size-sm;
-    line-height: $line-height-normal;
-
-    &:last-child {
-      border-bottom: 0;
-    }
-  }
-
-  &__compact-feed-icon {
-    flex: 0 0 auto;
-    width: 1rem;
-    color: $success;
-    font-weight: $font-weight-bold;
-    text-align: center;
-  }
-
-  &__compact-feed-link,
-  &__compact-feed-text {
-    min-width: 0;
-    color: $text-primary;
-  }
-
-  &__compact-feed-link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    font-weight: $font-weight-semibold;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-
-    &:focus-visible {
-      outline: 2px solid rgba($primary, 0.35);
-      outline-offset: 2px;
-      border-radius: $radius-sm;
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Visual hierarchy — metric board, momentum card, action queue, cards, timeline
-  // ---------------------------------------------------------------------------
-
-  &__momentum-card {
-    padding: $spacing-4;
-    border: 1px solid rgba($ml-color-accent, 0.22);
-    border-left: 4px solid $ml-color-accent;
-    border-radius: $radius-workspace-card;
-    background: linear-gradient(135deg, rgba($ml-accent-coral-light, 0.45) 0%, rgba($bg-primary, 0.98) 100%);
-    box-shadow: $shadow-xs;
-  }
-
-  &__momentum-title {
-    margin: $spacing-1 0 0;
-    color: $text-primary;
-    font-size: $font-size-lg;
-    font-weight: $font-weight-bold;
-    line-height: $line-height-tight;
-  }
-
-  &__momentum-message {
-    margin: $spacing-2 0 0;
-    color: $text-secondary;
-    font-size: $font-size-base;
-    line-height: $line-height-normal;
-  }
-
-  &__momentum-link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    margin-top: $spacing-2;
-    color: $text-primary;
-    font-weight: $font-weight-semibold;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-
-    &:focus-visible {
-      outline: 2px solid rgba($primary, 0.35);
-      outline-offset: 2px;
-      border-radius: $radius-sm;
-    }
-  }
-
-  &__action-queue {
-    border-left: 4px solid rgba($primary, 0.55);
-  }
-
-  &__action-queue-list {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-    display: grid;
-    gap: $spacing-2;
-  }
-
-  &__action-queue-item {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: $spacing-2 $spacing-3;
-    min-height: 2.75rem;
-    padding: $spacing-3;
-    border: 1px solid rgba($ml-vendor-navy, 0.08);
-    border-radius: $radius-lg;
-    background: rgba($ml-slate-50, 0.55);
-
-    .mel-event-card-thumb {
-      flex-shrink: 0;
-    }
-  }
-
-  &__action-queue-item--primary {
-    border-color: rgba($warning, 0.28);
-    background: linear-gradient(135deg, rgba($warning-light, 0.28) 0%, rgba($bg-primary, 0.96) 100%);
-    box-shadow: $shadow-xs;
-  }
-
-  &__action-queue-body {
-    display: grid;
-    gap: $spacing-1;
-    min-width: 0;
-    flex: 1 1 12rem;
-  }
-
-  &__action-queue-title {
-    color: $text-primary;
-    font-size: $font-size-base;
-    font-weight: $font-weight-bold;
-    line-height: $line-height-tight;
-  }
-
-  &__action-queue-problem {
-    color: $text-secondary;
-    font-size: $font-size-sm;
-    line-height: $line-height-normal;
-  }
-
-  &__action-queue-link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    white-space: nowrap;
-    font-weight: $font-weight-semibold;
-  }
-
-  &__summary-cards {
-    display: grid;
-    gap: $spacing-3;
-    grid-template-columns: 1fr;
-
-    @include respond-to(sm) {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-
-    @include respond-to(lg) {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      overflow: visible;
-    }
-  }
-
-  &__summary-card {
-    display: grid;
-    gap: $spacing-1;
-    min-width: 0;
-    min-height: 2.75rem;
-    padding: $spacing-3;
-    border: 1px solid rgba($ml-vendor-navy, 0.1);
-    border-radius: $radius-lg;
-    background: $ml-vendor-bg;
-    box-shadow: $shadow-xs;
-  }
-
-  &__summary-card-layout {
-    display: flex;
-    align-items: flex-start;
-    gap: $spacing-3;
-    min-width: 0;
-
-    .mel-event-card-thumb {
-      flex-shrink: 0;
-    }
-  }
-
-  &__summary-card-body {
-    display: grid;
-    gap: $spacing-1;
-    min-width: 0;
-    flex: 1 1 auto;
-  }
-
-  &__summary-card-title {
-    margin: 0;
-    color: $text-primary;
-    font-size: $font-size-sm;
-    font-weight: $font-weight-bold;
-    line-height: $line-height-tight;
-  }
-
-  &__summary-card-date {
-    margin: 0;
-    color: $text-secondary;
-    font-size: $font-size-sm;
-    line-height: $line-height-normal;
-  }
-
-  &__summary-card-status {
-    margin: 0;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-
-    &--draft {
-      color: $text-muted;
-      background: rgba($ml-vendor-navy, 0.04);
-      border-radius: $radius-sm;
-      display: inline-flex;
-      align-items: center;
-      min-height: 1.75rem;
-      padding: 0 $spacing-2;
-      width: fit-content;
-    }
-
-    &--upcoming {
-      color: $mel-ws-purple;
-    }
-
-    &--boosted {
-      color: $ml-color-accent;
-      background: rgba($ml-color-accent, 0.12);
-      border-radius: $radius-sm;
-      display: inline-flex;
-      align-items: center;
-      min-height: 1.75rem;
-      padding: 0 $spacing-2;
-      width: fit-content;
-    }
-  }
-
-  &__summary-card-action {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    margin-top: $spacing-1;
-    font-weight: $font-weight-semibold;
-  }
-
-  &__timeline {
-    list-style: none;
-    margin: 0;
-    padding: 0 0 0 $spacing-1;
-    border-left: 2px solid rgba($ml-vendor-navy, 0.1);
-  }
-
-  &__timeline-item {
-    position: relative;
-    display: flex;
-    gap: $spacing-3;
-    min-height: 2.75rem;
-    padding: $spacing-2 0 $spacing-2 $spacing-3;
-  }
-
-  &__timeline-marker {
-    position: absolute;
-    left: calc(-1 * #{$spacing-1} - 0.4375rem);
-    top: $spacing-3;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.125rem;
-    height: 1.125rem;
-    border-radius: 50%;
-    background: $bg-primary;
-    border: 2px solid rgba($info, 0.35);
-    color: $info;
+    min-height: 28px;
+    padding: 0 $spacing-2;
+    border-radius: 999px;
     font-size: $font-size-xs;
     font-weight: $font-weight-bold;
-    line-height: 1;
-  }
-
-  &__timeline-item--success &__timeline-marker {
-    border-color: rgba($success, 0.45);
-    color: $success;
-  }
-
-  &__timeline-item--warn &__timeline-marker {
-    border-color: rgba($warning, 0.45);
-    color: $warning;
-  }
-
-  &__timeline-content {
-    min-width: 0;
-    flex: 1 1 auto;
-    font-size: $font-size-sm;
-    line-height: $line-height-normal;
-  }
-
-  &__timeline-link,
-  &__timeline-text {
+    border: 1px solid rgba(245, 192, 76, 0.65);
+    background: rgba(245, 192, 76, 0.22);
     color: $text-primary;
   }
 
-  &__timeline-link {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    font-weight: $font-weight-semibold;
-    text-decoration: underline;
-    text-underline-offset: 3px;
-
-    &:focus-visible {
-      outline: 2px solid rgba($primary, 0.35);
-      outline-offset: 2px;
-      border-radius: $radius-sm;
-    }
+  &__boost-badge--inline {
+    min-height: 24px;
+    padding: 0 $spacing-2;
   }
 
-  // ---------------------------------------------------------------------------
-  // Homepage visibility productisation (collapsed Homepage performance panel)
-  // ---------------------------------------------------------------------------
+  &__event-row--boosted {
+    border-color: rgba(245, 192, 76, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(245, 192, 76, 0.18),
+      0 4px 16px rgba(245, 192, 76, 0.1);
+  }
 
+  // Homepage visibility (tools panel)
   &__homepage-visibility {
     display: grid;
     gap: $spacing-4;
@@ -1036,7 +903,7 @@ $mel-dash-lavender: #7c83fd;
     border: 1px solid rgba($success, 0.22);
     border-radius: $radius-workspace-card;
     background: linear-gradient(135deg, rgba($success-light, 0.35) 0%, rgba($bg-primary, 0.98) 100%);
-    box-shadow: $shadow-xs;
+    box-shadow: none;
   }
 
   &__visibility-signals {
@@ -1130,12 +997,6 @@ $mel-dash-lavender: #7c83fd;
     margin-top: 0;
   }
 
-  &__details-grid--single {
-    @include respond-to(lg) {
-      grid-template-columns: 1fr;
-    }
-  }
-
   &__visibility-breakdown {
     display: grid;
     gap: $spacing-2;
@@ -1192,7 +1053,7 @@ $mel-dash-lavender: #7c83fd;
     border: 1px solid rgba($ml-vendor-navy, 0.1);
     border-radius: $radius-workspace-card;
     background: $ml-vendor-bg;
-    box-shadow: $shadow-xs;
+    box-shadow: none;
   }
 
   &__visibility-event-card.is-boosted {
@@ -1276,10 +1137,7 @@ $mel-dash-lavender: #7c83fd;
     font-weight: $font-weight-semibold;
   }
 
-  // ---------------------------------------------------------------------------
-  // Analytics productisation — insight, grouped summary, top events
-  // ---------------------------------------------------------------------------
-
+  // Analytics (tools panel)
   &__analytics-insight {
     padding: $spacing-4;
     border: 1px solid rgba($mel-ws-purple, 0.16);
@@ -1328,7 +1186,7 @@ $mel-dash-lavender: #7c83fd;
 
   &__analytics-card {
     padding: $spacing-4;
-    box-shadow: $shadow-xs;
+    box-shadow: none;
   }
 
   &__analytics-top-events {
@@ -1347,7 +1205,7 @@ $mel-dash-lavender: #7c83fd;
     border: 1px solid rgba($ml-vendor-navy, 0.1);
     border-radius: $radius-lg;
     background: $ml-vendor-bg;
-    box-shadow: $shadow-xs;
+    box-shadow: none;
   }
 
   &__analytics-top-event-head {
@@ -1424,4 +1282,237 @@ $mel-dash-lavender: #7c83fd;
 .mel-vendor-dashboard .mel-live-ops__chip[href] {
   cursor: pointer;
   text-decoration: none;
+}
+
+// ---------------------------------------------------------------------------
+// MEL Pro experience (Phase 2) — reusable badge + premium status panel.
+// Pastel, soft, rounded, mobile-first. Label is real text (not colour-only)
+// for WCAG legibility. Navy text on a light lavender field keeps contrast
+// well above 4.5:1.
+// ---------------------------------------------------------------------------
+
+.mel-pro-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-1;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid rgba($mel-dash-lavender, 0.4);
+  border-radius: $radius-full;
+  background: rgba($mel-dash-lavender, 0.14);
+  color: $mel-ws-navy;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+
+  &__icon {
+    color: $mel-dash-lavender;
+    font-size: 0.85em;
+    line-height: 1;
+  }
+
+  &--sm {
+    padding: 0.15rem 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  &--lg {
+    gap: $spacing-2;
+    padding: 0.35rem 0.85rem;
+    font-size: $font-size-sm;
+  }
+}
+
+.mel-vendor-dashboard__organiser-pro {
+  margin: $spacing-1 0 0;
+}
+
+.mel-pro-panel {
+  display: grid;
+  gap: $spacing-4;
+  padding: $spacing-5;
+  border: 1px solid rgba($mel-dash-lavender, 0.3);
+  border-radius: $radius-lg;
+  background: rgba($mel-dash-lavender, 0.06);
+  box-shadow: none;
+
+  @include respond-to(md) {
+    padding: $spacing-6;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-3;
+  }
+
+  &__lede {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__checklist {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: $spacing-2 $spacing-5;
+    }
+  }
+
+  &__check {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  &__check-mark {
+    flex-shrink: 0;
+    font-weight: $font-weight-bold;
+    line-height: 1;
+  }
+
+  &__check--on &__check-mark {
+    color: $success;
+  }
+
+  &__check--soon {
+    color: $text-muted;
+  }
+
+  &__check--soon &__check-mark {
+    color: $text-muted;
+  }
+
+  &__soon {
+    margin-left: $spacing-1;
+    padding: 0.1rem 0.45rem;
+    border-radius: $radius-full;
+    background: rgba($text-muted, 0.14);
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-3 $spacing-5;
+    margin: 0;
+    padding-top: $spacing-3;
+    border-top: 1px solid rgba($mel-shell-border, 0.45);
+  }
+
+  &__meta-row {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__meta-term {
+    margin: 0;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  &__meta-desc {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-bold;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// MEL Pro one-time welcome (Finalisation) — celebratory but calm/pastel.
+// ---------------------------------------------------------------------------
+.mel-pro-welcome {
+  display: grid;
+  gap: $spacing-3;
+  padding: $spacing-5;
+  border: 1px solid rgba($mel-dash-lavender, 0.35);
+  border-radius: $radius-lg;
+  background: rgba($mel-dash-lavender, 0.1);
+
+  @include respond-to(md) {
+    padding: $spacing-6;
+  }
+
+  &__head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-2;
+  }
+
+  &__title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-lg;
+    font-weight: $font-weight-bold;
+    line-height: $line-height-normal;
+  }
+
+  &__lede {
+    margin: 0;
+    color: $text-primary;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2 $spacing-4;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+
+    &::before {
+      content: "\2713";
+      color: $success;
+      font-weight: $font-weight-bold;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+  }
 }

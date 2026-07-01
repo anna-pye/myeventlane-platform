@@ -37,6 +37,7 @@ final class MelCustomerContinuityPresenter {
     string $attendee_name,
     string $attendee_email,
     int $guests,
+    bool $is_authenticated = FALSE,
   ): array {
     $title = $event->label();
     $calendar_url = Url::fromRoute('myeventlane_rsvp.ics_download', ['node' => (int) $event->id()])->toString();
@@ -119,6 +120,24 @@ final class MelCustomerContinuityPresenter {
       ];
     }
 
+    if ($is_authenticated) {
+      try {
+        $my_events_url = Url::fromRoute('myeventlane_dashboard.customer')->toString();
+      }
+      catch (\Throwable) {
+        $my_events_url = '';
+      }
+      if ($my_events_url !== '') {
+        $actions[] = [
+          'key' => 'view_my_events',
+          'label' => $this->readinessHelper->customerContinuityMyEventsCta(),
+          'url' => $my_events_url,
+          'variant' => 'secondary',
+          'download' => FALSE,
+        ];
+      }
+    }
+
     $actions[] = [
       'key' => 'add_calendar',
       'label' => $this->readinessHelper->customerContinuityAddToCalendarCta(),
@@ -178,16 +197,16 @@ final class MelCustomerContinuityPresenter {
     ?string $donation_total_formatted,
     array $calendar_links,
     string $event_url,
+    bool $is_paid = TRUE,
   ): array {
     $labels = $this->readinessHelper->customerCheckoutCompletionPresentationLabels();
-    $hero = $this->resolveCheckoutCompletionHero($has_tickets, $donation_total_formatted, $labels);
+    $hero = $this->resolveCheckoutCompletionHero($has_tickets, $donation_total_formatted, $labels, $is_paid);
 
     $primary_url = '';
     $primary_label = '';
     if ($customer_id) {
       try {
-        $primary_url = Url::fromRoute('entity.commerce_order.user_view', [
-          'user' => $customer_id,
+        $primary_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
           'commerce_order' => $order_entity_id,
         ])->toString();
       }
@@ -225,11 +244,15 @@ final class MelCustomerContinuityPresenter {
       ];
     }
 
+    $email_line = $has_tickets && !$is_paid
+      ? $this->readinessHelper->customerCheckoutPendingPaymentEmailLine($email)
+      : $this->readinessHelper->customerCheckoutConfirmationEmailSentLine($email);
+
     return [
       'hero' => $hero,
       'labels' => $labels,
       'confirmation' => [
-        'email_line' => $this->readinessHelper->customerCheckoutConfirmationEmailSentLine($email),
+        'email_line' => $email_line,
         'order_line' => $this->readinessHelper->customerCheckoutOrderNumberLine($order_number),
       ],
       'guest' => [
@@ -304,7 +327,7 @@ final class MelCustomerContinuityPresenter {
    *
    * @return array{type: string, heading: string, lead: string}
    */
-  private function resolveCheckoutCompletionHero(bool $has_tickets, ?string $donation_total_formatted, array $labels): array {
+  private function resolveCheckoutCompletionHero(bool $has_tickets, ?string $donation_total_formatted, array $labels, bool $is_paid = TRUE): array {
     $donation_display = ($donation_total_formatted ?? '') !== '';
     if ($donation_display && !$has_tickets) {
       return [
@@ -314,9 +337,14 @@ final class MelCustomerContinuityPresenter {
       ];
     }
     if ($has_tickets) {
-      $h = $this->readinessHelper->customerCheckoutCompletionHero();
+      // Confirmed booking language only when Commerce considers the order paid.
+      // Pending-payment orders (e.g. manual/invoice gateway) get an honest
+      // "order received" state rather than "booking confirmed".
+      $h = $is_paid
+        ? $this->readinessHelper->customerCheckoutCompletionHero()
+        : $this->readinessHelper->customerCheckoutPendingPaymentHero();
       return [
-        'type' => 'tickets',
+        'type' => $is_paid ? 'tickets' : 'tickets_pending',
         'heading' => $h['heading'],
         'lead' => $h['lead'],
       ];

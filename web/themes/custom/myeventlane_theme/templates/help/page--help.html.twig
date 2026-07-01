@@ -1,24 +1,9 @@
 {#
 /**
  * @file
- * Theme override for the /help page family.
+ * Help Centre landing — unified discovery shell.
  *
- * Extends the standard MEL public page shell (header + footer) and wraps
- * Help Centre content in the existing help page styles.
+ * @see includes/mel-discovery-page-shell.html.twig
  */
 #}
-{% extends "page.html.twig" %}
-
-{% block content %}
-  <div class="mel-help-page">
-    {% if page.breadcrumb %}
-      <div class="mel-help-page__breadcrumb">
-        {{ page.breadcrumb }}
-      </div>
-    {% endif %}
-
-    <div class="mel-help-page__content">
-      {{ page.content }}
-    </div>
-  </div>
-{% endblock %}
+{% include '@myeventlane_theme/includes/mel-discovery-page-shell.html.twig' %}

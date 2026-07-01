@@ -35,9 +35,10 @@ export default defineConfig({
       },
     },
     cssCodeSplit: true,
-    sourcemap: true,
+    sourcemap: false,
   },
   css: {
+    devSourcemap: true,
     preprocessorOptions: {
       scss: {
         // Use the modern API for Sass

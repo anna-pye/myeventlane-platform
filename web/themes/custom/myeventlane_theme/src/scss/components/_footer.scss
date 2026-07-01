@@ -144,9 +144,10 @@
 .mel-footer-brand__logo {
   display: block;
   width: auto;
-  max-width: 180px;
+  max-width: min(200px, 50vw);
   height: auto;
-  max-height: 48px;
+  max-height: 52px;
+  object-fit: contain;
 }
 
 .mel-footer-brand__copy {

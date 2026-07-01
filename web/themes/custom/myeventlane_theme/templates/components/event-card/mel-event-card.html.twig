@@ -207,21 +207,24 @@
         <div class="mel-event-card__placeholder" aria-hidden="true"></div>
       {% endif %}
 
-      {% if _has_date_badge %}
-        <div class="mel-event-card__date-pill" aria-hidden="true">
-          <span class="mel-event-card__date-pill-day">{{ _date_day }}</span>
-          <span class="mel-event-card__date-pill-month">{{ _date_month }}</span>
+      {% if _has_date_badge or _image_badge_label %}
+        <div class="mel-event-card__badge-stack{% if not _has_date_badge %} mel-event-card__badge-stack--no-date{% endif %}" aria-hidden="true">
+          {% if _has_date_badge %}
+            <div class="mel-event-card__date-pill">
+              <span class="mel-event-card__date-pill-day">{{ _date_day }}</span>
+              <span class="mel-event-card__date-pill-month">{{ _date_month }}</span>
+            </div>
+          {% endif %}
+          {% if _image_badge_label %}
+            <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-card__image-badge mel-event-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}">
+              <span class="mel-pill__label">{{ _image_badge_label }}</span>
+            </span>
+          {% endif %}
         </div>
       {% endif %}
 
       {% if _variant not in ['compact', 'list'] %}
         <div class="mel-event-card__overlay{% if _is_hero %} mel-event-card__overlay--hero{% elseif _variant == 'featured' %} mel-event-card__overlay--featured{% else %} mel-event-card__overlay--standard{% endif %}" aria-hidden="true"></div>
-      {% endif %}
-
-      {% if _image_badge_label %}
-        <span class="{% if _state_badge_type == 'category' %}mel-event__category {% endif %}mel-event-card__image-badge mel-event-card__badge mel-pill mel-pill--on-image mel-event-card__state-pill mel-event-card__state-pill--{{ _state_badge_type|e('html_attr') }}" aria-hidden="true">
-          <span class="mel-pill__label">{{ _image_badge_label }}</span>
-        </span>
       {% endif %}
     </div>
 

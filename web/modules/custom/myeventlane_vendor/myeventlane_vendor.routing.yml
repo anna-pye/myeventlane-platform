@@ -42,7 +42,8 @@ entity.myeventlane_vendor.delete_form:
   options:
     _admin_route: TRUE
 
-# Reserve /vendor/login so it is not matched as /vendor/{slug} with slug "login" (404).
+# Alias for /vendor/login → core user.login. Route is public; VendorLoginAliasController
+# only issues a redirect with destination normalised to safe organiser paths.
 myeventlane_vendor.login_alias:
   path: '/vendor/login'
   defaults:
@@ -110,7 +111,9 @@ myeventlane_vendor.stripe_connect:
   options:
     _maintenance_access: FALSE
 
-# Stripe Connect callback.
+# Stripe Connect return URL. Route is public so Stripe AccountLink can redirect here;
+# StripeConnectController::callback() requires an authenticated user and validates
+# account_id against the current vendor store before saving Connect status.
 myeventlane_vendor.stripe_callback:
   path: '/stripe/callback'
   defaults:
@@ -121,7 +124,8 @@ myeventlane_vendor.stripe_callback:
   options:
     _maintenance_access: FALSE
 
-# Legacy Stripe Connect callback path retained for in-flight AccountLinks.
+# Legacy Stripe Connect return URL (in-flight AccountLinks). Same controller protection
+# as stripe_callback: authenticated session plus account_id validation in controller.
 myeventlane_vendor.stripe_callback_legacy:
   path: '/stripe/connect/callback'
   defaults:
@@ -132,7 +136,8 @@ myeventlane_vendor.stripe_callback_legacy:
   options:
     _maintenance_access: FALSE
 
-# Onboarding-friendly URLs for Stripe AccountLink return_url and refresh_url (register in Stripe Dashboard).
+# Stripe onboarding return URL registered in Stripe Dashboard. Route is public;
+# StripeConnectController::callback() requires authentication and validates account_id.
 myeventlane_vendor.stripe_onboard_return:
   path: '/vendor/onboard/stripe-return'
   defaults:
@@ -164,7 +169,8 @@ myeventlane_vendor.stripe_manage:
   options:
     _maintenance_access: FALSE
 
-# Create Event gateway - enforces vendor onboarding.
+# Create-event marketing entry. Route is public; CreateEventGatewayController::gateway()
+# redirects anonymous users to login and enforces vendor onboarding before event creation.
 myeventlane_vendor.create_event_gateway:
   path: '/create-event'
   defaults:
@@ -285,7 +291,8 @@ myeventlane_vendor.manage_event.edit:
         bundle:
           - event
 
-# Vendor console shell routes (vendor domain only via DomainDetector).
+# Vendor console shell entry on vendor host. Route is public; entrypointRedirect()
+# sends users to the appropriate dashboard based on permissions (no data returned).
 myeventlane_vendor.shell.dashboard:
   path: '/dashboard'
   defaults:
@@ -294,6 +301,8 @@ myeventlane_vendor.shell.dashboard:
   requirements:
     _access: 'TRUE'
 
+# Vendor console root on vendor host. Route is public; entrypointRedirect() issues
+# permission-based redirects only (no sensitive payload).
 myeventlane_vendor.shell.vendor_root:
   path: '/vendor'
   defaults:

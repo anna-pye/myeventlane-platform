@@ -1,8 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain cset.
+echo "=================================================="
+echo "MEL REMOTE DEPLOY DEBUG BUILD 2026-07-01"
+echo "=================================================="
+
+# Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain env verification.
 # Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
+#
+# Multi-domain URLs are NOT written via drush cset. They come from settings.php overrides
+# on the host (MEL_PUBLIC_DOMAIN, MEL_VENDOR_DOMAIN, MEL_ADMIN_DOMAIN,
+# MEL_FORCE_DOMAIN_REDIRECTS). config/sync keeps empty domain fields only.
 #
 # On failure after maintenance is enabled and/or current/ is switched, EXIT cleanup rolls
 # back current/ to the previous release (if known) and turns maintenance off so staging
@@ -48,17 +56,62 @@ mel_drush_log_cli_limits() {
   echo "  mel_drush uses memory_limit=${MEL_DRUSH_PHP_MEMORY}"
 }
 
-# Run a command with streamed stdout/stderr so PHP fatals appear in CI logs (not swallowed).
+# Run a command with streamed and captured stdout/stderr so Drush fatals are reported with deployment context.
 mel_drush_run() {
   local label="$1"
   shift
+  local command_string=""
+  local arg quoted_arg output rc tmp_output
+
+  for arg in "$@"; do
+    printf -v quoted_arg '%q' "$arg"
+    if [ -n "$command_string" ]; then
+      command_string="${command_string} ${quoted_arg}"
+    else
+      command_string="$quoted_arg"
+    fi
+  done
+
   echo "${label}..."
+  # TEMPORARY DEPLOYMENT DEBUGGING
+  # Remove after identifying the underlying Drush failure.
+  echo "=============================="
+  echo "MEL DEPLOY DEBUG"
+  echo "=============================="
+  echo "Working directory:"
+  pwd
+  echo "URI:"
+  echo "$SITE_URI"
+  echo "Command:"
+  echo "$command_string"
+  echo "Filesystem context:"
+  ls -ld .
+  ls -ld web || true
+  ls -ld vendor || true
+  echo "=============================="
+  tmp_output="$(mktemp)"
   set +e
-  "$@"
-  local rc=$?
+  "$@" 2>&1 | tee "$tmp_output"
+  rc=${PIPESTATUS[0]}
   set -e
+  output="$(<"$tmp_output")"
+  rm -f "$tmp_output"
   if [ "$rc" -ne 0 ]; then
-    echo "ERROR: ${label} failed (exit ${rc})." >&2
+    echo "==============================" >&2
+    echo "DRUSH FAILURE" >&2
+    echo "==============================" >&2
+    echo "Exit code:" >&2
+    echo "$rc" >&2
+    echo "Working directory:" >&2
+    pwd >&2
+    echo "URI:" >&2
+    echo "$SITE_URI" >&2
+    echo "Command:" >&2
+    echo "$command_string" >&2
+    echo "----- Begin Drush Output -----" >&2
+    printf '%s\n' "$output" >&2
+    echo "----- End Drush Output -----" >&2
+    echo "==============================" >&2
     return "$rc"
   fi
   return 0
@@ -67,6 +120,15 @@ mel_drush_run() {
 mel_drush_maintenance_mode() {
   # state:set (alias sset) requires a bootstrapped site; use integer for 0/1.
   local mode="$1"
+  if [ "$mode" = "1" ]; then
+    echo "Enabling maintenance mode..."
+    echo "Current directory:"
+    pwd
+    echo "Current release:"
+    echo "${MEL_PREVIOUS_CURRENT:-}"
+    echo "Target release:"
+    echo "$RELEASE_PATH"
+  fi
   mel_drush_run "Set system.maintenance_mode=${mode}" \
     mel_drush state:set system.maintenance_mode "$mode" \
       --input-format=integer \
@@ -254,6 +316,7 @@ echo "Deploying release: $TIMESTAMP"
 
 mkdir -p "$APP_PATH/releases"
 mkdir -p "$SHARED_PATH/files"
+mkdir -p "$SHARED_PATH/files/page-visuals"
 
 mel_report_disk_usage
 mel_prune_old_releases
@@ -268,11 +331,37 @@ fi
 mkdir -p "$RELEASE_PATH"
 
 echo "Copying artifact contents..."
+echo
+echo "========== ARTIFACT BEFORE COPY =========="
+echo "Artifact path:"
+echo "$ARTIFACT_PATH"
+echo
+echo "Release path:"
+echo "$RELEASE_PATH"
+echo
+echo "Artifact top level:"
+ls -la "$ARTIFACT_PATH" || true
+echo
+echo "Artifact tree:"
+find "$ARTIFACT_PATH" -maxdepth 2 | sort || true
+echo "=========================================="
+echo
 if ! cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/; then
   echo "ERROR: Failed to copy artifact to $RELEASE_PATH (often 'No space left on device')." >&2
   mel_report_disk_usage >&2
   exit 1
 fi
+
+echo
+echo "========== RELEASE AFTER COPY =========="
+echo
+echo "Top level:"
+ls -la "$RELEASE_PATH" || true
+echo
+echo "Tree:"
+find "$RELEASE_PATH" -maxdepth 2 | sort || true
+echo "========================================"
+echo
 
 # ---- SAFETY CHECK (prevents bad deploys) ----
 [ -f "$RELEASE_PATH/web/index.php" ] || {
@@ -373,6 +462,91 @@ if [ -f "$SHARED_PATH/settings.php" ]; then
   fi
 fi
 
+# shared/settings.php lives outside the release and typically requires
+# __DIR__ . '/settings.mel_shared_session.php'. Sync the tracked fragment from
+# each release so domain/Stripe/session overrides stay current without hand-editing shared/.
+MEL_SHARED_SESSION_SRC="$RELEASE_PATH/web/sites/default/settings.mel_shared_session.php"
+MEL_SHARED_SESSION_DST="$SHARED_PATH/settings.mel_shared_session.php"
+if [ -f "$MEL_SHARED_SESSION_SRC" ]; then
+  cp "$MEL_SHARED_SESSION_SRC" "$MEL_SHARED_SESSION_DST"
+  echo "Synced settings.mel_shared_session.php to $MEL_SHARED_SESSION_DST"
+elif [ ! -f "$MEL_SHARED_SESSION_DST" ]; then
+  echo "ERROR: settings.mel_shared_session.php missing in release and not present in shared/." >&2
+  echo "Ensure web/sites/default/settings.mel_shared_session.php is in the artifact." >&2
+  exit 1
+fi
+
+if [ -f "$SHARED_PATH/settings.php" ] && ! grep -qE 'settings\.mel_(shared_session|domains)|myeventlane_core\.domain_settings' "$SHARED_PATH/settings.php"; then
+  echo "ERROR: $SHARED_PATH/settings.php must load MEL domain overrides." >&2
+  echo "Add (uses active release for mel_shared_session, shared/ for mel_domains):" >&2
+  echo '  $mel_shared_session = $app_root . '"'"'/'"'"' . $site_path . '"'"'/settings.mel_shared_session.php'"'"';' >&2
+  echo '  if (is_readable($mel_shared_session)) { require $mel_shared_session; }' >&2
+  echo '  $mel_domains = __DIR__ . '"'"'/settings.mel_domains.php'"'"';' >&2
+  echo '  if (is_readable($mel_domains)) { require $mel_domains; }' >&2
+  exit 1
+fi
+
+mel_write_shared_domain_settings() {
+  local mode="$1"
+  local dst="$SHARED_PATH/settings.mel_domains.php"
+  local pub vendor admin
+
+  case "$mode" in
+    staging)
+      pub='https://staging.myeventlane.com.au'
+      vendor='https://vendor.staging.myeventlane.com.au'
+      admin='https://admin.staging.myeventlane.com.au'
+      ;;
+    production)
+      pub='https://myeventlane.com.au'
+      vendor='https://vendor.myeventlane.com.au'
+      admin='https://admin.myeventlane.com.au'
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  cat > "$dst" <<PHP
+<?php
+
+declare(strict_types=1);
+
+/**
+ * @file
+ * Host domain URLs for ${mode} — written by scripts/deploy/remote-deploy.sh.
+ *
+ * Do not commit this file; it lives in ~/staging/shared/ (or production shared/).
+ * Env vars MEL_* override when set (same names as settings.mel_shared_session.php).
+ */
+
+\$melGetEnv = static function (string \$name): string {
+  \$v = getenv(\$name);
+  if (is_string(\$v) && \$v !== '') {
+    return \$v;
+  }
+  if (isset(\$_ENV[\$name]) && is_string(\$_ENV[\$name]) && \$_ENV[\$name] !== '') {
+    return \$_ENV[\$name];
+  }
+  if (isset(\$_SERVER[\$name]) && is_string(\$_SERVER[\$name]) && \$_SERVER[\$name] !== '') {
+    return \$_SERVER[\$name];
+  }
+  return '';
+};
+
+\$config['myeventlane_core.domain_settings']['public_domain'] =
+  \$melGetEnv('MEL_PUBLIC_DOMAIN') ?: '${pub}';
+\$config['myeventlane_core.domain_settings']['vendor_domain'] =
+  \$melGetEnv('MEL_VENDOR_DOMAIN') ?: '${vendor}';
+\$config['myeventlane_core.domain_settings']['admin_domain'] =
+  \$melGetEnv('MEL_ADMIN_DOMAIN') ?: '${admin}';
+\$config['myeventlane_core.domain_settings']['force_redirects'] =
+  \$melGetEnv('MEL_FORCE_DOMAIN_REDIRECTS') !== '0';
+PHP
+
+  echo "Wrote domain overrides to $dst (${mode})"
+}
+
 # Do not symlink settings.local.php: it is DDEV-only in this project and must
 # never override staging/production trusted hosts or domains from shared/.
 if [ -f "$SHARED_PATH/settings.local.php" ]; then
@@ -410,13 +584,69 @@ if [ -e "$CURRENT_PATH" ]; then
   MEL_PREVIOUS_CURRENT="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
 fi
 
+echo
+echo "========== BEFORE MAINTENANCE =========="
+echo "Current release:"
+echo "${MEL_PREVIOUS_CURRENT:-<none>}"
+echo
+echo "New release:"
+echo "$RELEASE_PATH"
+echo
+echo "Current release top level:"
+ls -la "${MEL_PREVIOUS_CURRENT:-$RELEASE_PATH}" || true
+echo
+echo "Current release tree:"
+find "${MEL_PREVIOUS_CURRENT:-$RELEASE_PATH}" -maxdepth 2 | sort || true
+echo
+echo "New release top level:"
+ls -la "$RELEASE_PATH" || true
+echo
+echo "New release tree:"
+find "$RELEASE_PATH" -maxdepth 2 | sort || true
+echo
+echo "========================================"
+echo
+
 # ---- MAINTENANCE MODE ----
-# Prefer the live release for maintenance toggles (lighter, already warmed).
+# ------------------------------------------------------------------
+# TEMPORARY DIAGNOSTIC
+#
+# Purpose:
+# Determine whether maintenance mode fails because Drush is executed
+# from the previous release instead of the newly bootstrapped release.
+#
+# Remove immediately after investigation.
+# ------------------------------------------------------------------
 MEL_MM_ENABLED_ATTEMPTED=1
+echo "========================================"
+echo "TEMPORARY MAINTENANCE MODE DIAGNOSTIC"
+echo "========================================"
+echo "Attempt 1: Previous release"
+set +e
 if [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -f "${MEL_PREVIOUS_CURRENT}/vendor/bin/drush.php" ]; then
   ( cd "$MEL_PREVIOUS_CURRENT" && mel_drush_maintenance_mode 1 )
+  mel_mm_previous_rc=$?
 else
   mel_drush_maintenance_mode 1
+  mel_mm_previous_rc=$?
+fi
+set -e
+if [ "$mel_mm_previous_rc" -eq 0 ]; then
+  echo "SUCCESS: Previous release"
+else
+  echo "FAILED: Previous release"
+  echo "Attempt 2: New release"
+  set +e
+  ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
+  mel_mm_new_rc=$?
+  set -e
+  if [ "$mel_mm_new_rc" -eq 0 ]; then
+    echo "SUCCESS: New release"
+  else
+    echo "FAILED: New release"
+    echo "ERROR: Unable to enable maintenance mode from either release." >&2
+    exit "$mel_mm_previous_rc"
+  fi
 fi
 # No pre-switch cache rebuild: drush cr on the unreleased tree peaks memory during container
 # rebuild; staging CLI defaults are often 128M. Post-switch finalize runs drush cr with mel_drush.
@@ -480,8 +710,94 @@ if [ "$RUN_CIM" = "1" ]; then
   fi
 fi
 
-# ---- DOMAIN ENFORCEMENT (after cim; runs every deploy) ----
-# Prevents production from keeping staging hosts from sync; idempotent on staging.
+# ---- DOMAIN CONFIGURATION (environment; not active config / cset) ----
+# Effective domain_settings are supplied by settings.php $config overrides from the
+# host environment. Shared ~/staging/shared/settings.php must include the override
+# block from web/sites/default/settings.php in the repo.
+#
+# Set on each host (PHP-FPM Environment=, systemd, or platform secret store):
+#   MEL_PUBLIC_DOMAIN=https://staging.myeventlane.com.au
+#   MEL_VENDOR_DOMAIN=https://vendor.staging.myeventlane.com.au
+#   MEL_ADMIN_DOMAIN=https://admin.staging.myeventlane.com.au
+#   MEL_FORCE_DOMAIN_REDIRECTS=1   — required on staging (VendorDomainSubscriber redirects)
+#
+# Production example:
+#   MEL_PUBLIC_DOMAIN=https://myeventlane.com.au
+#   MEL_VENDOR_DOMAIN=https://vendor.myeventlane.com.au
+#   MEL_ADMIN_DOMAIN=https://admin.myeventlane.com.au
+#   MEL_FORCE_DOMAIN_REDIRECTS=1   — when apex/vendor/admin redirects must be enforced
+#
+# Do not drush cset domain URLs here; overrides supersede active storage and cset
+# would reintroduce environment-specific values into the database.
+mel_domain_effective() {
+  local key="$1"
+  mel_drush php:eval "
+\$c = \\Drupal::config('myeventlane_core.domain_settings');
+\$k = '${key}';
+if (\$k === 'force_redirects') {
+  echo \$c->get('force_redirects') ? '1' : '0';
+} else {
+  echo (string) \$c->get(\$k);
+}
+" --uri="$SITE_URI"
+}
+
+mel_verify_domain_environment() {
+  local mode="$1"
+  local pub vendor admin failures=0
+
+  case "$mode" in
+    production)
+      pub='https://myeventlane.com.au'
+      vendor='https://vendor.myeventlane.com.au'
+      admin='https://admin.myeventlane.com.au'
+      ;;
+    staging)
+      pub='https://staging.myeventlane.com.au'
+      vendor='https://vendor.staging.myeventlane.com.au'
+      admin='https://admin.staging.myeventlane.com.au'
+      ;;
+    *)
+      return 0
+      ;;
+  esac
+
+  echo "Verifying effective domain_settings from host environment (${mode})..."
+
+  local actual
+  for pair in "public_domain:$pub" "vendor_domain:$vendor" "admin_domain:$admin"; do
+    local key="${pair%%:*}"
+    local expected="${pair#*:}"
+    set +e
+    actual="$(mel_domain_effective "$key")"
+    local rc=$?
+    set -e
+    if [ "$rc" -ne 0 ] || [ "$actual" != "$expected" ]; then
+      echo "ERROR: effective myeventlane_core.domain_settings.${key} is '${actual:-<empty>}', expected '${expected}'." >&2
+      failures=$((failures + 1))
+    fi
+  done
+
+  set +e
+  actual="$(mel_domain_effective force_redirects)"
+  local force_rc=$?
+  set -e
+  if [ "$force_rc" -ne 0 ] || [ "$actual" != "1" ]; then
+    echo "ERROR: effective force_redirects is '${actual:-<empty>}' (expected 1)." >&2
+    echo "Set MEL_FORCE_DOMAIN_REDIRECTS=1 in the PHP-FPM / host environment." >&2
+    failures=$((failures + 1))
+  fi
+
+  if [ "$failures" -gt 0 ]; then
+    echo "ERROR: Domain environment misconfigured (${failures} check(s) failed)." >&2
+    echo "Configure MEL_PUBLIC_DOMAIN, MEL_VENDOR_DOMAIN, MEL_ADMIN_DOMAIN, and MEL_FORCE_DOMAIN_REDIRECTS on the host." >&2
+    return 1
+  fi
+
+  echo "Domain environment OK (${mode})."
+  return 0
+}
+
 mel_resolve_deploy_mode() {
   local app_raw="${APP_ENV:-}"
   local app_lc
@@ -506,23 +822,16 @@ mel_resolve_deploy_mode() {
 
 MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
 
-if [ "$MEL_DEPLOY_MODE" = "production" ]; then
-  echo "Applying production domain settings (APP_ENV/SITE_URI → production)..."
-  mel_drush cset myeventlane_core.domain_settings public_domain 'https://myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings admin_domain 'https://admin.myeventlane.com.au' -y --uri="$SITE_URI"
-elif [ "$MEL_DEPLOY_MODE" = "staging" ]; then
-  echo "Applying staging domain settings (APP_ENV/SITE_URI → staging)..."
-  mel_drush cset myeventlane_core.domain_settings public_domain 'https://staging.myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings vendor_domain 'https://vendor.staging.myeventlane.com.au' -y --uri="$SITE_URI"
-  mel_drush cset myeventlane_core.domain_settings admin_domain 'https://admin.staging.myeventlane.com.au' -y --uri="$SITE_URI"
+if [ "$MEL_DEPLOY_MODE" = "production" ] || [ "$MEL_DEPLOY_MODE" = "staging" ]; then
+  mel_write_shared_domain_settings "$MEL_DEPLOY_MODE"
+  mel_verify_domain_environment "$MEL_DEPLOY_MODE"
 else
-  echo "NOTICE: Skipping automatic domain cset (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
+  echo "NOTICE: Skipping domain environment verification (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
 fi
 
 # ---- FINALISE ----
 # These drush invocations are strict (no "|| true"): failures must surface in CI/SSH logs.
-mel_drush_run "Finalize: drush cr (post-domain cset)" \
+mel_drush_run "Finalize: drush cr (post-domain verification)" \
   mel_drush cr --uri="$SITE_URI"
 
 mel_drush_run "Finalize: drush state:set system.maintenance_mode 0" \

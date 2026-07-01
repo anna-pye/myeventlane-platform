@@ -1,0 +1,12 @@
+uuid: 8c4e1a2b-9f3d-4e1a-b2c3-d4e5f6a7b8c9
+langcode: en
+status: true
+dependencies: {  }
+id: community_hero
+label: 'Community Favourites Hero'
+route_name: view.upcoming_events.page_popular
+media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
+media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+hide_on_mobile: false
+alt_text: 'Community favourites on MyEventLane'
+enabled: true

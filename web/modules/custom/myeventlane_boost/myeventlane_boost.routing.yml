@@ -154,7 +154,8 @@ myeventlane_boost.bridge_add_to_cart:
       node:
         type: entity:node
 
-# Public PDF guide: Boost performance summary.
+# Public Boost performance guide PDF. Anonymous-safe static marketing PDF generated
+# by BoostPerformanceGuidePdfController; no vendor or financial data in the document.
 myeventlane_boost.performance_guide_pdf:
   path: '/boost-performance-guide.pdf'
   defaults:

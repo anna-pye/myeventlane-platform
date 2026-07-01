@@ -84,20 +84,48 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
       $payload['ReplyTo'] = $replyTo;
     }
 
-    // Handle attachments if provided.
+    // Handle attachments if provided. Three input shapes are accepted, in order:
+    //   1. In-memory MEL shape ['filename', 'content' => raw bytes, 'mime'] — what
+    //      every MEL producer emits (ticket PDFs, ICS). Raw bytes are base64-encoded.
+    //   2. Already-Postmark shape ['Name', 'Content' => base64, 'ContentType'] —
+    //      preserved as-is (no re-encoding).
+    //   3. File-on-disk shape ['path', 'name', 'content_type'] — read and encoded.
+    // Unreadable, empty, or malformed entries are skipped without throwing.
     if (!empty($params['attachments']) && is_array($params['attachments'])) {
       $attachments = [];
       foreach ($params['attachments'] as $attachment) {
-        if (isset($attachment['path']) && file_exists($attachment['path'])) {
-          $content = file_get_contents($attachment['path']);
-          if ($content !== FALSE) {
-            $attachments[] = [
-              'Name' => $attachment['name'] ?? basename($attachment['path']),
-              'Content' => base64_encode($content),
-              'ContentType' => $attachment['content_type'] ?? 'application/octet-stream',
-            ];
-          }
+        if (!is_array($attachment)) {
+          continue;
         }
+        $name = $attachment['filename'] ?? $attachment['name'] ?? $attachment['Name'] ?? NULL;
+        $contentType = $attachment['mime'] ?? $attachment['content_type'] ?? $attachment['ContentType'] ?? 'application/octet-stream';
+
+        if (isset($attachment['Content']) && $attachment['Content'] !== '') {
+          // Already base64-encoded Postmark shape: preserve existing behaviour.
+          $encoded = (string) $attachment['Content'];
+        }
+        elseif (isset($attachment['content']) && $attachment['content'] !== '') {
+          // In-memory raw bytes from MEL producers: base64-encode.
+          $encoded = base64_encode((string) $attachment['content']);
+        }
+        elseif (isset($attachment['path']) && is_string($attachment['path']) && file_exists($attachment['path'])) {
+          // File on disk: read and base64-encode; skip if unreadable.
+          $bytes = file_get_contents($attachment['path']);
+          if ($bytes === FALSE) {
+            continue;
+          }
+          $encoded = base64_encode($bytes);
+          $name = $name ?? basename($attachment['path']);
+        }
+        else {
+          continue;
+        }
+
+        $attachments[] = [
+          'Name' => (string) ($name ?? 'attachment'),
+          'Content' => $encoded,
+          'ContentType' => (string) $contentType,
+        ];
       }
       if (!empty($attachments)) {
         $payload['Attachments'] = $attachments;
@@ -124,8 +152,10 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
       if ($statusCode === 200 && isset($data['MessageID'])) {
         // Store provider message ID for retrieval by MessagingManager.
         $this->lastMessageId = (string) $data['MessageID'];
-        $this->logger->info('Postmark message sent. MessageID=@id', [
+        $this->logger->info('Postmark message sent. MessageID=@id attachments=@count names=@names', [
           '@id' => $this->lastMessageId,
+          '@count' => isset($payload['Attachments']) ? count($payload['Attachments']) : 0,
+          '@names' => isset($payload['Attachments']) ? implode(', ', array_column($payload['Attachments'], 'Name')) : '(none)',
         ]);
         return TRUE;
       }

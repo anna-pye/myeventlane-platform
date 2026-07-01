@@ -83,7 +83,7 @@ final class SearchController extends ControllerBase {
     $q = trim((string) $request->query->get('q', ''));
     $groups = [
       'events' => ['title' => $this->t('Events'), 'items' => []],
-      'vendors' => ['title' => $this->t('Vendors'), 'items' => []],
+      'vendors' => ['title' => $this->t('Organisers'), 'items' => []],
       'venues' => ['title' => $this->t('Venues'), 'items' => []],
       'pages' => ['title' => $this->t('Pages / Blog'), 'items' => []],
       'categories' => ['title' => $this->t('Categories'), 'items' => []],

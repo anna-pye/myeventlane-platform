@@ -122,6 +122,7 @@
 @use 'components/buttons';
 @use 'components/cards';
 @use 'components/chips';
+@use 'components/mel-pager';
 @use 'components/category-pills';
 @use 'components/category-follow';
 @use 'components/alerts';
@@ -130,6 +131,8 @@
 @use 'components/header';
 @use 'components/site-header';
 @use 'components/mobile-drawer';
+@use 'components/mel-mobile-overlays';
+@use 'components/mobile-bottom-nav';
 @use 'components/mel-header-footer';
 @use 'components/panels';
 @use 'components/hero';
@@ -158,6 +161,7 @@
 @use 'components/event-detail-grid';
 @use 'components/event-mobile-cta';
 @use 'components/mel-page-header';
+@use 'components/discovery-hero';
 @use 'components/mel-events-filters';
 @use 'components/event-type-pill';
 @use 'components/rsvp';

@@ -1,0 +1,91 @@
+mel_guide.settings:
+  type: config_object
+  label: 'MEL Guide settings'
+  mapping:
+    enabled:
+      type: boolean
+      label: 'Enabled'
+    enabled_mobile:
+      type: boolean
+      label: 'Enabled on mobile'
+    enabled_desktop:
+      type: boolean
+      label: 'Enabled on desktop'
+    show_for_anonymous:
+      type: boolean
+      label: 'Show for anonymous visitors'
+    show_for_authenticated:
+      type: boolean
+      label: 'Show for authenticated users'
+    show_for_customers:
+      type: boolean
+      label: 'Show for customers'
+    show_for_organisers:
+      type: boolean
+      label: 'Show for organisers'
+    appearance_delay:
+      type: integer
+      label: 'Appearance delay (ms)'
+    max_messages_per_session:
+      type: integer
+      label: 'Maximum appearances per session'
+    hide_days_after_dismiss:
+      type: integer
+      label: 'Hide days after dismiss'
+    debug_force_display:
+      type: boolean
+      label: 'Debug force display'
+    debug_context:
+      type: string
+      label: 'Debug context override'
+    enable_help_panel:
+      type: boolean
+      label: 'Enable help panel'
+    feature_version:
+      type: integer
+      label: 'Feature version'
+    position:
+      type: string
+      label: 'Guide position'
+    asset_fids:
+      type: mapping
+      label: 'Uploaded character asset file IDs'
+      mapping:
+        wave:
+          type: integer
+          label: 'Wave asset file ID'
+        think:
+          type: integer
+          label: 'Think asset file ID'
+        celebrate:
+          type: integer
+          label: 'Celebrate asset file ID'
+    messages:
+      type: mapping
+      label: 'Guide messages'
+      mapping:
+        welcome:
+          type: label
+          label: 'Welcome message'
+        discover:
+          type: label
+          label: 'Discover message'
+        thinking:
+          type: label
+          label: 'Thinking message'
+        celebrate:
+          type: label
+          label: 'Celebrate message'
+    assets:
+      type: mapping
+      label: 'Character assets'
+      mapping:
+        wave:
+          type: string
+          label: 'Wave asset path'
+        think:
+          type: string
+          label: 'Think asset path'
+        celebrate:
+          type: string
+          label: 'Celebrate asset path'

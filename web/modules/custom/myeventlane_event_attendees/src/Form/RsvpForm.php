@@ -85,7 +85,7 @@ final class RsvpForm extends FormBase {
       return;
     }
     try {
-      $this->capacityService->assertCanBook($this->event, 1);
+      $this->capacityService->assertCanBook($this->event, 1, $this->rsvpReservationKey());
     }
     catch (CapacityExceededException $e) {
       $form_state->setErrorByName('', $this->t('This event is full. Join the waitlist?'));
@@ -93,9 +93,26 @@ final class RsvpForm extends FormBase {
   }
 
   /**
+   * Stable reservation key for RSVP capacity holds in this session.
+   */
+  private function rsvpReservationKey(): string {
+    $session_id = $this->getRequest()->getSession()->getId();
+    return 'rsvp:event:' . $this->event->id() . ':session:' . $session_id;
+  }
+
+  /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    if ($this->capacityService) {
+      try {
+        $this->capacityService->assertCanBook($this->event, 1, $this->rsvpReservationKey());
+      }
+      catch (CapacityExceededException $e) {
+        $this->messenger()->addError($this->t('This event is full. Join the waitlist?'));
+        return;
+      }
+    }
     $capacity = (int) ($this->event->get('field_capacity')->value ?? 0);
     $current = $this->attendeeManager->getAttendeeCount((int) $this->event->id(), [EventAttendee::STATUS_CONFIRMED]);
     $is_full = $capacity > 0 && $current >= $capacity;
@@ -117,6 +134,8 @@ final class RsvpForm extends FormBase {
     else {
       $this->messenger()->addStatus('Your RSVP is confirmed.');
     }
+
+    $this->capacityService?->releaseReservation($this->rsvpReservationKey());
   }
 
 }

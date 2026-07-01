@@ -13,7 +13,8 @@ services:
       - '@myeventlane_dashboard.vendor_context'
       - '@myeventlane_dashboard.metrics'
       - '@myeventlane_dashboard.events'
-      - '@myeventlane_dashboard.stripe'
+      - '@myeventlane_dashboard.vendor_connection'
+      - '@myeventlane_dashboard.vendor_balance'
       - '@date.formatter'
       - '@current_user'
       - '@request_stack'
@@ -44,9 +45,11 @@ services:
       - '@myeventlane_dashboard.metrics'
       - '@myeventlane_core.entity_id_normalizer'
 
-  myeventlane_dashboard.stripe:
-    class: Drupal\myeventlane_dashboard\Service\VendorStripeService
+  myeventlane_dashboard.vendor_connection:
+    class: Drupal\myeventlane_dashboard\Service\VendorStripeConnectionService
+
+  myeventlane_dashboard.vendor_balance:
+    class: Drupal\myeventlane_dashboard\Service\VendorStripeBalanceService
     arguments:
       - '@logger.factory'
-      - '@config.factory'
       - '@entity_type.manager'

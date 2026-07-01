@@ -395,6 +395,7 @@ final class EventStudioController extends ControllerBase {
 
     return [
       'title' => $node->label(),
+      'location' => $this->workspacePresentation->buildTopbarLocation($node),
       'status' => $node->isPublished() ? $this->t('Published') : $this->t('Draft'),
       'state' => $state,
       'show_last_saved' => FALSE,

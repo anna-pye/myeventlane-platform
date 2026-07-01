@@ -6,6 +6,8 @@ core_version_requirement: ^11
 lifecycle: stable
 
 dependencies:
+  - myeventlane_account:myeventlane_account
+  - myeventlane_attendee:myeventlane_attendee
   - myeventlane_core:myeventlane_core
   - myeventlane_event:myeventlane_event
   - myeventlane_event_attendees:myeventlane_event_attendees

@@ -31,7 +31,7 @@
         <ul class="mel-nav-list">
           <li><a href="/events" class="mel-nav-link">Events</a></li>
           <li><a href="/categories" class="mel-nav-link">Categories</a></li>
-          <li><a href="/vendors" class="mel-nav-link">Vendors</a></li>
+          <li><a href="/vendors" class="mel-nav-link">{{ 'Organisers'|t }}</a></li>
         </ul>
       {% endif %}
     </nav>
@@ -40,9 +40,9 @@
     <div class="mel-header-actions">
       {% if logged_in %}
         {% if is_vendor|default(false) %}
-          <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="btn mel-btn-primary">Dashboard</a>
+          <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="btn mel-btn-primary">{{ 'Organiser home'|t }}</a>
         {% else %}
-          <a href="{{ path('myeventlane_account.dashboard') }}" class="btn mel-btn-primary">Dashboard</a>
+          <a href="{{ path('myeventlane_account.dashboard') }}" class="btn mel-btn-primary">{{ 'Home'|t }}</a>
         {% endif %}
       {% else %}
         <a href="{{ path('user.login') }}" class="btn mel-btn-ghost">Login</a>
@@ -70,9 +70,9 @@
         <li class="mel-mobile-divider" aria-hidden="true"></li>
         {% if logged_in %}
           {% if is_vendor|default(false) %}
-            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">{{ 'Organiser home'|t }}</a></li>
           {% else %}
-            <li><a href="{{ path('myeventlane_account.dashboard') }}">Dashboard</a></li>
+            <li><a href="{{ path('myeventlane_account.dashboard') }}">{{ 'Home'|t }}</a></li>
           {% endif %}
         {% else %}
           <li><a href="{{ path('user.login') }}">Login</a></li>

@@ -7,6 +7,7 @@
 # Composer
 ############################################
 /vendor/
+composer.phar
 
 ############################################
 # Root build output
@@ -16,12 +17,24 @@
 ############################################
 # Node / Vite
 ############################################
+yarn.lock
 /node_modules/
 /web/themes/custom/*/node_modules/
 /web/themes/custom/**/node_modules.bak/
 /web/themes/custom/**/dist/
 /build/
+/build/release-metadata.json
 /.npm-cache/
+
+############################################
+# Playwright E2E (generated at runtime)
+############################################
+/tests/e2e/node_modules/
+/tests/e2e/test-results/
+/tests/e2e/playwright-report/
+/tests/e2e/blob-report/
+/tests/e2e/fixtures/runtime-env.json
+/tests/e2e/fixtures/payment-gateway-state.json
 
 ############################################
 # Drupal core & contrib (Composer-managed)
@@ -140,6 +153,7 @@ web/themes/custom/**/tmp/
 ############################################
 # Archives & junk
 ############################################
+*.tar.gz
 *.zip
 # Local system / cloud links
 OneDrive
@@ -151,7 +165,7 @@ vendor.bak
 ############################################
 mel@*
 *.gz.enc
-staging-*.conf
+/staging-*.conf
 *.staging
 drush/sites/staging.site.yml
 
@@ -184,3 +198,4 @@ drush/sites/staging.site.yml
 tmp/
 memory/
 docs/internal/
+*.bak

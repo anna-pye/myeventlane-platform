@@ -249,6 +249,54 @@
   color: var(--mel-studio-text);
 }
 
+.mel-es-branding-upload-notice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem 1rem;
+  margin-block: 0.75rem 0;
+  border-radius: 10px;
+  border: 1px solid rgba(110, 126, 242, 0.35);
+  background: rgba(248, 250, 255, 0.98);
+  color: var(--mel-studio-text);
+}
+
+.mel-es-branding-upload-notice.is-error {
+  border-color: rgba(214, 69, 69, 0.55);
+  background: rgba(255, 241, 241, 0.98);
+}
+
+.mel-es-branding-upload-notice.is-success {
+  border-color: rgba(46, 125, 50, 0.45);
+  background: rgba(237, 247, 237, 0.98);
+}
+
+.mel-es-branding-upload-notice__title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.mel-es-branding-upload-notice__steps {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--mel-studio-muted);
+}
+
+.mel-es-branding-upload-notice__step.is-active {
+  color: var(--mel-studio-text);
+  font-weight: 600;
+}
+
+.mel-es-branding-upload-notice__message {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--mel-studio-text);
+}
+
 .mel-es-branding-crop-notice.is-error {
   border-color: rgba(214, 69, 69, 0.55);
   background: rgba(255, 241, 241, 0.98);

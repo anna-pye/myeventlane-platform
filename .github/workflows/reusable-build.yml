@@ -37,6 +37,17 @@ jobs:
           echo "Building commit:"
           git rev-parse HEAD
 
+      - name: Diagnose checked-out deploy script
+        run: |
+          set -euo pipefail
+          debug_marker="MEL REMOTE DEPLOY DEBUG BUILD"
+          deploy_script="scripts/deploy/remote-deploy.sh"
+          echo "===== WORKSPACE ====="
+          git rev-parse HEAD
+          git status --short
+          grep "$debug_marker" "$deploy_script" || true
+          sha256sum "$deploy_script"
+
       - name: Set up PHP
         uses: shivammathur/setup-php@2.37.0
         with:
@@ -166,6 +177,7 @@ jobs:
             --exclude='delete-*.php' \
             --exclude='install-*.php' \
             --exclude='create-*.php' \
+            --exclude='infrastructure' \
             --exclude='staging-nginx.conf' \
             --exclude='phpcs.xml' \
             --exclude='phpunit-governance.xml' \
@@ -180,6 +192,19 @@ jobs:
             echo "❌ Artifact missing NEW code"
             exit 1
           }
+
+      - name: Validate artifact excludes nginx reference configs
+        run: |
+          set -euo pipefail
+          archive_path="${{ steps.package.outputs.artifact_path }}"
+          leaked=$(tar -tzf "$archive_path" | grep -E '(^|/)staging-nginx\.conf$|(^|/)infrastructure/' || true)
+          if [ -n "$leaked" ]; then
+            echo "❌ Artifact must not bundle nginx reference configs (staging-nginx.conf or infrastructure/)"
+            echo "   Install includes on the VPS during provisioning — see infrastructure/README.md"
+            echo "$leaked"
+            exit 1
+          fi
+          echo "OK: nginx reference configs excluded from release artifact"
 
       - name: Validate artifact registers state_readiness_helper (staging Drush)
         run: |
@@ -213,6 +238,17 @@ jobs:
             exit 1
           fi
           echo "OK: followed_organisers route present in packaged account routing.yml ($member)"
+
+      - name: Diagnose deploy script before artifact upload
+        run: |
+          set -euo pipefail
+          debug_marker="MEL REMOTE DEPLOY DEBUG BUILD"
+          deploy_script="scripts/deploy/remote-deploy.sh"
+          echo "===== ARTIFACT CONTENT CHECK ====="
+          ls -la scripts/deploy/
+          grep "$debug_marker" "$deploy_script" || true
+          sha256sum "$deploy_script"
+          find scripts -maxdepth 2 | sort
 
       - name: Upload release artifact
         uses: actions/upload-artifact@v6

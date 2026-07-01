@@ -38,8 +38,12 @@ function myeventlane_messaging_cron(): void {
   \Drupal::state()->set('myeventlane_messaging.cron_run_count', 0);
   \Drupal::service('myeventlane_messaging.scheduler.boost')->scan();
   \Drupal::service('myeventlane_messaging.scheduler.cart')->scan();
-  \Drupal::service('myeventlane_messaging.scheduler.event')->scan();
-  // Scan for event reminders (7 days and 24 hours before event start).
+  // Event reminders have a single owner: the event_reminder_scheduler service
+  // (Service\EventReminderScheduler), which covers the 7d/24h/1h windows for
+  // commerce order purchasers and RSVP/ticket attendees (AttendeeRepositoryResolver)
+  // with order-state filtering and opt-out enforcement. The legacy
+  // scheduler.event (Scheduler\EventReminderScheduler) is intentionally not
+  // scanned here to avoid duplicate reminders for the same event/order.
   \Drupal::service('myeventlane_messaging.event_reminder_scheduler')->scan();
 }
 

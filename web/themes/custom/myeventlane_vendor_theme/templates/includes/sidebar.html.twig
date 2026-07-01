@@ -2,6 +2,8 @@
 /**
  * @file
  * Left navigation sidebar for MyEventLane Vendor Console.
+ *
+ * Groups VendorNavBuilder items by key (presentation only — IA unchanged in PHP).
  */
 #}
 <nav class="mel-sidebar mel-vendor-console__nav" aria-label="{{ 'Organiser navigation'|t }}">
@@ -23,64 +25,64 @@
   {# Nav items MUST come from myeventlane_vendor_theme_preprocess_page — never use |default(hardcoded):
      Twig's default() treats [] as empty and would replace PHP-built onboarding-safe nav. #}
   {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
+  {% set nav_groups = [
+    { id: 'dashboard', label: 'Home'|t, keys: ['dashboard'] },
+    { id: 'events', label: 'Events'|t, keys: ['events'] },
+    { id: 'operations', label: 'Operations'|t, keys: ['orders', 'ticket_holders', 'checkin', 'refund_requests', 'payouts'] },
+    { id: 'growth', label: 'Growth'|t, keys: ['promote', 'messaging', 'analytics'] },
+    { id: 'account', label: 'Account'|t, keys: ['settings', 'support'] },
+  ] %}
 
-  <ul class="mel-sidebar__nav" role="list">
-    {% for item in nav_items %}
-      <li class="mel-sidebar__item{% if item.children|default([]) %} mel-sidebar__item--with-subnav{% endif %}">
-        {% if item.url and not item.is_disabled %}
-          <a href="{{ item.url }}"
-             class="mel-sidebar__link mel-vendor-console__nav-item mel-vendor-console__mobile-nav-item{% if item.is_active %} mel-vendor-console__nav-item--active is-active{% endif %}"
-             {% if item.is_active %}aria-current="page"{% endif %}>
-            <span class="mel-sidebar__link-icon" aria-hidden="true">
-              {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
-            </span>
-            <span class="mel-sidebar__link-label">{{ item.label }}</span>
-          </a>
-        {% else %}
-          {# Items that need an event context use a clearer disabled reason; #}
-          {# others fall back to the calmer 'Available soon' wording. #}
-          {% set event_scoped_keys = ['orders', 'checkin', 'check_in', 'ticket_holders', 'event_editor'] %}
-          {% set disabled_reason = item.key in event_scoped_keys
-            ? 'Open this from an event'|t
-            : 'Available soon'|t %}
-          {% set disabled_badge = item.key in event_scoped_keys
-            ? 'Event-only'|t
-            : 'Soon'|t %}
-          <span class="mel-sidebar__link mel-vendor-console__nav-item mel-sidebar__link--disabled"
-                aria-disabled="true"
-                title="{{ disabled_reason }}">
-            <span class="mel-sidebar__link-icon" aria-hidden="true">
-              {% include '@myeventlane_vendor_theme/components/sidebar-icon.html.twig' with { icon: item.icon|default('dashboard') } only %}
-            </span>
-            <span class="mel-sidebar__link-label">{{ item.label }}</span>
-            <span class="mel-sidebar__link-badge">{{ disabled_badge }}</span>
-          </span>
-        {% endif %}
+  <div class="mel-sidebar__nav-groups">
+    {% for group in nav_groups %}
+      {% set visible_items = nav_items|filter(item => item.key|default('') in group.keys) %}
+      {% if visible_items|length > 0 %}
+        {% set section_label = visible_items|first.nav_section_label|default(group.label) %}
+        <section class="mel-sidebar__group mel-sidebar__group--{{ group.id }}" aria-label="{{ section_label }}">
+          <p class="mel-sidebar__section-label" id="mel-sidebar-group-{{ group.id }}">{{ section_label }}</p>
+          <ul class="mel-sidebar__nav" role="list" aria-labelledby="mel-sidebar-group-{{ group.id }}">
+            {% for key in group.keys %}
+              {% for item in nav_items %}
+                {% if item.key|default('') == key %}
+                  {% set is_events_group = group.id == 'events' %}
+                  {% set event_editor_item = null %}
+                  {% if is_events_group %}
+                    {% for candidate in nav_items %}
+                      {% if candidate.key|default('') == 'event_editor' %}
+                        {% set event_editor_item = candidate %}
+                      {% endif %}
+                    {% endfor %}
+                  {% endif %}
+                  {% set wizard_children = item.children|default([]) %}
+                  {% set nest_event_editor = is_events_group and event_editor_item and wizard_children|length == 0 %}
+                  {% set has_subnav = wizard_children|length > 0 or nest_event_editor %}
 
-        {% if item.children|default([]) %}
-          <ul class="mel-sidebar__subnav" role="list">
-            {% for child in item.children %}
-              <li class="mel-sidebar__subitem">
-                {% if child.url and not child.is_disabled %}
-                  <a href="{{ child.url }}"
-                     class="mel-sidebar__subnav-link mel-vendor-console__nav-item mel-vendor-console__mobile-nav-item{% if child.is_active %} mel-vendor-console__nav-item--active is-active{% endif %}"
-                     {% if child.is_active %}aria-current="page"{% endif %}>
-                    {{ child.label }}
-                  </a>
-                {% else %}
-                  <span class="mel-sidebar__subnav-link"
-                        aria-disabled="true"
-                        title="{{ 'Select an event first'|t }}">
-                    {{ child.label }}
-                  </span>
+                  <li class="mel-sidebar__item{% if has_subnav %} mel-sidebar__item--with-subnav{% endif %}">
+                    {% include '@myeventlane_vendor_theme/includes/sidebar-nav-item.html.twig' with { item: item } only %}
+
+                    {% if has_subnav %}
+                      <ul class="mel-sidebar__subnav" role="list">
+                        {% for child in wizard_children %}
+                          <li class="mel-sidebar__subitem">
+                            {% include '@myeventlane_vendor_theme/includes/sidebar-nav-subitem.html.twig' with { child: child } only %}
+                          </li>
+                        {% endfor %}
+                        {% if nest_event_editor %}
+                          <li class="mel-sidebar__subitem mel-sidebar__subitem--nested-top-level">
+                            {% include '@myeventlane_vendor_theme/includes/sidebar-nav-subitem.html.twig' with { child: event_editor_item } only %}
+                          </li>
+                        {% endif %}
+                      </ul>
+                    {% endif %}
+                  </li>
                 {% endif %}
-              </li>
+              {% endfor %}
             {% endfor %}
           </ul>
-        {% endif %}
-      </li>
+        </section>
+      {% endif %}
     {% endfor %}
-  </ul>
+  </div>
 
   <div class="mel-sidebar__footer">
     <a class="mel-sidebar__link" href="{{ page.main_site_url|default('/') }}">
@@ -113,4 +115,3 @@
     {% endif %}
   </div>
 </nav>
-

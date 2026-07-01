@@ -131,7 +131,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
         $this->t('Event cloning for faster setup'),
         $this->t('Automated refund processing'),
         $this->t('Bulk attendee exports'),
-        $this->t('Priority support'),
+        $this->t('Priority support (coming soon)'),
       ],
       '#actions' => [
         'dashboard' => ['url' => Url::fromRoute('myeventlane_vendor.console.dashboard'), 'title' => $this->t('Go to Dashboard')],

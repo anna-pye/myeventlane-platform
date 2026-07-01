@@ -38,9 +38,9 @@
             {% endif %}
           </dl>
           {% if row.event_id|default(0) %}
-            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ path('myeventlane_event_studio.workspace_analytics', {'node': row.event_id}) }}">{{ 'View analytics'|t }} →</a>
+            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ path('myeventlane_event_studio.workspace_analytics', {'node': row.event_id}) }}">{{ 'View insights'|t }} →</a>
           {% elseif row.url %}
-            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ row.url }}">{{ 'View analytics'|t }} →</a>
+            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ row.url }}">{{ 'View insights'|t }} →</a>
           {% endif %}
         </article>
       {% endfor %}
@@ -48,7 +48,7 @@
 
     {% if rows|length > 0 %}
       <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--event-analytics-table">
-        <summary>{{ 'View full event analytics'|t }}</summary>
+        <summary>{{ 'View full event insights'|t }}</summary>
         <div class="mel-vendor-dashboard__details-grid mel-vendor-dashboard__details-grid--single">
           <div class="mel-vendor-event-performance__table-wrap">
             <table class="mel-vendor-event-performance__table">
@@ -91,7 +91,7 @@
     {% endif %}
   {% else %}
     <div class="mel-empty-state mel-empty-state--compact">
-      <p class="mel-empty-state__text">{{ 'No event performance data available yet. Create your first event to start collecting insights.'|t }}</p>
+      <p class="mel-empty-state__text">{{ 'No event insights yet. Share your event or wait for your first views and bookings to appear here.'|t }}</p>
       {% if empty_state.url is defined and empty_state.url %}
         <div class="mel-empty-state__actions">
           <a href="{{ empty_state.url }}" class="mel-btn mel-btn--primary">{{ empty_state.action_label|default('Create event'|t) }}</a>

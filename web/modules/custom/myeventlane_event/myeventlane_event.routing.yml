@@ -182,6 +182,9 @@ myeventlane_event.generate_series_instances:
         bundle:
           - event
 
+# Passcode gate for passcode-protected events. Route is public so buyers can submit a
+# passcode before purchase; EventPasscodeForm validates passcode and only renders for
+# events that require one. Drupal Form API provides CSRF on POST.
 myeventlane_event.passcode_gate:
   path: '/event/{node}/passcode'
   defaults:

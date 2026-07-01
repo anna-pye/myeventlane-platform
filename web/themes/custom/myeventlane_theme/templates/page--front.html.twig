@@ -183,11 +183,13 @@
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--blog',
         section_width_class: 'mel-section--wide',
-        container_class: 'mel-container mel-container--wide',
+        container_class: 'mel-container mel-container--wide mel-section--blog__surface',
         title: 'Guides for better nights out'|t,
+        title_icon: 'guides',
         subtitle: 'Lightweight ideas for discovering, hosting, and growing events.'|t,
         link_url: '/blog',
-        link_text: 'Read more'|t,
+        link_text: 'Read more →'|t,
+        link_class: 'mel-section__link mel-section__link--guides',
         content_wrapper_class: 'mel-section__blog-view',
         content: page.homepage_blog
       } %}

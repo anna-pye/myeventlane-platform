@@ -198,9 +198,107 @@ final class EventBrandingForm extends EventStudioBaseForm {
     if ($hero['fid'] > 0 && $hero['alt'] === '') {
       $form_state->setErrorByName(
         'mel][field_event_image_alt',
-        $this->t('Alt text is required for the cover image.')
+        $this->t('Add alt text for your cover image before saving. Describe what appears in the image for screen readers and search.')
       );
     }
+
+    $this->validateBrandingHeroPendingUpload($form_state);
+    $this->validateBrandingHeroUploadResolution($form_state, $mel_for_hero);
+  }
+
+  /**
+   * Blocks save when a file was chosen but Upload was not clicked (managed_file pattern).
+   *
+   * Applies even when a previous cover fid is still in the form (replace-without-upload).
+   */
+  private function validateBrandingHeroPendingUpload(FormStateInterface $form_state): void {
+    $request = $this->requestStack->getCurrentRequest();
+    if ($request === NULL) {
+      return;
+    }
+
+    $files = $request->files->all();
+    $upload = $files['files']['mel_field_event_image_0'] ?? NULL;
+    if ($upload === NULL) {
+      return;
+    }
+
+    $original_name = trim((string) $upload->getClientOriginalName());
+    if ($original_name === '') {
+      return;
+    }
+
+    $form_state->setErrorByName(
+      'mel][field_event_image',
+      $this->t('Click Upload before Save branding. Upload alone does not publish your cover.')
+    );
+  }
+
+  /**
+   * Surfaces widget sync failures before save when an upload cannot be resolved.
+   *
+   * @param array<string, mixed> $mel_for_hero
+   */
+  private function validateBrandingHeroUploadResolution(FormStateInterface $form_state, array $mel_for_hero): void {
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (!is_array($user_mel)) {
+      return;
+    }
+
+    $input_fragment = $this->brandingHeroInputFragmentWithFid($user_mel);
+    if ($input_fragment === NULL) {
+      return;
+    }
+
+    $input_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+      'field_event_image' => $input_fragment,
+    ])['fid'];
+    $resolved_fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment($mel_for_hero)['fid'];
+    if ($resolved_fid > 0) {
+      return;
+    }
+    $form_state->setErrorByName(
+      'mel][field_event_image',
+      $this->t('The event image could not be saved. Please reselect the image.')
+    );
+  }
+
+  /**
+   * Resolves the submitted hero image fragment that contains an uploaded fid.
+   *
+   * image_widget_crop can submit an empty direct field array while the uploaded
+   * file data lives under field_event_image_wrapper.widget.
+   *
+   * @param array<string, mixed> $user_mel
+   *
+   * @return array<string, mixed>|null
+   */
+  private function brandingHeroInputFragmentWithFid(array $user_mel): ?array {
+    $candidates = [];
+    if (isset($user_mel['field_event_image']) && is_array($user_mel['field_event_image'])) {
+      $candidates[] = $user_mel['field_event_image'];
+    }
+
+    $wrapper = $user_mel['field_event_image_wrapper'] ?? NULL;
+    if (is_array($wrapper)) {
+      if (isset($wrapper['widget']) && is_array($wrapper['widget'])) {
+        $candidates[] = $wrapper['widget'];
+      }
+      if (isset($wrapper[0]) && is_array($wrapper[0])) {
+        $candidates[] = $wrapper;
+      }
+    }
+
+    foreach ($candidates as $fragment) {
+      $fid = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+        'field_event_image' => $fragment,
+      ])['fid'];
+      if ($fid > 0) {
+        return $fragment;
+      }
+    }
+
+    return NULL;
   }
 
   /**
@@ -259,7 +357,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
         . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
-        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Set the focus for your public event and book page heroes (16:9). Click the image or use shortcuts, then save branding. Alt text is required when a cover image is present.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Choose a photo, click Upload, add alt text, then Save branding. Upload alone does not publish your cover. Set focal shortcuts after upload if you need to adjust the 16:9 hero.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body">'
         . '<div class="mel-identity-media mel-identity-media--compact">'
@@ -306,6 +404,71 @@ final class EventBrandingForm extends EventStudioBaseForm {
         $this->brandingHeroFocalAugmenter->attachAfterBuild($form['mel']['field_event_image'], $formNode, $focal_override);
       }
     }
+
+    $main['branding_hero_upload_notice'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'mel-es-branding-upload-notice',
+        'class' => ['mel-es-branding-upload-notice'],
+        'hidden' => 'hidden',
+        'aria-live' => 'polite',
+      ],
+      '#weight' => 1,
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-upload-notice__title']],
+        '#value' => Html::escape((string) $this->t('Cover image')),
+      ],
+      'checklist' => [
+        '#type' => 'html_tag',
+        '#tag' => 'ol',
+        '#attributes' => ['class' => ['mel-es-branding-upload-notice__steps']],
+        '#value' => Markup::create(
+          '<li class="mel-es-branding-upload-notice__step" data-upload-step="choose">'
+          . Html::escape((string) $this->t('Choose a landscape photo (at least 400×200 px).'))
+          . '</li>'
+          . '<li class="mel-es-branding-upload-notice__step" data-upload-step="upload">'
+          . Html::escape((string) $this->t('Click Upload and wait for the preview to appear.'))
+          . '</li>'
+          . '<li class="mel-es-branding-upload-notice__step" data-upload-step="save">'
+          . Html::escape((string) $this->t('Add alt text, then click Save branding.'))
+          . '</li>'
+        ),
+      ],
+      'message' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => [
+          'class' => ['mel-es-branding-upload-notice__message'],
+          'hidden' => 'hidden',
+        ],
+        '#value' => '',
+      ],
+    ];
+
+    $main['branding_hero_crop_notice'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'mel-es-branding-crop-notice',
+        'class' => ['mel-es-branding-crop-notice'],
+        'hidden' => 'hidden',
+        'aria-live' => 'polite',
+      ],
+      '#weight' => 2,
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-crop-notice__title']],
+        '#value' => Html::escape((string) $this->t('Cover crop')),
+      ],
+      'text' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-crop-notice__text']],
+        '#value' => Html::escape((string) $this->t('Apply the 16:9 crop under your cover image before saving branding.')),
+      ],
+    ];
 
     $main['field_event_image_alt'] = [
       '#type' => 'textfield',

@@ -34,7 +34,7 @@ $mel-breakpoints: (
   xl: $breakpoint-xl,
 );
 
-// Desktop nav / mobile drawer: width >= md (768px). Keep header.js in sync.
+// Desktop nav / mobile drawer: width >= md (768px).
 $mel-breakpoint-md: map.get($mel-breakpoints, md);
 
 @mixin mel-break($size, $direction: min) {

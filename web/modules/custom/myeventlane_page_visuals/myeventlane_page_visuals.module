@@ -7,7 +7,9 @@ declare(strict_types=1);
  * MyEventLane Page Visuals - centralized hero/illustration image management.
  */
 
+use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountInterface;
 
 /**
  * Implements hook_preprocess_page().
@@ -53,4 +55,19 @@ function myeventlane_page_visuals_preprocess_page(array &$variables): void {
     $variables['#cache']['tags'] ?? [],
     $metadata->getCacheTags()
   );
+}
+
+/**
+ * Implements hook_media_create_access().
+ *
+ * Allows page visual administrators to create image media when saving uploads.
+ */
+function myeventlane_page_visuals_media_create_access(AccountInterface $account, array $context, $entity_bundle = NULL): AccessResult {
+  if (($context['entity_type_id'] ?? '') !== 'media' || $entity_bundle !== 'image') {
+    return AccessResult::neutral();
+  }
+  if ($account->hasPermission('administer myeventlane page visuals')) {
+    return AccessResult::allowed()->cachePerPermissions();
+  }
+  return AccessResult::neutral();
 }

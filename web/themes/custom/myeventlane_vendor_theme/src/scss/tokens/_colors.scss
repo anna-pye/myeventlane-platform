@@ -14,10 +14,10 @@ $ml-vendor-navy:        #0D1520;
 $ml-vendor-slate:       #637185;
 $ml-vendor-text-dark:   #1A1A1A;
 
-// Background Colors
-$ml-vendor-bg:          #F7F8FA;
+// Background Colors (MEL warm shell — aligned with myeventlane_theme base/_tokens.scss)
+$ml-vendor-bg:          #fff9f5;
 $ml-vendor-card:        #FFFFFF;
-$ml-vendor-border:      #E6E6E6;
+$ml-vendor-border:      #e9e3de;
 
 // Accent Colors
 $ml-accent-coral:       #FF8A8A;
@@ -97,10 +97,35 @@ $border-color:       $ml-vendor-border;
 $border-color-light: $gray-200;
 $border-color-dark:  $gray-300;
 
-// Interactive States
-$primary:       #2563EB;
-$primary-dark:  #1D4ED8;
-$primary-light: #3B82F6;
+// ============================================================================
+// MEL BRAND + WORKSPACE PALETTE (myeventlane_theme base/_tokens.scss)
+// ============================================================================
+
+$mel-brand-bg: #fff9f5;
+$mel-brand-border: #e9e3de;
+$mel-brand-primary-hover: #e55c49;
+$mel-brand-primary-active: #cf4f3d;
+$mel-brand-surface-soft: #fdf1ec;
+
+// Authoritative workspace palette (Overview / Tickets / RSVPs / Analytics / Settings).
+$mel-ws-coral: #f26d5b;
+$mel-ws-purple: #6e7ef2;
+$mel-ws-bg-warm: #fef5ec;
+$mel-ws-navy: #2c3e50;
+$mel-ws-border-soft: rgba(44, 62, 80, 0.08);
+$mel-ws-shadow-soft: rgba(0, 0, 0, 0.06);
+$mel-ws-purple-tint: rgba(110, 126, 242, 0.12);
+$mel-ws-purple-border: rgba(110, 126, 242, 0.2);
+
+// VendorShell surfaces (layout/page.html.twig + workspace.scss grid).
+$mel-shell-page-bg: $mel-brand-bg;
+$mel-shell-surface: $ml-vendor-card;
+$mel-shell-border: $mel-brand-border;
+
+// Interactive States — MEL coral primary (replaces console blue SC-1).
+$primary: $mel-ws-coral;
+$primary-dark: $mel-brand-primary-hover;
+$primary-light: $wizard-coral;
 
 // Status Colors
 $success:       $ml-accent-green;
@@ -132,17 +157,3 @@ $chart-tertiary:  $ml-accent-green;
 $chart-quaternary: $ml-accent-yellow;
 $chart-grid:      $gray-200;
 $chart-label:     $text-secondary;
-
-// ============================================================================
-// MEL EVENT WORKSPACE (product surface — pastel, coral, purple accent)
-// ============================================================================
-
-// Authoritative workspace palette (shared shell: Overview / Tickets / RSVPs / Analytics / Settings).
-$mel-ws-coral: #f26d5b;
-$mel-ws-purple: #6e7ef2;
-$mel-ws-bg-warm: #fef5ec;
-$mel-ws-navy: #2c3e50;
-$mel-ws-border-soft: rgba(44, 62, 80, 0.08);
-$mel-ws-shadow-soft: rgba(0, 0, 0, 0.06);
-$mel-ws-purple-tint: rgba(110, 126, 242, 0.12);
-$mel-ws-purple-border: rgba(110, 126, 242, 0.2);

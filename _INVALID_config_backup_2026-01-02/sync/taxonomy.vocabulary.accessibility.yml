@@ -1,9 +1,0 @@
-uuid: 689a557a-f588-444b-9051-98dcba1375cb
-langcode: en
-status: true
-dependencies: {  }
-name: Accessibility
-vid: accessibility
-description: 'Accessibility options and features available at events (e.g., Wheelchair Access, Sign Language Interpreter, Quiet Room).'
-weight: 1
-new_revision: false

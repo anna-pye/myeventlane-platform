@@ -1,0 +1,31 @@
+{#
+/**
+ * @file
+ * Calendar page body — below unified discovery hero and context filters.
+ *
+ * FullCalendar output is always rendered via page.content (events_calendar view).
+ * Do not gate on parallel preprocess queries — see Phase 3E ownership audit.
+ */
+#}
+<div class="mel-calendar-page">
+  <div class="mel-calendar-card">
+    <div class="mel-content mel-content--calendar">
+      {{ page.content }}
+    </div>
+  </div>
+
+  {% if mel_calendar_this_week_rail|default([]) is not empty %}
+    {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
+      section_class: 'mel-section--calendar-rail mel-section--discover',
+      section_width_class: '',
+      container_class: 'mel-container',
+      header_extra_class: 'mel-section__header--calendar-rail',
+      title: 'Upcoming this week'|t,
+      subtitle: 'Events starting soon — browse cards or explore the full marketplace.'|t,
+      link_url: path('view.upcoming_events.page_events'),
+      link_text: 'Browse all events'|t,
+      content_wrapper_class: 'mel-section__discover-view mel-calendar-rail__grid',
+      content: mel_calendar_this_week_rail
+    } %}
+  {% endif %}
+</div>

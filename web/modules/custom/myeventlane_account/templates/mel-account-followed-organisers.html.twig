@@ -8,7 +8,7 @@
  * - empty: Render array when there are no follows.
  */
 #}
-<section class="mel-my-account__section mel-dashboard__section" aria-label="{{ 'Followed organisers list'|t }}">
+<section class="mel-collection-page mel-collection-page--organisers mel-my-account__section mel-dashboard__section" aria-label="{{ 'Followed organisers list'|t }}">
   {% if vendors is not empty %}
     <div class="mel-my-account__vendor-grid" role="list">
       {% for vendor in vendors %}

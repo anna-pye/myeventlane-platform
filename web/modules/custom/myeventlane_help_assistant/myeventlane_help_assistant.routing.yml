@@ -7,6 +7,9 @@ myeventlane_help_assistant.page:
     _permission: 'access myeventlane help assistant'
   methods: [GET]
 
+# Help Assistant JSON POST (same path as GET page). Route is public; HelpAssistantController::ask()
+# applies flood limits and returns only public help retrieval results — no CSRF at route
+# layer because the endpoint is read-only with rate limiting.
 myeventlane_help_assistant.ask:
   path: '/help/assistant'
   defaults:

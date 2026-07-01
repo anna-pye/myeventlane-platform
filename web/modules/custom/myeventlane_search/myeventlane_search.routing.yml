@@ -1,3 +1,5 @@
+# Public event discovery search page. Anonymous-safe published upcoming events via
+# Search API indexes; no order, vendor payout, or account data exposed.
 mel_search.view:
   path: /search
   defaults:
@@ -6,6 +8,8 @@ mel_search.view:
   requirements:
     _access: 'TRUE'
 
+# Public search autocomplete JSON. Anonymous-safe event titles, venues, and categories
+# from the same Search API indexes as /search; no private entity fields returned.
 mel_search.autocomplete:
   path: /search/autocomplete
   defaults:

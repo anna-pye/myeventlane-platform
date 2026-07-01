@@ -10,6 +10,7 @@
 
 | Page | Path |
 |------|------|
+| **Homepage** (/) | `images/mel/hero/mel-hero-home-community.jpg` (desktop + mobile), `mel-hero-home.png` fallback |
 | **Events** (/events) | `images/mel/hero/mel-hero-events.png` |
 | **Search** (/search) | `images/mel/hero/mel-hero-search.png` |
 

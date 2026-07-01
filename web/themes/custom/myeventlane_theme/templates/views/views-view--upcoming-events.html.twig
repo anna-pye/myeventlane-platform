@@ -3,21 +3,18 @@
  * @file
  * upcoming_events — shared wrapper for page_today, page_this_weekend, page_free,
  * page_popular, page_hidden_gems (displays without a more specific view template).
- *
- * Canonical runtime owner for empty-state copy on these displays (mel_empty_copy below).
- * page_events empty state: views-view--upcoming-events--page-events.html.twig
- * page_category empty state: views-view--upcoming-events--page-category.html.twig
  */
-#}
-{#
-  Listing pages only — homepage block displays use display-specific templates.
 #}
 {% set mel_discovery_displays = ['page_events', 'page_today', 'page_this_weekend', 'page_free', 'page_category', 'page_popular', 'page_hidden_gems'] %}
 <div class="mel-discovery mel-discovery--upcoming">
   {% if display_id in mel_discovery_displays and not mel_chip_listing_fragment|default(false) %}
     {{ attach_library('myeventlane_theme/mel-events-discovery') }}
-    {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: display_id } %}
-    {{ exposed }}
+    {% if not mel_discovery_shell_renders_filters|default(false) %}
+      {% include '@myeventlane_theme/views/includes/mel-events-discovery-filters.html.twig' with { display_id: display_id } %}
+    {% endif %}
+    {% if display_id == 'page_events' %}
+      {{ exposed }}
+    {% endif %}
   {% endif %}
 
   {% if mel_chip_listing_fragment|default(false) %}
