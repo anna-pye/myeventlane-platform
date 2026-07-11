@@ -361,8 +361,9 @@ mel_verify_http_health() {
     return 0
   fi
 
-  echo "Running HTTP health check: $MEL_HEALTHCHECK_URL"
-  if ! curl -fsSIL --max-time 30 "$MEL_HEALTHCHECK_URL" >/tmp/mel_deploy_http_health.$$ 2>&1; then
+  # Use GET, not HEAD (-I): some Drupal/edge setups mishandle HEAD while GET is healthy.
+  echo "Running HTTP health check (GET): $MEL_HEALTHCHECK_URL"
+  if ! curl -fsSL --max-time 30 -o /dev/null -w "HTTP %{http_code}\n" "$MEL_HEALTHCHECK_URL" >/tmp/mel_deploy_http_health.$$ 2>&1; then
     echo "ERROR: HTTP health check failed for $MEL_HEALTHCHECK_URL" >&2
     cat /tmp/mel_deploy_http_health.$$ >&2 || true
     rm -f /tmp/mel_deploy_http_health.$$
@@ -833,9 +834,18 @@ echo "========================================"
 echo
 
 # ---- MAINTENANCE MODE ----
+# Prefer the live (previous) release so maintenance covers traffic before the symlink switch.
+# If that Drush bootstrap fails, retry from the copied new release rather than aborting.
 MEL_MM_ENABLED_ATTEMPTED=1
 if [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -f "${MEL_PREVIOUS_CURRENT}/vendor/bin/drush.php" ]; then
+  set +e
   ( cd "$MEL_PREVIOUS_CURRENT" && mel_drush_maintenance_mode 1 )
+  mel_mm_previous_rc=$?
+  set -e
+  if [ "$mel_mm_previous_rc" -ne 0 ]; then
+    echo "WARNING: Enabling maintenance mode from previous release failed (exit ${mel_mm_previous_rc}); retrying from new release." >&2
+    ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
+  fi
 else
   ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
 fi
