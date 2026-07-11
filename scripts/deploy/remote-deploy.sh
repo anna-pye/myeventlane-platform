@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "=================================================="
-echo "MEL REMOTE DEPLOY WITH VALIDATION 2026-07-04"
+echo "MEL REMOTE DEPLOY WITH VALIDATION 2026-07-11"
 echo "=================================================="
 
 # Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain env verification.
@@ -262,13 +262,15 @@ mel_verify_release_owner() {
 
 mel_verify_release_composer_layout() {
   local path="$1"
+  # Drupal scaffold provides web/autoload.php (required by web/index.php).
+  # web/autoload_runtime.php is a Symfony Runtime entrypoint and is NOT part of
+  # the Drupal Composer scaffold used by MEL — do not require it.
   local required=(
     "composer.json"
     "composer.lock"
     "vendor/autoload.php"
     "web/index.php"
     "web/autoload.php"
-    "web/autoload_runtime.php"
     "web/core"
     "web/modules"
     "web/themes"
@@ -280,15 +282,15 @@ mel_verify_release_composer_layout() {
   for item in "${required[@]}"; do
     if [ ! -e "$path/$item" ]; then
       echo "ERROR: Release is missing required path: $path/$item" >&2
-      if [ "$item" = "web/autoload_runtime.php" ]; then
-        echo "Composer scaffold/runtime is incomplete. The build artifact must include web/autoload_runtime.php." >&2
+      if [ "$item" = "web/autoload.php" ]; then
+        echo "Composer scaffold is incomplete. The build artifact must include web/autoload.php (Drupal scaffold, not Symfony Runtime)." >&2
       fi
       return 1
     fi
   done
 
   php -l "$path/web/index.php" >/dev/null
-  php -l "$path/web/autoload_runtime.php" >/dev/null
+  php -l "$path/web/autoload.php" >/dev/null
 
   echo "Drupal Composer release layout OK"
 }
