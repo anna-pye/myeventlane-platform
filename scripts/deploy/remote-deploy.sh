@@ -2,7 +2,7 @@
 set -euo pipefail
 
 echo "=================================================="
-echo "MEL REMOTE DEPLOY DEBUG BUILD 2026-07-01"
+echo "MEL REMOTE DEPLOY WITH VALIDATION 2026-07-11"
 echo "=================================================="
 
 # Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain env verification.
@@ -29,6 +29,23 @@ MEL_KEEP_RELEASES="${MEL_KEEP_RELEASES:-3}"
 # Minimum free space (MB) on APP_PATH filesystem before copying a new release.
 MEL_MIN_FREE_DISK_MB="${MEL_MIN_FREE_DISK_MB:-2048}"
 
+# Expected owner for deployed release files. Defaults to the user running this script.
+DEPLOY_USER="${DEPLOY_USER:-$(id -un)}"
+
+# cPanel may keep its DocumentRoot at public_html/staging/current/web.
+# Keep that "current" path as a symlink to APP_PATH/current so Apache and Drush use the same release.
+MEL_ENABLE_WEB_CURRENT_SYMLINK="${MEL_ENABLE_WEB_CURRENT_SYMLINK:-1}"
+MEL_WEB_CURRENT_PATH="${MEL_WEB_CURRENT_PATH:-}"
+if [ -z "$MEL_WEB_CURRENT_PATH" ]; then
+  case "$SITE_URI" in
+    *staging*) MEL_WEB_CURRENT_PATH="$HOME/public_html/staging/current" ;;
+  esac
+fi
+
+# HTTP health check after final Drush steps. Set MEL_HTTP_HEALTHCHECK=0 to skip.
+MEL_HTTP_HEALTHCHECK="${MEL_HTTP_HEALTHCHECK:-1}"
+MEL_HEALTHCHECK_URL="${MEL_HEALTHCHECK_URL:-$SITE_URI}"
+
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
 RELEASE_PATH="$APP_PATH/releases/$TIMESTAMP"
 CURRENT_PATH="$APP_PATH/current"
@@ -44,10 +61,22 @@ MEL_PREVIOUS_CURRENT=""
 MEL_DRUSH_PHP_MEMORY="${MEL_DRUSH_PHP_MEMORY:-1024M}"
 
 mel_drush() {
+  local drush_entry="vendor/bin/drush.php"
+
+  if [ ! -f "$drush_entry" ]; then
+    drush_entry="vendor/drush/drush/drush.php"
+  fi
+
+  if [ ! -f "$drush_entry" ]; then
+    echo "ERROR: Drush PHP entry point not found in $(pwd)." >&2
+    echo "Expected vendor/bin/drush.php or vendor/drush/drush/drush.php." >&2
+    return 1
+  fi
+
   php \
     -d "memory_limit=${MEL_DRUSH_PHP_MEMORY}" \
     -d opcache.enable_cli=0 \
-    vendor/bin/drush.php "$@"
+    "$drush_entry" "$@"
 }
 
 mel_drush_log_cli_limits() {
@@ -73,22 +102,9 @@ mel_drush_run() {
   done
 
   echo "${label}..."
-  # TEMPORARY DEPLOYMENT DEBUGGING
-  # Remove after identifying the underlying Drush failure.
-  echo "=============================="
-  echo "MEL DEPLOY DEBUG"
-  echo "=============================="
-  echo "Working directory:"
-  pwd
-  echo "URI:"
-  echo "$SITE_URI"
-  echo "Command:"
-  echo "$command_string"
-  echo "Filesystem context:"
-  ls -ld .
-  ls -ld web || true
-  ls -ld vendor || true
-  echo "=============================="
+  echo "Working directory: $(pwd)"
+  echo "URI: $SITE_URI"
+  echo "Command: $command_string"
   tmp_output="$(mktemp)"
   set +e
   "$@" 2>&1 | tee "$tmp_output"
@@ -167,6 +183,210 @@ mel_verify_drush_bootstrap() {
   fi
   echo "${label}: Drupal bootstrap OK"
   return 0
+}
+
+
+mel_is_abs_path() {
+  case "${1:-}" in
+    /*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+mel_fail_bad_path() {
+  local name="$1"
+  local value="${2:-}"
+  echo "ERROR: Unsafe ${name}: '${value:-<empty>}'" >&2
+  return 1
+}
+
+mel_validate_path_not_root() {
+  local name="$1"
+  local value="${2:-}"
+
+  [ -n "$value" ] || mel_fail_bad_path "$name" "$value"
+  mel_is_abs_path "$value" || mel_fail_bad_path "$name" "$value"
+  [ "$value" != "/" ] || mel_fail_bad_path "$name" "$value"
+}
+
+mel_validate_base_paths() {
+  echo "Validating deployment paths..."
+
+  mel_validate_path_not_root APP_PATH "$APP_PATH"
+  mel_validate_path_not_root RELEASE_PATH "$RELEASE_PATH"
+  mel_validate_path_not_root CURRENT_PATH "$CURRENT_PATH"
+  mel_validate_path_not_root SHARED_PATH "$SHARED_PATH"
+  mel_validate_path_not_root SHARED_CONFIG_SYNC "$SHARED_CONFIG_SYNC"
+
+  case "$RELEASE_PATH" in
+    "$APP_PATH"/releases/*) ;;
+    *) echo "ERROR: RELEASE_PATH must be under APP_PATH/releases: $RELEASE_PATH" >&2; exit 1 ;;
+  esac
+
+  case "$CURRENT_PATH" in
+    "$APP_PATH"/current) ;;
+    *) echo "ERROR: CURRENT_PATH must be APP_PATH/current: $CURRENT_PATH" >&2; exit 1 ;;
+  esac
+
+  if [ "$MEL_ENABLE_WEB_CURRENT_SYMLINK" = "1" ]; then
+    if [ -z "$MEL_WEB_CURRENT_PATH" ]; then
+      echo "NOTICE: MEL_WEB_CURRENT_PATH is not set; web current symlink validation will be skipped."
+    else
+      mel_validate_path_not_root MEL_WEB_CURRENT_PATH "$MEL_WEB_CURRENT_PATH"
+      case "$MEL_WEB_CURRENT_PATH" in
+        *"/current") ;;
+        *) echo "ERROR: MEL_WEB_CURRENT_PATH must end in /current: $MEL_WEB_CURRENT_PATH" >&2; exit 1 ;;
+      esac
+    fi
+  fi
+
+  echo "Deployment paths OK"
+}
+
+mel_verify_release_owner() {
+  local path="$1"
+  local owner="${2:-$DEPLOY_USER}"
+  local offender=""
+
+  echo "Verifying release ownership (${owner})..."
+  offender="$(find "$path" ! -user "$owner" -print -quit 2>/dev/null || true)"
+  if [ -n "$offender" ]; then
+    echo "ERROR: Release contains files not owned by ${owner}." >&2
+    echo "First offending path: $offender" >&2
+    echo "Fix ownership before deploying, for example:" >&2
+    echo "  chown -R ${owner}:${owner} $path" >&2
+    return 1
+  fi
+  echo "Release ownership OK"
+}
+
+mel_verify_release_composer_layout() {
+  local path="$1"
+  # Drupal scaffold provides web/autoload.php (required by web/index.php).
+  # web/autoload_runtime.php is a Symfony Runtime entrypoint and is NOT part of
+  # the Drupal Composer scaffold used by MEL — do not require it.
+  local required=(
+    "composer.json"
+    "composer.lock"
+    "vendor/autoload.php"
+    "web/index.php"
+    "web/autoload.php"
+    "web/core"
+    "web/modules"
+    "web/themes"
+    "web/sites/default"
+  )
+  local item
+
+  echo "Verifying Drupal Composer release layout..."
+  for item in "${required[@]}"; do
+    if [ ! -e "$path/$item" ]; then
+      echo "ERROR: Release is missing required path: $path/$item" >&2
+      if [ "$item" = "web/autoload.php" ]; then
+        echo "Composer scaffold is incomplete. The build artifact must include web/autoload.php (Drupal scaffold, not Symfony Runtime)." >&2
+      fi
+      return 1
+    fi
+  done
+
+  php -l "$path/web/index.php" >/dev/null
+  php -l "$path/web/autoload.php" >/dev/null
+
+  echo "Drupal Composer release layout OK"
+}
+
+mel_verify_shared_links() {
+  echo "Verifying shared runtime links..."
+
+  if [ ! -L "$DEFAULT_PATH/files" ]; then
+    echo "ERROR: $DEFAULT_PATH/files must be a symlink to shared files." >&2
+    return 1
+  fi
+
+  if [ -f "$SHARED_PATH/settings.php" ] && [ ! -L "$DEFAULT_PATH/settings.php" ]; then
+    echo "ERROR: $DEFAULT_PATH/settings.php must be a symlink to shared/settings.php." >&2
+    return 1
+  fi
+
+  if [ -f "$SHARED_PATH/services.yml" ] && [ ! -L "$DEFAULT_PATH/services.yml" ]; then
+    echo "ERROR: $DEFAULT_PATH/services.yml must be a symlink to shared/services.yml." >&2
+    return 1
+  fi
+
+  echo "Shared runtime links OK"
+}
+
+mel_update_web_current_symlink() {
+  if [ "$MEL_ENABLE_WEB_CURRENT_SYMLINK" != "1" ]; then
+    echo "Skipping web current symlink update (MEL_ENABLE_WEB_CURRENT_SYMLINK=0)."
+    return 0
+  fi
+
+  if [ -z "$MEL_WEB_CURRENT_PATH" ]; then
+    echo "Skipping web current symlink update (MEL_WEB_CURRENT_PATH not set)."
+    return 0
+  fi
+
+  echo "Verifying web current symlink for Apache/cPanel..."
+  echo "  Web current path: $MEL_WEB_CURRENT_PATH"
+  echo "  Target:           $CURRENT_PATH"
+
+  mkdir -p "$(dirname "$MEL_WEB_CURRENT_PATH")"
+
+  if [ -e "$MEL_WEB_CURRENT_PATH" ] && [ ! -L "$MEL_WEB_CURRENT_PATH" ]; then
+    echo "ERROR: $MEL_WEB_CURRENT_PATH exists but is not a symlink." >&2
+    echo "Back it up manually, then create a symlink to $CURRENT_PATH." >&2
+    return 1
+  fi
+
+  ln -sfn "$CURRENT_PATH" "$MEL_WEB_CURRENT_PATH"
+
+  if [ "$(readlink -f "$MEL_WEB_CURRENT_PATH")" != "$(readlink -f "$CURRENT_PATH")" ]; then
+    echo "ERROR: $MEL_WEB_CURRENT_PATH does not resolve to $CURRENT_PATH." >&2
+    echo "Actual: $(readlink -f "$MEL_WEB_CURRENT_PATH" 2>/dev/null || echo '<missing>')" >&2
+    return 1
+  fi
+
+  echo "Web current symlink OK"
+}
+
+mel_verify_http_health() {
+  if [ "$MEL_HTTP_HEALTHCHECK" != "1" ]; then
+    echo "Skipping HTTP health check (MEL_HTTP_HEALTHCHECK=0)."
+    return 0
+  fi
+
+  if ! command -v curl >/dev/null 2>&1; then
+    echo "WARNING: curl not found; skipping HTTP health check." >&2
+    return 0
+  fi
+
+  # Use GET, not HEAD (-I): some Drupal/edge setups mishandle HEAD while GET is healthy.
+  echo "Running HTTP health check (GET): $MEL_HEALTHCHECK_URL"
+  if ! curl -fsSL --max-time 30 -o /dev/null -w "HTTP %{http_code}\n" "$MEL_HEALTHCHECK_URL" >/tmp/mel_deploy_http_health.$$ 2>&1; then
+    echo "ERROR: HTTP health check failed for $MEL_HEALTHCHECK_URL" >&2
+    cat /tmp/mel_deploy_http_health.$$ >&2 || true
+    rm -f /tmp/mel_deploy_http_health.$$
+    return 1
+  fi
+  rm -f /tmp/mel_deploy_http_health.$$
+  echo "HTTP health check OK"
+}
+
+mel_write_revision_metadata() {
+  local dst="$1/REVISION"
+
+  if [ -n "${MEL_REVISION:-}" ]; then
+    printf '%s\n' "$MEL_REVISION" > "$dst"
+  elif [ -n "${GITHUB_SHA:-}" ]; then
+    printf '%s\n' "$GITHUB_SHA" > "$dst"
+  elif [ -f "$dst" ]; then
+    :
+  else
+    printf 'unknown\n' > "$dst"
+  fi
+
+  echo "Release revision: $(cat "$dst")"
 }
 
 mel_disk_available_mb() {
@@ -296,6 +516,9 @@ mel_deploy_cleanup() {
   if [ "${MEL_CURRENT_SWITCHED:-0}" = "1" ] && [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -d "$MEL_PREVIOUS_CURRENT" ]; then
     echo "  Rolling back current symlink to: $MEL_PREVIOUS_CURRENT" >&2
     ln -sfn "$MEL_PREVIOUS_CURRENT" "$CURRENT_PATH" || true
+    if [ "${MEL_ENABLE_WEB_CURRENT_SYMLINK:-1}" = "1" ] && [ -n "${MEL_WEB_CURRENT_PATH:-}" ]; then
+      ln -sfn "$CURRENT_PATH" "$MEL_WEB_CURRENT_PATH" || true
+    fi
   fi
   if [ -n "${RELEASE_PATH:-}" ] && [ -d "$RELEASE_PATH" ]; then
     echo "  Removing failed partial release: $RELEASE_PATH" >&2
@@ -313,6 +536,8 @@ mel_deploy_cleanup() {
 trap mel_deploy_cleanup EXIT
 
 echo "Deploying release: $TIMESTAMP"
+
+mel_validate_base_paths
 
 mkdir -p "$APP_PATH/releases"
 mkdir -p "$SHARED_PATH/files"
@@ -352,6 +577,9 @@ if ! cp -a "$ARTIFACT_PATH"/. "$RELEASE_PATH"/; then
   exit 1
 fi
 
+mel_write_revision_metadata "$RELEASE_PATH"
+mel_verify_release_owner "$RELEASE_PATH" "$DEPLOY_USER"
+
 echo
 echo "========== RELEASE AFTER COPY =========="
 echo
@@ -363,11 +591,7 @@ find "$RELEASE_PATH" -maxdepth 2 | sort || true
 echo "========================================"
 echo
 
-# ---- SAFETY CHECK (prevents bad deploys) ----
-[ -f "$RELEASE_PATH/web/index.php" ] || {
-  echo "Invalid artifact structure"
-  exit 1
-}
+mel_verify_release_composer_layout "$RELEASE_PATH"
 
 echo "== MEL deploy asset validation =="
 
@@ -558,6 +782,8 @@ if [ -f "$SHARED_PATH/services.yml" ]; then
   ln -sfn "$SHARED_PATH/services.yml" "$DEFAULT_PATH/services.yml"
 fi
 
+mel_verify_shared_links
+
 # CI packages exclude web/sites/*/settings.php; Drush steps need $databases['default'].
 # Staging must provide ~/staging/shared/settings.php (symlinked above). Skip only for custom flows.
 if [ "${SKIP_DB_SETTINGS_CHECK:-0}" != "1" ] && [ ! -f "$DEFAULT_PATH/settings.php" ]; then
@@ -608,45 +834,20 @@ echo "========================================"
 echo
 
 # ---- MAINTENANCE MODE ----
-# ------------------------------------------------------------------
-# TEMPORARY DIAGNOSTIC
-#
-# Purpose:
-# Determine whether maintenance mode fails because Drush is executed
-# from the previous release instead of the newly bootstrapped release.
-#
-# Remove immediately after investigation.
-# ------------------------------------------------------------------
+# Prefer the live (previous) release so maintenance covers traffic before the symlink switch.
+# If that Drush bootstrap fails, retry from the copied new release rather than aborting.
 MEL_MM_ENABLED_ATTEMPTED=1
-echo "========================================"
-echo "TEMPORARY MAINTENANCE MODE DIAGNOSTIC"
-echo "========================================"
-echo "Attempt 1: Previous release"
-set +e
 if [ -n "${MEL_PREVIOUS_CURRENT:-}" ] && [ -f "${MEL_PREVIOUS_CURRENT}/vendor/bin/drush.php" ]; then
+  set +e
   ( cd "$MEL_PREVIOUS_CURRENT" && mel_drush_maintenance_mode 1 )
   mel_mm_previous_rc=$?
-else
-  mel_drush_maintenance_mode 1
-  mel_mm_previous_rc=$?
-fi
-set -e
-if [ "$mel_mm_previous_rc" -eq 0 ]; then
-  echo "SUCCESS: Previous release"
-else
-  echo "FAILED: Previous release"
-  echo "Attempt 2: New release"
-  set +e
-  ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
-  mel_mm_new_rc=$?
   set -e
-  if [ "$mel_mm_new_rc" -eq 0 ]; then
-    echo "SUCCESS: New release"
-  else
-    echo "FAILED: New release"
-    echo "ERROR: Unable to enable maintenance mode from either release." >&2
-    exit "$mel_mm_previous_rc"
+  if [ "$mel_mm_previous_rc" -ne 0 ]; then
+    echo "WARNING: Enabling maintenance mode from previous release failed (exit ${mel_mm_previous_rc}); retrying from new release." >&2
+    ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
   fi
+else
+  ( cd "$RELEASE_PATH" && mel_drush_maintenance_mode 1 )
 fi
 # No pre-switch cache rebuild: drush cr on the unreleased tree peaks memory during container
 # rebuild; staging CLI defaults are often 128M. Post-switch finalize runs drush cr with mel_drush.
@@ -654,6 +855,7 @@ fi
 # ---- SWITCH RELEASE (ATOMIC) ----
 ln -sfn "$RELEASE_PATH" "$CURRENT_PATH"
 MEL_CURRENT_SWITCHED=1
+mel_update_web_current_symlink
 
 cd "$CURRENT_PATH"
 
@@ -839,6 +1041,8 @@ mel_drush_run "Finalize: drush state:set system.maintenance_mode 0" \
 
 mel_drush_run "Finalize: drush cr (after maintenance off)" \
   mel_drush cr --uri="$SITE_URI"
+
+mel_verify_http_health
 
 DEPLOY_SUCCEEDED=1
 
