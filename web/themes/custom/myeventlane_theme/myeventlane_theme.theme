@@ -1829,7 +1829,7 @@ function _myeventlane_theme_build_mobile_bottom_nav(bool $auth_minimal = FALSE):
     '#theme' => 'mobile_bottom_nav',
     '#items' => $nav_builder->buildItems(),
     '#cache' => [
-      'contexts' => ['route', 'user'],
+      'contexts' => ['route', 'user.roles:authenticated'],
     ],
   ];
 }
@@ -2079,7 +2079,9 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       'library' => ['myeventlane_theme/account-dropdown'],
     ],
     '#cache' => [
-      'contexts' => ['route', 'user'],
+      // Auth chrome (sign-in vs account) varies by role; per-uid fragments
+      // (cart, notification bell, flags) use lazy builders / placeholders.
+      'contexts' => ['route', 'user.roles:authenticated'],
     ],
   ];
 

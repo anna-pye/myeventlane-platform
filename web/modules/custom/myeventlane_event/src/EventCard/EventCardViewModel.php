@@ -163,10 +163,9 @@ final class EventCardViewModel {
       'mel_source' => $context['mel_source'] ?? NULL,
     ]);
 
-    $isSaved = $this->isSavedByCurrentUser($node);
-    if ($isSaved) {
-      $cacheability->addCacheContexts(['user']);
-    }
+    // Flag personalisation is placeholdered via buildSaveFlagLink(); keep the
+    // card shell shareable for Dynamic Page Cache.
+    $isSaved = FALSE;
 
     return [
       'event_id' => (int) $node->id(),
@@ -279,13 +278,9 @@ final class EventCardViewModel {
     $variables['is_promoted'] = $model['is_promoted'];
     $variables['event_id'] = $model['event_id'];
 
+    // Saved-state UI is rendered via flag lazy builder only. Do not attach the
+    // high-cardinality 'user' context to the shared card shell.
     $variables['event_flag_event_save'] = $this->buildSaveFlagLink($node);
-    if ($variables['event_flag_event_save']) {
-      if (!isset($variables['#cache']['contexts'])) {
-        $variables['#cache']['contexts'] = [];
-      }
-      $variables['#cache']['contexts'][] = 'user';
-    }
 
     $this->mergeCacheFromModel($variables, $model);
     if (!isset($variables['#cache']['contexts'])) {
