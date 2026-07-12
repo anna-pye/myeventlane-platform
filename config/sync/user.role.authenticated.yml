@@ -33,7 +33,6 @@ is_admin: false
 permissions:
   - 'access checkout'
   - 'access comments'
-  - 'access commerce_order overview'
   - 'access content'
   - 'access myeventlane help assistant'
   - 'access myeventlane notifications'

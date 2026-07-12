@@ -18,6 +18,8 @@
     <testsuite name="governance-kernel">
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelGovernanceSnapshotKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelGovernanceDebugKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelPublicPageCacheabilityKernelTest.php</file>
+      <file>modules/custom/myeventlane_surface/tests/src/Unit/MelCommerceOrderOverviewRoleConfigTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelOperationalPolicyKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelSurfaceRouteGovernanceKernelTest.php</file>
       <file>modules/custom/myeventlane_surface/tests/src/Kernel/MelSurfaceAlterContractKernelTest.php</file>

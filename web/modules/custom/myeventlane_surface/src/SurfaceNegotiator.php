@@ -235,10 +235,54 @@ final class SurfaceNegotiator {
     $meta->merge(BubbleableMetadata::createFromRenderArray($observability_bubble));
     $meta->applyTo($variables);
 
-    foreach (['route', 'user', 'user.permissions', 'languages:language_interface'] as $context) {
+    // Public and auth shells must remain Dynamic Page Cache eligible. Bare
+    // 'user' / 'session' on the page root match renderer auto-placeholdering
+    // conditions, so Dynamic Page Cache marks the response
+    // UNCACHEABLE (poor cacheability). Personalised fragments belong in
+    // placeholders / lazy builders; governance payloads on public Twig are
+    // settings-oriented, not per-uid chrome.
+    // @see \Drupal\dynamic_page_cache\EventSubscriber\DynamicPageCacheSubscriber::shouldCacheResponse()
+    $shared_shell = in_array($surface, [MelSurfaceId::Public, MelSurfaceId::Auth], TRUE);
+    if ($shared_shell) {
+      $this->neutraliseHighCardinalityPageContexts($variables);
+    }
+
+    $required_contexts = $shared_shell
+      ? ['route', 'user.roles:authenticated', 'user.permissions', 'languages:language_interface']
+      : ['route', 'user', 'user.permissions', 'languages:language_interface'];
+    foreach ($required_contexts as $context) {
       if (!in_array($context, $variables['#cache']['contexts'], TRUE)) {
         $variables['#cache']['contexts'][] = $context;
       }
+    }
+  }
+
+  /**
+   * Remaps page-root cache contexts that poison Dynamic Page Cache.
+   *
+   * @param array<string, mixed> $variables
+   *   Page preprocess variables (modified in place).
+   */
+  private function neutraliseHighCardinalityPageContexts(array &$variables): void {
+    $contexts = $variables['#cache']['contexts'] ?? [];
+    if (!is_array($contexts)) {
+      $contexts = [];
+    }
+    $contexts = array_values(array_filter(
+      $contexts,
+      static fn(mixed $context): bool => is_string($context)
+        && $context !== 'user'
+        && $context !== 'session',
+    ));
+    if (!in_array('user.roles:authenticated', $contexts, TRUE)) {
+      $contexts[] = 'user.roles:authenticated';
+    }
+    $variables['#cache']['contexts'] = $contexts;
+
+    // max-age 0 on the page root is also treated as poor cacheability.
+    // Uncacheable forms/cart chrome must stay in placeholders, not here.
+    if (array_key_exists('max-age', $variables['#cache']) && (int) $variables['#cache']['max-age'] === 0) {
+      unset($variables['#cache']['max-age']);
     }
   }
 
