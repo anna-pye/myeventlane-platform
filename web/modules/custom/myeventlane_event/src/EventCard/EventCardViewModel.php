@@ -10,7 +10,6 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\flag\FlagInterface;
 use Drupal\flag\FlagServiceInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_event\Service\EventCtaResolver;
@@ -540,32 +539,6 @@ final class EventCardViewModel {
       $cacheability->addCacheTags([sprintf('event_metrics:%d', (int) $node->id())]);
     }
     return [$lowStock, $attendance];
-  }
-
-  private function isSavedByCurrentUser(NodeInterface $node): bool {
-    if (!$this->flagService) {
-      return FALSE;
-    }
-    if ($this->currentUser->isAnonymous()) {
-      $request = \Drupal::requestStack()->getCurrentRequest();
-      if ($request === NULL || !$request->hasSession() || !$request->getSession()->isStarted()) {
-        return FALSE;
-      }
-    }
-    $flag = $this->flagService->getFlagById('event_save');
-    if (!$flag instanceof FlagInterface) {
-      return FALSE;
-    }
-    if (!in_array('event', $flag->getBundles(), TRUE) && $flag->getBundles() !== []) {
-      return FALSE;
-    }
-    try {
-      return $flag->isFlagged($node, $this->currentUser);
-    }
-    catch (\LogicException) {
-      // Anonymous flag checks require an active session (see FlagService).
-      return FALSE;
-    }
   }
 
   /**
