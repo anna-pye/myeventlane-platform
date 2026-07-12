@@ -75,17 +75,30 @@ jobs:
 
       - name: Write SSH key
         shell: bash
+        env:
+          # Prefer env over inline echo so multiline OpenSSH keys are not mangled.
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          umask 077
+          # Strip CR (Windows paste) and ensure a trailing newline for OpenSSH.
+          printf '%s\n' "$SSH_PRIVATE_KEY" | tr -d '\r' > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          # Fail early with a clear message if the secret is truncated/corrupt.
+          if ! ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null 2>/tmp/mel_ssh_key_err; then
+            echo "ERROR: SSH_PRIVATE_KEY secret is not a usable OpenSSH private key." >&2
+            echo "Re-set it with: gh secret set SSH_PRIVATE_KEY < ~/mel-staging-deploy" >&2
+            cat /tmp/mel_ssh_key_err >&2 || true
+            exit 1
+          fi
 
       - name: Validate SSH key
         shell: bash
         run: |
           set -euo pipefail
           ssh-keygen -y -f ~/.ssh/id_ed25519 > /dev/null
+          echo "SSH private key parses OK"
 
       - name: Add known_hosts
         shell: bash
