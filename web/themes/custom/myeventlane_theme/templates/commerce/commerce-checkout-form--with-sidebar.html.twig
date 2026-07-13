@@ -140,13 +140,16 @@
           {% endif %}
 
           {% if form.mel_donation is defined %}
-            <div class="mel-checkout-subsection mel-checkout-subsection--donation">
-              <div class="mel-checkout-subsection__header">
-                <p class="mel-checkout-section__eyebrow">{{ mcp.optional_chip|default('') }}</p>
-                <h3 class="mel-checkout-subheading">{{ mcp.optional_donation_heading|default('') }}</h3>
+            {% set donation_pane_content = form.mel_donation|render %}
+            {% if donation_pane_content|striptags|trim is not empty %}
+              <div class="mel-checkout-subsection mel-checkout-subsection--donation">
+                <div class="mel-checkout-subsection__header">
+                  <p class="mel-checkout-section__eyebrow">{{ mcp.optional_chip|default('') }}</p>
+                  <h3 class="mel-checkout-subheading">{{ mcp.optional_donation_heading|default('') }}</h3>
+                </div>
+                {{ donation_pane_content }}
               </div>
-              {{ form.mel_donation }}
-            </div>
+            {% endif %}
           {% endif %}
 
           {% if form.mel_legal_consent is defined %}
@@ -213,22 +216,13 @@
         {% endif %}
 
         {% if form.actions %}
-          <div id="mel-checkout-cta" class="mel-checkout-sticky mel-checkout-sticky--v2" data-step="cta"{% if sticky_region_labels.label %} aria-label="{{ sticky_region_labels.label }}"{% endif %}>
-            <div class="mel-checkout-sticky__blur" aria-hidden="true"></div>
-            <div class="mel-checkout-cta mel-checkout-cta--v2">
+          <div id="mel-checkout-cta" class="mel-checkout-sticky mel-checkout-sticky--v2 mel-checkout-sticky--compact" data-step="cta"{% if sticky_region_labels.label %} aria-label="{{ sticky_region_labels.label }}"{% endif %}>
+            <div class="mel-checkout-cta mel-checkout-cta--v2 mel-checkout-cta--compact">
               {# Total is form.actions.mel_cta_total (form_alter) so it rebuilds with AJAX next to submit. #}
               {{ form.actions }}
               {% if form.payment_information is defined %}
                 <p class="mel-checkout__cta-note">{{ mcp.cta_secure_note|default('') }}</p>
               {% endif %}
-              <p class="mel-checkout-cta__recovery">
-                <a class="mel-checkout-cta__recovery-link mel-util-link" href="{{ path('myeventlane_support.page') }}">{{ sticky_nav.support|default('') }}</a>
-              </p>
-              <nav class="mel-checkout-support-foot"{% if sticky_nav.region_label %} aria-label="{{ sticky_nav.region_label }}"{% endif %}>
-                <a class="mel-util-link mel-util-link--support" href="{{ path('myeventlane_help_centre.home') }}">{{ sticky_nav.help_centre|default('') }}</a>
-                <span class="mel-checkout-support-foot__sep" aria-hidden="true">·</span>
-                <a class="mel-util-link mel-util-link--support" href="{{ path('myeventlane_support.page') }}">{{ sticky_nav.support_hub|default('') }}</a>
-              </nav>
             </div>
           </div>
         {% endif %}

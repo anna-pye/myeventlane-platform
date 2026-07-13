@@ -15,10 +15,18 @@
 
   {% if has_grouped_line_items %}
   {% for event in grouped_items %}
-    <article class="mel-summary-event mel-summary-event--card">
+    <article class="mel-summary-event">
       {% if event.thumbnail_url|default('') %}
         <div class="mel-summary-event__media" aria-hidden="true">
-          <img src="{{ event.thumbnail_url }}" alt="" class="mel-summary-event__thumb" loading="lazy" width="72" height="72" />
+          <img
+            src="{{ event.thumbnail_url }}"
+            alt=""
+            class="mel-summary-event__thumb"
+            loading="lazy"
+            width="72"
+            height="72"
+            decoding="async"
+          />
         </div>
       {% endif %}
       <div class="mel-summary-event__body">
@@ -32,22 +40,25 @@
             {% if event.location %}<span class="mel-summary-meta__location">{{ event.location }}</span>{% endif %}
           </div>
         {% endif %}
-
-        {% for item in event.items %}
-          <div class="mel-summary-item{% if item.operational_addon_display|default(null) %} mel-summary-item--operational-addon{% endif %}">
-            <span class="mel-summary-item__label">
-              {% if item.operational_addon_display|default(null) %}
-                <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
-                {% include '@myeventlane_commerce/mel-operational-order-item-line.html.twig' with { display: item.operational_addon_display } only %}
-              {% else %}
-                <span class="mel-summary-item__quantity">{{ item.quantity }} ×</span>
-                <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span>
-              {% endif %}
-            </span>
-            <span class="mel-summary-item__price">{{ item.total_price }}</span>
-          </div>
-        {% endfor %}
       </div>
+
+      {% if event.items|default([]) %}
+        <div class="mel-summary-event__items">
+          {% for item in event.items %}
+            <div class="mel-summary-item{% if item.operational_addon_display|default(null) %} mel-summary-item--operational-addon{% endif %}">
+              <span class="mel-summary-item__label">
+                {% if item.operational_addon_display|default(null) %}
+                  {% include '@myeventlane_commerce/mel-operational-order-item-line.html.twig' with { display: item.operational_addon_display } only %}
+                  <span class="mel-summary-item__quantity">×&nbsp;{{ item.quantity }}</span>
+                {% else %}
+                  <span class="mel-summary-item__ticket-type">{{ item.ticket_type }}</span><span class="mel-summary-item__quantity"> ×&nbsp;{{ item.quantity }}</span>
+                {% endif %}
+              </span>
+              <span class="mel-summary-item__price">{{ item.total_price }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
     </article>
   {% endfor %}
   {% endif %}
@@ -100,14 +111,29 @@
     <p class="mel-tax-note">{{ labels.gst_note }}</p>
   {% endif %}
 
-  <footer class="mel-checkout-summary__trustfoot" role="status" aria-live="polite">
-    <p class="mel-checkout-summary__trustline">{{ trust.line_secure }}</p>
-    <p class="mel-checkout-summary__trustline">{{ trust.line_instant }}</p>
-    <p class="mel-checkout-summary__trustline mel-checkout-summary__trustline--muted">{{ trust.line_refund }}</p>
+  <footer class="mel-checkout-summary__trustfoot" role="region" aria-label="{{ trust.heading|default('') }}">
+    {% if trust.heading|default('') %}
+      <h3 class="mel-checkout-summary__trust-heading">{{ trust.heading }}</h3>
+    {% endif %}
+    <ul class="mel-checkout-summary__trustlist">
+      <li class="mel-checkout-summary__trustline">
+        <span class="mel-checkout-summary__trust-mark" aria-hidden="true">✓</span>
+        <span>{{ trust.line_secure }}</span>
+      </li>
+      <li class="mel-checkout-summary__trustline">
+        <span class="mel-checkout-summary__trust-mark" aria-hidden="true">✓</span>
+        <span>{{ trust.line_instant }}</span>
+      </li>
+      <li class="mel-checkout-summary__trustline">
+        <span class="mel-checkout-summary__trust-mark" aria-hidden="true">✓</span>
+        <span>{{ trust.line_refund }}</span>
+      </li>
+    </ul>
+    {% if trust.refund_url|default('') and trust.refund_link_label|default('') %}
+      <p class="mel-checkout-summary__trust-link-wrap">
+        <a class="mel-checkout-summary__trust-link mel-util-link" href="{{ trust.refund_url }}" target="_blank" rel="noopener noreferrer">{{ trust.refund_link_label }} →</a>
+      </p>
+    {% endif %}
   </footer>
-
-  {% if show_jump_to_payment|default(true) %}
-    <a class="mel-checkout-summary__jump" href="#mel-checkout-cta">{{ labels.jump_payment }}</a>
-  {% endif %}
 </div>
 {% endif %}

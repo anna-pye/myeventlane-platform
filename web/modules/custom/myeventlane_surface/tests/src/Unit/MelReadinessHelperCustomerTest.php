@@ -60,20 +60,34 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
    * @covers ::customerCheckoutOrderSummarySurfaceLabels
    * @covers ::customerCheckoutCartRemovedUnavailableSlots
    * @covers ::customerCartShellLabels
+   * @covers ::customerCheckoutOrderNumberLine
+   * @covers ::customerCheckoutCompletionHero
    */
   public function testCheckoutSummaryAndCartShellLabelsIncludeTrustFooter(): void {
     $h = $this->helper();
     $labels = $h->customerCheckoutOrderSummarySurfaceLabels();
+    $this->assertSame('Booking summary', $labels['title']);
+    $this->assertSame('Book with confidence', $labels['trust_heading']);
     $this->assertArrayHasKey('trust_footer_refund_hint', $labels);
-    $this->assertNotSame('', $labels['trust_footer_secure']);
-    $this->assertNotSame('', $labels['trust_footer_instant']);
-    $this->assertNotSame('', $labels['trust_footer_refund_hint']);
+    $this->assertSame('Secure payment processed by Stripe', $labels['trust_footer_secure']);
+    $this->assertStringContainsString('booking confirmation', $labels['trust_footer_instant']);
+    $this->assertStringContainsString('organiser’s refund policy', $labels['trust_footer_refund_hint']);
+    $this->assertSame('View the Refund Policy', $labels['trust_refund_link_label']);
+    $this->assertArrayNotHasKey('jump_payment', $labels);
+    $this->assertStringNotContainsString('Jump to payment', implode("\n", $labels));
+    $this->assertStringNotContainsString('Confirmation emailed instantly', implode("\n", $labels));
+    $this->assertStringNotContainsString('Refund policy and organiser rules are in the Help Centre.', implode("\n", $labels));
+    $this->assertStringNotContainsString('Secure payments via Stripe', implode("\n", $labels));
     $removed = $h->customerCheckoutCartRemovedUnavailableSlots();
     $this->assertNotSame('', $removed['heading']);
     $this->assertNotSame('', $removed['what_happened']);
     $cart = $h->customerCartShellLabels();
     $this->assertSame($labels['trust_footer_secure'], $cart['reassurance_secure']);
     $this->assertArrayHasKey('reassurance_refund_hint', $cart);
+    $this->assertSame('Booking #2026-07-3', $h->customerCheckoutOrderNumberLine('2026-07-3'));
+    $hero = $h->customerCheckoutCompletionHero();
+    $this->assertSame('Booking confirmed', $hero['heading']);
+    $this->assertStringNotContainsString('tickets have been sent', $hero['lead']);
   }
 
 }

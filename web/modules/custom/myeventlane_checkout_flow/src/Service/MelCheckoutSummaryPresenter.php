@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\myeventlane_core\GovernedOperationalTemplates;
 use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_legal\Service\LegalSettingsService;
 
 /**
  * Canonical checkout order summary presentation (grouped structure, labels, trust).
@@ -20,6 +21,7 @@ final class MelCheckoutSummaryPresenter {
     private readonly CheckoutGroupedSummaryBuilderInterface $groupedSummaryBuilder,
     private readonly MelReadinessHelper $readinessHelper,
     private readonly GovernedOperationalTemplates $operationalTemplates,
+    private readonly LegalSettingsService $legalSettings,
   ) {}
 
   /**
@@ -27,7 +29,7 @@ final class MelCheckoutSummaryPresenter {
    *
    * @param array<string, mixed> $options
    *   - surface: 'checkout' (default), 'cart', or 'complete'. Controls layout-only flags
-   *     (e.g. jump-to-payment link) — pricing still comes from Commerce via builders only.
+   *     — pricing still comes from Commerce via builders only.
    *
    * @return array<string, mixed>
    */
@@ -55,10 +57,14 @@ final class MelCheckoutSummaryPresenter {
     }
 
     $labels = $this->readinessHelper->customerCheckoutOrderSummarySurfaceLabels();
+    $refund_url = trim($this->legalSettings->getRefundPolicyUrl());
     $trust = [
+      'heading' => $labels['trust_heading'],
       'line_secure' => $labels['trust_footer_secure'],
       'line_instant' => $labels['trust_footer_instant'],
       'line_refund' => $labels['trust_footer_refund_hint'],
+      'refund_url' => $refund_url,
+      'refund_link_label' => $labels['trust_refund_link_label'],
     ];
 
     return [
@@ -77,7 +83,8 @@ final class MelCheckoutSummaryPresenter {
       '#has_pricing_block' => $has_pricing_block,
       '#has_grouped_line_items' => $has_grouped_line_items,
       '#surface' => $surface,
-      '#show_jump_to_payment' => $surface === 'checkout',
+      // Jump-to-payment was removed from the customer checkout summary contract.
+      '#show_jump_to_payment' => FALSE,
     ];
   }
 

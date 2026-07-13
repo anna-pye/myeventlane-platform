@@ -6,7 +6,11 @@ namespace Drupal\myeventlane_checkout_flow\Plugin\Commerce\CheckoutPane;
 
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutPane\CheckoutPaneBase;
 use Drupal\commerce_checkout\Plugin\Commerce\CheckoutFlow\CheckoutFlowInterface;
+use Drupal\Component\Render\MarkupInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Link;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -51,13 +55,6 @@ final class LegalConsentPane extends CheckoutPaneBase {
       $consent_timestamp = (int) $order->get('field_legal_consent_timestamp')->value;
     }
 
-    $termsUrl = $this->legalSettings->getCustomerTermsUrl();
-    $privacyUrl = $this->legalSettings->getPrivacyUrl();
-    $refundUrl = $this->legalSettings->getRefundPolicyUrl();
-    $termsLink = $termsUrl ? '<a href="' . htmlspecialchars($termsUrl) . '" target="_blank" rel="noopener">' . $this->t('Terms of Service') . '</a>' : $this->t('Terms of Service');
-    $privacyLink = $privacyUrl ? '<a href="' . htmlspecialchars($privacyUrl) . '" target="_blank" rel="noopener">' . $this->t('Privacy Policy') . '</a>' : $this->t('Privacy Policy');
-    $refundLink = $refundUrl ? '<a href="' . htmlspecialchars($refundUrl) . '" target="_blank" rel="noopener">' . $this->t('Refund Policy') . '</a>' : $this->t('Refund Policy');
-
     $collection_notice = $this->legalSettings->getCollectionNoticeCheckout();
 
     if ($collection_notice !== '') {
@@ -68,15 +65,28 @@ final class LegalConsentPane extends CheckoutPaneBase {
       ];
     }
 
+    // Link::toString() returns MarkupInterface so @ placeholders in t() do not
+    // escape the anchors (plain HTML strings were being escaped previously).
     $pane_form['consent_text'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-consent-text']],
-      'markup' => [
-        '#markup' => '<p>' . $this->t('By proceeding, you agree to our @terms, @privacy, and @refund.', [
-          '@terms' => $termsLink,
-          '@privacy' => $privacyLink,
-          '@refund' => $refundLink,
-        ]) . '</p>',
+      'message' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('By proceeding, you agree to our @terms, @privacy, and @refund.', [
+          '@terms' => $this->buildPolicyLinkMarkup(
+            $this->legalSettings->getCustomerTermsUrl(),
+            $this->t('Terms of Service'),
+          ),
+          '@privacy' => $this->buildPolicyLinkMarkup(
+            $this->legalSettings->getPrivacyUrl(),
+            $this->t('Privacy Policy'),
+          ),
+          '@refund' => $this->buildPolicyLinkMarkup(
+            $this->legalSettings->getRefundPolicyUrl(),
+            $this->t('Refund Policy'),
+          ),
+        ]),
       ],
     ];
 
@@ -99,6 +109,32 @@ final class LegalConsentPane extends CheckoutPaneBase {
     ];
 
     return $pane_form;
+  }
+
+  /**
+   * Builds a policy link safe for @ placeholders (MarkupInterface, XSS-safe).
+   */
+  private function buildPolicyLinkMarkup(string $url, TranslatableMarkup $title): MarkupInterface|TranslatableMarkup {
+    $url = trim($url);
+    if ($url === '') {
+      return $title;
+    }
+
+    try {
+      $url_object = str_starts_with($url, '/')
+        ? Url::fromUserInput($url)
+        : Url::fromUri($url);
+    }
+    catch (\InvalidArgumentException) {
+      return $title;
+    }
+
+    $url_object->setOption('attributes', [
+      'target' => '_blank',
+      'rel' => 'noopener',
+    ]);
+
+    return Link::fromTextAndUrl($title, $url_object)->toString();
   }
 
   /**
