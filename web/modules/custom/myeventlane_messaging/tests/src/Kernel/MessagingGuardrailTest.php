@@ -126,7 +126,7 @@ final class MessagingGuardrailTest extends KernelTestBase {
   }
 
   /**
-   * Order receipts must render with and without donations (no exceptions).
+   * Order confirmation must render with and without donations (no exceptions).
    */
   public function testOrderConfirmationRendersWithAndWithoutDonations(): void {
     $path = $this->moduleTemplatePath('myeventlane_messaging', 'order_confirmation');
@@ -146,6 +146,66 @@ final class MessagingGuardrailTest extends KernelTestBase {
     $withDonationHtml = $this->renderer->renderString((string) $data['body_html'], $withDonation);
     $this->assertIsString($withDonationHtml);
     $this->assertNotSame('', $withDonationHtml);
+  }
+
+  /**
+   * ACE Phase 2: booking confirmation subject/body use booking terminology.
+   */
+  public function testOrderConfirmationUsesBookingTerminology(): void {
+    $path = $this->moduleTemplatePath('myeventlane_messaging', 'order_confirmation');
+    $data = Yaml::decode((string) file_get_contents($path));
+    $this->assertIsArray($data);
+
+    $context = $this->contextForTemplateKey('order_confirmation');
+    $subject = $this->renderer->renderString((string) $data['subject'], $context);
+    $body = $this->renderer->renderString((string) $data['body_html'], $context);
+
+    $this->assertSame('Your booking is confirmed – Test Event', $subject);
+    $this->assertStringContainsString('Booking confirmed', $body);
+    $this->assertStringContainsString('Booking #1001', $body);
+    $this->assertStringContainsString('View My Booking', $body);
+    $this->assertStringContainsString('View Event', $body);
+    $this->assertStringContainsString('What happens next?', $body);
+    $this->assertStringContainsString('Need help?', $body);
+    $this->assertStringContainsString('Booking total', $body);
+    $this->assertStringContainsString('Ticket summary', $body);
+
+    $lower = mb_strtolower($body . "\n" . $subject);
+    foreach (['order confirmed', 'purchase complete', 'receipt', 'tax invoice'] as $forbidden) {
+      $this->assertStringNotContainsString($forbidden, $lower);
+    }
+
+    $fallbackSubject = $this->renderer->renderString((string) $data['subject'], [
+      'event_name' => NULL,
+      'is_paid' => TRUE,
+    ]);
+    $this->assertSame('Booking confirmed – MyEventLane', $fallbackSubject);
+  }
+
+  /**
+   * Guest / pending / paid variants for ACE Phase 2 hardening.
+   */
+  public function testOrderConfirmationGuestAndPaymentVariants(): void {
+    $path = $this->moduleTemplatePath('myeventlane_messaging', 'order_confirmation');
+    $data = Yaml::decode((string) file_get_contents($path));
+    $this->assertIsArray($data);
+
+    $guest = $this->contextForTemplateKey('order_confirmation');
+    $guest['is_guest'] = TRUE;
+    $guest['order_url'] = NULL;
+    $guestBody = $this->renderer->renderString((string) $data['body_html'], $guest);
+    $this->assertStringContainsString('View Event', $guestBody);
+    $this->assertStringNotContainsString('View My Booking', $guestBody);
+    $this->assertStringNotContainsString('/my-tickets/order/', $guestBody);
+    $this->assertStringContainsString('without signing in', $guestBody);
+
+    $pending = $this->contextForTemplateKey('order_confirmation');
+    $pending['is_paid'] = FALSE;
+    $pendingSubject = $this->renderer->renderString((string) $data['subject'], $pending);
+    $pendingBody = $this->renderer->renderString((string) $data['body_html'], $pending);
+    $this->assertSame('Booking received – payment pending', $pendingSubject);
+    $this->assertStringContainsString('Booking received', $pendingBody);
+    $this->assertStringNotContainsString('Booking confirmed', $pendingBody);
   }
 
   /**
@@ -271,13 +331,17 @@ final class MessagingGuardrailTest extends KernelTestBase {
         'events' => [
           [
             'title' => 'Test Event',
+            'url' => 'https://example.test/events/1',
             'image_url' => NULL,
-            'start_date' => 'Jan 1, 2026',
+            'image_alt' => NULL,
+            'start_date' => '1 Jan 2026',
             'end_date' => NULL,
-            'start_time' => '10:00 AM',
+            'start_time' => '10:00 am',
             'end_time' => NULL,
             'venue_name' => 'Test Venue',
             'location' => '123 Test St',
+            'organiser_name' => 'Sample Organiser',
+            'organiser_url' => 'https://example.test/vendors/sample',
             'contact_email' => 'organiser@example.test',
             'contact_phone' => NULL,
             'accessibility_contact' => NULL,
@@ -295,8 +359,19 @@ final class MessagingGuardrailTest extends KernelTestBase {
         ],
         'donation_total' => NULL,
         'total_paid' => '$10.00',
+        'booking_total' => '$10.00',
+        'order_number' => '1001',
+        'is_guest' => FALSE,
+        'is_paid' => TRUE,
         'event_name' => 'Test Event',
+        'event_url' => 'https://example.test/events/1',
+        'organiser_name' => 'Sample Organiser',
+        'organiser_url' => 'https://example.test/vendors/sample',
+        'help_centre_url' => 'https://example.test/help',
+        'refund_policy_url' => 'https://example.test/help/policies/refund-policy',
+        'support_url' => 'https://example.test/support',
         'tickets_need_assignment' => FALSE,
+        'show_includes_gst_note' => TRUE,
       ];
     }
 

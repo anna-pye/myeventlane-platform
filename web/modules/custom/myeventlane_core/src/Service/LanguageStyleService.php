@@ -169,4 +169,19 @@ final class LanguageStyleService {
     );
   }
 
+  /**
+   * Checks if a string looks like HTML markup (should not be processed).
+   *
+   * HTML bodies often embed canonical paths such as /vendors/… inside href
+   * attributes. Applying replace() would rewrite those path segments
+   * (vendors → organisers) and break links.
+   */
+  public function looksLikeHtml(string $value): bool {
+    $trimmed = ltrim($value);
+    if ($trimmed === '') {
+      return FALSE;
+    }
+    return preg_match('/<[a-z][\s\S]*>/i', $trimmed) === 1;
+  }
+
 }
