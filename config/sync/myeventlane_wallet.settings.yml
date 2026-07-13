@@ -1,7 +1,7 @@
-apple_enabled: false
-apple_team_id: ''
-apple_pass_type_id: ''
-apple_organisation_name: ''
+apple_enabled: true
+apple_team_id: WT8K739P63
+apple_pass_type_id: pass.com.tickets.myeventlane
+apple_organisation_name: 'My Eventlane'
 google_enabled: true
 google_issuer_id: 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
 show_wallet_buttons: true

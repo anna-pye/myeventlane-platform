@@ -4,7 +4,7 @@ body_html: |
   <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
     <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
       <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin: 0; font-size: 28px;">Thank you for your order</h1>
+        <h1 style="color: #2c3e50; margin: 0; font-size: 28px;">Thank you for your booking</h1>
       </div>
 
       <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
@@ -12,7 +12,7 @@ body_html: |
       </p>
 
       <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Your order <strong>#{{ order_number }}</strong> has been confirmed. We've attached your calendar file(s) to this email.
+        Your booking <strong>#{{ order_number }}</strong> has been confirmed. We've attached your calendar file(s) to this email.
       </p>
 
       {% if events|length > 0 %}
