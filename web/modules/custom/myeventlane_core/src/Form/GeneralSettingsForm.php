@@ -39,6 +39,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Platform settings'),
       '#open' => TRUE,
+      '#tree' => TRUE,
     ];
 
     $form['platform']['site_name'] = [
@@ -60,6 +61,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Default settings'),
       '#open' => TRUE,
+      '#tree' => TRUE,
     ];
 
     $form['defaults']['default_timezone'] = [
@@ -83,6 +85,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Payments & fees'),
       '#open' => TRUE,
+      '#tree' => TRUE,
     ];
 
     $ticket_fee = PlatformFeeDefaults::normalizePercent($config->get('platform_fee_percent'));
