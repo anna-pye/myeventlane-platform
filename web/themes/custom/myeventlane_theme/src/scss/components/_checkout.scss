@@ -1247,100 +1247,92 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
 .mel-summary-grouped .mel-summary-event,
 .mel-summary-event {
-  margin-bottom: spacing.mel-space(4);
-  padding-bottom: spacing.mel-space(3);
-  border-bottom: 1px solid rgba(colors.$mel-color-border, 0.6);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: spacing.mel-space(3);
+  row-gap: spacing.mel-space(3);
+  align-items: start;
+  margin: 0 0 spacing.mel-space(4);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 
   &:last-of-type {
-    border-bottom: none;
-    padding-bottom: 0;
+    margin-bottom: spacing.mel-space(2);
+  }
+
+  &:not(:has(.mel-summary-event__media)) {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   h3,
   .mel-summary-event__title {
-    font-size: typography.mel-font-size(sm);
+    font-size: typography.mel-font-size(md);
     font-weight: typography.$mel-font-bold;
     color: colors.$mel-color-text;
     margin: 0 0 spacing.mel-space(1) 0;
-  }
-}
-
-.mel-summary-grouped .mel-summary-event--card {
-  border-bottom: none;
-  padding-bottom: 0;
-}
-
-.mel-summary-event--card {
-  display: flex;
-  flex-direction: row;
-  align-items: flex-start;
-  gap: spacing.mel-space(3);
-  padding: spacing.mel-space(4);
-  margin-bottom: spacing.mel-space(4);
-  border-radius: radii.$mel-radius-lg;
-  border: $mel-checkout-border;
-  background: colors.$mel-color-surface;
-  box-shadow: shadows.$mel-shadow-1;
-
-  &:last-of-type {
-    margin-bottom: 0;
-  }
-
-  .mel-summary-event__body {
-    flex: 1 1 auto;
-    min-width: 0;
-  }
-
-  .mel-summary-event__media {
-    margin: 0;
-    flex: 0 0 auto;
-  }
-
-  .mel-summary-event__thumb {
-    width: 72px;
-    height: 72px;
-    border-radius: radii.$mel-radius-md;
-    object-fit: cover;
-  }
-
-  .mel-summary-event__title {
-    font-size: typography.mel-font-size(md);
     letter-spacing: -0.01em;
+    overflow-wrap: break-word;
   }
+}
 
-  .mel-summary-event__pricing {
-    font-size: typography.mel-font-size(xs);
-    font-weight: typography.$mel-font-semibold;
-    color: colors.$mel-color-text-muted;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: spacing.mel-space(1);
-  }
+.mel-summary-event__media {
+  margin: 0;
+}
+
+.mel-summary-event__thumb {
+  display: block;
+  width: 72px;
+  height: 72px;
+  border-radius: radii.$mel-radius-md;
+  object-fit: cover;
+}
+
+.mel-summary-event__body {
+  min-width: 0;
+}
+
+.mel-summary-event__pricing {
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text-muted;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 spacing.mel-space(1);
+}
+
+.mel-summary-event__items {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: spacing.mel-space(1);
+  min-width: 0;
 }
 
 .mel-summary-grouped .mel-summary-item,
 .mel-summary-item {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: spacing.mel-space(3);
   align-items: baseline;
-  gap: spacing.mel-space(2);
   font-size: typography.mel-font-size(sm);
-  margin-bottom: spacing.mel-space(1);
-  padding: spacing.mel-space(1) 0;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  margin: 0;
+  padding: 0;
+  min-width: 0;
 }
 
 .mel-summary-item__label {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
   min-width: 0;
   gap: spacing.mel-space(1);
+  overflow-wrap: break-word;
 }
 
 .mel-summary-item__quantity {
   flex: 0 0 auto;
+  white-space: nowrap;
   color: colors.$mel-color-text-muted;
   font-weight: typography.$mel-font-semibold;
 }
@@ -1348,41 +1340,48 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 .mel-summary-item__ticket-type {
   min-width: 0;
   color: colors.$mel-color-text;
+  overflow-wrap: break-word;
 }
 
 .mel-summary-item__price {
-  flex: 0 0 auto;
+  justify-self: end;
+  white-space: nowrap;
   font-weight: typography.$mel-font-semibold;
   color: colors.$mel-color-text;
+  font-variant-numeric: tabular-nums;
 }
 
 .mel-summary-breakdown {
-  margin-top: spacing.mel-space(3);
-  padding-top: spacing.mel-space(2);
-  border-top: 1px solid rgba(colors.$mel-color-border, 0.65);
+  display: grid;
+  gap: spacing.mel-space(1);
+  margin-top: spacing.mel-space(2);
+  padding-top: spacing.mel-space(3);
+  border-top: 0;
 }
 
 .mel-summary-row {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: spacing.mel-space(3);
   align-items: baseline;
-  gap: spacing.mel-space(2);
   font-size: typography.mel-font-size(sm);
-  margin-bottom: spacing.mel-space(1);
+  margin: 0;
   color: colors.$mel-color-text;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  min-width: 0;
 }
 
 .mel-summary-row__label {
+  min-width: 0;
   color: colors.$mel-color-text-muted;
+  overflow-wrap: break-word;
 }
 
 .mel-summary-row__value {
+  justify-self: end;
+  white-space: nowrap;
   font-weight: typography.$mel-font-medium;
   color: colors.$mel-color-text;
+  font-variant-numeric: tabular-nums;
 }
 
 .mel-summary-row--fee,
@@ -1451,24 +1450,28 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 }
 
 .mel-summary-total--inline {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: spacing.mel-space(3);
   align-items: baseline;
-  gap: spacing.mel-space(2);
-  margin-top: spacing.mel-space(2);
-  padding-top: spacing.mel-space(2);
-  border-top: 1px solid rgba(colors.$mel-color-border, 0.75);
+  margin-top: spacing.mel-space(3);
+  padding-top: spacing.mel-space(3);
+  border-top: 2px solid colors.$mel-color-border-strong;
 
   .mel-summary-total__label {
+    min-width: 0;
     font-size: typography.mel-font-size(sm);
     font-weight: typography.$mel-font-semibold;
     color: colors.$mel-color-text-muted;
   }
 
   .mel-summary-total__value {
+    justify-self: end;
+    white-space: nowrap;
     font-size: typography.mel-font-size(lg);
     font-weight: typography.$mel-font-bold;
     color: colors.$mel-color-text;
+    font-variant-numeric: tabular-nums;
   }
 }
 
@@ -1499,15 +1502,15 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 .mel-summary-grouped .mel-summary-meta {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: spacing.mel-space(1);
   font-size: typography.mel-font-size(sm);
   color: colors.$mel-color-text-muted;
-  margin-bottom: spacing.mel-space(2);
+  margin: 0;
 
-  @include breakpoints.mel-break(sm) {
-    flex-direction: row;
-    flex-wrap: wrap;
-    column-gap: spacing.mel-space(2);
+  .mel-summary-meta__date,
+  .mel-summary-meta__location {
+    min-width: 0;
+    overflow-wrap: break-word;
   }
 }
 
@@ -2901,8 +2904,9 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
   .mel-summary-grouped .mel-summary-event,
   .mel-summary-event {
-    margin-bottom: spacing.mel-space(2);
-    padding-bottom: spacing.mel-space(2);
+    margin-bottom: spacing.mel-space(3);
+    row-gap: spacing.mel-space(2);
+    column-gap: spacing.mel-space(2);
   }
 
   .mel-checkout__summary-region--trust .mel-checkout-confidence {
@@ -3118,19 +3122,51 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 }
 
 .mel-checkout-summary__trustfoot {
-  margin-top: spacing.mel-space(2);
-  padding-top: spacing.mel-space(2);
-  border-top: $mel-checkout-border;
+  margin-top: spacing.mel-space(4);
+  padding-top: spacing.mel-space(3);
+  border-top: 1px solid rgba(colors.$mel-color-border, 0.55);
   font-size: typography.mel-font-size(sm);
   color: colors.$mel-color-text-muted;
+}
 
-  > p {
-    margin: spacing.mel-space(1) 0 0;
+.mel-checkout-summary__trust-heading {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(sm);
+  font-weight: typography.$mel-font-semibold;
+  color: colors.$mel-color-text;
+  letter-spacing: -0.01em;
+}
 
-    &:first-child {
-      margin-top: 0;
-    }
-  }
+.mel-checkout-summary__trustlist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: spacing.mel-space(1);
+}
+
+.mel-checkout-summary__trustline {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: spacing.mel-space(2);
+  align-items: start;
+  margin: 0;
+  color: colors.$mel-color-text;
+  line-height: 1.4;
+}
+
+.mel-checkout-summary__trust-mark {
+  color: colors.$mel-color-primary;
+  font-weight: typography.$mel-font-semibold;
+  line-height: 1.4;
+}
+
+.mel-checkout-summary__trust-link-wrap {
+  margin: spacing.mel-space(2) 0 0;
+}
+
+.mel-checkout-summary__trust-link {
+  font-weight: typography.$mel-font-semibold;
 }
 
 .mel-checkout-sticky--v2 {
@@ -3207,6 +3243,89 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
+// Compact sticky action bar — amount + cart link + primary CTA (+ optional one-line note).
+.mel-checkout-sticky--compact {
+  padding-top: spacing.mel-space(1);
+}
+
+.mel-checkout-cta--compact {
+  gap: spacing.mel-space(1);
+  padding: spacing.mel-space(2) spacing.mel-space(3);
+  padding-bottom: calc(#{spacing.mel-space(2)} + env(safe-area-inset-bottom, 0px));
+  border: 1px solid rgba(colors.$mel-color-border, 0.55);
+  border-bottom: 0;
+  border-radius: radii.$mel-radius-md radii.$mel-radius-md 0 0;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 -4px 18px rgba(44, 62, 80, 0.08);
+
+  .form-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: spacing.mel-space(2);
+    align-items: center;
+    margin: 0;
+  }
+
+  .mel-checkout-total-inline,
+  .mel-checkout-cta__total {
+    grid-column: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: spacing.mel-space(2);
+    margin: 0;
+    padding: spacing.mel-space(1) 0;
+    background: transparent;
+    border-radius: 0;
+  }
+
+  .form-actions > a {
+    grid-column: 2;
+    justify-self: end;
+    white-space: nowrap;
+    font-size: typography.mel-font-size(sm);
+  }
+
+  .form-actions .button--primary,
+  .form-actions [type='submit'].button--primary {
+    grid-column: 1 / -1;
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .mel-checkout__cta-note {
+    margin: 0;
+    font-size: typography.mel-font-size(xs);
+    font-weight: typography.$mel-font-regular;
+    color: colors.$mel-color-text-muted;
+    line-height: 1.35;
+  }
+
+  @media (width >= 769px) {
+    .form-actions {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+    }
+
+    .mel-checkout-total-inline,
+    .mel-checkout-cta__total {
+      grid-column: 1;
+      grid-row: 1;
+    }
+
+    .form-actions > a {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .form-actions .button--primary,
+    .form-actions [type='submit'].button--primary {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .mel-checkout-sticky__blur {
     backdrop-filter: none;
@@ -3256,12 +3375,6 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   box-shadow: 0 14px 40px rgba(44, 62, 80, 0.08);
 }
 
-.mel-checkout-summary--v2 .mel-summary-event--card {
-  background: rgba(255, 255, 255, 0.88);
-  border-color: rgba(colors.$mel-color-primary, 0.1);
-  box-shadow: 0 10px 28px rgba(44, 62, 80, 0.07);
-}
-
 .mel-checkout-sticky--v2 .mel-checkout-sticky__blur {
   border-radius: radii.$mel-radius-xl radii.$mel-radius-xl 0 0;
   background: linear-gradient(
@@ -3273,7 +3386,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   box-shadow: 0 -16px 48px rgba(44, 62, 80, 0.14);
 }
 
-.mel-checkout-cta--v2 .mel-checkout__cta-note {
+.mel-checkout-cta--v2:not(.mel-checkout-cta--compact) .mel-checkout__cta-note {
   font-weight: typography.$mel-font-semibold;
   color: colors.$mel-color-text;
 }
@@ -3294,7 +3407,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
     .mel-checkout__main {
       min-width: 0;
-      padding-bottom: calc(120px + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
     }
   }
 
@@ -3337,5 +3450,15 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
   .mel-checkout-sticky--v2 {
     margin-top: spacing.mel-space(2);
+  }
+
+  .mel-checkout-cta--compact {
+    .form-actions > a {
+      font-size: typography.mel-font-size(xs);
+    }
+
+    .mel-checkout__cta-note {
+      display: none;
+    }
   }
 }

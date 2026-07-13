@@ -16,6 +16,11 @@ configuration:
   collect_billing_information: true
   publishable_key: ''
   secret_key: ''
+  express_checkout:
+    enable_on_cart: false
+    allowed_payment_method_types: {  }
+    collect_phone_number: false
+    collect_billing_address: true
   webhook_signing_secret: ''
   payment_method_usage: off_session
   capture_method: automatic

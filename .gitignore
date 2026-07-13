@@ -199,3 +199,14 @@ tmp/
 memory/
 docs/internal/
 *.bak
+
+# macOS
+.DS_Store
+
+# Storage runtime
+shared/private_files/storage-audit/
+shared/private_files/storage-migration/
+shared/private_files/backups/
+
+# Ignore everything under shared except intentional placeholders
+shared/**/.DS_Store

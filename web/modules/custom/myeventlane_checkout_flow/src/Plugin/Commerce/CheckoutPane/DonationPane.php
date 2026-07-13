@@ -26,6 +26,15 @@ final class DonationPane extends CheckoutPaneBase {
   /**
    * {@inheritdoc}
    */
+  public function isVisible(): bool {
+    // Keep the plugin registered for legacy flow config, but never expose an
+    // empty donation control (or its Twig heading wrapper) on checkout.
+    return FALSE;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function buildPaneForm(array $pane_form, FormStateInterface $form_state, array &$complete_form): array {
     $pane_form['#access'] = FALSE;
     return $pane_form;

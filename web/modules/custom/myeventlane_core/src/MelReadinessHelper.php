@@ -349,11 +349,11 @@ final class MelReadinessHelper {
   }
 
   public function customerCheckoutCtaSecurePaymentNote(): string {
-    return (string) $this->t('Your payment will be processed securely.');
+    return (string) $this->t('Your payment will be processed securely');
   }
 
   public function customerCheckoutOrderSummaryAriaLabel(): string {
-    return (string) $this->t('Order summary');
+    return (string) $this->t('Booking summary');
   }
 
   /**
@@ -394,7 +394,8 @@ final class MelReadinessHelper {
   public function customerCheckoutCompletionHero(): array {
     return [
       'heading' => (string) $this->customerCheckoutCompletionHeadline(),
-      'lead' => (string) $this->t('Confirmation and tickets have been sent.'),
+      // Do not claim tickets were attached or delivered — issuance may still be queued.
+      'lead' => (string) $this->t('Check your email for your booking confirmation.'),
     ];
   }
 
@@ -472,23 +473,25 @@ final class MelReadinessHelper {
    * @return array<string, string>
    */
   public function customerCheckoutOrderSummarySurfaceLabels(): array {
+    $booking_summary = $this->customerCheckoutBookingSummaryHeading();
     return [
-      'summary_region' => $this->customerCheckoutOrderSummaryAriaLabel(),
+      'summary_region' => $booking_summary,
       'pricing_breakdown_region' => (string) $this->t('Pricing breakdown'),
       'contribution_label' => (string) $this->t('Contribution'),
       'total_label' => (string) $this->t('Total'),
       'platform_fee_label' => (string) $this->t('Platform fee'),
       'platform_fee_absorbed_value' => (string) $this->t('Organiser absorbs'),
       'gst_note' => (string) $this->t('All prices include GST'),
-      'jump_payment' => (string) $this->t('Jump to payment'),
       'tickets_table_caption' => (string) $this->t('Tickets and quantities'),
-      'core_heading_visually_hidden' => (string) $this->t('Order summary'),
-      'sidebar_visible_title' => (string) $this->t('Your order'),
-      'title' => (string) $this->t('Your order'),
+      'core_heading_visually_hidden' => $booking_summary,
+      'sidebar_visible_title' => $booking_summary,
+      'title' => $booking_summary,
       'subtotal_label' => (string) $this->t('Subtotal'),
-      'trust_footer_secure' => (string) $this->t('Secure payments via Stripe'),
-      'trust_footer_instant' => (string) $this->t('Confirmation emailed instantly'),
-      'trust_footer_refund_hint' => (string) $this->t('Refund policy and organiser rules are in the Help Centre.'),
+      'trust_heading' => (string) $this->t('Book with confidence'),
+      'trust_footer_secure' => (string) $this->t('Secure payment processed by Stripe'),
+      'trust_footer_instant' => (string) $this->t('We’ll email your booking confirmation after your booking is confirmed'),
+      'trust_footer_refund_hint' => (string) $this->t('Refunds are subject to the organiser’s refund policy'),
+      'trust_refund_link_label' => (string) $this->t('View the Refund Policy'),
       'event_fallback_title' => (string) $this->t('Event'),
       'additional_items_title' => (string) $this->t('Additional items'),
       'help_region_short' => (string) $this->t('Help'),
@@ -510,8 +513,11 @@ final class MelReadinessHelper {
     return [
       'title' => $labels['title'],
       'subtotal_label' => $labels['subtotal_label'],
+      'trust_heading' => $labels['trust_heading'],
       'trust_footer_secure' => $labels['trust_footer_secure'],
       'trust_footer_instant' => $labels['trust_footer_instant'],
+      'trust_footer_refund_hint' => $labels['trust_footer_refund_hint'],
+      'trust_refund_link_label' => $labels['trust_refund_link_label'],
     ];
   }
 
@@ -540,7 +546,7 @@ final class MelReadinessHelper {
   }
 
   public function customerCheckoutOrderNumberLine(string $order_number): string {
-    return (string) $this->t('Order #@number', ['@number' => $order_number]);
+    return (string) $this->t('Booking #@number', ['@number' => $order_number]);
   }
 
   /**
@@ -560,7 +566,7 @@ final class MelReadinessHelper {
       'google_calendar' => (string) $this->t('Google Calendar'),
       'outlook_calendar' => (string) $this->t('Outlook'),
       'guest_ticket_email_body' => (string) $this->t('Check your inbox for ticket PDFs, calendar files, and this order number — you can open them anytime without signing in.'),
-      'guest_order_number_intro' => (string) $this->t('Order number:'),
+      'guest_order_number_intro' => (string) $this->t('Booking number:'),
       'what_next_title' => (string) $this->t('What happens next'),
       'what_next_body' => (string) $this->t('Keep this confirmation handy. Sign in later to find tickets under My tickets, or use the links in your email. The organiser may send practical details closer to the date.'),
       'organiser_trust_title' => (string) $this->t('About your organiser'),

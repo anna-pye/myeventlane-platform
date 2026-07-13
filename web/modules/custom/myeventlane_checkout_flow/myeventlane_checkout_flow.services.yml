@@ -24,6 +24,7 @@ services:
       - '@myeventlane_checkout_flow.checkout_grouped_summary_builder'
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_surface.governed_operational_templates'
+      - '@myeventlane_legal.settings'
 
   myeventlane_checkout_flow.order_pricing_breakdown:
     class: Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder
