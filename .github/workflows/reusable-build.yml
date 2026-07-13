@@ -141,6 +141,8 @@ jobs:
           set -euo pipefail
           archive_path="$RUNNER_TEMP/artifact.tar.gz"
 
+          printf '%s\n' "${GITHUB_SHA}" > REVISION
+
           tar \
             --exclude='.git' \
             --exclude='.ddev' \
