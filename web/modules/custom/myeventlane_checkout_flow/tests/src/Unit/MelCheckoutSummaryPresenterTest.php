@@ -147,6 +147,7 @@ final class MelCheckoutSummaryPresenterTest extends UnitTestCase {
     $this->assertSame('/help/policies/refund-policy', $render['#trust']['refund_url']);
     $this->assertSame('View the Refund Policy', $render['#trust']['refund_link_label']);
     $this->assertSame('Booking summary', $render['#labels']['title']);
+    $this->assertContains('config:myeventlane_legal.settings', $render['#cache']['tags']);
 
     $legacy = [
       'Jump to payment',
