@@ -6,6 +6,7 @@ This document describes how Git and GitHub Actions work for staging in this repo
 
 - **Trigger:** Any **push to `main`** runs `.github/workflows/deploy-staging.yml`.
 - **Flow:** The **Build** job (reusable workflow in `.github/workflows/reusable-build.yml`) produces a deployable artifact, then the **Deploy** job downloads it, uses SSH/SCP to the staging host, and runs `scripts/deploy/remote-deploy.sh` on the server (see the workflow for exact steps and `SITE_URI` / `APP_PATH`).
+- **Release identity:** The build writes a top-level `REVISION` file from `GITHUB_SHA`; deploy passes `MEL_REVISION` from `github.sha` into `remote-deploy.sh` so staging releases are not `REVISION=unknown`.
 - **UI-only deploys:** The staging workflow is triggered by `push` to `main` only. There is no `workflow_dispatch` in that file, so you cannot start the same deploy from the Actions "Run workflow" button without a workflow change.
 
 ## 1. Work locally without affecting staging
