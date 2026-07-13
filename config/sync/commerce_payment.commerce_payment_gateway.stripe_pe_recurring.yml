@@ -26,6 +26,11 @@ configuration:
     custom_label: ''
     show_payment_method_logos: 'no'
     include_logos: {  }
+  express_checkout:
+    enable_on_cart: false
+    allowed_payment_method_types: {  }
+    collect_phone_number: false
+    collect_billing_address: true
 conditions:
   -
     plugin: current_currency
