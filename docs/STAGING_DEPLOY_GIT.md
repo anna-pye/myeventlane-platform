@@ -65,6 +65,8 @@ To deploy only on tags, on a `staging` branch, or from a **workflow_dispatch** b
 ## Related
 
 - [GIT_PUSH_WORKFLOW.md](./GIT_PUSH_WORKFLOW.md) — add, commit, push, and secret checks
-- [STAGING_SETUP.md](./STAGING_SETUP.md) — staging environment setup
+- [STAGING_SETUP.md](./STAGING_SETUP.md) — staging environment setup (indexing / security headers)
+- [deploy/staging-ops-runbook.md](./deploy/staging-ops-runbook.md) — release layout, DocumentRoot, rollback, health checks, operator verification
 - [deploy/release-provenance.md](./deploy/release-provenance.md) — REVISION format, verification, troubleshooting
+- [deploy/recovery-artefacts-disposition.md](./deploy/recovery-artefacts-disposition.md) — leftover recovery files (review before delete)
 - [`.github/workflows/deploy-staging.yml`](../.github/workflows/deploy-staging.yml) — exact job steps
