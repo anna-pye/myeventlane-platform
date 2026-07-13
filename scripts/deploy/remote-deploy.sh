@@ -373,20 +373,70 @@ mel_verify_http_health() {
   echo "HTTP health check OK"
 }
 
+mel_revision_upsert_kv() {
+  local file="$1"
+  local key="$2"
+  local value="$3"
+  local tmp
+
+  tmp="$(mktemp)"
+  if [ -f "$file" ] && grep -q "^${key}=" "$file"; then
+    awk -v k="$key" -v v="$value" '
+      index($0, k "=") == 1 { print k "=" v; next }
+      { print }
+    ' "$file" > "$tmp"
+  else
+    if [ -f "$file" ]; then
+      cat "$file" > "$tmp"
+    else
+      : > "$tmp"
+    fi
+    printf '%s=%s\n' "$key" "$value" >> "$tmp"
+  fi
+  mv "$tmp" "$file"
+}
+
 mel_write_revision_metadata() {
   local dst="$1/REVISION"
+  local deploy_time="${MEL_DEPLOY_TIME_UTC:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+  local release_dir
+  release_dir="$(basename "$1")"
 
-  if [ -n "${MEL_REVISION:-}" ]; then
-    printf '%s\n' "$MEL_REVISION" > "$dst"
+  # Prefer KEY=VALUE provenance already baked into the artifact. Only stamp
+  # deploy-time fields — do not rewrite activation, rollback, or symlink logic.
+  if [ -f "$dst" ] && grep -q '^artifact_sha=' "$dst"; then
+    mel_revision_upsert_kv "$dst" "deploy_time_utc" "$deploy_time"
+    mel_revision_upsert_kv "$dst" "release_dir" "$release_dir"
+    if [ -n "${MEL_RELEASE_IDENTIFIER:-}" ]; then
+      mel_revision_upsert_kv "$dst" "release_identifier" "$MEL_RELEASE_IDENTIFIER"
+    fi
+  elif [ -n "${MEL_REVISION:-}" ]; then
+    if printf '%s' "$MEL_REVISION" | grep -q '='; then
+      printf '%s\n' "$MEL_REVISION" > "$dst"
+    else
+      {
+        printf 'artifact_sha=%s\n' "$MEL_REVISION"
+        printf 'deploy_time_utc=%s\n' "$deploy_time"
+        printf 'release_dir=%s\n' "$release_dir"
+        if [ -n "${MEL_RELEASE_IDENTIFIER:-}" ]; then
+          printf 'release_identifier=%s\n' "$MEL_RELEASE_IDENTIFIER"
+        fi
+      } > "$dst"
+    fi
   elif [ -n "${GITHUB_SHA:-}" ]; then
-    printf '%s\n' "$GITHUB_SHA" > "$dst"
+    {
+      printf 'artifact_sha=%s\n' "$GITHUB_SHA"
+      printf 'deploy_time_utc=%s\n' "$deploy_time"
+      printf 'release_dir=%s\n' "$release_dir"
+    } > "$dst"
   elif [ -f "$dst" ]; then
     :
   else
-    printf 'unknown\n' > "$dst"
+    printf 'artifact_sha=unknown\n' > "$dst"
   fi
 
-  echo "Release revision: $(cat "$dst")"
+  echo "Release revision metadata:"
+  cat "$dst"
 }
 
 mel_disk_available_mb() {

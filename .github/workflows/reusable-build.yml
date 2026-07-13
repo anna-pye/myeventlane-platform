@@ -10,6 +10,9 @@ on:
       artifact_name:
         description: Deployable artifact name
         value: ${{ jobs.build.outputs.artifact_name }}
+      composer_lock_sha256:
+        description: SHA-256 of composer.lock baked into REVISION
+        value: ${{ jobs.build.outputs.composer_lock_sha256 }}
 
 permissions:
   contents: read
@@ -21,6 +24,7 @@ jobs:
     timeout-minutes: 30
     outputs:
       artifact_name: ${{ steps.meta.outputs.artifact_name }}
+      composer_lock_sha256: ${{ steps.package.outputs.composer_lock_sha256 }}
     env:
       ARTIFACT_NAME: staging-release-${{ github.sha }}
       HUSKY: 0
@@ -141,7 +145,40 @@ jobs:
           set -euo pipefail
           archive_path="$RUNNER_TEMP/artifact.tar.gz"
 
-          printf '%s\n' "${GITHUB_SHA}" > REVISION
+          # Release provenance (KEY=VALUE). Build-time fields only; deploy stamps
+          # deploy_time_utc / release_dir without changing activation behaviour.
+          test -f composer.lock
+          test -f scripts/deploy/remote-deploy.sh
+          composer_lock_sha256="$(sha256sum composer.lock | awk '{print $1}')"
+          deploy_script_sha256="$(sha256sum scripts/deploy/remote-deploy.sh | awk '{print $1}')"
+          build_time_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          branch=""
+          tag=""
+          if [ "${GITHUB_REF_TYPE:-}" = "tag" ]; then
+            tag="${GITHUB_REF_NAME:-}"
+          else
+            branch="${GITHUB_REF_NAME:-}"
+          fi
+
+          {
+            printf 'artifact_sha=%s\n' "${GITHUB_SHA}"
+            printf 'branch=%s\n' "${branch}"
+            printf 'tag=%s\n' "${tag}"
+            printf 'workflow=%s\n' "${GITHUB_WORKFLOW}"
+            printf 'workflow_run=%s\n' "${GITHUB_RUN_ID}"
+            printf 'run_attempt=%s\n' "${GITHUB_RUN_ATTEMPT}"
+            printf 'actor=%s\n' "${GITHUB_ACTOR}"
+            printf 'repository=%s\n' "${GITHUB_REPOSITORY}"
+            printf 'build_time_utc=%s\n' "${build_time_utc}"
+            printf 'composer_lock_sha256=%s\n' "${composer_lock_sha256}"
+            printf 'deploy_script_sha256=%s\n' "${deploy_script_sha256}"
+            printf 'release_identifier=%s.%s\n' "${GITHUB_RUN_ID}" "${GITHUB_RUN_ATTEMPT}"
+          } > REVISION
+
+          echo "Wrote release REVISION provenance:"
+          cat REVISION
+
+          echo "composer_lock_sha256=${composer_lock_sha256}" >> "$GITHUB_OUTPUT"
 
           tar \
             --exclude='.git' \
@@ -187,6 +224,32 @@ jobs:
 
           echo "artifact_path=$archive_path" >> "$GITHUB_OUTPUT"
           echo "Artifact size: $(du -h "$archive_path" | awk '{print $1}')"
+
+      - name: Validate artifact REVISION provenance
+        run: |
+          set -euo pipefail
+          archive_path="${{ steps.package.outputs.artifact_path }}"
+          member="$(tar -tzf "$archive_path" | grep -E '(^|/)REVISION$' | head -1)"
+          if [ -z "$member" ]; then
+            echo "❌ Artifact missing top-level REVISION"
+            exit 1
+          fi
+          content="$(tar -xOzf "$archive_path" "$member")"
+          echo "===== ARTIFACT REVISION ====="
+          printf '%s\n' "$content"
+          echo "$content" | grep -qx "artifact_sha=${GITHUB_SHA}" || {
+            echo "❌ REVISION artifact_sha must equal GITHUB_SHA (${GITHUB_SHA})"
+            exit 1
+          }
+          echo "$content" | grep -qE '^composer_lock_sha256=[0-9a-f]{64}$' || {
+            echo "❌ REVISION missing valid composer_lock_sha256"
+            exit 1
+          }
+          echo "$content" | grep -qE '^workflow_run=[0-9]+$' || {
+            echo "❌ REVISION missing workflow_run"
+            exit 1
+          }
+          echo "OK: artifact REVISION provenance looks valid"
 
       - name: Validate artifact contains NEW code
         run: |
