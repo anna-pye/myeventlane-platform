@@ -197,8 +197,8 @@ jobs:
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
             "ls -lt ~/staging/releases"
 
-      # Independent provenance check: live release REVISION vs this workflow commit
-      # and the repository composer.lock. Fail the job on any mismatch.
+      # Independent provenance check: live release REVISION vs this workflow commit,
+      # repository composer.lock, and repository remote-deploy.sh. Fail on mismatch.
       - name: Check out commit for provenance verification
         uses: actions/checkout@v5
         with:
@@ -206,7 +206,9 @@ jobs:
           fetch-depth: 1
           sparse-checkout: |
             composer.lock
+            scripts/deploy/remote-deploy.sh
             scripts/deploy/verify-revision-metadata.sh
+            scripts/deploy/show-release.sh
           sparse-checkout-cone-mode: false
 
       - name: Verify deployed REVISION provenance
@@ -216,9 +218,12 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x scripts/deploy/verify-revision-metadata.sh
+          chmod +x scripts/deploy/show-release.sh
           expected_lock="$(sha256sum composer.lock | awk '{print $1}')"
+          expected_deploy_script="$(sha256sum scripts/deploy/remote-deploy.sh | awk '{print $1}')"
           echo "Expected artifact_sha=${EXPECTED_SHA}"
           echo "Expected composer_lock_sha256=${expected_lock}"
+          echo "Expected deploy_script_sha256=${expected_deploy_script}"
           echo "Build output composer_lock_sha256=${{ needs.build.outputs.composer_lock_sha256 }}"
 
           if [ "${{ needs.build.outputs.composer_lock_sha256 }}" != "$expected_lock" ]; then
@@ -240,4 +245,18 @@ jobs:
           scripts/deploy/verify-revision-metadata.sh \
             "$EXPECTED_SHA" \
             "$expected_lock" \
+            "$expected_deploy_script" \
             /tmp/mel-staging-REVISION
+
+          # Local consistency check using the deployed release copy of show-release.sh
+          # (only after REVISION fingerprints match this commit).
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -euo pipefail
+             release="$HOME/staging/current"
+             script="$release/scripts/deploy/show-release.sh"
+             if [ ! -x "$script" ]; then
+               echo "ERROR: missing executable $script in active release" >&2
+               exit 1
+             fi
+             "$script" --path "$release" --verify --quiet'

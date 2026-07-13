@@ -6,7 +6,7 @@ This document describes how Git and GitHub Actions work for staging in this repo
 
 - **Trigger:** Any **push to `main`** runs `.github/workflows/deploy-staging.yml`.
 - **Flow:** The **Build** job (reusable workflow in `.github/workflows/reusable-build.yml`) produces a deployable artifact, then the **Deploy** job downloads it, uses SSH/SCP to the staging host, and runs `scripts/deploy/remote-deploy.sh` on the server (see the workflow for exact steps and `SITE_URI` / `APP_PATH`).
-- **Release identity:** Each release has a top-level `REVISION` file in KEY=VALUE provenance format (`artifact_sha`, workflow run ids, `composer_lock_sha256`, build/deploy timestamps, etc.). Build writes it into the artifact; remote deploy stamps deploy-time fields only. After deploy, Actions verifies `~/staging/current/REVISION` against `${{ github.sha }}` and the repository `composer.lock` and **fails the job** on mismatch. See [deploy/release-provenance.md](./deploy/release-provenance.md).
+- **Release identity:** Each release has a top-level `REVISION` file in KEY=VALUE provenance format (`artifact_sha`, workflow run ids, `composer_lock_sha256`, `deploy_script_sha256`, build/deploy timestamps, etc.). Build writes it into the artifact; remote deploy stamps deploy-time fields only. After deploy, Actions verifies `~/staging/current/REVISION` against `${{ github.sha }}`, the repository `composer.lock`, and `scripts/deploy/remote-deploy.sh`, then runs `show-release.sh --verify --quiet` on the active release, and **fails the job** on mismatch. See [deploy/release-provenance.md](./deploy/release-provenance.md).
 - **UI-only deploys:** The staging workflow is triggered by `push` to `main` only. There is no `workflow_dispatch` in that file, so you cannot start the same deploy from the Actions "Run workflow" button without a workflow change.
 
 ## 1. Work locally without affecting staging
@@ -46,7 +46,7 @@ If **Build** succeeds and **Deploy to staging** is red, the problem is in the de
 - **Validate SSH key / Test SSH connection** — key format, `secrets.SSH_PRIVATE_KEY`, host, user, firewall, or `known_hosts`.
 - **Upload artifact / Run remote deploy script** — `scp` or the remote `bash scripts/deploy/remote-deploy.sh` exiting non-zero (Drush, Composer, permissions, `APP_PATH`, etc.).
 - **Verify release** — the post-deploy `ssh ... ls` check if paths do not match what the server uses.
-- **Verify deployed REVISION provenance** — `artifact_sha` or `composer_lock_sha256` in `~/staging/current/REVISION` does not match this workflow commit / repository lockfile (see [deploy/release-provenance.md](./deploy/release-provenance.md)).
+- **Verify deployed REVISION provenance** — `artifact_sha`, `composer_lock_sha256`, or `deploy_script_sha256` in `~/staging/current/REVISION` does not match this workflow commit / repository lockfile / `remote-deploy.sh`, or `show-release.sh --verify` fails (see [deploy/release-provenance.md](./deploy/release-provenance.md)).
 
 **Secrets to verify** (Repository **Settings → Secrets and variables**): `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` must match a key that is authorised on the staging host.
 
