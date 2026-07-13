@@ -245,6 +245,15 @@ jobs:
             echo "❌ REVISION missing valid composer_lock_sha256"
             exit 1
           }
+          echo "$content" | grep -qE '^deploy_script_sha256=[0-9a-f]{64}$' || {
+            echo "❌ REVISION missing valid deploy_script_sha256"
+            exit 1
+          }
+          expected_deploy="$(sha256sum scripts/deploy/remote-deploy.sh | awk '{print $1}')"
+          echo "$content" | grep -qx "deploy_script_sha256=${expected_deploy}" || {
+            echo "❌ REVISION deploy_script_sha256 must match scripts/deploy/remote-deploy.sh"
+            exit 1
+          }
           echo "$content" | grep -qE '^workflow_run=[0-9]+$' || {
             echo "❌ REVISION missing workflow_run"
             exit 1
