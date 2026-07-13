@@ -7,17 +7,24 @@ namespace Drupal\myeventlane_messaging\Service;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
 use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
+use Drupal\user\Entity\User;
 use Psr\Log\LoggerInterface;
 
 /**
  * Builds context and queues the order_confirmation template (single entry point).
+ *
+ * ACE Phase 2 ownership: attendee booking confirmation email only.
+ * Tax invoice remains order_invoice (OrderPaidInvoiceSubscriber).
+ * Boost-only orders use boost_confirmation (OrderPlacedSubscriber).
  */
 final class OrderConfirmationQueueBuilder {
 
@@ -31,6 +38,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
     private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
+    private readonly ?LegalSettingsService $legalSettings = NULL,
   ) {}
 
   /**
@@ -58,38 +66,80 @@ final class OrderConfirmationQueueBuilder {
     $has_tickets = $ticket_items !== [];
     $tickets_need_assignment = $has_tickets && $this->ticketItemsNeedAssignment($ticket_items);
 
-    $primaryEventId = !empty($events) ? (int) reset($events)->id() : NULL;
+    $primaryEvent = !empty($events) ? reset($events) : NULL;
+    $primaryEventId = $primaryEvent instanceof NodeInterface ? (int) $primaryEvent->id() : NULL;
 
-    $order_detail_path = '/my-tickets/order/' . $orderId;
-    $order_url = $this->buildPublicUrl($order_detail_path);
-    $tickets_url = $order_url ? $order_url . '#tickets' : NULL;
-    if (!$order_url) {
-      try {
-        $order_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-          'commerce_order' => $orderId,
-        ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
-        $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
-          'commerce_order' => $orderId,
-        ], ['absolute' => TRUE, 'fragment' => 'tickets'])->toString(TRUE)->getGeneratedUrl();
-      }
-      catch (\Exception $e) {
-        $this->logger->warning('Could not generate order/tickets URL: @message', [
-          '@message' => $e->getMessage(),
-        ]);
-        $order_url = NULL;
-        $tickets_url = NULL;
+    // Guest checkout still has customer uid 0 at place.post_transition (before
+    // Commerce guest_new_account assignment on checkout completion). Do not put
+    // authenticated-only /my-tickets/order/{id} in guest emails — anonymous
+    // clicks receive 403 (MyTicketsOrderAccess).
+    $is_guest = (int) $order->getCustomerId() === 0;
+    $is_paid = $order->isPaid();
+
+    $order_url = NULL;
+    $tickets_url = NULL;
+    if (!$is_guest) {
+      $order_detail_path = '/my-tickets/order/' . $orderId;
+      $order_url = $this->buildPublicUrl($order_detail_path);
+      $tickets_url = $order_url ? $order_url . '#tickets' : NULL;
+      if (!$order_url) {
+        try {
+          $order_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+            'commerce_order' => $orderId,
+          ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+          $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
+            'commerce_order' => $orderId,
+          ], ['absolute' => TRUE, 'fragment' => 'tickets'])->toString(TRUE)->getGeneratedUrl();
+        }
+        catch (\Exception $e) {
+          $this->logger->warning('Could not generate order/tickets URL: @message', [
+            '@message' => $e->getMessage(),
+          ]);
+          $order_url = NULL;
+          $tickets_url = NULL;
+        }
       }
     }
 
     $pricing = $this->orderPricingBreakdown->build($order);
     $invoice = $this->taxInvoicePresentation->build($order);
+    $booking_total = $pricing['total_formatted'] !== ''
+      ? $pricing['total_formatted']
+      : $this->formatPrice((float) $order->getTotalPrice()->getNumber());
+
+    // Customer presentation only — Commerce label() is "Order {number}".
+    $order_number = trim((string) $order->getOrderNumber());
+    if ($order_number === '') {
+      $order_number = (string) $orderId;
+    }
+
+    $event_url = NULL;
+    $organiser_name = NULL;
+    $organiser_url = NULL;
+    if ($primaryEvent instanceof NodeInterface) {
+      try {
+        $event_url = $primaryEvent->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Could not generate event URL for order confirmation: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+      }
+      $organiser = $this->resolveOrganiserFromEvent($primaryEvent);
+      $organiser_name = $organiser['name'];
+      $organiser_url = $organiser['url'];
+    }
+
+    $help_urls = $this->buildHelpUrls();
 
     $context = [
       'first_name' => $first_name,
-      'order_number' => $order->label(),
+      'order_number' => $order_number,
       'order_id' => $orderId,
       'order_url' => $order_url,
       'order_email' => $mail,
+      'is_guest' => $is_guest,
+      'is_paid' => $is_paid,
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
       'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
@@ -97,9 +147,8 @@ final class OrderConfirmationQueueBuilder {
       'order_tax_rows' => $pricing['tax_rows'],
       'order_fee_rows' => $pricing['fee_rows'],
       'order_platform_fee_absorbed' => $pricing['platform_fee_absorbed'],
-      'total_paid' => $pricing['total_formatted'] !== ''
-        ? $pricing['total_formatted']
-        : $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'total_paid' => $booking_total,
+      'booking_total' => $booking_total,
       'show_includes_gst_note' => $pricing['show_includes_gst_note'],
       'vendor_name' => $invoice['vendor_name'],
       'vendor_abn' => $invoice['vendor_abn'],
@@ -111,7 +160,13 @@ final class OrderConfirmationQueueBuilder {
       'tax_lines' => $invoice['tax_lines'],
       'invoice_lines_include_gst_column' => $invoice['invoice_lines_include_gst_column'] ?? FALSE,
       'invoice_date_short' => $invoice['invoice_date_display'],
-      'event_name' => !empty($events) ? reset($events)->label() : 'your event',
+      'event_name' => $primaryEvent instanceof NodeInterface ? $primaryEvent->label() : NULL,
+      'event_url' => $event_url,
+      'organiser_name' => $organiser_name,
+      'organiser_url' => $organiser_url,
+      'help_centre_url' => $help_urls['help_centre_url'],
+      'refund_policy_url' => $help_urls['refund_policy_url'],
+      'support_url' => $help_urls['support_url'],
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,
       'tickets_need_assignment' => $tickets_need_assignment,
@@ -263,24 +318,36 @@ final class OrderConfirmationQueueBuilder {
       $start_time = NULL;
       $end_time = NULL;
       $image_url = NULL;
+      $image_alt = NULL;
+      $event_url = NULL;
 
       if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
         $start_timestamp = strtotime($event->get('field_event_start')->value);
-        $start_date = date('F j, Y', $start_timestamp);
-        $start_time = date('g:i A', $start_timestamp);
+        $start_date = date('j F Y', $start_timestamp);
+        $start_time = date('g:i a', $start_timestamp);
       }
 
       if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
         $end_timestamp = strtotime($event->get('field_event_end')->value);
-        $end_date = date('F j, Y', $end_timestamp);
-        $end_time = date('g:i A', $end_timestamp);
+        $end_date = date('j F Y', $end_timestamp);
+        $end_time = date('g:i a', $end_timestamp);
       }
 
       if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
-        $file = $event->get('field_event_image')->entity;
+        $image_item = $event->get('field_event_image')->first();
+        $file = $image_item?->entity;
         if ($file) {
           $image_url = $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+          $alt = trim((string) ($image_item->alt ?? ''));
+          $image_alt = $alt !== '' ? $alt : $event->label();
         }
+      }
+
+      try {
+        $event_url = $event->toUrl('canonical', ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $event_url = NULL;
       }
 
       $location = NULL;
@@ -291,9 +358,13 @@ final class OrderConfirmationQueueBuilder {
         }
       }
 
+      $organiser = $this->resolveOrganiserFromEvent($event);
+
       $formatted[] = [
         'title' => $event->label(),
+        'url' => $event_url,
         'image_url' => $image_url,
+        'image_alt' => $image_alt,
         'start_date' => $start_date,
         'end_date' => $end_date,
         'start_time' => $start_time,
@@ -302,6 +373,8 @@ final class OrderConfirmationQueueBuilder {
           ? $event->get('field_venue_name')->value
           : NULL,
         'location' => $location,
+        'organiser_name' => $organiser['name'],
+        'organiser_url' => $organiser['url'],
         'contact_email' => $event->hasField('field_contact_email') && !$event->get('field_contact_email')->isEmpty()
           ? $event->get('field_contact_email')->value
           : NULL,
@@ -315,6 +388,96 @@ final class OrderConfirmationQueueBuilder {
     }
 
     return $formatted;
+  }
+
+  /**
+   * Resolves public organiser name/URL from field_event_vendor when available.
+   *
+   * @return array{name: string|null, url: string|null}
+   */
+  private function resolveOrganiserFromEvent(NodeInterface $event): array {
+    $result = ['name' => NULL, 'url' => NULL];
+    if (!$event->hasField('field_event_vendor') || $event->get('field_event_vendor')->isEmpty()) {
+      return $result;
+    }
+    $vendor = $event->get('field_event_vendor')->entity;
+    if (!$vendor || $vendor->getEntityTypeId() !== 'myeventlane_vendor') {
+      return $result;
+    }
+
+    $name = trim((string) $vendor->label());
+    if ($name === '') {
+      return $result;
+    }
+    $result['name'] = $name;
+
+    try {
+      $url = Url::fromRoute('entity.myeventlane_vendor.canonical', [
+        'myeventlane_vendor' => $vendor->id(),
+      ], ['absolute' => TRUE]);
+      // Email recipients may be anonymous — only expose publicly accessible profiles.
+      $anonymous = User::getAnonymousUser();
+      if ($anonymous instanceof AccountInterface && $url->access($anonymous)) {
+        $result['url'] = $url->toString(TRUE)->getGeneratedUrl();
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Could not resolve organiser URL for event @event_id: @message', [
+        '@event_id' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return $result;
+  }
+
+  /**
+   * Absolute help / policy / support links for the confirmation email.
+   *
+   * @return array{help_centre_url: string|null, refund_policy_url: string|null, support_url: string|null}
+   */
+  private function buildHelpUrls(): array {
+    $help = $this->buildPublicUrl('/help');
+    if (!$help) {
+      try {
+        $help = Url::fromRoute('myeventlane_help_centre.home', [], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $help = NULL;
+      }
+    }
+
+    $refund = NULL;
+    if ($this->legalSettings instanceof LegalSettingsService) {
+      $configured = trim($this->legalSettings->getRefundPolicyUrl());
+      if ($configured !== '') {
+        if (preg_match('#^https?://#i', $configured)) {
+          $refund = $configured;
+        }
+        else {
+          $refund = $this->buildPublicUrl('/' . ltrim($configured, '/'));
+        }
+      }
+    }
+    if (!$refund) {
+      $refund = $this->buildPublicUrl('/help/policies/refund-policy');
+    }
+
+    $support = $this->buildPublicUrl('/support');
+    if (!$support) {
+      try {
+        $support = Url::fromRoute('myeventlane_support.page', [], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $support = NULL;
+      }
+    }
+
+    return [
+      'help_centre_url' => $help,
+      'refund_policy_url' => $refund,
+      'support_url' => $support,
+    ];
   }
 
   private function formatAddressFieldValue(array $address): ?string {

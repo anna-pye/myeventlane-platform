@@ -92,6 +92,7 @@ services:
       $orderPricingBreakdown: '@myeventlane_checkout_flow.order_pricing_breakdown'
       $taxInvoicePresentation: '@myeventlane_checkout_flow.tax_invoice_presentation'
       $icsGenerator: '@?myeventlane_rsvp.ics_generator'
+      $legalSettings: '@?myeventlane_legal.settings'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler

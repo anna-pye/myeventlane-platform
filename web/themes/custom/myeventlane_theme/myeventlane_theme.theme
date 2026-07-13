@@ -369,6 +369,12 @@ function myeventlane_theme_preprocess(array &$variables, string $hook): void {
     return;
   }
 
+  // Email wrappers carry rendered HTML with canonical hrefs (e.g. /vendors/…).
+  // Language rewriting must not walk those bodies — preserve email URLs.
+  if (in_array($hook, ['myeventlane_email', 'mel_email_base', 'myeventlane_messaging_inline'], TRUE)) {
+    return;
+  }
+
   /** @var \Drupal\myeventlane_core\Service\LanguageStyleService $service */
   $service = \Drupal::service('myeventlane_core.language_style');
   _myeventlane_theme_apply_language_style($variables, $service);
@@ -395,7 +401,12 @@ function _myeventlane_theme_apply_language_style(array &$items, $service): void 
       }
       _myeventlane_theme_apply_language_style($value, $service);
     }
-    elseif (is_string($value) && !$service->shouldSkipKey($key) && !$service->looksLikeUrl($value)) {
+    elseif (
+      is_string($value)
+      && !$service->shouldSkipKey($key)
+      && !$service->looksLikeUrl($value)
+      && !$service->looksLikeHtml($value)
+    ) {
       $value = $service->replace($value);
     }
   }

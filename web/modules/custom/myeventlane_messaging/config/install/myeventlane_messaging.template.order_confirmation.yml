@@ -1,198 +1,238 @@
 enabled: true
-subject: 'Your order is confirmed – {{ event_name|default("your event") }}'
+subject: "{% if (is_paid ?? true) %}{% if event_name %}Your booking is confirmed – {{ event_name }}{% else %}Booking confirmed – MyEventLane{% endif %}{% else %}Booking received – payment pending{% endif %}"
+preheader: "{% if (is_paid ?? true) %}Booking confirmed{% else %}Booking received – payment pending{% endif %}{% if order_number %} · #{{ order_number }}{% endif %}"
 body_html: |
-  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
-    <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #2c3e50; margin: 0; font-size: 28px;">Thank you for your order!</h1>
-      </div>
-
-      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Hi {{ first_name }},
-      </p>
-
-      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Your order <strong>#{{ order_number }}</strong> is confirmed. Calendar file(s) are attached—use <strong>Add to calendar</strong> below or open the attachment.
-      </p>
-
-      {% if events|length > 0 %}
-        <div style="margin: 30px 0;">
-          <h2 style="color: #2c3e50; font-size: 20px; margin-bottom: 15px; border-bottom: 2px solid #fef5ec; padding-bottom: 10px;">Event details</h2>
-          {% for event in events %}
-            <div style="background-color: #fef5ec; border-radius: 6px; padding: 20px; margin-bottom: 15px;">
-              <h3 style="color: #2c3e50; font-size: 18px; margin: 0 0 10px 0;">{{ event.title }}</h3>
-              {% if event.start_date %}
-                <p style="color: #34495e; font-size: 14px; margin: 5px 0;">
-                  <strong>Date:</strong> {{ event.start_date }}
-                  {% if event.end_date %} – {{ event.end_date }}{% endif %}
-                </p>
-              {% endif %}
-              {% if event.start_time %}
-                <p style="color: #34495e; font-size: 14px; margin: 5px 0;">
-                  <strong>Time:</strong> {{ event.start_time }}
-                  {% if event.end_time %} – {{ event.end_time }}{% endif %}
-                </p>
-              {% endif %}
-              {% if event.location %}
-                <p style="color: #34495e; font-size: 14px; margin: 5px 0;">
-                  <strong>Location:</strong> {{ event.location }}
-                </p>
-              {% endif %}
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if ticket_items|length > 0 %}
-        <div style="margin: 30px 0;">
-          <h2 style="color: #2c3e50; font-size: 20px; margin-bottom: 15px; border-bottom: 2px solid #fef5ec; padding-bottom: 10px;">Ticket summary</h2>
-          {% for item in ticket_items %}
-            <div style="background-color: #f9f9f9; border-radius: 6px; padding: 15px; margin-bottom: 10px;">
-              <div style="display: flex; justify-content: space-between; align-items: start;">
-                <div>
-                  <div style="font-weight: 600; color: #2c3e50; font-size: 16px; margin-bottom: 5px;">{{ item.title }}</div>
-                  <div style="color: #7f8c8d; font-size: 14px;">Quantity: {{ item.quantity }}</div>
-                  {% if item.attendees|length > 0 %}
-                    <div style="margin-top: 10px; font-size: 14px; color: #34495e;">
-                      <strong>Attendees:</strong>
-                      <ul style="margin: 5px 0; padding-left: 20px;">
-                        {% for attendee in item.attendees %}
-                          <li>{{ attendee.name }}{% if attendee.email %} ({{ attendee.email }}){% endif %}</li>
-                        {% endfor %}
-                      </ul>
-                    </div>
-                  {% endif %}
-                </div>
-                <div style="font-weight: 600; color: #2c3e50; font-size: 16px;">{{ item.price }}</div>
-              </div>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if tickets_need_assignment %}
-        <div style="margin: 20px 0; padding: 16px; background-color: #fff8e6; border-left: 4px solid #f0ad4e; border-radius: 4px;">
-          <p style="color: #5c4a00; font-size: 15px; margin: 0; line-height: 1.5;">
-            <strong>Assign your tickets</strong> to receive them by email with your PDF and QR code.
+  {# ACE Phase 2 — Booking confirmation email (inner content for mel-email-base). #}
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;mso-table-lspace:0pt;mso-table-rspace:0pt;">
+    <tr>
+      <td style="padding:0 0 24px 0;text-align:left;">
+        {% if (is_paid ?? true) %}
+          <h1 style="margin:0 0 8px 0;font-size:24px;line-height:1.25;font-weight:800;color:#293241;">Booking confirmed</h1>
+          <p style="margin:0 0 12px 0;font-size:16px;line-height:1.55;color:#5c6370;">
+            Hi {{ first_name }}, your booking is confirmed. Keep this email as your reference before the event.
           </p>
-        </div>
-      {% endif %}
-
-      {% if donation_total %}
-        <div style="margin: 30px 0; background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; border-radius: 4px;">
-          <h3 style="color: #856404; font-size: 18px; margin: 0 0 10px 0;">Your donation</h3>
-          <p style="color: #856404; font-size: 16px; margin: 5px 0;">
-            <strong>Amount:</strong> {{ donation_total }}
+        {% else %}
+          <h1 style="margin:0 0 8px 0;font-size:24px;line-height:1.25;font-weight:800;color:#293241;">Booking received</h1>
+          <p style="margin:0 0 12px 0;font-size:16px;line-height:1.55;color:#5c6370;">
+            Hi {{ first_name }}, we’ve received your booking and are waiting for payment confirmation. We’ll email you once payment has been confirmed.
           </p>
-          <p style="color: #856404; font-size: 14px; margin: 10px 0 0 0;">
-            Thank you for your generous support.
-          </p>
-        </div>
-      {% endif %}
-
-      {% if vendor_name or order_total_gst or invoice_lines|length > 0 or invoice_fee_lines|length > 0 or invoice_tax_lines|length > 0 %}
-        <div style="margin: 24px 0; padding: 20px; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #2c3e50; margin: 0 0 16px; font-size: 20px;">Tax Invoice</h2>
-          <p style="color: #34495e; font-size: 14px; line-height: 1.6; margin: 0 0 12px;">
-            {% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}
-            <strong>ABN:</strong> {{ vendor_abn }}<br>
-            <strong>Invoice #:</strong> {{ order_number }}<br>
-            {% if invoice_date_short %}<strong>Date:</strong> {{ invoice_date_short }}<br>{% endif %}
-          </p>
-          {% if invoice_lines|length > 0 %}
-            <table style="width:100%; border-collapse:collapse; font-size:14px; color:#34495e; margin-top:12px;">
-              <thead>
-                <tr style="border-bottom:1px solid #e0e0e0;">
-                  <th style="text-align:left; padding:8px 4px;">Item</th>
-                  <th style="text-align:center; padding:8px 4px; width:48px;">Qty</th>
-                  <th style="text-align:right; padding:8px 4px;">Unit</th>
-                  {% if invoice_lines_include_gst_column|default(false) %}
-                  <th style="text-align:right; padding:8px 4px;">GST</th>
-                  {% endif %}
-                  <th style="text-align:right; padding:8px 4px;">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for row in invoice_lines %}
-                  <tr style="border-bottom:1px solid #f0f0f0;">
-                    <td style="padding:8px 4px;">{{ row.title }}</td>
-                    <td style="text-align:center;">{{ row.quantity }}</td>
-                    <td style="text-align:right;">{{ row.unit_price }}</td>
-                    {% if invoice_lines_include_gst_column|default(false) %}
-                    <td style="text-align:right;">{{ row.gst|default('—') }}</td>
-                    {% endif %}
-                    <td style="text-align:right;">{{ row.line_total }}</td>
-                  </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          {% endif %}
-          {% if invoice_fee_lines|length > 0 %}
-            {% for fee in invoice_fee_lines %}
-              <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;">
-                <span>{{ fee.label }}</span><span style="font-weight:600;">{{ fee.amount }}</span>
-              </div>
-            {% endfor %}
-          {% endif %}
-          {% if invoice_tax_lines|length > 0 or tax_lines|length > 0 %}
-            {% for tax in invoice_tax_lines|length > 0 ? invoice_tax_lines : tax_lines|default([]) %}
-              <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;">
-                <span>{{ tax.label }}</span><span style="font-weight:600;">{{ tax.amount }}</span>
-              </div>
-            {% endfor %}
-          {% endif %}
-          {% if order_total_gst and invoice_tax_lines|length == 0 and tax_lines|length == 0 %}
-            <p style="margin:12px 0 0; font-size:14px; color:#34495e;"><strong>Total GST:</strong> {{ order_total_gst }}</p>
-          {% endif %}
-          <p style="margin:12px 0 0; font-size:16px; color:#2c3e50;"><strong>Total</strong> {{ order_total|default(total_paid) }}</p>
-          <p class="mel-invoice__legal" style="margin:16px 0 0; font-size:11px; color:#7f8c8d; line-height:1.45;">This document is a tax invoice for GST purposes.</p>
-          {% if show_includes_gst_note|default(false) %}
-          <p style="color: #7f8c8d; font-size: 13px; margin: 12px 0 0 0;">All prices include GST where applicable.</p>
-          {% endif %}
-        </div>
-      {% endif %}
-
-      {# Fallback when tax invoice block is omitted (no invoice lines/fees/taxes). Breakdown rows always appear in that block when items/adjustments exist. #}
-      {% if not (vendor_name or order_total_gst or invoice_lines|length > 0 or invoice_fee_lines|length > 0 or invoice_tax_lines|length > 0) %}
-      <div style="margin: 30px 0; padding: 20px; background-color: #f9f9f9; border-radius: 6px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 600; color: #2c3e50; font-size: 18px;">Total paid</span>
-          <span style="font-weight: 700; color: #2c3e50; font-size: 20px;">{{ total_paid }}</span>
-        </div>
-        <p style="color: #7f8c8d; font-size: 13px; margin: 12px 0 0 0;">All prices include GST where applicable.</p>
-      </div>
-      {% endif %}
-
-      <div style="margin: 28px 0; padding: 22px; background-color: #eef7ff; border-radius: 8px; border: 1px solid #cce5ff;">
-        <p style="color: #1a3a52; font-size: 15px; line-height: 1.55; margin: 0 0 10px 0; text-align: center;">
-          Your tickets are attached when available.
-        </p>
-        <p style="color: #34495e; font-size: 14px; line-height: 1.5; margin: 0 0 18px 0; text-align: center;">
-          You can always access your tickets from your order page.
-        </p>
-        <div style="text-align: center;">
-          {% set download_href = tickets_url|default(order_url) %}
-          {% if download_href %}
-            <a href="{{ download_href }}" style="display: inline-block; background-color: #2563eb; color: #ffffff; text-decoration: none; padding: 14px 28px; border-radius: 6px; font-weight: 700; font-size: 17px; margin: 4px;">
-              Download your tickets
-            </a>
-          {% endif %}
-        </div>
-        {% if order_url and download_href and download_href != order_url %}
-          <p style="text-align: center; margin: 14px 0 0;"><a href="{{ order_url }}" style="color: #34495e; font-size: 14px;">View order details</a></p>
         {% endif %}
-      </div>
+        {% if order_number %}
+          <p style="margin:0;font-size:15px;line-height:1.5;color:#293241;">
+            <strong style="font-size:18px;font-weight:700;letter-spacing:0.02em;">Booking #{{ order_number }}</strong>
+          </p>
+        {% endif %}
+      </td>
+    </tr>
 
-      <div style="text-align: center; margin: 12px 0 30px;">
-        <p style="color: #34495e; font-size: 14px; margin: 0 0 8px 0;"><strong>Add to calendar:</strong> open the attached .ics file, or save it and import into your calendar app.</p>
-      </div>
+    {% if events|length > 0 %}
+      {% for event in events %}
+        <tr>
+          <td style="padding:0 0 24px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#fef5ec;border-radius:12px;">
+              {% if event.image_url %}
+                <tr>
+                  <td style="padding:0;border-radius:12px 12px 0 0;overflow:hidden;">
+                    <img src="{{ event.image_url }}" alt="{{ event.image_alt|default(event.title)|e('html_attr') }}" width="552" style="display:block;width:100%;max-width:552px;height:auto;border:0;outline:none;border-radius:12px 12px 0 0;" />
+                  </td>
+                </tr>
+              {% endif %}
+              <tr>
+                <td style="padding:20px 20px 8px 20px;">
+                  <h2 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;font-weight:700;color:#293241;">{{ event.title }}</h2>
+                  {% if event.start_date %}
+                    <p style="margin:0 0 6px 0;font-size:15px;line-height:1.45;color:#293241;">
+                      <strong>Date</strong><br>{{ event.start_date }}{% if event.end_date and event.end_date != event.start_date %} – {{ event.end_date }}{% endif %}
+                    </p>
+                  {% endif %}
+                  {% if event.start_time %}
+                    <p style="margin:0 0 6px 0;font-size:15px;line-height:1.45;color:#293241;">
+                      <strong>Time</strong><br>{{ event.start_time }}{% if event.end_time %} – {{ event.end_time }}{% endif %}
+                    </p>
+                  {% endif %}
+                  {% if event.venue_name or event.location %}
+                    <p style="margin:0 0 6px 0;font-size:15px;line-height:1.45;color:#293241;">
+                      <strong>Venue</strong><br>
+                      {% if event.venue_name %}{{ event.venue_name }}{% endif %}
+                      {% if event.venue_name and event.location %}<br>{% endif %}
+                      {% if event.location %}<span style="color:#5c6370;">{{ event.location }}</span>{% endif %}
+                    </p>
+                  {% endif %}
+                  {% if event.organiser_name %}
+                    <p style="margin:0 0 6px 0;font-size:15px;line-height:1.45;color:#293241;">
+                      <strong>Organiser</strong><br>{{ event.organiser_name }}
+                    </p>
+                  {% elseif organiser_name %}
+                    <p style="margin:0 0 6px 0;font-size:15px;line-height:1.45;color:#293241;">
+                      <strong>Organiser</strong><br>{{ organiser_name }}
+                    </p>
+                  {% endif %}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      {% endfor %}
+    {% endif %}
 
-      <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">
-        <p style="margin: 5px 0;">This email was sent to {{ order_email }}</p>
-        <p style="margin: 5px 0;">If you have any questions, please contact us.</p>
-      </div>
-    </div>
-  </div>
+    {% if ticket_items|length > 0 %}
+      <tr>
+        <td style="padding:0 0 8px 0;">
+          <h2 style="margin:0 0 12px 0;font-size:18px;line-height:1.35;font-weight:700;color:#293241;">Ticket summary</h2>
+        </td>
+      </tr>
+      {% for item in ticket_items %}
+        <tr>
+          <td style="padding:0 0 10px 0;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#f7f7f8;border-radius:8px;">
+              <tr>
+                <td style="padding:14px 16px;font-size:15px;line-height:1.45;color:#293241;">
+                  <strong style="display:block;margin-bottom:4px;">{{ item.title }}</strong>
+                  Quantity: {{ item.quantity }}
+                  {% if item.attendees|length > 0 %}
+                    <br><span style="color:#5c6370;font-size:14px;">Attendees:
+                    {% for attendee in item.attendees %}{{ attendee.name }}{% if not loop.last %}, {% endif %}{% endfor %}</span>
+                  {% endif %}
+                </td>
+                <td align="right" valign="top" style="padding:14px 16px;font-size:15px;font-weight:700;color:#293241;white-space:nowrap;">
+                  {{ item.price }}
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      {% endfor %}
+    {% endif %}
+
+    {% if tickets_need_assignment %}
+      <tr>
+        <td style="padding:8px 0 16px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#fff8e6;border-left:4px solid #f0ad4e;border-radius:4px;">
+            <tr>
+              <td style="padding:14px 16px;font-size:15px;line-height:1.5;color:#5c4a00;">
+                <strong>Assign your tickets</strong> to receive them by email with your PDF and QR code.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    {% endif %}
+
+    {% if donation_total %}
+      <tr>
+        <td style="padding:8px 0 16px 0;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#fff8e6;border-radius:8px;">
+            <tr>
+              <td style="padding:14px 16px;font-size:15px;line-height:1.5;color:#5c4a00;">
+                <strong>Your donation:</strong> {{ donation_total }}
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    {% endif %}
+
+    <tr>
+      <td style="padding:8px 0 24px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#f7f7f8;border-radius:8px;">
+          <tr>
+            <td style="padding:16px;font-size:16px;font-weight:700;color:#293241;">Booking total</td>
+            <td align="right" style="padding:16px;font-size:18px;font-weight:800;color:#293241;">{{ booking_total|default(total_paid) }}</td>
+          </tr>
+          {% if show_includes_gst_note|default(false) %}
+            <tr>
+              <td colspan="2" style="padding:0 16px 14px 16px;font-size:13px;color:#5c6370;">All prices include GST where applicable.</td>
+            </tr>
+          {% endif %}
+        </table>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 0 24px 0;text-align:center;">
+        {% if not (is_guest ?? false) and order_url %}
+          <!--[if mso]>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ order_url }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
+            <w:anchorlock/>
+            <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">View My Booking</center>
+          </v:roundrect>
+          <![endif]-->
+          <!--[if !mso]><!-- -->
+          <a href="{{ order_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View My Booking</a>
+          <!--<![endif]-->
+          {% if event_url %}
+            <div style="margin-top:14px;">
+              <a href="{{ event_url }}" style="color:#6e7ef2;font-size:15px;font-weight:600;text-decoration:underline;">View Event</a>
+            </div>
+          {% endif %}
+        {% elseif event_url %}
+          <!--[if mso]>
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ event_url }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
+            <w:anchorlock/>
+            <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">View Event</center>
+          </v:roundrect>
+          <![endif]-->
+          <!--[if !mso]><!-- -->
+          <a href="{{ event_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Event</a>
+          <!--<![endif]-->
+        {% endif %}
+        {% if (is_guest ?? false) %}
+          <p style="margin:14px 0 0 0;font-size:14px;line-height:1.5;color:#5c6370;">Check your inbox for ticket PDFs, calendar files, and this order number — you can open them anytime without signing in.</p>
+        {% endif %}
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 0 24px 0;">
+        <h2 style="margin:0 0 10px 0;font-size:18px;line-height:1.35;font-weight:700;color:#293241;">What happens next?</h2>
+        <ul style="margin:0;padding:0 0 0 20px;color:#5c6370;font-size:15px;line-height:1.55;">
+          {% if (is_paid ?? true) %}
+            <li style="margin:0 0 6px 0;">We'll email you if important event details change.</li>
+            {% if (is_guest ?? false) %}
+              <li style="margin:0 0 6px 0;">Keep this confirmation handy. Sign in later to find tickets under My tickets, or use the links in your email.</li>
+            {% else %}
+              <li style="margin:0 0 6px 0;">You'll find your booking in My Bookings.</li>
+            {% endif %}
+            <li style="margin:0;">We'll remind you before your event.</li>
+          {% else %}
+            <li style="margin:0 0 6px 0;">We'll confirm your booking by email once payment is received.</li>
+            <li style="margin:0 0 6px 0;">We'll email you if important event details change.</li>
+            <li style="margin:0;">We'll remind you before your event after payment is confirmed.</li>
+          {% endif %}
+        </ul>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:0 0 8px 0;border-top:1px solid #e8e8e8;">
+        <h2 style="margin:20px 0 10px 0;font-size:18px;line-height:1.35;font-weight:700;color:#293241;">Need help?</h2>
+        <p style="margin:0;font-size:15px;line-height:1.7;color:#5c6370;">
+          {% if refund_policy_url %}
+            <a href="{{ refund_policy_url }}" style="color:#6e7ef2;text-decoration:underline;">Refund policy</a><br>
+          {% endif %}
+          {% if help_centre_url %}
+            <a href="{{ help_centre_url }}" style="color:#6e7ef2;text-decoration:underline;">Help Centre</a><br>
+          {% endif %}
+          {% set contact_url = organiser_url|default('') %}
+          {% if not contact_url and events|length > 0 and events[0].organiser_url|default('') %}
+            {% set contact_url = events[0].organiser_url %}
+          {% endif %}
+          {% if contact_url %}
+            <a href="{{ contact_url }}" style="color:#6e7ef2;text-decoration:underline;">Contact organiser</a><br>
+          {% endif %}
+          {% if support_url %}
+            <a href="{{ support_url }}" style="color:#6e7ef2;text-decoration:underline;">Support</a>
+          {% endif %}
+        </p>
+      </td>
+    </tr>
+
+    <tr>
+      <td style="padding:16px 0 0 0;font-size:12px;line-height:1.5;color:#5c6370;">
+        This email was sent to {{ order_email }}.
+      </td>
+    </tr>
+  </table>
 utm:
   enable: true
   params:

@@ -72,11 +72,18 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
       $messageStream = 'outbound';
     }
 
+    $textBody = $params['text'] ?? $params['plain'] ?? '';
+    if (!is_string($textBody) || trim($textBody) === '') {
+      // Multipart fallback: derive plain text from HTML when producers omit it.
+      $textBody = $this->htmlToPlainText(is_string($htmlBody) ? $htmlBody : '');
+    }
+
     $payload = [
       'From' => !empty($fromName) ? "{$fromName} <{$fromEmail}>" : $fromEmail,
       'To' => $to,
       'Subject' => $subject,
       'HtmlBody' => $htmlBody,
+      'TextBody' => $textBody,
       'MessageStream' => $messageStream,
     ];
 
@@ -186,6 +193,31 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
    */
   public function getLastProviderMessageId(): ?string {
     return $this->lastMessageId;
+  }
+
+  /**
+   * Builds a plain-text fallback from HTML for multipart delivery.
+   */
+  private function htmlToPlainText(string $html): string {
+    if (trim($html) === '') {
+      return '';
+    }
+    $withBreaks = preg_replace(
+      [
+        '/<\s*br\s*\/?\s*>/i',
+        '/<\s*\/\s*p\s*>/i',
+        '/<\s*\/\s*div\s*>/i',
+        '/<\s*\/\s*h[1-6]\s*>/i',
+        '/<\s*\/\s*li\s*>/i',
+        '/<\s*\/\s*tr\s*>/i',
+      ],
+      "\n",
+      $html
+    );
+    $stripped = html_entity_decode(strip_tags((string) $withBreaks), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $collapsed = preg_replace("/[ \t]+/", ' ', $stripped) ?? $stripped;
+    $lines = preg_replace("/\n{3,}/", "\n\n", $collapsed) ?? $collapsed;
+    return trim($lines);
   }
 
 }
