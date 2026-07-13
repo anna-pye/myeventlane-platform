@@ -32,6 +32,14 @@
   }
 }
 
+.mel-account-hero__welcome {
+  margin: 0 0 spacing.mel-space(1);
+  font-size: typography.mel-font-size(sm);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(41, 50, 65, 0.72);
+}
+
 .mel-account-hero__headline {
   margin: 0 0 spacing.mel-space(2);
   font-size: typography.mel-font-size(lg);

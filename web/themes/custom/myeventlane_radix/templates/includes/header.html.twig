@@ -42,7 +42,7 @@
         {% if is_vendor|default(false) %}
           <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="btn mel-btn-primary">{{ 'Organiser home'|t }}</a>
         {% else %}
-          <a href="{{ path('myeventlane_account.dashboard') }}" class="btn mel-btn-primary">{{ 'Home'|t }}</a>
+          <a href="{{ path('myeventlane_account.dashboard') }}" class="btn mel-btn-primary">{{ 'Dashboard'|t }}</a>
         {% endif %}
       {% else %}
         <a href="{{ path('user.login') }}" class="btn mel-btn-ghost">Login</a>
@@ -72,7 +72,7 @@
           {% if is_vendor|default(false) %}
             <li><a href="{{ path('myeventlane_vendor.console.dashboard') }}">{{ 'Organiser home'|t }}</a></li>
           {% else %}
-            <li><a href="{{ path('myeventlane_account.dashboard') }}">{{ 'Home'|t }}</a></li>
+            <li><a href="{{ path('myeventlane_account.dashboard') }}">{{ 'Dashboard'|t }}</a></li>
           {% endif %}
         {% else %}
           <li><a href="{{ path('user.login') }}">Login</a></li>

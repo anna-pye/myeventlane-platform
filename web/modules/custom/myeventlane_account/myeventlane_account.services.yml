@@ -8,6 +8,7 @@ services:
     class: Drupal\myeventlane_account\Service\CustomerHubDataBuilder
     arguments:
       - '@entity_type.manager'
+      - '@myeventlane_surface.state_readiness_helper'
 
   myeventlane_account.account_links:
     class: Drupal\myeventlane_account\Service\AccountLinksService
@@ -21,6 +22,7 @@ services:
     arguments:
       - '@myeventlane_surface.state_resolver'
       - '@myeventlane_surface.state_registry'
+      - '@myeventlane_surface.state_readiness_helper'
       - '@string_translation'
 
   myeventlane_account.customer_route_redirect_subscriber:

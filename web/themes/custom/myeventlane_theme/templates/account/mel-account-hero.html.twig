@@ -2,21 +2,29 @@
 /**
  * @file
  * Single customer dashboard hero — copy from CustomerAccountHeroBuilder only.
+ *
+ * When next_booking is present, the featured booking card is rendered by the
+ * dashboard template (mel-account-event-card); this hero supplies welcome + lede.
  */
 #}
-<section class="mel-account-hero" role="region" aria-labelledby="mel-account-hero-heading">
+<section class="mel-account-hero{% if mode|default('') %} mel-account-hero--{{ mode }}{% endif %}" role="region" aria-labelledby="mel-account-hero-heading">
   <div class="mel-account-hero__inner">
+    {% if welcome|default('') %}
+      <p class="mel-account-hero__welcome">{{ welcome }}</p>
+    {% endif %}
     <h2 id="mel-account-hero-heading" class="mel-account-hero__headline">{{ headline }}</h2>
     {% if body %}
       <p class="mel-account-hero__body">{{ body }}</p>
     {% endif %}
-    <div class="mel-account-hero__actions">
-      {% if primary_label and primary_url %}
-        <a href="{{ primary_url }}" class="mel-button mel-button--primary">{{ primary_label }}</a>
-      {% endif %}
-      {% if secondary_label and secondary_url %}
-        <a href="{{ secondary_url }}" class="mel-button mel-button--ghost">{{ secondary_label }}</a>
-      {% endif %}
-    </div>
+    {% if mode|default('') != 'next_booking' and (primary_label and primary_url or secondary_label and secondary_url) %}
+      <div class="mel-account-hero__actions">
+        {% if primary_label and primary_url %}
+          <a href="{{ primary_url }}" class="mel-button mel-button--primary">{{ primary_label }}</a>
+        {% endif %}
+        {% if secondary_label and secondary_url %}
+          <a href="{{ secondary_url }}" class="mel-button mel-button--ghost">{{ secondary_label }}</a>
+        {% endif %}
+      </div>
+    {% endif %}
   </div>
 </section>

@@ -912,6 +912,62 @@ final class MelReadinessHelper {
   }
 
   /**
+   * Account dashboard when the customer has no upcoming bookings (tickets or RSVPs).
+   *
+   * @return array{heading: string, what_happened: string, why_empty: string, next_action: string, cta_label: string}
+   */
+  public function customerAccountDashboardBookingsEmptySlots(): array {
+    return [
+      'heading' => (string) $this->t('Nothing booked yet'),
+      'what_happened' => (string) $this->t('Your upcoming bookings will show here once you book a ticket or RSVP.'),
+      'why_empty' => (string) $this->t('Bookings appear after checkout or RSVP confirmation for this signed-in account (or a matching guest email).'),
+      'next_action' => (string) $this->t('Browse events and book something you want to attend.'),
+      'cta_label' => $this->customerPrimaryBrowseEventsCta(),
+    ];
+  }
+
+  /**
+   * ACE status language for customer hub booking cards (not Commerce workflow ids).
+   *
+   * Temporal keys (today / tomorrow) overlay confirmed bookings; they are not
+   * new Commerce states.
+   *
+   * @param string $status_key
+   *   One of: confirmed, ticket_ready, today, tomorrow, completed, cancelled,
+   *   payment_pending, rsvp.
+   */
+  public function customerHubBookingStatusLabel(string $status_key): string {
+    return match ($status_key) {
+      'today' => (string) $this->t('Today'),
+      'tomorrow' => (string) $this->t('Tomorrow'),
+      'completed' => (string) $this->t('Completed'),
+      'cancelled' => (string) $this->t('Cancelled'),
+      'payment_pending' => (string) $this->t('Booking received'),
+      'ticket_ready' => (string) $this->t('Ticket ready'),
+      'rsvp' => (string) $this->t('Booking confirmed'),
+      default => (string) $this->t('Booking confirmed'),
+    };
+  }
+
+  /**
+   * Hub booking CTA labels — reuses checkout continuity vocabulary where shared.
+   *
+   * @return array<string, string>
+   */
+  public function customerHubBookingCtaLabels(): array {
+    $continuity = $this->customerCheckoutCompletionPresentationLabels();
+    return [
+      'view_booking' => $continuity['view_order'],
+      'view_ticket' => $continuity['view_ticket'],
+      'view_event' => $continuity['view_event'],
+      'add_to_calendar' => $continuity['add_to_calendar'],
+      'download_ticket' => (string) $this->t('Download ticket'),
+      'manage_rsvp' => (string) $this->t('Manage RSVP'),
+      'leave_review' => (string) $this->t('Leave a review'),
+    ];
+  }
+
+  /**
    * @return array{heading: string, what_happened: string, why_empty: string, next_action: string, cta_label: string}
    */
   public function customerAccountDashboardTicketsEmptySlots(): array {

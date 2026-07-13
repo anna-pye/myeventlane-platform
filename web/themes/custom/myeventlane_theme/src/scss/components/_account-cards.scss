@@ -108,6 +108,39 @@ $mel-account-event-thumb: 5.5rem;
     margin-bottom: spacing.mel-space(2);
   }
 
+  &.mel-account-event-card--next {
+    border: 1px solid rgba(41, 50, 65, 0.1);
+    box-shadow: shadows.$mel-shadow-md;
+
+    .mel-account-event-card__media,
+    .mel-card__image {
+      @include breakpoints.mel-break(md, max) {
+        height: 9rem;
+        max-height: 9rem;
+      }
+    }
+
+    .mel-account-event-card__media img,
+    .mel-card__image img {
+      @include breakpoints.mel-break(md, max) {
+        height: 9rem;
+        max-height: 9rem;
+      }
+    }
+
+    @include breakpoints.mel-break(md) {
+      .mel-account-event-card__row {
+        grid-template-columns: 8rem minmax(0, 1fr);
+      }
+
+      .mel-account-event-card__media,
+      .mel-card__image {
+        width: 8rem;
+        height: 8rem;
+      }
+    }
+  }
+
   .mel-account-event-card__actions {
     display: flex;
     flex-wrap: wrap;
