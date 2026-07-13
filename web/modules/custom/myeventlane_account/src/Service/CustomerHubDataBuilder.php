@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\image\ImageStyleInterface;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\node\NodeInterface;
 
@@ -22,6 +23,7 @@ final class CustomerHubDataBuilder {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly MelReadinessHelper $readiness,
   ) {}
 
   /**
@@ -41,7 +43,9 @@ final class CustomerHubDataBuilder {
    *   upcoming_rsvps: list<array<string, mixed>>,
    *   past_events: list<array<string, mixed>>,
    *   unified_upcoming: list<array<string, mixed>>,
-   *   unified_past: list<array<string, mixed>>
+   *   unified_past: list<array<string, mixed>>,
+   *   next_booking: array<string, mixed>|null,
+   *   upcoming_bookings: list<array<string, mixed>>
    * }
    */
   public function buildParticipationLists(int $userId, string $userEmail, int $now, bool $includeRsvpSubmissions = TRUE): array {
@@ -55,13 +59,13 @@ final class CustomerHubDataBuilder {
     foreach ($eventMap as $eventData) {
       $isPast = $this->isPastEvent($eventData, $now);
       if ($isPast) {
-        $pastEvents[] = $eventData;
+        $pastEvents[] = $this->enrichBookingPresentation($eventData, 'past', $now, $userId);
       }
       elseif (($eventData['source'] ?? '') === 'ticket') {
-        $upcomingTickets[] = $eventData;
+        $upcomingTickets[] = $this->enrichBookingPresentation($eventData, 'upcoming', $now, $userId);
       }
       else {
-        $upcomingRsvps[] = $eventData;
+        $upcomingRsvps[] = $this->enrichBookingPresentation($eventData, 'upcoming', $now, $userId);
       }
     }
 
@@ -73,12 +77,24 @@ final class CustomerHubDataBuilder {
     $unifiedUpcoming = array_merge($upcomingTickets, $upcomingRsvps);
     usort($unifiedUpcoming, $sortTs);
 
+    $nextBooking = $unifiedUpcoming[0] ?? NULL;
+    $upcomingBookings = $unifiedUpcoming;
+    if ($nextBooking !== NULL) {
+      $nextId = (int) ($nextBooking['id'] ?? 0);
+      $upcomingBookings = array_values(array_filter(
+        $unifiedUpcoming,
+        static fn(array $row): bool => (int) ($row['id'] ?? 0) !== $nextId,
+      ));
+    }
+
     return [
       'upcoming_tickets' => $upcomingTickets,
       'upcoming_rsvps' => $upcomingRsvps,
       'past_events' => $pastEvents,
       'unified_upcoming' => $unifiedUpcoming,
       'unified_past' => $pastEvents,
+      'next_booking' => $nextBooking,
+      'upcoming_bookings' => $upcomingBookings,
     ];
   }
 
@@ -91,7 +107,8 @@ final class CustomerHubDataBuilder {
    * @return array<string, mixed>
    */
   public function buildHubEventFromNode(NodeInterface $event, string $source = 'saved'): array {
-    return $this->buildEventItem($event, $source, '', NULL, NULL);
+    $row = $this->buildEventItem($event, $source, '', NULL, NULL);
+    return $this->enrichBookingPresentation($row, 'saved', time(), 0);
   }
 
   /**
@@ -158,7 +175,7 @@ final class CustomerHubDataBuilder {
       if (isset($byId[$nid])) {
         continue;
       }
-      $byId[$nid] = $this->buildEventItem($entity, 'saved', '', NULL, NULL);
+      $byId[$nid] = $this->buildHubEventFromNode($entity, 'saved');
     }
 
     $list = array_values($byId);
@@ -169,6 +186,193 @@ final class CustomerHubDataBuilder {
       return array_slice($list, 0, $limit);
     }
     return $list;
+  }
+
+  /**
+   * Adds ACE status language and primary/secondary CTAs to a hub booking row.
+   *
+   * @param array<string, mixed> $eventData
+   * @param string $lifecycle
+   *   upcoming|past|saved
+   * @param int $userId
+   *   Signed-in user id (for RSVP manage deep links); 0 when unknown.
+   *
+   * @return array<string, mixed>
+   */
+  public function enrichBookingPresentation(array $eventData, string $lifecycle, int $now, int $userId = 0): array {
+    $statusKey = $this->resolveStatusKey($eventData, $lifecycle, $now);
+    $eventData['status_key'] = $statusKey;
+    $eventData['status_label'] = $this->readiness->customerHubBookingStatusLabel($statusKey);
+
+    $ctas = $this->resolveBookingCtas($eventData, $lifecycle, $userId);
+    $eventData['primary_cta'] = $ctas['primary'];
+    $eventData['secondary_cta'] = $ctas['secondary'];
+
+    return $eventData;
+  }
+
+  /**
+   * @param array<string, mixed> $eventData
+   */
+  private function resolveStatusKey(array $eventData, string $lifecycle, int $now): string {
+    if ($lifecycle === 'past') {
+      return 'completed';
+    }
+    if ($lifecycle === 'saved') {
+      return 'confirmed';
+    }
+
+    $startTs = (int) ($eventData['start_timestamp'] ?? 0);
+    if ($startTs > 0) {
+      $startDay = date('Y-m-d', $startTs);
+      $today = date('Y-m-d', $now);
+      if ($startDay === $today) {
+        return 'today';
+      }
+      if ($startDay === date('Y-m-d', $now + 86400)) {
+        return 'tomorrow';
+      }
+    }
+
+    if (!empty($eventData['has_ticket_code']) || !empty($eventData['pdf_available'])) {
+      return 'ticket_ready';
+    }
+
+    if (($eventData['source'] ?? '') === 'rsvp') {
+      return 'rsvp';
+    }
+
+    return 'confirmed';
+  }
+
+  /**
+   * One primary + optional secondary CTA; only URLs that already exist on the row.
+   *
+   * @param array<string, mixed> $eventData
+   *
+   * @return array{primary: array{label: string, url: string}|null, secondary: array{label: string, url: string}|null}
+   */
+  private function resolveBookingCtas(array $eventData, string $lifecycle, int $userId = 0): array {
+    $labels = $this->readiness->customerHubBookingCtaLabels();
+    $primary = NULL;
+    $secondary = NULL;
+
+    if ($lifecycle === 'past') {
+      $eventUrl = (string) ($eventData['url'] ?? '');
+      if ($eventUrl !== '') {
+        $primary = [
+          'label' => $labels['view_event'],
+          'url' => $eventUrl,
+        ];
+      }
+      return ['primary' => $primary, 'secondary' => NULL];
+    }
+
+    if ($lifecycle === 'saved') {
+      $eventUrl = (string) ($eventData['url'] ?? '');
+      if ($eventUrl !== '') {
+        $primary = [
+          'label' => $labels['view_event'],
+          'url' => $eventUrl,
+        ];
+      }
+      $ics = (string) ($eventData['ics_url'] ?? '');
+      if ($ics !== '') {
+        $secondary = [
+          'label' => $labels['add_to_calendar'],
+          'url' => $ics,
+        ];
+      }
+      return ['primary' => $primary, 'secondary' => $secondary];
+    }
+
+    $source = (string) ($eventData['source'] ?? '');
+    $ticketUrl = (string) ($eventData['ticket_url'] ?? '');
+    $pdfUrl = (string) ($eventData['pdf_url'] ?? '');
+    $eventUrl = (string) ($eventData['url'] ?? '');
+    $icsUrl = (string) ($eventData['ics_url'] ?? '');
+
+    if ($source === 'rsvp') {
+      if ($userId > 0) {
+        try {
+          $primary = [
+            'label' => $labels['manage_rsvp'],
+            'url' => Url::fromRoute('myeventlane_rsvp.user_list', ['user' => $userId])->toString(),
+          ];
+        }
+        catch (\Throwable) {
+          $primary = NULL;
+        }
+      }
+      if ($primary === NULL && $eventUrl !== '') {
+        $primary = [
+          'label' => $labels['view_event'],
+          'url' => $eventUrl,
+        ];
+      }
+      if ($icsUrl !== '') {
+        $secondary = [
+          'label' => $labels['add_to_calendar'],
+          'url' => $icsUrl,
+        ];
+      }
+      elseif ($eventUrl !== '' && ($primary['url'] ?? '') !== $eventUrl) {
+        $secondary = [
+          'label' => $labels['view_event'],
+          'url' => $eventUrl,
+        ];
+      }
+      return ['primary' => $primary, 'secondary' => $secondary];
+    }
+
+    if ($ticketUrl !== '') {
+      $primary = [
+        'label' => $labels['view_booking'],
+        'url' => $ticketUrl,
+      ];
+      if ($pdfUrl !== '') {
+        $secondary = [
+          'label' => $labels['view_ticket'],
+          'url' => $pdfUrl,
+        ];
+      }
+      elseif ($eventUrl !== '') {
+        $secondary = [
+          'label' => $labels['view_event'],
+          'url' => $eventUrl,
+        ];
+      }
+      return ['primary' => $primary, 'secondary' => $secondary];
+    }
+
+    if ($pdfUrl !== '') {
+      $primary = [
+        'label' => $labels['view_ticket'],
+        'url' => $pdfUrl,
+      ];
+      if ($eventUrl !== '') {
+        $secondary = [
+          'label' => $labels['view_event'],
+          'url' => $eventUrl,
+        ];
+      }
+      return ['primary' => $primary, 'secondary' => $secondary];
+    }
+
+    if ($eventUrl !== '') {
+      $primary = [
+        'label' => $labels['view_event'],
+        'url' => $eventUrl,
+      ];
+    }
+    if ($icsUrl !== '') {
+      $secondary = [
+        'label' => $labels['add_to_calendar'],
+        'url' => $icsUrl,
+      ];
+    }
+
+    return ['primary' => $primary, 'secondary' => $secondary];
   }
 
   /**

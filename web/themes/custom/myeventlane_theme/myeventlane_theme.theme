@@ -425,12 +425,16 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
     ],
     'mel_account_hero' => [
       'variables' => [
+        'welcome' => '',
         'headline' => '',
         'body' => '',
         'primary_label' => '',
         'primary_url' => '',
         'secondary_label' => '',
         'secondary_url' => '',
+        'next_booking' => NULL,
+        'hub_user_id' => 0,
+        'mode' => '',
       ],
       'template' => 'account/mel-account-hero',
     ],

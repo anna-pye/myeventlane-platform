@@ -176,6 +176,21 @@ final class GovernedOperationalTemplates {
   /**
    * @return array<string, mixed>
    */
+  public function accountDashboardBookingsEmpty(): array {
+    $s = $this->readiness->customerAccountDashboardBookingsEmptySlots();
+    return $this->buildMelEmptyState([
+      'heading' => $s['heading'],
+      'heading_element' => 'h2',
+      'what_happened' => $s['what_happened'],
+      'why_empty' => $s['why_empty'],
+      'next_action' => $s['next_action'],
+      'cta' => $this->browseEventsPrimaryLink('view.upcoming_events.page_events', (string) $s['cta_label']),
+    ]);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
   public function accountDashboardTicketsEmpty(): array {
     $s = $this->readiness->customerAccountDashboardTicketsEmptySlots();
     return $this->buildMelEmptyState([

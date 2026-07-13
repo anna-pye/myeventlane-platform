@@ -33,6 +33,9 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
    * @covers ::customerCategoryFollowEmptySlots
    * @covers ::customerCategoryFollowWeeklyQuietSlots
    * @covers ::customerMyEventsDashboardUpcomingEmptySlots
+   * @covers ::customerAccountDashboardBookingsEmptySlots
+   * @covers ::customerHubBookingStatusLabel
+   * @covers ::customerHubBookingCtaLabels
    * @covers ::customerPrimaryBrowseEventsCta
    * @covers ::customerContinuityExploreHiddenGemsCta
    * @covers ::customerContinuityBrowseMoreEventsCta
@@ -51,6 +54,17 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
     $my_events = $h->customerMyEventsDashboardUpcomingEmptySlots();
     $this->assertNotSame('', $my_events['heading']);
     $this->assertNotSame('', $my_events['why_empty']);
+    $bookings = $h->customerAccountDashboardBookingsEmptySlots();
+    $this->assertSame('Nothing booked yet', $bookings['heading']);
+    $this->assertSame('Browse events', $bookings['cta_label']);
+    $this->assertSame('Booking confirmed', $h->customerHubBookingStatusLabel('confirmed'));
+    $this->assertSame('Today', $h->customerHubBookingStatusLabel('today'));
+    $this->assertSame('Tomorrow', $h->customerHubBookingStatusLabel('tomorrow'));
+    $this->assertSame('Completed', $h->customerHubBookingStatusLabel('completed'));
+    $this->assertSame('Ticket ready', $h->customerHubBookingStatusLabel('ticket_ready'));
+    $ctas = $h->customerHubBookingCtaLabels();
+    $this->assertSame('View booking', $ctas['view_booking']);
+    $this->assertSame('View ticket', $ctas['view_ticket']);
     $this->assertNotSame('', $h->customerPrimaryBrowseEventsCta());
     $this->assertNotSame('', $h->customerContinuityExploreHiddenGemsCta());
     $this->assertNotSame('', $h->customerContinuityBrowseMoreEventsCta());

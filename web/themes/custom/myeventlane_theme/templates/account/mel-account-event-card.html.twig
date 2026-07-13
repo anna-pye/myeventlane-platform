@@ -4,7 +4,10 @@
  * Shared customer hub event card (tickets, RSVPs, past events, collections).
  *
  * Expects variable `event` with keys from CustomerHubDataBuilder or compatible rows.
- * Optional: card_variant (ticket|rsvp|past|category|saved), hub_user_id, show_review_cta.
+ * Optional: card_variant (ticket|rsvp|past|category|saved|next), hub_user_id, show_review_cta.
+ *
+ * Prefer event.status_label / event.primary_cta / event.secondary_cta when present
+ * (ACE Phase 3); fall back to legacy variant-based CTAs for older callers.
  */
 #}
 <article class="mel-card mel-my-account__card mel-account-event-card mel-account-event-card--compact{% if card_variant|default('') %} mel-account-event-card--{{ card_variant }}{% endif %}">
@@ -27,7 +30,9 @@
         {% endif %}
       </div>
       <div class="mel-account-event-card__status">
-        {% if event.source == 'saved' or card_variant|default('') == 'saved' %}
+        {% if event.status_label|default('') %}
+          <span class="mel-badge mel-badge--{% if event.status_key|default('') in ['today', 'tomorrow', 'ticket_ready'] %}success{% elseif event.status_key|default('') in ['completed', 'cancelled'] %}neutral{% else %}info{% endif %}"{% if event.status_label %} aria-label="{{ 'Booking status: @status'|t({'@status': event.status_label}) }}"{% endif %}>{{ event.status_label }}</span>
+        {% elseif event.source == 'saved' or card_variant|default('') == 'saved' %}
           <span class="mel-badge mel-badge--neutral">{{ 'Saved'|t }}</span>
         {% elseif card_variant|default('') == 'category' %}
           <span class="mel-badge mel-badge--info">{{ 'Upcoming'|t }}</span>
@@ -40,7 +45,21 @@
         {% endif %}
       </div>
       <div class="mel-account-event-card__actions">
-        {% if card_variant|default('') == 'rsvp' or event.source == 'rsvp' %}
+        {% if event.primary_cta is defined and event.primary_cta and event.primary_cta.url|default('') %}
+          {% if show_review_cta|default(false) and card_variant|default('') == 'past' %}
+            <a href="{{ path('myeventlane_account.event_review', { node: event.id }) }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'Leave a review'|t }}</a>
+            <a href="{{ event.primary_cta.url }}" class="mel-account-event-card__action">{{ event.primary_cta.label }}</a>
+          {% else %}
+            <a href="{{ event.primary_cta.url }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ event.primary_cta.label }}</a>
+            {% if event.secondary_cta is defined and event.secondary_cta and event.secondary_cta.url|default('') %}
+              <a href="{{ event.secondary_cta.url }}" class="mel-account-event-card__action"{% if '.ics' in event.secondary_cta.url %} download{% endif %}>{{ event.secondary_cta.label }}</a>
+            {% endif %}
+          {% endif %}
+          {% set _event_save_flag = event_save_flag|default(event.event_save_flag|default(null)) %}
+          {% if _event_save_flag %}
+            <span class="mel-account-event-card__flag">{{ _event_save_flag }}</span>
+          {% endif %}
+        {% elseif card_variant|default('') == 'rsvp' or event.source == 'rsvp' %}
           {% if hub_user_id|default(0) > 0 %}
             <a href="{{ path('myeventlane_rsvp.user_list', {'user': hub_user_id}) }}" class="mel-account-event-card__action mel-account-event-card__action--primary">{{ 'Manage RSVP'|t }}</a>
           {% endif %}
