@@ -183,6 +183,8 @@ jobs:
             'MEL_ADMIN_DOMAIN="https://admin.staging.myeventlane.com.au" \' \
             'MEL_FORCE_DOMAIN_REDIRECTS=1 \' \
             'MEL_REVISION="${{ github.sha }}" \' \
+            'MEL_DEPLOY_TIME_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \' \
+            'MEL_RELEASE_IDENTIFIER="${{ github.run_id }}.${{ github.run_attempt }}" \' \
             'ARTIFACT_PATH="$temp_dir" \' \
             'bash scripts/deploy/remote-deploy.sh' \
             | ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s
@@ -194,3 +196,48 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 \
             "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
             "ls -lt ~/staging/releases"
+
+      # Independent provenance check: live release REVISION vs this workflow commit
+      # and the repository composer.lock. Fail the job on any mismatch.
+      - name: Check out commit for provenance verification
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+          sparse-checkout: |
+            composer.lock
+            scripts/deploy/verify-revision-metadata.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Verify deployed REVISION provenance
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          chmod +x scripts/deploy/verify-revision-metadata.sh
+          expected_lock="$(sha256sum composer.lock | awk '{print $1}')"
+          echo "Expected artifact_sha=${EXPECTED_SHA}"
+          echo "Expected composer_lock_sha256=${expected_lock}"
+          echo "Build output composer_lock_sha256=${{ needs.build.outputs.composer_lock_sha256 }}"
+
+          if [ "${{ needs.build.outputs.composer_lock_sha256 }}" != "$expected_lock" ]; then
+            echo "ERROR: build job composer_lock_sha256 output disagrees with repository lockfile" >&2
+            exit 1
+          fi
+
+          ssh -i ~/.ssh/id_ed25519 \
+            "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" \
+            'set -euo pipefail
+             revision="$HOME/staging/current/REVISION"
+             if [ ! -f "$revision" ]; then
+               echo "ERROR: missing $revision" >&2
+               exit 1
+             fi
+             cat "$revision"' \
+            > /tmp/mel-staging-REVISION
+
+          scripts/deploy/verify-revision-metadata.sh \
+            "$EXPECTED_SHA" \
+            "$expected_lock" \
+            /tmp/mel-staging-REVISION
