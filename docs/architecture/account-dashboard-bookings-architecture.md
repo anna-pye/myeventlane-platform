@@ -126,7 +126,7 @@ My bookings → /my-tickets
 | Authenticated customer | Dashboard | `/my-account` | `AccountLinksService`, page H1, header shortcut (`region--header.html.twig`, radix header) |
 | Authenticated customer | My bookings | `/my-tickets` | `AccountLinksService`, shell H1 |
 
-Prefer: **Dashboard**, **My bookings**, **Booking**.  
+Prefer: **Dashboard**, **My bookings**, **Booking**.
 Avoid customer-facing: **Order**, **Customer Home**, dual **Home** for `/my-account`.
 
 Organiser console may still say Home for its own workspace; that is not the customer IA.
