@@ -62,7 +62,15 @@ final class CustomerDashboardController extends ControllerBase {
     $includeRsvpSubmissions = $userId > 0;
     $participation = $this->customerHubDataBuilder->buildParticipationLists($userId, (string) $userEmail, $now, $includeRsvpSubmissions);
 
-    $cacheTags = ['node_list', 'user:' . $userId];
+    // Same participation sources as /my-account — keep list tags aligned so
+    // staging Dynamic Page Cache invalidates when bookings change.
+    $cacheTags = [
+      'node_list',
+      'user:' . $userId,
+      'commerce_order_list',
+      'event_attendee_list',
+      'rsvp_submission_list',
+    ];
     foreach (array_merge($participation['unified_upcoming'], $participation['unified_past']) as $event) {
       $cacheTags[] = 'node:' . $event['id'];
     }
