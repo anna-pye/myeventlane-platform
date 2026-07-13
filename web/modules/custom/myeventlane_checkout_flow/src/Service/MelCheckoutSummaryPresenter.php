@@ -40,8 +40,13 @@ final class MelCheckoutSummaryPresenter {
     }
 
     $built = $this->groupedSummaryBuilder->build($order);
+    // Include legal settings so refund_url / trust link updates invalidate summaries.
     $cache = [
-      'tags' => Cache::mergeTags($order->getCacheTags(), (array) ($built['cache_tags'] ?? [])),
+      'tags' => Cache::mergeTags(
+        $order->getCacheTags(),
+        (array) ($built['cache_tags'] ?? []),
+        ['config:myeventlane_legal.settings'],
+      ),
       'contexts' => $order->getCacheContexts(),
     ];
 
