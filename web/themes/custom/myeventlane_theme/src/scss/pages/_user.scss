@@ -774,8 +774,21 @@
   max-width: 22rem;
 }
 
+.mel-event-readiness__primary {
+  margin: spacing.mel-space(3) 0 0;
+}
+
+.mel-event-readiness__primary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  width: 100%;
+  text-align: center;
+}
+
 .mel-event-readiness__checklist {
-  margin: 0;
+  margin: spacing.mel-space(3) 0 0;
   padding: 0;
   list-style: none;
   display: grid;

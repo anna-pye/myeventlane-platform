@@ -137,7 +137,7 @@ final class OrderConfirmationQueueBuilder {
     }
 
     $help_urls = $this->buildHelpUrls();
-    $pass_actions = $this->buildDigitalPassEmailActions($order, $is_guest);
+    $pass_actions = $this->buildDigitalPassEmailActions($order, $is_guest, $primaryEventId);
 
     $context = [
       'first_name' => $first_name,
@@ -616,7 +616,7 @@ final class OrderConfirmationQueueBuilder {
    *   manage_booking_url: string|null
    * }
    */
-  private function buildDigitalPassEmailActions(OrderInterface $order, bool $is_guest): array {
+  private function buildDigitalPassEmailActions(OrderInterface $order, bool $is_guest, ?int $primary_event_id = NULL): array {
     $actions = [
       'apple_wallet_url' => NULL,
       'google_wallet_url' => NULL,
@@ -644,7 +644,7 @@ final class OrderConfirmationQueueBuilder {
     }
     $actions['manage_booking_url'] = $manage;
 
-    $ticket = $this->resolvePrimaryIssuedTicketForOrder($order);
+    $ticket = $this->resolvePrimaryIssuedTicketForOrder($order, $primary_event_id);
     if (!$ticket instanceof Ticket) {
       return $actions;
     }
@@ -701,20 +701,21 @@ final class OrderConfirmationQueueBuilder {
   /**
    * Resolves one issued ticket for email CTAs (wallet + PDF).
    *
-   * Reuses WalletTicketResolver primary selection when available.
+   * Prefer the same primary event shown in confirmation copy
+   * (first ticketable line's field_target_event), not the first ticket on any
+   * line item. Reuses WalletTicketResolver per matching order item.
    */
-  private function resolvePrimaryIssuedTicketForOrder(OrderInterface $order): ?Ticket {
+  private function resolvePrimaryIssuedTicketForOrder(OrderInterface $order, ?int $primary_event_id = NULL): ?Ticket {
     $customer = $order->getCustomer();
+    $preferred_event_id = ($primary_event_id !== NULL && $primary_event_id > 0)
+      ? $primary_event_id
+      : NULL;
+
     if ($this->walletTicketResolver instanceof WalletTicketResolver
       && $customer instanceof AccountInterface) {
-      foreach ($order->getItems() as $item) {
-        if (!$item instanceof OrderItemInterface) {
-          continue;
-        }
-        $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $customer);
-        if ($ticket instanceof Ticket) {
-          return $ticket;
-        }
+      $ticket = $this->resolveTicketFromOrderItems($order, $customer, $preferred_event_id);
+      if ($ticket instanceof Ticket) {
+        return $ticket;
       }
     }
 
@@ -723,14 +724,69 @@ final class OrderConfirmationQueueBuilder {
       return NULL;
     }
 
+    return $this->loadFirstTicketForOrder($order_id, $preferred_event_id);
+  }
+
+  /**
+   * Walks ticketable order items; optionally restricts to one event.
+   */
+  private function resolveTicketFromOrderItems(
+    OrderInterface $order,
+    AccountInterface $customer,
+    ?int $event_id,
+  ): ?Ticket {
+    if (!$this->walletTicketResolver instanceof WalletTicketResolver) {
+      return NULL;
+    }
+
+    foreach ($order->getItems() as $item) {
+      if (!$item instanceof OrderItemInterface) {
+        continue;
+      }
+      if ($this->isDonationItem($item) || $item->bundle() === 'boost') {
+        continue;
+      }
+      if ($event_id !== NULL && $this->orderItemEventId($item) !== $event_id) {
+        continue;
+      }
+      $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $customer);
+      if ($ticket instanceof Ticket) {
+        return $ticket;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Event node ID from a ticketable order item, or 0 when absent.
+   */
+  private function orderItemEventId(OrderItemInterface $item): int {
+    if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
+      return 0;
+    }
+    $event = $item->get('field_target_event')->entity;
+    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+      return (int) $event->id();
+    }
+    return 0;
+  }
+
+  /**
+   * Loads the lowest-ID issued ticket for an order, optionally by event.
+   */
+  private function loadFirstTicketForOrder(int $order_id, ?int $event_id): ?Ticket {
     try {
-      $ids = $this->entityTypeManager->getStorage('myeventlane_ticket')
+      $query = $this->entityTypeManager->getStorage('myeventlane_ticket')
         ->getQuery()
         ->accessCheck(FALSE)
         ->condition('order_id', $order_id)
         ->sort('id')
-        ->range(0, 1)
-        ->execute();
+        ->range(0, 1);
+      if ($event_id !== NULL && $event_id > 0) {
+        $query->condition('event_id', $event_id);
+      }
+      $ids = $query->execute();
     }
     catch (\Exception $e) {
       $this->logger->warning('Could not resolve ticket for Digital Pass email actions: @message', [

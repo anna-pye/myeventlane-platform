@@ -191,7 +191,7 @@
   {% endif %}
 
   {# ---- Event Readiness (collapsed accordion; existing data only) ---- #}
-  {% if readiness.detail_items|default([])|length > 0 %}
+  {% if readiness.primary_action|default(null) or readiness.detail_items|default([])|length > 0 %}
       <details class="mel-event-readiness mel-event-readiness--accordion" id="mel-event-readiness">
         <summary class="mel-event-readiness__summary">
           <span class="mel-event-readiness__summary-label">{{ readiness.summary|default('Need more information?'|t) }}</span>
@@ -207,36 +207,47 @@
           {% if readiness.intro %}
             <p class="mel-event-readiness__intro">{{ readiness.intro }}</p>
           {% endif %}
-          <h3 class="visually-hidden" id="mel-event-readiness-checklist">{{ readiness.checklist_heading|default('Your checklist'|t) }}</h3>
-          <ul class="mel-event-readiness__checklist" aria-labelledby="mel-event-readiness-checklist">
-            {% for item in readiness.detail_items %}
-              <li class="mel-event-readiness__item mel-event-readiness__item--ready">
-                <span class="mel-event-readiness__check" aria-hidden="true">✓</span>
-                <div class="mel-event-readiness__item-body">
-                  <span class="mel-event-readiness__item-label">{{ item.label }}</span>
-                  {% if item.detail %}
-                    <span class="mel-event-readiness__item-detail">
-                      {% if item.url %}
-                        <a
-                          href="{{ item.url }}"
-                          class="mel-link"
-                          {% if item.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
-                        >{{ item.detail }}</a>
-                      {% else %}
-                        {{ item.detail }}
-                      {% endif %}
-                    </span>
-                  {% elseif item.url %}
-                    <a
-                      href="{{ item.url }}"
-                      class="mel-link mel-event-readiness__item-link"
-                      {% if item.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
-                    >{{ item.label }}</a>
-                  {% endif %}
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
+          {% if readiness.primary_action and readiness.primary_action.url and readiness.primary_action.label %}
+            <div class="mel-event-readiness__primary">
+              <a
+                href="{{ readiness.primary_action.url }}"
+                class="mel-button mel-button--primary mel-event-readiness__primary-action"
+                {% if readiness.primary_action.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
+              >{{ readiness.primary_action.label }}</a>
+            </div>
+          {% endif %}
+          {% if readiness.detail_items|default([])|length > 0 %}
+            <h3 class="visually-hidden" id="mel-event-readiness-checklist">{{ readiness.checklist_heading|default('Your checklist'|t) }}</h3>
+            <ul class="mel-event-readiness__checklist" aria-labelledby="mel-event-readiness-checklist">
+              {% for item in readiness.detail_items %}
+                <li class="mel-event-readiness__item mel-event-readiness__item--ready">
+                  <span class="mel-event-readiness__check" aria-hidden="true">✓</span>
+                  <div class="mel-event-readiness__item-body">
+                    <span class="mel-event-readiness__item-label">{{ item.label }}</span>
+                    {% if item.detail %}
+                      <span class="mel-event-readiness__item-detail">
+                        {% if item.url %}
+                          <a
+                            href="{{ item.url }}"
+                            class="mel-link"
+                            {% if item.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
+                          >{{ item.detail }}</a>
+                        {% else %}
+                          {{ item.detail }}
+                        {% endif %}
+                      </span>
+                    {% elseif item.url %}
+                      <a
+                        href="{{ item.url }}"
+                        class="mel-link mel-event-readiness__item-link"
+                        {% if item.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
+                      >{{ item.label }}</a>
+                    {% endif %}
+                  </div>
+                </li>
+              {% endfor %}
+            </ul>
+          {% endif %}
           {% if readiness.reminder_note %}
             <p class="mel-event-readiness__reminder" role="note">{{ readiness.reminder_note }}</p>
           {% endif %}
