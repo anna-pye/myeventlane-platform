@@ -108,6 +108,11 @@ all_config_dump.sql
 *.crt
 *.cer
 *.der
+*.pkpass
+
+# Local wallet signing material (paths only via DDEV env; never commit contents)
+/private/wallet-dev/**
+!/private/wallet-dev/README.md
 
 id_rsa
 id_ed25519
