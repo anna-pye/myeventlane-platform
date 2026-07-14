@@ -62,6 +62,8 @@ Future improvement: a dedicated kernel test asserting negotiator `#cache` contex
 
 ## 7. Developer workflows
 
+For general Unit / Kernel / Functional / Browser runs (including `SIMPLETEST_DB` defaults), use the canonical helper documented in [local-phpunit.md](local-phpunit.md) (`scripts/mel-phpunit` / `composer test:drupal`).
+
 **Run governance tests (same as CI):**
 
 ```bash
