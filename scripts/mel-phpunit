@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+#
+# MyEventLane Local Drupal PHPUnit Helper
+#
+# Purpose:
+# - provide local defaults for Drupal's SIMPLETEST_* variables
+# - preserve developer overrides
+# - create browser output directories
+# - invoke PHPUnit using Drupal's configuration
+#
+# Runtime:
+# Local development only.
+#
+# This script must never affect production or staging.
+#
+# Usage (from repository root, preferably inside DDEV):
+#   ddev exec bash scripts/mel-phpunit \
+#     web/modules/custom/myeventlane_commerce/tests/src/Unit
+#   ddev composer test:drupal -- \
+#     web/modules/custom/myeventlane_commerce/tests/src/Kernel
+#
+# See docs/testing/local-phpunit.md
+
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${REPO_ROOT}"
+
+# Safe local defaults — never overwrite a variable that is already set
+# (including empty string: BROWSERTEST_OUTPUT_DIRECTORY='' disables HTML output).
+if [[ -z "${SIMPLETEST_DB+x}" ]]; then
+  export SIMPLETEST_DB='sqlite://localhost/:memory:'
+fi
+
+if [[ -z "${SIMPLETEST_BASE_URL+x}" ]]; then
+  if [[ -n "${DDEV_PRIMARY_URL:-}" ]]; then
+    export SIMPLETEST_BASE_URL="${DDEV_PRIMARY_URL}"
+  elif [[ "${IS_DDEV_PROJECT:-}" == "true" ]]; then
+    export SIMPLETEST_BASE_URL='https://myeventlane.ddev.site'
+  else
+    # Host-side runs still get a MEL-local default; override if your URL differs.
+    export SIMPLETEST_BASE_URL='https://myeventlane.ddev.site'
+  fi
+fi
+
+BROWSER_OUTPUT_DIR="${REPO_ROOT}/web/sites/simpletest/browser_output"
+mkdir -p "${BROWSER_OUTPUT_DIR}"
+
+# Core phpunit.xml.dist uses a CWD-relative sites/simpletest/browser_output.
+# Runs from the repo root need an absolute path (never overwrite an existing value).
+if [[ -z "${BROWSERTEST_OUTPUT_DIRECTORY+x}" ]]; then
+  export BROWSERTEST_OUTPUT_DIRECTORY="${BROWSER_OUTPUT_DIR}"
+fi
+
+PHPUNIT_BIN="${REPO_ROOT}/vendor/bin/phpunit"
+if [[ ! -x "${PHPUNIT_BIN}" ]]; then
+  echo "mel-phpunit: ${PHPUNIT_BIN} not found or not executable." >&2
+  echo "Run composer install (inside DDEV: ddev composer install) first." >&2
+  exit 1
+fi
+
+# Path-only invocations need Drupal's config; do not override if the caller
+# already passed -c / --configuration.
+has_config=0
+for arg in "$@"; do
+  case "${arg}" in
+    -c|--configuration|-c=*|--configuration=*)
+      has_config=1
+      break
+      ;;
+  esac
+done
+
+if [[ "${has_config}" -eq 0 ]]; then
+  set -- -c "${REPO_ROOT}/web/core/phpunit.xml.dist" "$@"
+fi
+
+echo "mel-phpunit: SIMPLETEST_DB=${SIMPLETEST_DB}"
+echo "mel-phpunit: SIMPLETEST_BASE_URL=${SIMPLETEST_BASE_URL}"
+echo "mel-phpunit: BROWSERTEST_OUTPUT_DIRECTORY=${BROWSERTEST_OUTPUT_DIRECTORY}"
+
+exec "${PHPUNIT_BIN}" "$@"

@@ -12,6 +12,7 @@ Operational scripts for local development, audits, deployment, and governance. R
 
 | Script | Purpose | Safe environment | Destructive | Required confirmation |
 |--------|---------|------------------|-------------|----------------------|
+| `mel-phpunit` | Local PHPUnit helper: sets missing `SIMPLETEST_*`, ensures `sites/simpletest/browser_output`, runs `vendor/bin/phpunit` | Local DDEV | No | None |
 | `preflight-health-check.sh` | DB, cache, config sync, and filesystem smoke checks | Local DDEV | No | None |
 | `validate-push.sh` | Ordinary branch push gate: clean tree, review-branch allowlist (includes chore/docs/test), lightweight safety checks | Local | No | None |
 | `validate-release.sh` | Canonical pre-deployment release validation: Git, Drush bootstrap, config status, database updates, MEL tests, and theme builds | Local DDEV / staging / production checkout | No | None |
