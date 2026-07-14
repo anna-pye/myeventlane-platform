@@ -304,6 +304,21 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
   }
 
   /**
+   * Detail models degrade QR when the signing secret is missing.
+   */
+  public function testDetailDegradesQrWhenSecretMissing(): void {
+    $this->setSetting('myeventlane_qr_secret', '');
+    putenv('MEL_QR_SECRET');
+    $order = $this->createOrder();
+    $this->createTicket($order, ['ticket_code' => 'MEL-DETAIL-NO-SECRET']);
+    $model = $this->builder()->build($order, TRUE);
+    $qr = $model['ticket_models'][0]['qr'];
+    $this->assertTrue($qr['included']);
+    $this->assertTrue($qr['unavailable']);
+    $this->assertSame('', $qr['payload']);
+  }
+
+  /**
    * Returns the My Tickets order view model builder.
    */
   private function builder(): object {

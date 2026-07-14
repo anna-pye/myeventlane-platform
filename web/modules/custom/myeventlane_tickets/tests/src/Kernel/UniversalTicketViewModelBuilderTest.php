@@ -348,19 +348,31 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
   }
 
   /**
-   * Detail builds degrade when the signing secret is missing.
+   * Customer detail may degrade when allow_qr_unavailable is TRUE.
    */
-  public function testBuildWithQrDegradesWhenSecretMissing(): void {
+  public function testBuildWithQrDegradesWhenSecretMissingAndAllowed(): void {
     $this->setSetting('myeventlane_qr_secret', '');
     putenv('MEL_QR_SECRET');
     $ticket = $this->createTicket(['ticket_code' => 'MEL-QR-MISS']);
-    $model = $this->builder()->build($ticket, TRUE);
+    $model = $this->builder()->build($ticket, TRUE, TRUE);
     $this->assertSame('', $model['qr']['payload']);
     $this->assertSame('', $model['qr']['data_uri']);
     $this->assertTrue($model['qr']['unavailable']);
     $this->assertTrue($model['qr']['included']);
     $this->assertSame('MEL-QR-MISS', $model['ticket']['code']);
     $this->assertNotEmpty($model['event']);
+  }
+
+  /**
+   * PDF/wallet default build() fails loud when the signing secret is missing.
+   */
+  public function testBuildWithQrThrowsWhenSecretMissingByDefault(): void {
+    $this->setSetting('myeventlane_qr_secret', '');
+    putenv('MEL_QR_SECRET');
+    $ticket = $this->createTicket(['ticket_code' => 'MEL-QR-FAIL']);
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('MEL QR signing secret is not configured.');
+    $this->builder()->build($ticket, TRUE);
   }
 
   /**

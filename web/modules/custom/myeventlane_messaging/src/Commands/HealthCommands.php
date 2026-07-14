@@ -94,6 +94,19 @@ final class HealthCommands extends DrushCommands {
       return;
     }
 
+    if (!$this->ticketQrPayload->requiresSigningSecret()) {
+      $source = $this->ticketQrPayload->resolveSecretSource();
+      $this->addResult(
+        $results,
+        'PASS',
+        'QR signing secret',
+        $source === NULL
+          ? 'Not required (qr_payload_mode=code_only).'
+          : 'Not required (qr_payload_mode=code_only); optional source ' . $source,
+      );
+      return;
+    }
+
     $source = $this->ticketQrPayload->resolveSecretSource();
     if ($source === NULL) {
       $this->addResult($results, 'FAIL', 'QR signing secret', "MEL_QR_SECRET missing. Set host env or \$settings['myeventlane_qr_secret']. Never store in config/sync.");

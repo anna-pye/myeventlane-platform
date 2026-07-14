@@ -269,6 +269,15 @@ final class TicketQrPayload {
   }
 
   /**
+   * Whether host QR signing configuration is healthy for the active mode.
+   *
+   * code_only does not use HMAC signing, so a missing secret is healthy.
+   */
+  public function isSigningConfigurationHealthy(): bool {
+    return !$this->requiresSigningSecret() || $this->isSecretConfigured();
+  }
+
+  /**
    * Gets QR signing secret from settings.php first, then environment.
    */
   private function getSecret(): string {

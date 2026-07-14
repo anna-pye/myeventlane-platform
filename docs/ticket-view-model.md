@@ -95,13 +95,20 @@ This slice does not remove legacy order-item PDF routes, attendee fallbacks, wal
 
 ## QR inclusion flag
 
-`UniversalTicketViewModelBuilder::build($ticket, bool $include_qr = TRUE)` controls whether QR payload/data URI generation runs.
+`UniversalTicketViewModelBuilder::build($ticket, bool $include_qr = TRUE, bool $allow_qr_unavailable = FALSE)` controls QR generation and missing-secret behaviour.
 
-| Caller | `$include_qr` |
-|--------|----------------|
-| My Tickets overview (`/my-tickets`) | `FALSE` |
-| My Tickets order detail | `TRUE` |
-| PDF / wallet / scanner / canonical PDF view model | `TRUE` (default) |
+| Caller | `$include_qr` | `$allow_qr_unavailable` |
+|--------|----------------|-------------------------|
+| My Tickets overview (`/my-tickets`) | `FALSE` | n/a (QR skipped) |
+| My Tickets order detail | `TRUE` | `TRUE` (via `MyTicketsOrderViewModelBuilder`) |
+| PDF / Apple Wallet / default `build()` | `TRUE` (default) | `FALSE` (default; fail-loud) |
 
-When signing is required and `MEL_QR_SECRET` (or settings equivalent) is missing, customer order detail sets `qr.unavailable = TRUE` and omits the image instead of throwing. Direct `TicketQrPayload::buildForTicket()` callers (e.g. scanners, legacy PDF) still fail loud.
+When signing is required (`qr_payload_mode` ≠ `code_only`) and `MEL_QR_SECRET` (or settings equivalent) is missing:
+
+- `$allow_qr_unavailable = TRUE` → `qr.unavailable = TRUE` (customer order detail trust panel)
+- otherwise → `RuntimeException` (PDF / wallet / canonical default paths)
+
+`code_only` mode does not require a signing secret; `drush mel:qr-secret-status`, `mel:health`, and `mel:healthcheck` treat a missing secret as PASS in that mode.
+
+Direct `TicketQrPayload::buildForTicket()` callers (e.g. scanners) still fail loud when signing is required and the secret is missing.
 

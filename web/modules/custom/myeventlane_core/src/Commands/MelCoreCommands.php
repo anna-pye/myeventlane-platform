@@ -84,7 +84,10 @@ final class MelCoreCommands extends DrushCommands {
     }
 
 
-    // Mirrors TicketQrPayload::resolveSecretSource() without depending on tickets.
+    // Mirrors TicketQrPayload secret resolution without depending on tickets.
+    // code_only mode does not use HMAC signing — missing secret is healthy.
+    $qrMode = (string) ($this->configFactory->get('myeventlane_tickets.settings')->get('qr_payload_mode') ?? 'signed');
+    $qrRequiresSigning = $qrMode !== 'code_only';
     $qrSource = NULL;
     $qrSecret = Settings::get('myeventlane_qr_secret');
     if (!empty($qrSecret)) {
@@ -96,7 +99,13 @@ final class MelCoreCommands extends DrushCommands {
     elseif ((getenv('MEL_QR_SECRET') ?: '') !== '') {
       $qrSource = 'env:MEL_QR_SECRET';
     }
-    if ($qrSource === NULL) {
+    if (!$qrRequiresSigning) {
+      $this->io()->writeln(sprintf(
+        'QR signing secret: PASS (not required; qr_payload_mode=code_only%s)',
+        $qrSource !== NULL ? '; optional source ' . $qrSource : '',
+      ));
+    }
+    elseif ($qrSource === NULL) {
       $this->io()->error("QR signing secret: FAIL — MEL_QR_SECRET missing (set host env or \$settings['myeventlane_qr_secret']).");
       $failures++;
     }

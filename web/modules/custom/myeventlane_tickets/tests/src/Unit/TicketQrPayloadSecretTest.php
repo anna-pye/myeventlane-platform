@@ -62,11 +62,34 @@ final class TicketQrPayloadSecretTest extends UnitTestCase {
 
   /**
    * @covers ::requiresSigningSecret
+   * @covers ::isSigningConfigurationHealthy
    */
   public function testCodeOnlyModeDoesNotRequireSecret(): void {
     new Settings([]);
+    putenv('MEL_QR_SECRET');
     $payload = $this->payload('code_only');
     $this->assertFalse($payload->requiresSigningSecret());
+    $this->assertTrue($payload->isSigningConfigurationHealthy());
+  }
+
+  /**
+   * @covers ::isSigningConfigurationHealthy
+   */
+  public function testSignedModeUnhealthyWithoutSecret(): void {
+    new Settings([]);
+    putenv('MEL_QR_SECRET');
+    $payload = $this->payload('signed');
+    $this->assertTrue($payload->requiresSigningSecret());
+    $this->assertFalse($payload->isSigningConfigurationHealthy());
+  }
+
+  /**
+   * @covers ::isSigningConfigurationHealthy
+   */
+  public function testSignedModeHealthyWithSecret(): void {
+    new Settings(['myeventlane_qr_secret' => 'present']);
+    $payload = $this->payload('signed');
+    $this->assertTrue($payload->isSigningConfigurationHealthy());
   }
 
   private function payload(string $mode): TicketQrPayload {

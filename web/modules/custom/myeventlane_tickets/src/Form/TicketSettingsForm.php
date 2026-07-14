@@ -155,13 +155,22 @@ final class TicketSettingsForm extends ConfigFormBase {
     ];
 
     $source = $this->ticketQrPayload->resolveSecretSource();
+    if (!$this->ticketQrPayload->requiresSigningSecret()) {
+      $markup = $source === NULL
+        ? $this->t('Status: <strong>PASS</strong> — Not required (QR payload mode is ticket code only)')
+        : $this->t('Status: <strong>PASS</strong> — Not required (code only); optional source: @source', ['@source' => $source]);
+    }
+    elseif ($source === NULL) {
+      $markup = $this->t('Status: <strong>FAIL</strong> — MEL_QR_SECRET missing');
+    }
+    else {
+      $markup = $this->t('Status: <strong>PASS</strong> — Source: @source', ['@source' => $source]);
+    }
     $form['security']['qr_secret_status'] = [
       '#type' => 'item',
       '#title' => $this->t('QR signing secret'),
-      '#markup' => $source === NULL
-        ? $this->t('Status: <strong>FAIL</strong> — MEL_QR_SECRET missing')
-        : $this->t('Status: <strong>PASS</strong> — Source: @source', ['@source' => $source]),
-      '#description' => $this->t("Set \$settings['myeventlane_qr_secret'] in settings.php or the MEL_QR_SECRET environment variable. Secrets are never stored in exported configuration. Verify with: drush mel:qr-secret-status"),
+      '#markup' => $markup,
+      '#description' => $this->t("Set \$settings['myeventlane_qr_secret'] in settings.php or the MEL_QR_SECRET environment variable when using signed QR mode. Secrets are never stored in exported configuration. Verify with: drush mel:qr-secret-status"),
     ];
 
     return parent::buildForm($form, $form_state);

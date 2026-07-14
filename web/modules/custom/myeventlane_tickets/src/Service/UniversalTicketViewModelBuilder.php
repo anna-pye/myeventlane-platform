@@ -43,17 +43,21 @@ final class UniversalTicketViewModelBuilder {
    * @param bool $include_qr
    *   When FALSE, skips QR payload/data URI generation (list surfaces).
    *   Defaults to TRUE for PDF, wallet, scanner and order detail.
+   * @param bool $allow_qr_unavailable
+   *   When TRUE (My Tickets order detail only), missing signing secret yields
+   *   qr.unavailable instead of throwing. Defaults to FALSE so PDF / Apple
+   *   Wallet / default callers remain fail-loud for signed payloads.
    *
    * @return array<string, mixed>
    *   Normalized ticket view model for customer, PDF, wallet and scanner use.
    */
-  public function build(Ticket $ticket, bool $include_qr = TRUE): array {
+  public function build(Ticket $ticket, bool $include_qr = TRUE, bool $allow_qr_unavailable = FALSE): array {
     $ticket_code = $this->readString($ticket, 'ticket_code');
     $entitlement_type = $this->capabilityManager->getEntitlementType($ticket);
     $capabilities = $this->entitlementCapabilityRegistry->getCapabilityMap($entitlement_type);
     $status = $this->readString($ticket, 'status', Ticket::STATUS_ISSUED_UNASSIGNED);
     $fulfilment_status = $ticket->getFulfilmentStatus();
-    $qr = $this->buildQrSection($ticket, $include_qr);
+    $qr = $this->buildQrSection($ticket, $include_qr, $allow_qr_unavailable);
     $redemption_limit = $ticket->getRedemptionLimit();
     $redemption_count = $ticket->getRedemptionCount();
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
@@ -156,11 +160,11 @@ final class UniversalTicketViewModelBuilder {
    * @return list<array<string, mixed>>
    *   View models in input order.
    */
-  public function buildMultiple(iterable $tickets, bool $include_qr = TRUE): array {
+  public function buildMultiple(iterable $tickets, bool $include_qr = TRUE, bool $allow_qr_unavailable = FALSE): array {
     $models = [];
     foreach ($tickets as $ticket) {
       if ($ticket instanceof Ticket) {
-        $models[] = $this->build($ticket, $include_qr);
+        $models[] = $this->build($ticket, $include_qr, $allow_qr_unavailable);
       }
     }
     return $models;
@@ -170,13 +174,14 @@ final class UniversalTicketViewModelBuilder {
    * Builds the QR section for a ticket view model.
    *
    * When $include_qr is FALSE, QR generation is skipped (My Tickets overview).
-   * When signing is required but the secret is missing, the booking model still
-   * loads with qr.unavailable = TRUE — no exception is thrown.
+   * When signing is required but the secret is missing:
+   * - $allow_qr_unavailable TRUE → qr.unavailable (customer order detail only)
+   * - otherwise → RuntimeException (PDF / wallet / default fail-loud paths)
    *
    * @return array{payload: string, data_uri: string, unavailable: bool, included: bool}
    *   QR presentation data.
    */
-  private function buildQrSection(Ticket $ticket, bool $include_qr): array {
+  private function buildQrSection(Ticket $ticket, bool $include_qr, bool $allow_qr_unavailable): array {
     if (!$include_qr) {
       return [
         'payload' => '',
@@ -187,15 +192,21 @@ final class UniversalTicketViewModelBuilder {
     }
 
     if ($this->ticketQrPayload->requiresSigningSecret() && !$this->ticketQrPayload->isSecretConfigured()) {
-      $this->logger->error('MEL QR signing secret is not configured; omitting QR from ticket view model for ticket @ticket.', [
-        '@ticket' => (string) $ticket->id(),
-      ]);
-      return [
-        'payload' => '',
-        'data_uri' => '',
-        'unavailable' => TRUE,
-        'included' => TRUE,
-      ];
+      if ($allow_qr_unavailable) {
+        $this->logger->error('MEL QR signing secret is not configured; omitting QR from ticket view model for ticket @ticket.', [
+          '@ticket' => (string) $ticket->id(),
+        ]);
+        return [
+          'payload' => '',
+          'data_uri' => '',
+          'unavailable' => TRUE,
+          'included' => TRUE,
+        ];
+      }
+
+      // Fail-loud for PDF, Apple Wallet, and any default include_qr caller.
+      $this->logger->error('MEL QR signing secret is not configured.');
+      throw new \RuntimeException('MEL QR signing secret is not configured.');
     }
 
     $payload = $this->ticketQrPayload->buildForTicket($ticket);

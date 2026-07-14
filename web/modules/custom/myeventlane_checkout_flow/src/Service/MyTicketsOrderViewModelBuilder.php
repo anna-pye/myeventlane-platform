@@ -209,7 +209,9 @@ final class MyTicketsOrderViewModelBuilder {
         continue;
       }
       $orderId = (int) $ticket->get('order_id')->target_id;
-      $models[$orderId][] = $this->ticketViewModelBuilder->build($ticket, $includeQr);
+      // Customer UI may degrade QR when the host secret is missing; PDF/wallet
+      // callers use UniversalTicketViewModelBuilder::build() defaults (fail-loud).
+      $models[$orderId][] = $this->ticketViewModelBuilder->build($ticket, $includeQr, TRUE);
     }
 
     return $models;
