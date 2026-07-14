@@ -196,6 +196,7 @@ services:
       - '@myeventlane_tickets.device_operation_identity_manager'
       - '@myeventlane_tickets.operational_continuity_policy_manager'
       - '@myeventlane_tickets.occupancy_policy_manager'
+      - '@logger.channel.myeventlane_tickets'
       - '@?myeventlane_wallet.presentation_gate'
 
   myeventlane_tickets.ticket_mailer:

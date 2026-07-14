@@ -84,6 +84,7 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
     $container->register('myeventlane_commerce.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $container->register('myeventlane_commerce.ticket_backed_order_item_classifier', \stdClass::class);
   }
 
   /**
@@ -147,6 +148,8 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
       'field_event_vendor' => $this->customer->id(),
     ]);
     $this->event->save();
+
+    $this->setSetting('myeventlane_qr_secret', 'kernel-test-qr-secret');
   }
 
   /**
@@ -270,6 +273,34 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
     $this->assertCount(1, $model['ticket_items']);
     $this->assertSame('Legacy Admission', $model['ticket_items'][0]['title']);
     $this->assertSame(2, $model['ticket_items'][0]['quantity']);
+  }
+
+
+  /**
+   * Overview models skip QR generation (includeQr defaults FALSE).
+   */
+  public function testOverviewSkipsQrGeneration(): void {
+    $order = $this->createOrder();
+    $this->createTicket($order, ['ticket_code' => 'MEL-OVERVIEW-NO-QR']);
+    $model = $this->builder()->buildMultiple([$order])[0];
+    $this->assertCount(1, $model['ticket_models']);
+    $qr = $model['ticket_models'][0]['qr'];
+    $this->assertFalse($qr['included']);
+    $this->assertSame('', $qr['payload']);
+    $this->assertFalse($qr['unavailable']);
+  }
+
+  /**
+   * Detail models include QR when the signing secret is present.
+   */
+  public function testDetailIncludesQrWhenSecretConfigured(): void {
+    $order = $this->createOrder();
+    $this->createTicket($order, ['ticket_code' => 'MEL-DETAIL-QR']);
+    $model = $this->builder()->build($order, TRUE);
+    $qr = $model['ticket_models'][0]['qr'];
+    $this->assertTrue($qr['included']);
+    $this->assertStringStartsWith('mel:v1:', $qr['payload']);
+    $this->assertFalse($qr['unavailable']);
   }
 
   /**

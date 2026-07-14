@@ -26,6 +26,8 @@ ddev drush cr
 
 ```bash
 ddev drush mel:health
+ddev drush mel:qr-secret-status
+ddev drush mel:healthcheck
 ```
 
 - **Queue dry run (read-only)**
@@ -53,11 +55,12 @@ ddev drush config:status
 
 ### Expected output (mel:health)
 
-- A table with **OK/WARN/FAIL** rows for:
+- A table with **OK/WARN/FAIL/PASS** rows for:
   - **Config drift**
   - **Queue worker instantiation**
   - **Queue backlog counts**
   - **Messaging template Twig compilation**
+  - **QR signing secret** (`MEL_QR_SECRET` / settings; FAIL blocks release)
 
 Exit codes:
 - **0**: no failures (may include warnings).
@@ -73,3 +76,5 @@ Exit codes:
   - Queue backend is not readable for that queue (schema/runtime issue).
 - **Messaging templates = FAIL**
   - An enabled messaging template has invalid Twig syntax and will not render correctly.
+- **QR signing secret = FAIL**
+  - Host missing `MEL_QR_SECRET` (or settings equivalent). Customer My Tickets QR and scanners cannot sign payloads. Fix host env before promoting the release.

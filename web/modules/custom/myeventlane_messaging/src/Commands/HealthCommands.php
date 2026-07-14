@@ -8,6 +8,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\StorageComparer;
 use Drupal\Core\Config\StorageInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
+use Drupal\myeventlane_tickets\Ticket\TicketQrPayload;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerManagerInterface;
 use Drush\Commands\DrushCommands;
@@ -29,6 +30,7 @@ final class HealthCommands extends DrushCommands {
     private readonly QueueFactory $queueFactory,
     private readonly Environment $twig,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly ?TicketQrPayload $ticketQrPayload = NULL,
   ) {
     parent::__construct();
   }
@@ -51,6 +53,7 @@ final class HealthCommands extends DrushCommands {
     $this->checkQueueWorkers($results);
     $this->checkQueueBacklog($results);
     $this->checkMessagingTemplates($results);
+    $this->checkQrSigningSecret($results);
 
     $failures = 0;
     $warnings = 0;
@@ -80,6 +83,24 @@ final class HealthCommands extends DrushCommands {
 
     $this->io()->success('Health checks passed.');
     return 0;
+  }
+
+  /**
+   * Checks QR signing secret configuration (no secret value is logged).
+   */
+  private function checkQrSigningSecret(array &$results): void {
+    if (!$this->moduleHandler->moduleExists('myeventlane_tickets') || $this->ticketQrPayload === NULL) {
+      $this->addResult($results, 'WARN', 'QR signing secret', 'myeventlane_tickets not available; skipped.');
+      return;
+    }
+
+    $source = $this->ticketQrPayload->resolveSecretSource();
+    if ($source === NULL) {
+      $this->addResult($results, 'FAIL', 'QR signing secret', "MEL_QR_SECRET missing. Set host env or \$settings['myeventlane_qr_secret']. Never store in config/sync.");
+      return;
+    }
+
+    $this->addResult($results, 'PASS', 'QR signing secret', 'Configured via ' . $source);
   }
 
   /**

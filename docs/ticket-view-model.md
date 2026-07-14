@@ -92,3 +92,16 @@ Do not rely on Twig hiding or frontend filtering. Any new surface consuming this
 ## Backwards Compatibility
 
 This slice does not remove legacy order-item PDF routes, attendee fallbacks, wallet routes, scanner routes, or `mel:v1:` QR support. It introduces the shared model those surfaces will converge on in later Phase 2B slices.
+
+## QR inclusion flag
+
+`UniversalTicketViewModelBuilder::build($ticket, bool $include_qr = TRUE)` controls whether QR payload/data URI generation runs.
+
+| Caller | `$include_qr` |
+|--------|----------------|
+| My Tickets overview (`/my-tickets`) | `FALSE` |
+| My Tickets order detail | `TRUE` |
+| PDF / wallet / scanner / canonical PDF view model | `TRUE` (default) |
+
+When signing is required and `MEL_QR_SECRET` (or settings equivalent) is missing, customer order detail sets `qr.unavailable = TRUE` and omits the image instead of throwing. Direct `TicketQrPayload::buildForTicket()` callers (e.g. scanners, legacy PDF) still fail loud.
+

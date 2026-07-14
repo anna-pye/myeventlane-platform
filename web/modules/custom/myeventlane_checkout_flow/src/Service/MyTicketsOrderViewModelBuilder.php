@@ -55,8 +55,8 @@ final class MyTicketsOrderViewModelBuilder {
    * @return list<array<string, mixed>>
    *   My Tickets order view models.
    */
-  public function buildMultiple(array $orders, bool $includeDetails = FALSE): array {
-    $ticketModelsByOrder = $this->loadTicketModelsByOrder($orders);
+  public function buildMultiple(array $orders, bool $includeDetails = FALSE, bool $includeQr = FALSE): array {
+    $ticketModelsByOrder = $this->loadTicketModelsByOrder($orders, $includeQr);
     $models = [];
 
     foreach ($orders as $order) {
@@ -79,8 +79,8 @@ final class MyTicketsOrderViewModelBuilder {
    * @return array<string, mixed>
    *   My Tickets order view model.
    */
-  public function build(OrderInterface $order, bool $includeDetails = FALSE, ?array $ticketModels = NULL): array {
-    $ticketModels ??= $this->loadTicketModelsByOrder([$order])[(int) $order->id()] ?? [];
+  public function build(OrderInterface $order, bool $includeDetails = FALSE, ?array $ticketModels = NULL, bool $includeQr = TRUE): array {
+    $ticketModels ??= $this->loadTicketModelsByOrder([$order], $includeQr)[(int) $order->id()] ?? [];
 
     $events = [];
     $legacyTicketItems = [];
@@ -176,7 +176,7 @@ final class MyTicketsOrderViewModelBuilder {
    * @return array<int, list<array<string, mixed>>>
    *   Canonical ticket models keyed by order ID.
    */
-  private function loadTicketModelsByOrder(array $orders): array {
+  private function loadTicketModelsByOrder(array $orders, bool $includeQr = TRUE): array {
     $orderIds = [];
     foreach ($orders as $order) {
       if ($order instanceof OrderInterface && $order->id() !== NULL) {
@@ -209,7 +209,7 @@ final class MyTicketsOrderViewModelBuilder {
         continue;
       }
       $orderId = (int) $ticket->get('order_id')->target_id;
-      $models[$orderId][] = $this->ticketViewModelBuilder->build($ticket);
+      $models[$orderId][] = $this->ticketViewModelBuilder->build($ticket, $includeQr);
     }
 
     return $models;
