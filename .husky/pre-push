@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
 set -e
 
-bash scripts/validate-release.sh staging
+# Ordinary push gate. Does not treat the branch as a staging deploy candidate.
+# Deployment readiness remains: bash scripts/validate-release.sh staging|production
+bash scripts/validate-push.sh

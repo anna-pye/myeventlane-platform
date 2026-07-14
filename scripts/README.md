@@ -14,6 +14,7 @@ Operational scripts for local development, audits, deployment, and governance. R
 |--------|---------|------------------|-------------|----------------------|
 | `mel-phpunit` | Local PHPUnit helper: sets missing `SIMPLETEST_*`, ensures `sites/simpletest/browser_output`, runs `vendor/bin/phpunit` | Local DDEV | No | None |
 | `preflight-health-check.sh` | DB, cache, config sync, and filesystem smoke checks | Local DDEV | No | None |
+| `validate-push.sh` | Ordinary branch push gate: clean tree, review-branch allowlist (includes chore/docs/test), lightweight safety checks | Local | No | None |
 | `validate-release.sh` | Canonical pre-deployment release validation: Git, Drush bootstrap, config status, database updates, MEL tests, and theme builds | Local DDEV / staging / production checkout | No | None |
 | `rebuild-scss.sh` | Clears theme caches, reinstalls npm deps, rebuilds theme assets | Local DDEV | No (removes theme `node_modules`/`dist`) | None |
 | `myeventlane-audit-collector.sh` | Collects git/composer/drush audit snapshot into `_myeventlane_audit/` | Local | No | None |
@@ -42,6 +43,18 @@ Operational scripts for local development, audits, deployment, and governance. R
 | `verify-access-fix.sh` | Post-fix vendor access verification | Local DDEV | No | None |
 
 ---
+
+## Push vs release validation
+
+Ordinary `git push` and deployment readiness are separate gates.
+
+| Gate | Script | When | Branch policy |
+|------|--------|------|---------------|
+| Push (review) | `scripts/validate-push.sh` | Husky pre-push on every push | Accepts `main`, `release/*`, `feature/*`, `fix/*`, `hotfix/*`, `cursor/*`, plus maintenance `chore/*`, `docs/*`, `test/*` |
+| Staging release | `scripts/validate-release.sh staging` | Explicit pre-deploy / packaging | `main`, `release/*`, `feature/*`, `fix/*`, `hotfix/*`, `cursor/*` only |
+| Production release | `scripts/validate-release.sh production` | Explicit production validation | `main` or annotated tag (`--force` for exceptions) |
+
+Push validation never claims the branch is ready for staging or production.
 
 ## Release validation workflow
 
@@ -102,13 +115,22 @@ It intentionally does not run npm builds, governance tests, PHPUnit, or Drush ca
 
 ### Pre-push
 
-The pre-push hook runs the staging release validator:
+The pre-push hook runs the ordinary push validator (not the staging release validator):
+
+```bash
+bash scripts/validate-push.sh
+```
+
+This checks working-tree cleanliness, the review-branch allowlist (including `chore/*`, `docs/*`, and `test/*`), and the same lightweight safety scripts as pre-commit. It does **not** run Drush, config drift review, governance suites, theme builds, or release-metadata writes, and it does **not** treat the branch as a staging deployment candidate.
+
+Deployment readiness remains an explicit release command:
 
 ```bash
 bash scripts/validate-release.sh staging
+bash scripts/validate-release.sh production
 ```
 
-If validation fails, Git rejects the push and prints the validator output unchanged.
+If push validation fails, Git rejects the push and prints the validator output unchanged.
 
 ### Bypassing hooks
 
