@@ -132,6 +132,8 @@ Expect: `Drupal bootstrap : Successful`, database connected.
 
 ## Deployment verification checklist
 
+- [ ] Pre-activation: `mel:qr-secret-status` PASS (enforced by `remote-deploy.sh` before `current/` symlink switch on staging/production)
+
 - [ ] Actions **Build** and **Deploy to staging** succeeded for the expected `github.sha`
 - [ ] `~/staging/current/REVISION` `artifact_sha` equals that commit
 - [ ] `composer_lock_sha256` and `deploy_script_sha256` match the repository at that commit

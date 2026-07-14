@@ -6,6 +6,8 @@ echo "MEL REMOTE DEPLOY WITH VALIDATION 2026-07-11"
 echo "=================================================="
 
 # Optional: APP_ENV=production|prod|staging|stage — drives post-deploy domain env verification.
+# Staging/production: MEL_QR_SECRET must be set on the host (never in config/sync).
+# Preflight runs mel:qr-secret-status on the new release BEFORE current/ is switched.
 # Falls back to SITE_URI containing "staging" vs production *.myeventlane.com.au (no staging).
 #
 # Multi-domain URLs are NOT written via drush cset. They come from settings.php overrides
@@ -182,6 +184,49 @@ mel_verify_drush_bootstrap() {
     return 1
   fi
   echo "${label}: Drupal bootstrap OK"
+  return 0
+}
+
+# Resolves staging|production|"" for APP_ENV / SITE_URI (used pre- and post-switch).
+mel_resolve_deploy_mode() {
+  local app_raw="${APP_ENV:-}"
+  local app_lc
+  app_lc=$(printf '%s' "$app_raw" | tr '[:upper:]' '[:lower:]')
+  case "$app_lc" in
+    production|prod) echo production; return ;;
+    staging|stage) echo staging; return ;;
+  esac
+  case "${SITE_URI:-}" in
+    *staging*) echo staging; return ;;
+  esac
+  case "${SITE_URI:-}" in
+    *myeventlane.com.au*)
+      case "${SITE_URI:-}" in
+        *staging*) echo staging; return ;;
+        *) echo production; return ;;
+      esac
+      ;;
+  esac
+  echo ""
+}
+
+# Requires mel:qr-secret-status (myeventlane_tickets). Never prints the secret value.
+# Must run from a release directory that has already passed mel_verify_drush_bootstrap.
+mel_verify_qr_signing_secret() {
+  echo "Verifying QR signing secret (never prints the secret value)..."
+  set +e
+  out="$(mel_drush mel:qr-secret-status --uri="$SITE_URI" 2>&1)"
+  local rc=$?
+  set -e
+  echo "$out"
+  if [ "$rc" -ne 0 ]; then
+    echo "ERROR: QR signing secret check failed." >&2
+    echo "Set MEL_QR_SECRET on the PHP-FPM and CLI host environment, or \$settings['myeventlane_qr_secret'] in shared settings.php." >&2
+    echo "Never store the signing secret in config/sync." >&2
+    echo "Aborting before live symlink switch." >&2
+    return 1
+  fi
+  echo "QR signing secret OK."
   return 0
 }
 
@@ -855,6 +900,16 @@ mel_drush_log_cli_limits
 # Fail fast before switching current/: new code + shared settings must bootstrap and reach MySQL.
 mel_verify_drush_bootstrap "Preflight (new release, before symlink switch)"
 
+# Pre-activation QR secret gate (staging/production only).
+# Desired order (this check): Composer artifact ready → bootstrap → QR secret verify → … → activate.
+# Note: updb/cim remain post-switch in the established MEL pipeline; this PR does not relocate them.
+MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
+if [ "$MEL_DEPLOY_MODE" = "production" ] || [ "$MEL_DEPLOY_MODE" = "staging" ]; then
+  mel_verify_qr_signing_secret
+else
+  echo "NOTICE: Skipping pre-activation QR secret verification (set APP_ENV=production|staging, or SITE_URI with staging vs myeventlane.com.au)." >&2
+fi
+
 # Capture previous live release before switching (for rollback).
 if [ -e "$CURRENT_PATH" ]; then
   MEL_PREVIOUS_CURRENT="$(readlink -f "$CURRENT_PATH" 2>/dev/null || true)"
@@ -1048,28 +1103,6 @@ mel_verify_domain_environment() {
 
   echo "Domain environment OK (${mode})."
   return 0
-}
-
-mel_resolve_deploy_mode() {
-  local app_raw="${APP_ENV:-}"
-  local app_lc
-  app_lc=$(printf '%s' "$app_raw" | tr '[:upper:]' '[:lower:]')
-  case "$app_lc" in
-    production|prod) echo production; return ;;
-    staging|stage) echo staging; return ;;
-  esac
-  case "${SITE_URI:-}" in
-    *staging*) echo staging; return ;;
-  esac
-  case "${SITE_URI:-}" in
-    *myeventlane.com.au*)
-      case "${SITE_URI:-}" in
-        *staging*) echo staging; return ;;
-        *) echo production; return ;;
-      esac
-      ;;
-  esac
-  echo ""
 }
 
 MEL_DEPLOY_MODE="$(mel_resolve_deploy_mode)"
