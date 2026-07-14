@@ -230,6 +230,51 @@ elseif (getenv('IS_DDEV_PROJECT') === 'true') {
 }
 
 // ---------------------------------------------------------------------------
+// Wallet signing material: paths from settings/env — never export to config/sync.
+//
+// Consumed by WalletSigner / GoogleWalletBuilder via $settings['myeventlane_wallet'].
+// See docs/operations/wallet-configuration.md.
+//
+//   MEL_WALLET_APPLE_CERTIFICATE_PATH
+//   MEL_WALLET_APPLE_PRIVATE_KEY_PATH
+//   MEL_WALLET_APPLE_PRIVATE_KEY_PASSWORD   (optional)
+//   MEL_WALLET_APPLE_WWDR_CERTIFICATE_PATH
+//   MEL_WALLET_GOOGLE_SERVICE_ACCOUNT_JSON
+//   MEL_WALLET_GOOGLE_ORIGINS               (comma-separated HTTPS origins; optional)
+// ---------------------------------------------------------------------------
+$mel_wallet = is_array($settings['myeventlane_wallet'] ?? NULL) ? $settings['myeventlane_wallet'] : [];
+$mel_wallet_apple_cert = $melGetEnv('MEL_WALLET_APPLE_CERTIFICATE_PATH');
+if ($mel_wallet_apple_cert !== '') {
+  $mel_wallet['apple_certificate_path'] = $mel_wallet_apple_cert;
+}
+$mel_wallet_apple_key = $melGetEnv('MEL_WALLET_APPLE_PRIVATE_KEY_PATH');
+if ($mel_wallet_apple_key !== '') {
+  $mel_wallet['apple_private_key_path'] = $mel_wallet_apple_key;
+}
+$mel_wallet_apple_key_password = $melGetEnv('MEL_WALLET_APPLE_PRIVATE_KEY_PASSWORD');
+if ($mel_wallet_apple_key_password !== '') {
+  $mel_wallet['apple_private_key_password'] = $mel_wallet_apple_key_password;
+}
+$mel_wallet_apple_wwdr = $melGetEnv('MEL_WALLET_APPLE_WWDR_CERTIFICATE_PATH');
+if ($mel_wallet_apple_wwdr !== '') {
+  $mel_wallet['apple_wwdr_certificate_path'] = $mel_wallet_apple_wwdr;
+}
+$mel_wallet_google_sa = $melGetEnv('MEL_WALLET_GOOGLE_SERVICE_ACCOUNT_JSON');
+if ($mel_wallet_google_sa !== '') {
+  $mel_wallet['google_service_account_json_path'] = $mel_wallet_google_sa;
+}
+$mel_wallet_google_origins = $melGetEnv('MEL_WALLET_GOOGLE_ORIGINS');
+if ($mel_wallet_google_origins !== '') {
+  $mel_wallet['google_origins'] = array_values(array_filter(array_map(
+    static fn(string $origin): string => rtrim(trim($origin), '/'),
+    explode(',', $mel_wallet_google_origins),
+  )));
+}
+if ($mel_wallet !== []) {
+  $settings['myeventlane_wallet'] = $mel_wallet;
+}
+
+// ---------------------------------------------------------------------------
 // Multi-domain URLs: from environment — never export hosts to config/sync.
 //
 //   MEL_PUBLIC_DOMAIN=https://staging.myeventlane.com.au

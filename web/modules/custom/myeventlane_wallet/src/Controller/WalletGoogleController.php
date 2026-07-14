@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_wallet\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Url;
 use Drupal\myeventlane_wallet\Service\GoogleWalletBuilder;
 use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
 use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
+use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -38,15 +41,15 @@ final class WalletGoogleController extends ControllerBase {
   }
 
   /**
-   * Returns a Google Wallet save link for an order item.
+   * Redirects to the Google Wallet save URL after ownership checks.
    *
    * @param string $order_item_id
    *   The order item ID (route compatibility key).
    *
-   * @return array
-   *   A render array with the wallet link.
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   Redirect to the HTTPS Google save URL.
    */
-  public function link(string $order_item_id): array {
+  public function link(string $order_item_id): Response {
     if (!ctype_digit($order_item_id)) {
       throw new BadRequestHttpException('Invalid order item ID.');
     }
@@ -62,7 +65,12 @@ final class WalletGoogleController extends ControllerBase {
     $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $this->currentUser());
     $this->walletDownloadAccessChecker->assertAuthorized($item, $ticket, $this->currentUser());
 
-    $url = $this->googleBuilder->generateSaveLink($item, $ticket);
+    try {
+      $url = $this->googleBuilder->generateSaveLink($item, $ticket);
+    }
+    catch (RuntimeException) {
+      throw new HttpException(503, 'Google Wallet is temporarily unavailable.');
+    }
 
     $parts = parse_url($url) ?: [];
     $scheme = $parts['scheme'] ?? '';
@@ -70,16 +78,10 @@ final class WalletGoogleController extends ControllerBase {
       throw new BadRequestHttpException('Invalid wallet URL.');
     }
 
-    return [
-      '#type' => 'link',
-      '#title' => $this->t('Add to Google Wallet'),
-      '#url' => Url::fromUri($url),
-      '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--google-wallet'],
-        'target' => '_blank',
-        'rel' => 'noopener noreferrer',
-      ],
-    ];
+    $response = new RedirectResponse($url, 302);
+    $response->headers->set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    return $response;
   }
 
 }

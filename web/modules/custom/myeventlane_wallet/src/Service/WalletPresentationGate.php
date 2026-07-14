@@ -6,17 +6,27 @@ namespace Drupal\myeventlane_wallet\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
+use Drupal\Core\Site\Settings;
+use JsonException;
 
 /**
  * Single source of truth for wallet availability and presentation gating.
  *
  * Wallet download routes and access checks remain unchanged; this service only
  * controls whether customer-facing actions and guidance prompts are emitted.
+ *
+ * Capability is diagnosed from configuration plus signer/JWT readiness — never
+ * hard-coded environment-specific booleans.
+ *
+ * Google readiness is probed from settings here (not via GoogleWalletBuilder) so
+ * the container avoids the UTVM → gate → Google → UTVM cycle. Probe rules must
+ * stay aligned with GoogleWalletBuilder::isReady().
  */
 final class WalletPresentationGate {
 
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly WalletSigner $walletSigner,
   ) {}
 
   /**
@@ -109,21 +119,66 @@ final class WalletPresentationGate {
   }
 
   /**
-   * Whether Apple pass generation is implemented for production use.
+   * Whether Apple pass generation can succeed with current configuration.
+   *
+   * Requires team ID, pass type ID, and WalletSigner credential initialisation
+   * (certificate, private key, WWDR certificate paths).
    */
   private function isAppleWalletFunctional(): bool {
-    // WalletSigner::sign() is a stub and PkPassBuilder emits scaffold JSON only.
-    // @todo Return TRUE when signed .pkpass generation is implemented.
-    return FALSE;
+    $settings = $this->settings();
+    if (trim((string) $settings->get('apple_team_id')) === '') {
+      return FALSE;
+    }
+    if (trim((string) $settings->get('apple_pass_type_id')) === '') {
+      return FALSE;
+    }
+    return $this->walletSigner->isReady();
   }
 
   /**
-   * Whether Google Wallet save link generation is implemented for production use.
+   * Whether Google Wallet save JWT generation can succeed.
+   *
+   * Requires issuer ID, a loadable service account, and a successful RS256
+   * probe signature. Aligned with GoogleWalletBuilder::isReady() (no builder
+   * injection — avoids UTVM → gate → Google → UTVM cycle).
    */
   private function isGoogleWalletFunctional(): bool {
-    // GoogleWalletBuilder::generateSaveLink() returns a frozen placeholder URL.
-    // @todo Return TRUE when JWT save link generation is implemented.
-    return FALSE;
+    $issuer_id = trim((string) $this->settings()->get('google_issuer_id'));
+    if ($issuer_id === '' || str_starts_with($issuer_id, 'GOCSPX-') || str_contains($issuer_id, ' ')) {
+      return FALSE;
+    }
+
+    $wallet = Settings::get('myeventlane_wallet', []);
+    if (!is_array($wallet)) {
+      return FALSE;
+    }
+    $path = trim((string) ($wallet['google_service_account_json_path'] ?? ''));
+    if ($path === '' || !is_file($path) || !is_readable($path)) {
+      return FALSE;
+    }
+    $raw = @file_get_contents($path);
+    if (!is_string($raw) || $raw === '') {
+      return FALSE;
+    }
+    try {
+      $decoded = json_decode($raw, TRUE, 512, JSON_THROW_ON_ERROR);
+    }
+    catch (JsonException) {
+      return FALSE;
+    }
+    $email = trim((string) ($decoded['client_email'] ?? ''));
+    $key = (string) ($decoded['private_key'] ?? '');
+    if ($email === '' || $key === '' || ($decoded['type'] ?? '') !== 'service_account') {
+      return FALSE;
+    }
+    $private_key = @openssl_pkey_get_private($key);
+    if ($private_key === FALSE) {
+      return FALSE;
+    }
+    // Capability: JWT signing must succeed (brief requirement), not only key load.
+    $probe = '';
+    return @openssl_sign('mel.wallet.gate.probe', $probe, $private_key, OPENSSL_ALGO_SHA256) === TRUE
+      && $probe !== '';
   }
 
   /**

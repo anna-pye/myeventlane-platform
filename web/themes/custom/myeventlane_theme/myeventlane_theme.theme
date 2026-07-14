@@ -1277,6 +1277,17 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
 
       $customer_id = $order->getCustomerId();
       $customer_id = $customer_id !== NULL && $customer_id !== '' ? (int) $customer_id : NULL;
+      // First ticket-like line → canonical wallet route key (order_item_id).
+      // Matches Digital Pass / wallet controllers; guests never get wallet URLs.
+      $primary_wallet_order_item_id = 0;
+      if (!empty($variables['mel_logged_in']) && $customer_id) {
+        foreach ($order->getItems() as $item) {
+          if (!in_array($item->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation', 'boost'], TRUE)) {
+            $primary_wallet_order_item_id = (int) $item->id();
+            break;
+          }
+        }
+      }
       /** @var \Drupal\myeventlane_surface\MelCustomerContinuityPresenter $mel_continuity */
       $mel_continuity = \Drupal::service('myeventlane_surface.customer_continuity_presenter');
       $variables['mel_checkout_completion'] = $mel_continuity->buildCheckoutCompletionPresentation(
@@ -1292,6 +1303,8 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         // Zero-total (free RSVP/ticket) orders report isPaid() === TRUE, so
         // they keep the existing confirmed behaviour.
         (bool) $order->isPaid(),
+        (bool) ($variables['mel_logged_in'] ?? FALSE),
+        $primary_wallet_order_item_id,
       );
 
       // Attach copy-link JS when share block is present.

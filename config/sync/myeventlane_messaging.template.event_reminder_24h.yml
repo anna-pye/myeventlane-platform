@@ -47,7 +47,7 @@ body: |
 
       <div style="text-align: center; margin: 30px 0;">
         <a href="{{ my_tickets_url }}" style="display: inline-block; background-color: #ff6b9d; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; margin: 5px;">
-          View My Tickets
+          View Digital Pass
         </a>
         <a href="{{ event_url }}" style="display: inline-block; background-color: #ffffff; color: #ff6b9d; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; border: 2px solid #ff6b9d; margin: 5px;">
           View Event Details
@@ -55,7 +55,7 @@ body: |
       </div>
 
       <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">
-        <p style="margin: 5px 0;">Order #{{ order_number }}</p>
+        <p style="margin: 5px 0;">Booking #{{ order_number }}</p>
         <p style="margin: 5px 0;">We've attached a calendar file to this email. See you there!</p>
       </div>
     </div>

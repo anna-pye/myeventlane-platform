@@ -9,10 +9,12 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\myeventlane_wallet\Service\PkPassBuilder;
 use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
 use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
+use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -66,16 +68,32 @@ final class WalletAppleController extends ControllerBase {
     $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $this->currentUser());
     $this->walletDownloadAccessChecker->assertAuthorized($item, $ticket, $this->currentUser());
 
-    $passPath = $this->pkpassBuilder->generate($item, $ticket);
+    try {
+      $passPath = $this->pkpassBuilder->generate($item, $ticket);
+    }
+    catch (RuntimeException) {
+      throw new HttpException(503, 'Apple Wallet pass is temporarily unavailable.');
+    }
+
     $realPath = $this->fileSystem->realpath($passPath) ?: $passPath;
 
     if (!is_file($realPath) || !is_readable($realPath)) {
       throw new NotFoundHttpException();
     }
 
+    // Personal entitlement artifact — never shared caches or intermediaries.
     $response = new BinaryFileResponse($realPath);
     $response->headers->set('Content-Type', 'application/vnd.apple.pkpass');
-    $response->setContentDisposition('attachment', 'ticket.pkpass');
+    $response->headers->set('Cache-Control', 'private, no-store, no-cache, must-revalidate');
+    $response->headers->set('Pragma', 'no-cache');
+    $filename = 'ticket.pkpass';
+    if ($ticket !== NULL && !$ticket->get('ticket_code')->isEmpty()) {
+      $code = preg_replace('/[^A-Za-z0-9_-]+/', '', (string) $ticket->get('ticket_code')->value);
+      if (is_string($code) && $code !== '') {
+        $filename = $code . '.pkpass';
+      }
+    }
+    $response->setContentDisposition('attachment', $filename);
     $response->deleteFileAfterSend(TRUE);
 
     return $response;

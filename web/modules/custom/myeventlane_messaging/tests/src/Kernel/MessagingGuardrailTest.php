@@ -163,7 +163,7 @@ final class MessagingGuardrailTest extends KernelTestBase {
     $this->assertSame('Your booking is confirmed – Test Event', $subject);
     $this->assertStringContainsString('Booking confirmed', $body);
     $this->assertStringContainsString('Booking #1001', $body);
-    $this->assertStringContainsString('View My Booking', $body);
+    $this->assertStringContainsString('View Digital Pass', $body);
     $this->assertStringContainsString('View Event', $body);
     $this->assertStringContainsString('What happens next?', $body);
     $this->assertStringContainsString('Need help?', $body);
@@ -195,7 +195,7 @@ final class MessagingGuardrailTest extends KernelTestBase {
     $guest['order_url'] = NULL;
     $guestBody = $this->renderer->renderString((string) $data['body_html'], $guest);
     $this->assertStringContainsString('View Event', $guestBody);
-    $this->assertStringNotContainsString('View My Booking', $guestBody);
+    $this->assertStringNotContainsString('View Digital Pass', $guestBody);
     $this->assertStringNotContainsString('/my-tickets/order/', $guestBody);
     $this->assertStringContainsString('without signing in', $guestBody);
 
@@ -326,7 +326,13 @@ final class MessagingGuardrailTest extends KernelTestBase {
     if ($key === 'order_confirmation') {
       return $base + [
         'order_id' => 1001,
+        'order_url' => 'https://example.test/my-tickets/order/1001',
+        'digital_pass_url' => 'https://example.test/my-tickets/order/1001',
         'tickets_url' => 'https://example.test/my-tickets/order/1001#tickets',
+        'apple_wallet_url' => NULL,
+        'google_wallet_url' => NULL,
+        'pdf_url' => 'https://example.test/ticket/ABC123/pdf',
+        'manage_booking_url' => 'https://example.test/my-tickets',
         'has_tickets' => TRUE,
         'events' => [
           [

@@ -42,8 +42,12 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $this->assertStringNotContainsString('Order #', $body);
     $this->assertStringContainsString('Ticket summary', $body);
     $this->assertStringContainsString('Booking total', $body);
-    $this->assertStringContainsString('View My Booking', $body);
+    $this->assertStringContainsString('View Digital Pass', $body);
     $this->assertStringContainsString('View Event', $body);
+    $this->assertStringContainsString('Manage Booking', $body);
+    $this->assertStringContainsString('Download PDF', $body);
+    $this->assertStringNotContainsString('Add to Apple Wallet', $body);
+    $this->assertStringNotContainsString('Add to Google Wallet', $body);
     $this->assertStringContainsString('What happens next?', $body);
     $this->assertStringContainsString('Need help?', $body);
     $this->assertStringContainsString('Refund policy', $body);
@@ -81,28 +85,50 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
 
     $this->assertStringContainsString('View Event', $body);
     $this->assertStringContainsString('https://example.test/events/1', $body);
-    $this->assertStringNotContainsString('View My Booking', $body);
+    $this->assertStringNotContainsString('View Digital Pass', $body);
     $this->assertStringNotContainsString('/my-tickets/order/', $body);
+    $this->assertStringNotContainsString('Add to Apple Wallet', $body);
+    $this->assertStringNotContainsString('Download PDF', $body);
     $this->assertStringContainsString('without signing in', $body);
     $this->assertStringContainsString('Booking #1001', $body);
   }
 
   /**
-   * Authenticated confirmation keeps View My Booking as primary CTA.
+   * Authenticated confirmation uses View Digital Pass as primary CTA.
    */
-  public function testAuthenticatedConfirmationUsesViewMyBookingPrimaryCta(): void {
+  public function testAuthenticatedConfirmationUsesViewDigitalPassPrimaryCta(): void {
     $data = $this->loadTemplate();
     $twig = new Environment(new ArrayLoader([]));
     $context = $this->sampleContext();
     $context['is_guest'] = FALSE;
     $context['order_url'] = 'https://example.test/my-tickets/order/1001';
+    $context['digital_pass_url'] = 'https://example.test/my-tickets/order/1001';
 
     $body = trim($twig->createTemplate((string) $data['body_html'])->render($context));
 
-    $this->assertStringContainsString('View My Booking', $body);
+    $this->assertStringContainsString('View Digital Pass', $body);
     $this->assertStringContainsString('/my-tickets/order/1001', $body);
     $this->assertStringContainsString('View Event', $body);
+    $this->assertStringContainsString('Manage Booking', $body);
     $this->assertStringNotContainsString('without signing in', $body);
+  }
+
+  /**
+   * Wallet CTAs render only when gated URLs are present.
+   */
+  public function testWalletCtasAppearOnlyWhenUrlsProvided(): void {
+    $data = $this->loadTemplate();
+    $twig = new Environment(new ArrayLoader([]));
+    $context = $this->sampleContext();
+    $context['apple_wallet_url'] = 'https://example.test/wallet/apple/55';
+    $context['google_wallet_url'] = 'https://example.test/wallet/google/55';
+
+    $body = trim($twig->createTemplate((string) $data['body_html'])->render($context));
+
+    $this->assertStringContainsString('Add to Apple Wallet', $body);
+    $this->assertStringContainsString('Add to Google Wallet', $body);
+    $this->assertStringContainsString('/wallet/apple/55', $body);
+    $this->assertStringContainsString('/wallet/google/55', $body);
   }
 
   /**
@@ -215,6 +241,7 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
       'first_name' => 'Alex',
       'order_number' => '1001',
       'order_url' => 'https://example.test/my-tickets/order/1001',
+      'digital_pass_url' => 'https://example.test/my-tickets/order/1001',
       'order_email' => 'alex@example.test',
       'is_guest' => FALSE,
       'is_paid' => TRUE,
@@ -231,6 +258,10 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
       'donation_total' => NULL,
       'has_tickets' => TRUE,
       'tickets_need_assignment' => FALSE,
+      'apple_wallet_url' => NULL,
+      'google_wallet_url' => NULL,
+      'pdf_url' => 'https://example.test/ticket/ABC123/pdf',
+      'manage_booking_url' => 'https://example.test/my-tickets',
       'events' => [
         [
           'title' => 'Test Event',

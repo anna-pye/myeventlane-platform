@@ -277,6 +277,20 @@
   gap: spacing.mel-space(4);
 }
 
+// Secondary wallet CTAs (below View Digital Pass). Same gate/routes as Digital Pass.
+.mel-confirmation-wallet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: spacing.mel-space(2);
+
+  .mel-confirmation-button {
+    min-height: 44px;
+    min-width: 44px;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
 .mel-confirmation-actions__primary {
   display: flex;
   flex-direction: column;

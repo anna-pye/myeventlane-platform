@@ -2,7 +2,7 @@ myeventlane_checkout_flow.my_tickets:
   path: '/my-tickets'
   defaults:
     _controller: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::overview'
-    _title: 'My Tickets'
+    _title: 'My Bookings'
   requirements:
     _permission: 'access content'
     _custom_access: '\Drupal\myeventlane_checkout_flow\Controller\MyTicketsController::checkAccess'

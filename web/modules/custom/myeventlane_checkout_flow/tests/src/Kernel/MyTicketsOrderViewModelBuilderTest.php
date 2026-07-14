@@ -137,13 +137,16 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
     ]);
     $this->customer->save();
 
+    // Keep fixture start in the future so ACE readiness temporal overlays
+    // (and has_upcoming_events) stay deterministic without re-saving nodes.
+    $start = time() + (30 * 86400);
     $this->event = Node::create([
       'type' => 'event',
       'title' => 'My Tickets Event',
       'uid' => $this->customer->id(),
       'status' => 1,
-      'field_event_start' => '2026-06-01T09:00:00',
-      'field_event_end' => '2026-06-01T11:00:00',
+      'field_event_start' => gmdate('Y-m-d\TH:i:s', $start),
+      'field_event_end' => gmdate('Y-m-d\TH:i:s', $start + 7200),
       'field_venue_name' => 'Gate A',
       'field_event_vendor' => $this->customer->id(),
     ]);
@@ -304,6 +307,76 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
   }
 
   /**
+   * Digital pass presentation reuses ACE labels without changing QR payload.
+   */
+  public function testEnrichesDigitalPassPresentation(): void {
+    $order = $this->createOrder();
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-PASS-READY',
+      'status' => Ticket::STATUS_ASSIGNED,
+      'holder_name' => 'Alex Attendee',
+    ]);
+    $model = $this->builder()->build($order, TRUE);
+    $ticket = $model['ticket_models'][0];
+    $this->assertArrayHasKey('pass', $ticket);
+    $this->assertSame('ticket_ready', $ticket['pass']['status_key']);
+    $this->assertSame('Ticket ready', $ticket['pass']['status_label']);
+    $this->assertNotSame('', $ticket['pass']['next_step']);
+    $this->assertSame('My Tickets Event', $ticket['pass']['event']['title']);
+    $this->assertStringStartsWith('mel:v1:', $ticket['qr']['payload']);
+    $this->assertArrayHasKey('refund_url', $model['help']);
+    $this->assertArrayHasKey('help_centre_url', $model['help']);
+  }
+
+  /**
+   * Event Readiness panel projects existing booking data with one primary action.
+   */
+  public function testBuildsEventReadinessPanel(): void {
+    $order = $this->createOrder();
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-READY-PANEL',
+      'status' => Ticket::STATUS_ASSIGNED,
+    ]);
+    $model = $this->builder()->build($order, TRUE);
+    $this->assertArrayHasKey('readiness', $model);
+    $readiness = $model['readiness'];
+    $this->assertSame('Event readiness', $readiness['heading']);
+    $this->assertSame('ticket_ready', $readiness['state_key']);
+    $this->assertSame('Ticket ready', $readiness['state_label']);
+    $this->assertNotEmpty($readiness['items']);
+    $keys = array_column($readiness['items'], 'key');
+    $this->assertContains('booking_confirmed', $keys);
+    $this->assertContains('ticket_ready', $keys);
+    $this->assertContains('date_time', $keys);
+    $this->assertContains('venue', $keys);
+    $this->assertIsArray($readiness['primary_action']);
+    $this->assertSame('view_ticket', $readiness['primary_action']['key']);
+    $this->assertSame('#mel-pass-entry', $readiness['primary_action']['url']);
+    $this->assertStringContainsString('7 days', $readiness['reminder_note']);
+    $this->assertStringContainsString('24 hours', $readiness['reminder_note']);
+    $this->assertSame('Need more information?', $readiness['summary']);
+    $this->assertNotEmpty($readiness['detail_items']);
+    $detailKeys = array_column($readiness['detail_items'], 'key');
+    $this->assertNotContains('booking_confirmed', $detailKeys);
+    $this->assertNotContains('ticket_ready', $detailKeys);
+    $this->assertContains('venue', $detailKeys);
+  }
+
+  /**
+   * Checked-in tickets surface ACE "Checked in" on the digital pass.
+   */
+  public function testDigitalPassCheckedInStatus(): void {
+    $order = $this->createOrder();
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-PASS-IN',
+      'status' => Ticket::STATUS_CHECKED_IN,
+    ]);
+    $pass = $this->builder()->build($order, TRUE)['ticket_models'][0]['pass'];
+    $this->assertSame('checked_in', $pass['status_key']);
+    $this->assertSame('Checked in', $pass['status_label']);
+  }
+
+  /**
    * Detail models degrade QR when the signing secret is missing.
    */
   public function testDetailDegradesQrWhenSecretMissing(): void {
@@ -329,6 +402,12 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
       $this->container->get('string_translation'),
       $this->container->has('myeventlane_commerce.operational_order_item_display_builder')
         ? $this->container->get('myeventlane_commerce.operational_order_item_display_builder')
+        : NULL,
+      $this->container->has('myeventlane_surface.state_readiness_helper')
+        ? $this->container->get('myeventlane_surface.state_readiness_helper')
+        : NULL,
+      $this->container->has('myeventlane_legal.settings')
+        ? $this->container->get('myeventlane_legal.settings')
         : NULL,
     );
   }

@@ -127,7 +127,7 @@ final class MyTicketsController extends ControllerBase {
 
     return [
       '#theme' => 'myeventlane_my_tickets',
-      '#title' => $this->t('My tickets'),
+      '#title' => $this->t('My Bookings'),
       '#upcoming_orders' => $upcomingOrders,
       '#past_orders' => $pastOrders,
       '#cache' => [

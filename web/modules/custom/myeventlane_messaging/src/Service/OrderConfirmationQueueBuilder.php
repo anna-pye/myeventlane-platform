@@ -9,11 +9,15 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
 use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
+use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
+use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\user\Entity\User;
@@ -39,6 +43,8 @@ final class OrderConfirmationQueueBuilder {
     private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
     private readonly ?LegalSettingsService $legalSettings = NULL,
+    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
+    private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
   ) {}
 
   /**
@@ -131,12 +137,15 @@ final class OrderConfirmationQueueBuilder {
     }
 
     $help_urls = $this->buildHelpUrls();
+    $pass_actions = $this->buildDigitalPassEmailActions($order, $is_guest);
 
     $context = [
       'first_name' => $first_name,
       'order_number' => $order_number,
       'order_id' => $orderId,
+      // Canonical Digital Pass URL (authenticated customers only).
       'order_url' => $order_url,
+      'digital_pass_url' => $order_url,
       'order_email' => $mail,
       'is_guest' => $is_guest,
       'is_paid' => $is_paid,
@@ -170,6 +179,10 @@ final class OrderConfirmationQueueBuilder {
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,
       'tickets_need_assignment' => $tickets_need_assignment,
+      'apple_wallet_url' => $pass_actions['apple_wallet_url'],
+      'google_wallet_url' => $pass_actions['google_wallet_url'],
+      'pdf_url' => $pass_actions['pdf_url'],
+      'manage_booking_url' => $pass_actions['manage_booking_url'],
     ];
     if ($primaryEventId !== NULL) {
       $context['event_id'] = $primaryEventId;
@@ -583,6 +596,176 @@ final class OrderConfirmationQueueBuilder {
     }
     catch (\Exception $e) {
       $this->logger->warning('Could not build public domain URL: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+  }
+
+  /**
+   * Digital Pass email actions via canonical routes + WalletPresentationGate.
+   *
+   * Guests receive PDF/ICS attachments only (no authenticated pass/wallet URLs).
+   * Wallet links appear only when shouldEmitWalletInEmail() and the provider
+   * is presentable — never disabled placeholders.
+   *
+   * @return array{
+   *   apple_wallet_url: string|null,
+   *   google_wallet_url: string|null,
+   *   pdf_url: string|null,
+   *   manage_booking_url: string|null
+   * }
+   */
+  private function buildDigitalPassEmailActions(OrderInterface $order, bool $is_guest): array {
+    $actions = [
+      'apple_wallet_url' => NULL,
+      'google_wallet_url' => NULL,
+      'pdf_url' => NULL,
+      'manage_booking_url' => NULL,
+    ];
+
+    if ($is_guest) {
+      return $actions;
+    }
+
+    $manage = $this->buildPublicUrl('/my-tickets');
+    if (!$manage) {
+      try {
+        $manage = Url::fromRoute('myeventlane_checkout_flow.my_tickets', [], [
+          'absolute' => TRUE,
+        ])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Could not generate My Bookings URL: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        $manage = NULL;
+      }
+    }
+    $actions['manage_booking_url'] = $manage;
+
+    $ticket = $this->resolvePrimaryIssuedTicketForOrder($order);
+    if (!$ticket instanceof Ticket) {
+      return $actions;
+    }
+
+    $ticket_code = trim((string) ($ticket->get('ticket_code')->value ?? ''));
+    if ($ticket_code !== '') {
+      $pdf_path = '/ticket/' . rawurlencode($ticket_code) . '/pdf';
+      $actions['pdf_url'] = $this->buildPublicUrl($pdf_path);
+      if (!$actions['pdf_url']) {
+        try {
+          $actions['pdf_url'] = Url::fromRoute('myeventlane_tickets.download_pdf_by_code', [
+            'ticket_code' => $ticket_code,
+          ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+        }
+        catch (\Exception $e) {
+          $this->logger->warning('Could not generate Digital Pass PDF URL: @message', [
+            '@message' => $e->getMessage(),
+          ]);
+        }
+      }
+    }
+
+    if (!$this->walletPresentationGate instanceof WalletPresentationGate
+      || !$this->walletPresentationGate->shouldEmitWalletInEmail()) {
+      return $actions;
+    }
+
+    $order_item_id = 0;
+    if ($ticket->hasField('order_item_id') && !$ticket->get('order_item_id')->isEmpty()) {
+      $order_item_id = (int) $ticket->get('order_item_id')->target_id;
+    }
+    if ($order_item_id < 1) {
+      return $actions;
+    }
+
+    if ($this->walletPresentationGate->isAppleWalletPresentable()) {
+      $actions['apple_wallet_url'] = $this->absoluteWalletUrl(
+        'myeventlane_wallet.apple',
+        ['order_item_id' => $order_item_id],
+        '/wallet/apple/' . $order_item_id,
+      );
+    }
+    if ($this->walletPresentationGate->isGoogleWalletPresentable()) {
+      $actions['google_wallet_url'] = $this->absoluteWalletUrl(
+        'myeventlane_wallet.google',
+        ['order_item_id' => $order_item_id],
+        '/wallet/google/' . $order_item_id,
+      );
+    }
+
+    return $actions;
+  }
+
+  /**
+   * Resolves one issued ticket for email CTAs (wallet + PDF).
+   *
+   * Reuses WalletTicketResolver primary selection when available.
+   */
+  private function resolvePrimaryIssuedTicketForOrder(OrderInterface $order): ?Ticket {
+    $customer = $order->getCustomer();
+    if ($this->walletTicketResolver instanceof WalletTicketResolver
+      && $customer instanceof AccountInterface) {
+      foreach ($order->getItems() as $item) {
+        if (!$item instanceof OrderItemInterface) {
+          continue;
+        }
+        $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $customer);
+        if ($ticket instanceof Ticket) {
+          return $ticket;
+        }
+      }
+    }
+
+    $order_id = (int) $order->id();
+    if ($order_id < 1 || !$this->entityTypeManager->hasDefinition('myeventlane_ticket')) {
+      return NULL;
+    }
+
+    try {
+      $ids = $this->entityTypeManager->getStorage('myeventlane_ticket')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('order_id', $order_id)
+        ->sort('id')
+        ->range(0, 1)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Could not resolve ticket for Digital Pass email actions: @message', [
+        '@message' => $e->getMessage(),
+        'order_id' => $order_id,
+      ]);
+      return NULL;
+    }
+
+    if (!$ids) {
+      return NULL;
+    }
+
+    $ticket = $this->entityTypeManager->getStorage('myeventlane_ticket')->load(reset($ids));
+    return $ticket instanceof Ticket ? $ticket : NULL;
+  }
+
+  /**
+   * Absolute public URL for a canonical wallet route.
+   *
+   * @param array<string, int|string> $route_params
+   */
+  private function absoluteWalletUrl(string $route_name, array $route_params, string $fallback_path): ?string {
+    $url = $this->buildPublicUrl($fallback_path);
+    if ($url) {
+      return $url;
+    }
+    try {
+      return Url::fromRoute($route_name, $route_params, [
+        'absolute' => TRUE,
+      ])->toString(TRUE)->getGeneratedUrl();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Could not generate wallet URL for @route: @message', [
+        '@route' => $route_name,
         '@message' => $e->getMessage(),
       ]);
       return NULL;
