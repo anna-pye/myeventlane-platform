@@ -332,7 +332,7 @@ final class CustomerHubDataBuilder {
       ];
       if ($pdfUrl !== '') {
         $secondary = [
-          'label' => $labels['view_ticket'],
+          'label' => $labels['download_ticket'],
           'url' => $pdfUrl,
         ];
       }
@@ -347,7 +347,7 @@ final class CustomerHubDataBuilder {
 
     if ($pdfUrl !== '') {
       $primary = [
-        'label' => $labels['view_ticket'],
+        'label' => $labels['download_ticket'],
         'url' => $pdfUrl,
       ];
       if ($eventUrl !== '') {

@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * My Tickets — customer language; shell provides page H1.
+ * My Bookings — customer language; shell provides page H1.
  */
 #}
 <div class="mel-my-tickets">
@@ -58,7 +58,7 @@
               <div class="mel-order-actions mel-mt-4">
                 <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
                    class="mel-button mel-button--primary">
-                  {{ 'View booking'|t }}
+                  {{ 'Open Digital Pass'|t }}
                 </a>
                 {% if order_data.events|length > 0 %}
                   {% for event in order_data.events %}
@@ -119,7 +119,7 @@
                 <div class="mel-order-actions mel-mt-4">
                   <a href="{{ url('myeventlane_checkout_flow.order_detail', {'commerce_order': order_data.order_id}) }}"
                      class="mel-button mel-button--secondary">
-                    {{ 'View booking'|t }}
+                    {{ 'Open Digital Pass'|t }}
                   </a>
                 </div>
               </div>

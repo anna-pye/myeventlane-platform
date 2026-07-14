@@ -376,7 +376,7 @@ final class MelReadinessHelper {
     return [
       'secure' => (string) $this->t('Secure checkout — payment processed via Stripe'),
       'instant' => (string) $this->t('Confirmation email sent as soon as you complete booking'),
-      'calendar_hint' => (string) $this->t('Add to your calendar from My Tickets after booking'),
+      'calendar_hint' => (string) $this->t('Add to your calendar from My Bookings after booking'),
     ];
   }
 
@@ -559,18 +559,18 @@ final class MelReadinessHelper {
       'event_summary_eyebrow' => (string) $this->t('Event summary'),
       'your_tickets_title' => (string) $this->t('Your tickets'),
       'donation_confirmed_title' => (string) $this->t('Donation confirmed'),
-      'view_ticket' => (string) $this->t('View ticket'),
+      'view_ticket' => (string) $this->t('View Digital Pass'),
       'view_order' => (string) $this->t('View booking'),
       'view_event' => (string) $this->t('View event'),
       'add_to_calendar' => (string) $this->t('Add to calendar'),
       'google_calendar' => (string) $this->t('Google Calendar'),
       'outlook_calendar' => (string) $this->t('Outlook'),
-      'guest_ticket_email_body' => (string) $this->t('Check your inbox for ticket PDFs, calendar files, and this order number — you can open them anytime without signing in.'),
+      'guest_ticket_email_body' => (string) $this->t('Check your inbox for ticket PDFs, calendar files, and this booking number — you can open them anytime without signing in.'),
       'guest_order_number_intro' => (string) $this->t('Booking number:'),
       'what_next_title' => (string) $this->t('What happens next'),
-      'what_next_body' => (string) $this->t('Keep this confirmation handy. Sign in later to find tickets under My tickets, or use the links in your email. The organiser may send practical details closer to the date.'),
+      'what_next_body' => (string) $this->t('Keep this confirmation handy. Sign in later to find tickets under My Bookings, or use the links in your email. The organiser may send practical details closer to the date.'),
       'organiser_trust_title' => (string) $this->t('About your organiser'),
-      'organiser_trust_body' => (string) $this->t('Events are hosted by independent organisers. For changes, refunds, or access questions, contact them directly from your tickets.'),
+      'organiser_trust_body' => (string) $this->t('Events are hosted by independent organisers. For changes, refunds, or access questions, contact them directly from your booking.'),
     ];
   }
 
@@ -950,6 +950,100 @@ final class MelReadinessHelper {
   }
 
   /**
+   * ACE status language for the customer digital event pass (not Commerce ids).
+   *
+   * Reuses hub booking vocabulary for shared keys. Ticket-only keys
+   * (checked_in, expired) are presentation overlays on issued-ticket signals.
+   *
+   * @param string $status_key
+   *   One of: ticket_ready, checked_in, cancelled, expired, payment_pending,
+   *   confirmed.
+   */
+  public function customerDigitalPassStatusLabel(string $status_key): string {
+    return match ($status_key) {
+      'checked_in' => (string) $this->t('Checked in'),
+      'expired' => (string) $this->t('Expired'),
+      'cancelled' => $this->customerHubBookingStatusLabel('cancelled'),
+      'payment_pending' => $this->customerHubBookingStatusLabel('payment_pending'),
+      'ticket_ready' => $this->customerHubBookingStatusLabel('ticket_ready'),
+      default => $this->customerHubBookingStatusLabel('confirmed'),
+    };
+  }
+
+  /**
+   * Short next-step copy for the digital event pass.
+   */
+  public function customerDigitalPassNextStep(string $status_key): string {
+    return match ($status_key) {
+      'checked_in' => (string) $this->t('You are checked in. Enjoy the event.'),
+      'cancelled' => (string) $this->t('This ticket is no longer valid.'),
+      'expired' => (string) $this->t('This ticket has expired.'),
+      'payment_pending' => (string) $this->t('We will show your entry pass when payment is confirmed.'),
+      default => (string) $this->t('Show this QR code at entry when you arrive.'),
+    };
+  }
+
+  /**
+   * ACE Event Readiness panel chrome (customer booking / digital pass).
+   *
+   * Presentation only — does not schedule reminders or invent venue metadata.
+   *
+   * @return array{
+   *   heading: string,
+   *   summary: string,
+   *   intro: string,
+   *   checklist_heading: string,
+   *   reminder_note: string
+   * }
+   */
+  public function customerEventReadinessPanelLabels(): array {
+    return [
+      'heading' => (string) $this->t('Event readiness'),
+      'summary' => (string) $this->t('Need more information?'),
+      'intro' => (string) $this->t('Accessibility, venue notes, refunds, and who to contact.'),
+      'checklist_heading' => (string) $this->t('Your checklist'),
+      'reminder_note' => (string) $this->t('We email a reminder 7 days and 24 hours before the event starts.'),
+    ];
+  }
+
+  /**
+   * Labels for Event Readiness checklist rows (only render rows with real data).
+   *
+   * @return array<string, string>
+   */
+  public function customerEventReadinessItemLabels(): array {
+    return [
+      'booking_confirmed' => (string) $this->t('Booking confirmed'),
+      'ticket_ready' => (string) $this->t('Ticket ready'),
+      'date_time' => (string) $this->t('Date & time'),
+      'venue' => (string) $this->t('Venue'),
+      'organiser' => (string) $this->t('Organiser'),
+      'accessibility' => (string) $this->t('Accessibility'),
+      'contact_organiser' => (string) $this->t('Contact organiser'),
+      'refund_policy' => (string) $this->t('Refund policy'),
+      'help' => (string) $this->t('Help'),
+    ];
+  }
+
+  /**
+   * ACE status language for the Event Readiness panel.
+   *
+   * Reuses hub / digital-pass vocabulary. Temporal keys (today / tomorrow) are
+   * presentation overlays, not Commerce workflow ids.
+   *
+   * @param string $status_key
+   *   One of: confirmed, ticket_ready, today, tomorrow, checked_in, cancelled,
+   *   expired, payment_pending, completed.
+   */
+  public function customerEventReadinessStatusLabel(string $status_key): string {
+    return match ($status_key) {
+      'today', 'tomorrow', 'completed', 'payment_pending', 'ticket_ready', 'cancelled' => $this->customerHubBookingStatusLabel($status_key),
+      'checked_in', 'expired' => $this->customerDigitalPassStatusLabel($status_key),
+      default => $this->customerHubBookingStatusLabel('confirmed'),
+    };
+  }
+
+  /**
    * Hub booking CTA labels — reuses checkout continuity vocabulary where shared.
    *
    * @return array<string, string>
@@ -957,13 +1051,19 @@ final class MelReadinessHelper {
   public function customerHubBookingCtaLabels(): array {
     $continuity = $this->customerCheckoutCompletionPresentationLabels();
     return [
-      'view_booking' => $continuity['view_order'],
-      'view_ticket' => $continuity['view_ticket'],
+      // Hub primary CTA targets the Digital Pass order detail URL.
+      'view_booking' => (string) $this->t('View Digital Pass'),
+      // Digital Pass readiness CTA that jumps to the on-page QR entry point.
+      'view_ticket' => (string) $this->t('Show QR code'),
       'view_event' => $continuity['view_event'],
       'add_to_calendar' => $continuity['add_to_calendar'],
-      'download_ticket' => (string) $this->t('Download ticket'),
+      // Canonical PDF download label (hub secondary + pass actions).
+      'download_ticket' => (string) $this->t('Download PDF'),
       'manage_rsvp' => (string) $this->t('Manage RSVP'),
       'leave_review' => (string) $this->t('Leave a review'),
+      'get_directions' => (string) $this->t('Get directions'),
+      'contact_organiser' => (string) $this->t('Contact organiser'),
+      'help_centre' => (string) $this->t('Help Centre'),
     ];
   }
 

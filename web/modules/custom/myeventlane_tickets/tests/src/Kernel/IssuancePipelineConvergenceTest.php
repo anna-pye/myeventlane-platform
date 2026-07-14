@@ -15,6 +15,7 @@ use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver;
 use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
@@ -28,6 +29,7 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use ZipArchive;
 
 /**
  * Canonical issuance, idempotency, and PDF-from-ticket continuity.
@@ -106,6 +108,12 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
   protected function setUp(): void {
     parent::setUp();
 
+    $settings = Settings::getAll();
+    if (empty($settings['myeventlane_qr_secret'])) {
+      $settings['myeventlane_qr_secret'] = 'kernel-test-qr-secret';
+      new Settings($settings);
+    }
+
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
     $this->installEntitySchema('commerce_currency');
@@ -116,7 +124,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order');
     $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('myeventlane_ticket');
-    $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order']);
+    $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order', 'myeventlane_wallet']);
 
     NodeType::create([
       'type' => 'event',
@@ -350,9 +358,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
   }
 
   /**
-   * Apple Wallet scaffold bytes reuse the universal view model QR (TicketQrPayload).
+   * Apple Wallet .pkpass reuses the universal view model QR (TicketQrPayload).
    */
   public function testPkpassScaffoldUsesSingleQrSource(): void {
+    $this->enableEphemeralAppleWalletSigning();
     $order = $this->loadOrder();
     $this->issuer()->issueForOrder($order);
     $item = array_values($order->getItems())[0];
@@ -363,11 +372,9 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
     $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
     $path = $builder->generate($item, $ticket);
-    $payload = json_decode((string) file_get_contents($path), TRUE);
-    $this->assertIsArray($payload);
-    $this->assertSame($expected, $payload['qr_payload']);
-    $this->assertArrayHasKey('capabilities', $payload);
-    $this->assertSame('admit', $payload['capabilities']['scanner_mode']);
+    $pass = $this->readPkPassJson($path);
+    $this->assertSame($expected, $pass['barcode']['message']);
+    $this->assertSame('PKBarcodeFormatQR', $pass['barcode']['format']);
   }
 
   /**
@@ -410,9 +417,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
   }
 
   /**
-   * Merch entitlements keep structured mel:v1 JSON QR contracts in wallet scaffolds.
+   * Merch entitlements keep structured mel:v1 JSON QR contracts in wallet passes.
    */
   public function testMerchEntitlementWalletScaffoldPreservesStructuredQr(): void {
+    $this->enableEphemeralAppleWalletSigning();
     $order = $this->loadOrder();
     $this->issuer()->issueForOrder($order);
     $item = array_values($order->getItems())[0];
@@ -424,12 +432,12 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
     $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
     $path = $builder->generate($item, $ticket);
-    $payload = json_decode((string) file_get_contents($path), TRUE);
-    $this->assertIsArray($payload);
-    $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
-    $this->assertSame('collect', $payload['capabilities']['scanner_mode']);
+    $pass = $this->readPkPassJson($path);
+    $this->assertStringStartsWith('mel:v1:json:', (string) $pass['barcode']['message']);
   }
+
   public function testParkingEntitlementWalletScaffoldPreservesStructuredQr(): void {
+    $this->enableEphemeralAppleWalletSigning();
     $order = $this->loadOrder();
     $this->issuer()->issueForOrder($order);
     $item = array_values($order->getItems())[0];
@@ -441,12 +449,12 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
     $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
     $path = $builder->generate($item, $ticket);
-    $payload = json_decode((string) file_get_contents($path), TRUE);
-    $this->assertIsArray($payload);
-    $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
-    $this->assertSame('validate', $payload['capabilities']['scanner_mode']);
+    $pass = $this->readPkPassJson($path);
+    $this->assertStringStartsWith('mel:v1:json:', (string) $pass['barcode']['message']);
   }
+
   public function testMultiUseEntitlementWalletScaffoldUsesStructuredQr(): void {
+    $this->enableEphemeralAppleWalletSigning();
     $order = $this->loadOrder();
     $this->issuer()->issueForOrder($order);
     $item = array_values($order->getItems())[0];
@@ -459,10 +467,57 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
     $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
     $path = $builder->generate($item, $ticket);
-    $payload = json_decode((string) file_get_contents($path), TRUE);
+    $pass = $this->readPkPassJson($path);
+    $this->assertStringStartsWith('mel:v1:json:', (string) $pass['barcode']['message']);
+  }
+
+  /**
+   * Google Wallet save links embed the canonical TicketQrPayload in a signed JWT.
+   */
+  public function testGoogleWalletJwtUsesSingleQrSource(): void {
+    $this->enableEphemeralGoogleWalletSigning();
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $tickets = $this->loadTicketsForOrder((int) $order->id());
+    $ticket = $tickets[0];
+    $expected = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+
+    /** @var \Drupal\myeventlane_wallet\Service\GoogleWalletBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.google_wallet_builder');
+    $this->assertTrue($builder->isReady());
+    $url = $builder->generateSaveLink($item, $ticket);
+    $this->assertStringStartsWith('https://pay.google.com/gp/v/save/', $url);
+    $jwt = substr($url, strlen('https://pay.google.com/gp/v/save/'));
+    $parts = explode('.', $jwt);
+    $this->assertCount(3, $parts);
+    $payload_json = base64_decode(strtr($parts[1], '-_', '+/'), TRUE);
+    $this->assertNotFalse($payload_json);
+    $payload = json_decode($payload_json, TRUE);
     $this->assertIsArray($payload);
-    $this->assertStringStartsWith('mel:v1:json:', (string) $payload['qr_payload']);
-    $this->assertSame('redeem', $payload['capabilities']['scanner_mode']);
+    $this->assertSame('savetowallet', $payload['typ']);
+    $this->assertArrayHasKey('genericClasses', $payload['payload']);
+    $this->assertArrayHasKey('genericObjects', $payload['payload']);
+    $this->assertSame($expected, $payload['payload']['genericObjects'][0]['barcode']['value']);
+  }
+
+  /**
+   * Void tickets are not eligible for wallet download.
+   */
+  public function testWalletAccessCheckerDeniesVoidTicket(): void {
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    $ticket->set('status', Ticket::STATUS_VOID);
+    $ticket->save();
+    $ticket = Ticket::load($ticket->id());
+    $this->assertSame(Ticket::STATUS_VOID, $ticket->get('status')->getString());
+
+    /** @var \Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker $access */
+    $access = $this->container->get('myeventlane_wallet.download_access');
+    $this->expectException(AccessDeniedHttpException::class);
+    $access->assertAuthorized($item, $ticket, $this->customer);
   }
 
   /**
@@ -592,6 +647,116 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
       'bundle' => 'default',
       'label' => 'Event',
     ])->save();
+  }
+
+  /**
+   * Writes ephemeral Google service-account material into Settings for kernel tests.
+   */
+  private function enableEphemeralGoogleWalletSigning(): void {
+    $dir = sys_get_temp_dir() . '/mel_wallet_google_' . uniqid('', TRUE);
+    if (!is_dir($dir)) {
+      mkdir($dir, 0777, TRUE);
+    }
+    $config = [
+      'digest_alg' => 'sha256',
+      'private_key_bits' => 2048,
+      'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ];
+    $key = openssl_pkey_new($config);
+    $this->assertNotFalse($key);
+    openssl_pkey_export($key, $pem);
+    $sa_path = $dir . '/sa.json';
+    file_put_contents($sa_path, json_encode([
+      'type' => 'service_account',
+      'project_id' => 'mel-wallet-test',
+      'private_key_id' => 'test',
+      'private_key' => $pem,
+      'client_email' => 'wallet-test@mel-wallet-test.iam.gserviceaccount.com',
+      'client_id' => '123',
+    ], JSON_THROW_ON_ERROR));
+
+    $settings = Settings::getAll();
+    $wallet = is_array($settings['myeventlane_wallet'] ?? NULL) ? $settings['myeventlane_wallet'] : [];
+    $wallet['google_service_account_json_path'] = $sa_path;
+    $wallet['google_origins'] = ['https://myeventlane.example.test'];
+    $settings['myeventlane_wallet'] = $wallet;
+    if (empty($settings['myeventlane_qr_secret'])) {
+      $settings['myeventlane_qr_secret'] = 'kernel-test-qr-secret';
+    }
+    new Settings($settings);
+
+    $this->config('myeventlane_wallet.settings')
+      ->set('google_enabled', TRUE)
+      ->set('google_issuer_id', '3388000000022145123')
+      ->save();
+  }
+
+  /**
+   * Writes ephemeral Apple signing material into Settings for kernel tests.
+   *
+   * Credentials are never committed; generated only inside the test process.
+   */
+  private function enableEphemeralAppleWalletSigning(): void {
+    // Use system temp — OpenSSL RNG can fail under some simpletest site paths.
+    $dir = sys_get_temp_dir() . '/mel_wallet_apple_' . uniqid('', TRUE);
+    if (!is_dir($dir)) {
+      mkdir($dir, 0777, TRUE);
+    }
+    $config = [
+      'digest_alg' => 'sha256',
+      'private_key_bits' => 2048,
+      'private_key_type' => OPENSSL_KEYTYPE_RSA,
+    ];
+    $passKey = openssl_pkey_new($config);
+    $wwdrKey = openssl_pkey_new($config);
+    $this->assertNotFalse($passKey);
+    $this->assertNotFalse($wwdrKey);
+    $passCsr = openssl_csr_new(['CN' => 'Pass Type ID: pass.com.example.mel.test'], $passKey, $config);
+    $wwdrCsr = openssl_csr_new(['CN' => 'Apple WWDR Test CA'], $wwdrKey, $config);
+    $wwdrCert = openssl_csr_sign($wwdrCsr, NULL, $wwdrKey, 3650, $config, 1);
+    $passCert = openssl_csr_sign($passCsr, $wwdrCert, $wwdrKey, 3650, $config, 2);
+    openssl_x509_export($passCert, $passPem);
+    openssl_x509_export($wwdrCert, $wwdrPem);
+    openssl_pkey_export($passKey, $keyPem);
+    file_put_contents($dir . '/pass_cert.pem', $passPem);
+    file_put_contents($dir . '/pass_key.pem', $keyPem);
+    file_put_contents($dir . '/wwdr.pem', $wwdrPem);
+
+    $settings = Settings::getAll();
+    $settings['myeventlane_wallet'] = [
+      'apple_certificate_path' => $dir . '/pass_cert.pem',
+      'apple_private_key_path' => $dir . '/pass_key.pem',
+      'apple_wwdr_certificate_path' => $dir . '/wwdr.pem',
+    ];
+    if (empty($settings['myeventlane_qr_secret'])) {
+      $settings['myeventlane_qr_secret'] = 'kernel-test-qr-secret';
+    }
+    new Settings($settings);
+
+    $this->config('myeventlane_wallet.settings')
+      ->set('apple_enabled', TRUE)
+      ->set('apple_team_id', 'ABCDE12345')
+      ->set('apple_pass_type_id', 'pass.com.example.mel.test')
+      ->set('apple_organisation_name', 'MyEventLane')
+      ->save();
+  }
+
+  /**
+   * @return array<string, mixed>
+   *   Decoded pass.json from a .pkpass zip.
+   */
+  private function readPkPassJson(string $pkpassPath): array {
+    $this->assertFileExists($pkpassPath);
+    $zip = new ZipArchive();
+    $this->assertTrue($zip->open($pkpassPath) === TRUE);
+    $json = $zip->getFromName('pass.json');
+    $this->assertNotFalse($json);
+    $this->assertNotFalse($zip->getFromName('manifest.json'));
+    $this->assertNotFalse($zip->getFromName('signature'));
+    $zip->close();
+    $decoded = json_decode((string) $json, TRUE);
+    $this->assertIsArray($decoded);
+    return $decoded;
   }
 
 }

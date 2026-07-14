@@ -3,6 +3,8 @@ apple_team_id: WT8K739P63
 apple_pass_type_id: pass.com.tickets.myeventlane
 apple_organisation_name: 'My Eventlane'
 google_enabled: true
-google_issuer_id: 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
+# Numeric Google Wallet Issuer ID only (Pay & Wallet Console). OAuth client
+# secrets (GOCSPX-…) are rejected by WalletPresentationGate and must never be stored here.
+google_issuer_id: ''
 show_wallet_buttons: true
 show_wallet_in_email: true

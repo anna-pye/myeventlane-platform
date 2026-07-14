@@ -35,6 +35,11 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
    * @covers ::customerMyEventsDashboardUpcomingEmptySlots
    * @covers ::customerAccountDashboardBookingsEmptySlots
    * @covers ::customerHubBookingStatusLabel
+   * @covers ::customerDigitalPassStatusLabel
+   * @covers ::customerDigitalPassNextStep
+   * @covers ::customerEventReadinessPanelLabels
+   * @covers ::customerEventReadinessItemLabels
+   * @covers ::customerEventReadinessStatusLabel
    * @covers ::customerHubBookingCtaLabels
    * @covers ::customerPrimaryBrowseEventsCta
    * @covers ::customerContinuityExploreHiddenGemsCta
@@ -62,9 +67,26 @@ final class MelReadinessHelperCustomerTest extends UnitTestCase {
     $this->assertSame('Tomorrow', $h->customerHubBookingStatusLabel('tomorrow'));
     $this->assertSame('Completed', $h->customerHubBookingStatusLabel('completed'));
     $this->assertSame('Ticket ready', $h->customerHubBookingStatusLabel('ticket_ready'));
+    $this->assertSame('Ticket ready', $h->customerDigitalPassStatusLabel('ticket_ready'));
+    $this->assertSame('Checked in', $h->customerDigitalPassStatusLabel('checked_in'));
+    $this->assertSame('Expired', $h->customerDigitalPassStatusLabel('expired'));
+    $this->assertSame('Cancelled', $h->customerDigitalPassStatusLabel('cancelled'));
+    $this->assertStringContainsString('QR code', $h->customerDigitalPassNextStep('ticket_ready'));
+    $panel = $h->customerEventReadinessPanelLabels();
+    $this->assertSame('Event readiness', $panel['heading']);
+    $this->assertSame('Need more information?', $panel['summary']);
+    $this->assertStringContainsString('7 days', $panel['reminder_note']);
+    $items = $h->customerEventReadinessItemLabels();
+    $this->assertSame('Booking confirmed', $items['booking_confirmed']);
+    $this->assertSame('Accessibility', $items['accessibility']);
+    $this->assertSame('Today', $h->customerEventReadinessStatusLabel('today'));
+    $this->assertSame('Checked in', $h->customerEventReadinessStatusLabel('checked_in'));
     $ctas = $h->customerHubBookingCtaLabels();
-    $this->assertSame('View booking', $ctas['view_booking']);
-    $this->assertSame('View ticket', $ctas['view_ticket']);
+    $this->assertSame('View Digital Pass', $ctas['view_booking']);
+    $this->assertSame('Show QR code', $ctas['view_ticket']);
+    $this->assertSame('Download PDF', $ctas['download_ticket']);
+    $this->assertSame('Get directions', $ctas['get_directions']);
+    $this->assertSame('Contact organiser', $ctas['contact_organiser']);
     $this->assertNotSame('', $h->customerPrimaryBrowseEventsCta());
     $this->assertNotSame('', $h->customerContinuityExploreHiddenGemsCta());
     $this->assertNotSame('', $h->customerContinuityBrowseMoreEventsCta());

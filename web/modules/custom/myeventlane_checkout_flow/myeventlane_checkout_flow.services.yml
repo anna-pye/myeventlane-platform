@@ -87,6 +87,8 @@ services:
       - '@myeventlane_core.ticket_label_resolver'
       - '@string_translation'
       - '@?myeventlane_commerce.operational_order_item_display_builder'
+      - '@?myeventlane_surface.state_readiness_helper'
+      - '@?myeventlane_legal.settings'
 
   logger.channel.myeventlane_checkout_flow:
     parent: logger.channel_base

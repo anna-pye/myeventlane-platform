@@ -191,6 +191,25 @@
         </div>
       {% endif %}
 
+      {# Wallet secondary CTAs — same gate/routes as Digital Pass (WalletPresentationGate).
+         Official SVG badges live under myeventlane_wallet/assets/web/; until installed,
+         accessible MEL secondary buttons use official product names only. #}
+      {% set wallet = mcc.wallet|default({}) %}
+      {% if wallet.apple.url|default('') or wallet.google.url|default('') %}
+        <div class="mel-confirmation-wallet-actions" aria-label="{{ 'Wallet'|t }}">
+          {% if wallet.apple.url|default('') %}
+            <a href="{{ wallet.apple.url }}" class="mel-confirmation-button mel-confirmation-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--apple" download>
+              {{ wallet.apple.label|default('Add to Apple Wallet'|t) }}
+            </a>
+          {% endif %}
+          {% if wallet.google.url|default('') %}
+            <a href="{{ wallet.google.url }}" class="mel-confirmation-button mel-confirmation-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--google" rel="noopener noreferrer">
+              {{ wallet.google.label|default('Add to Google Wallet'|t) }}
+            </a>
+          {% endif %}
+        </div>
+      {% endif %}
+
       {% if mcc.calendar is defined and mcc.calendar|length > 0 %}
         <div class="mel-calendar-actions mel-calendar-actions--frictionless">
           {% for row in mcc.calendar %}

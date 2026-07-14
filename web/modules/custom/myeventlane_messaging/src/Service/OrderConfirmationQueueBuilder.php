@@ -9,11 +9,16 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder;
 use Drupal\myeventlane_checkout_flow\Service\TaxInvoicePresentationBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
+use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
+use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
+use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Drupal\user\Entity\User;
@@ -39,6 +44,9 @@ final class OrderConfirmationQueueBuilder {
     private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
     private readonly ?LegalSettingsService $legalSettings = NULL,
+    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
+    private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
+    private readonly ?WalletDownloadAccessChecker $walletDownloadAccess = NULL,
   ) {}
 
   /**
@@ -81,7 +89,7 @@ final class OrderConfirmationQueueBuilder {
     if (!$is_guest) {
       $order_detail_path = '/my-tickets/order/' . $orderId;
       $order_url = $this->buildPublicUrl($order_detail_path);
-      $tickets_url = $order_url ? $order_url . '#tickets' : NULL;
+      $tickets_url = $order_url ? $order_url . '#mel-pass-entry' : NULL;
       if (!$order_url) {
         try {
           $order_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
@@ -89,7 +97,7 @@ final class OrderConfirmationQueueBuilder {
           ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
           $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
             'commerce_order' => $orderId,
-          ], ['absolute' => TRUE, 'fragment' => 'tickets'])->toString(TRUE)->getGeneratedUrl();
+          ], ['absolute' => TRUE, 'fragment' => 'mel-pass-entry'])->toString(TRUE)->getGeneratedUrl();
         }
         catch (\Exception $e) {
           $this->logger->warning('Could not generate order/tickets URL: @message', [
@@ -131,12 +139,15 @@ final class OrderConfirmationQueueBuilder {
     }
 
     $help_urls = $this->buildHelpUrls();
+    $pass_actions = $this->buildDigitalPassEmailActions($order, $is_guest, $primaryEventId);
 
     $context = [
       'first_name' => $first_name,
       'order_number' => $order_number,
       'order_id' => $orderId,
+      // Canonical Digital Pass URL (authenticated customers only).
       'order_url' => $order_url,
+      'digital_pass_url' => $order_url,
       'order_email' => $mail,
       'is_guest' => $is_guest,
       'is_paid' => $is_paid,
@@ -170,6 +181,10 @@ final class OrderConfirmationQueueBuilder {
       'tickets_url' => $tickets_url,
       'has_tickets' => $has_tickets,
       'tickets_need_assignment' => $tickets_need_assignment,
+      'apple_wallet_url' => $pass_actions['apple_wallet_url'],
+      'google_wallet_url' => $pass_actions['google_wallet_url'],
+      'pdf_url' => $pass_actions['pdf_url'],
+      'manage_booking_url' => $pass_actions['manage_booking_url'],
     ];
     if ($primaryEventId !== NULL) {
       $context['event_id'] = $primaryEventId;
@@ -583,6 +598,276 @@ final class OrderConfirmationQueueBuilder {
     }
     catch (\Exception $e) {
       $this->logger->warning('Could not build public domain URL: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+  }
+
+  /**
+   * Digital Pass email actions via canonical routes + WalletPresentationGate.
+   *
+   * Guests receive PDF/ICS attachments only (no authenticated pass/wallet URLs).
+   * Wallet links appear only when shouldEmitWalletInEmail() and the provider
+   * is presentable — never disabled placeholders.
+   *
+   * @return array{
+   *   apple_wallet_url: string|null,
+   *   google_wallet_url: string|null,
+   *   pdf_url: string|null,
+   *   manage_booking_url: string|null
+   * }
+   */
+  private function buildDigitalPassEmailActions(OrderInterface $order, bool $is_guest, ?int $primary_event_id = NULL): array {
+    $actions = [
+      'apple_wallet_url' => NULL,
+      'google_wallet_url' => NULL,
+      'pdf_url' => NULL,
+      'manage_booking_url' => NULL,
+    ];
+
+    if ($is_guest) {
+      return $actions;
+    }
+
+    $manage = $this->buildPublicUrl('/my-tickets');
+    if (!$manage) {
+      try {
+        $manage = Url::fromRoute('myeventlane_checkout_flow.my_tickets', [], [
+          'absolute' => TRUE,
+        ])->toString(TRUE)->getGeneratedUrl();
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Could not generate My Bookings URL: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        $manage = NULL;
+      }
+    }
+    $actions['manage_booking_url'] = $manage;
+
+    $ticket = $this->resolvePrimaryIssuedTicketForOrder($order, $primary_event_id);
+    if (!$ticket instanceof Ticket) {
+      return $actions;
+    }
+
+    $ticket_code = trim((string) ($ticket->get('ticket_code')->value ?? ''));
+    if ($ticket_code !== '') {
+      $pdf_path = '/ticket/' . rawurlencode($ticket_code) . '/pdf';
+      $actions['pdf_url'] = $this->buildPublicUrl($pdf_path);
+      if (!$actions['pdf_url']) {
+        try {
+          $actions['pdf_url'] = Url::fromRoute('myeventlane_tickets.download_pdf_by_code', [
+            'ticket_code' => $ticket_code,
+          ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
+        }
+        catch (\Exception $e) {
+          $this->logger->warning('Could not generate Digital Pass PDF URL: @message', [
+            '@message' => $e->getMessage(),
+          ]);
+        }
+      }
+    }
+
+    if (!$this->walletPresentationGate instanceof WalletPresentationGate
+      || !$this->walletPresentationGate->shouldEmitWalletInEmail()) {
+      return $actions;
+    }
+
+    $order_item_id = 0;
+    if ($ticket->hasField('order_item_id') && !$ticket->get('order_item_id')->isEmpty()) {
+      $order_item_id = (int) $ticket->get('order_item_id')->target_id;
+    }
+    if ($order_item_id < 1) {
+      return $actions;
+    }
+
+    if ($this->walletPresentationGate->isAppleWalletPresentable()) {
+      $actions['apple_wallet_url'] = $this->absoluteWalletUrl(
+        'myeventlane_wallet.apple',
+        ['order_item_id' => $order_item_id],
+        '/wallet/apple/' . $order_item_id,
+      );
+    }
+    if ($this->walletPresentationGate->isGoogleWalletPresentable()) {
+      $actions['google_wallet_url'] = $this->absoluteWalletUrl(
+        'myeventlane_wallet.google',
+        ['order_item_id' => $order_item_id],
+        '/wallet/google/' . $order_item_id,
+      );
+    }
+
+    return $actions;
+  }
+
+  /**
+   * Resolves one issued ticket for email CTAs (wallet + PDF).
+   *
+   * Prefer the same primary event shown in confirmation copy
+   * (first ticketable line's field_target_event). If that event has no issued
+   * ticket yet (common with staggered per-line issuance), fall back to any
+   * ready ticket on the order so PDF/wallet links are not omitted. Reuses
+   * WalletTicketResolver per matching order item.
+   */
+  private function resolvePrimaryIssuedTicketForOrder(OrderInterface $order, ?int $primary_event_id = NULL): ?Ticket {
+    $customer = $order->getCustomer();
+    $preferred_event_id = ($primary_event_id !== NULL && $primary_event_id > 0)
+      ? $primary_event_id
+      : NULL;
+
+    if ($this->walletTicketResolver instanceof WalletTicketResolver
+      && $customer instanceof AccountInterface) {
+      $ticket = $this->resolveTicketFromOrderItems($order, $customer, $preferred_event_id);
+      if ($ticket instanceof Ticket) {
+        return $ticket;
+      }
+      // Primary event has no ticket yet — use any other issued line.
+      if ($preferred_event_id !== NULL) {
+        $ticket = $this->resolveTicketFromOrderItems($order, $customer, NULL);
+        if ($ticket instanceof Ticket) {
+          return $ticket;
+        }
+      }
+    }
+
+    $order_id = (int) $order->id();
+    if ($order_id < 1 || !$this->entityTypeManager->hasDefinition('myeventlane_ticket')) {
+      return NULL;
+    }
+
+    $ticket = $this->loadFirstTicketForOrder($order_id, $preferred_event_id);
+    if ($ticket instanceof Ticket) {
+      return $ticket;
+    }
+    if ($preferred_event_id !== NULL) {
+      return $this->loadFirstTicketForOrder($order_id, NULL);
+    }
+    return NULL;
+  }
+
+  /**
+   * Walks ticketable order items; optionally restricts to one event.
+   */
+  private function resolveTicketFromOrderItems(
+    OrderInterface $order,
+    AccountInterface $customer,
+    ?int $event_id,
+  ): ?Ticket {
+    if (!$this->walletTicketResolver instanceof WalletTicketResolver) {
+      return NULL;
+    }
+
+    foreach ($order->getItems() as $item) {
+      if (!$item instanceof OrderItemInterface) {
+        continue;
+      }
+      if ($this->isDonationItem($item) || $item->bundle() === 'boost') {
+        continue;
+      }
+      if ($event_id !== NULL && $this->orderItemEventId($item) !== $event_id) {
+        continue;
+      }
+      $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $customer);
+      if ($ticket instanceof Ticket && $this->isPassLinkEligible($ticket)) {
+        return $ticket;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Event node ID from a ticketable order item, or 0 when absent.
+   */
+  private function orderItemEventId(OrderItemInterface $item): int {
+    if (!$item->hasField('field_target_event') || $item->get('field_target_event')->isEmpty()) {
+      return 0;
+    }
+    $event = $item->get('field_target_event')->entity;
+    if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+      return (int) $event->id();
+    }
+    return 0;
+  }
+
+  /**
+   * Loads the lowest-ID wallet-eligible ticket for an order, optionally by event.
+   */
+  private function loadFirstTicketForOrder(int $order_id, ?int $event_id): ?Ticket {
+    try {
+      $query = $this->entityTypeManager->getStorage('myeventlane_ticket')
+        ->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('order_id', $order_id)
+        ->condition('status', [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED], 'NOT IN')
+        ->sort('id');
+      if ($event_id !== NULL && $event_id > 0) {
+        $query->condition('event_id', $event_id);
+      }
+      $ids = $query->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Could not resolve ticket for Digital Pass email actions: @message', [
+        '@message' => $e->getMessage(),
+        'order_id' => $order_id,
+      ]);
+      return NULL;
+    }
+
+    if (!$ids) {
+      return NULL;
+    }
+
+    $storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+    foreach ($ids as $id) {
+      $ticket = $storage->load($id);
+      if ($ticket instanceof Ticket && $this->isPassLinkEligible($ticket)) {
+        return $ticket;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Whether a ticket may be linked for PDF / wallet CTAs in confirmation email.
+   *
+   * Aligns with WalletDownloadAccessChecker::isWalletBlockedStatus() so email
+   * never points at a pass that wallet routes will deny.
+   */
+  private function isPassLinkEligible(Ticket $ticket): bool {
+    if ($this->walletDownloadAccess instanceof WalletDownloadAccessChecker) {
+      return !$this->walletDownloadAccess->isWalletBlockedStatus($ticket);
+    }
+
+    $status = '';
+    if ($ticket->hasField('status') && !$ticket->get('status')->isEmpty()) {
+      $status = trim((string) $ticket->get('status')->getString());
+    }
+    if (in_array($status, [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED], TRUE)) {
+      return FALSE;
+    }
+    return $ticket->getFulfilmentStatus() !== Ticket::FULFILMENT_CANCELLED;
+  }
+
+  /**
+   * Absolute public URL for a canonical wallet route.
+   *
+   * @param array<string, int|string> $route_params
+   */
+  private function absoluteWalletUrl(string $route_name, array $route_params, string $fallback_path): ?string {
+    $url = $this->buildPublicUrl($fallback_path);
+    if ($url) {
+      return $url;
+    }
+    try {
+      return Url::fromRoute($route_name, $route_params, [
+        'absolute' => TRUE,
+      ])->toString(TRUE)->getGeneratedUrl();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Could not generate wallet URL for @route: @message', [
+        '@route' => $route_name,
         '@message' => $e->getMessage(),
       ]);
       return NULL;

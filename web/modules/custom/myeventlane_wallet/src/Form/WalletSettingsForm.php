@@ -32,11 +32,18 @@ final class WalletSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('myeventlane_wallet.settings');
 
+    $form['credentials_help'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Signing credentials (environment)'),
+      '#open' => FALSE,
+      '#description' => $this->t('Certificate, private key, WWDR, and Google service account JSON paths are loaded from site settings / environment variables — never from this form or config export. See docs/operations/wallet-configuration.md.'),
+    ];
+
     $form['apple'] = [
       '#type' => 'details',
       '#title' => $this->t('Apple Wallet'),
       '#open' => TRUE,
-      '#description' => $this->t('Configure Apple Wallet pass generation. You need an Apple Developer account and Pass Type ID.'),
+      '#description' => $this->t('Configure Apple Wallet pass generation. You need an Apple Developer account and Pass Type ID. Signing certificates are provided via MEL_WALLET_* environment variables.'),
     ];
 
     $form['apple']['apple_enabled'] = [
@@ -87,7 +94,7 @@ final class WalletSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Google Wallet'),
       '#open' => TRUE,
-      '#description' => $this->t('Configure Google Wallet pass generation. You need a Google Cloud project with the Wallet API enabled.'),
+      '#description' => $this->t('Configure Google Wallet pass generation. Issuer ID is numeric (from Google Pay & Wallet Console). Service account JSON is provided via MEL_WALLET_GOOGLE_SERVICE_ACCOUNT_JSON — never paste credentials here.'),
     ];
 
     $form['google']['google_enabled'] = [

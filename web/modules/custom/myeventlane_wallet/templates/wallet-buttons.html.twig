@@ -1,4 +1,25 @@
-wallet-buttons.html.twig<div class="mel-wallet-buttons">
-  <a class="wallet-apple" href="{{ apple_url }}">Add to Apple Wallet</a>
-  <a class="wallet-google" href="{{ google_url }}">Add to Google Wallet</a>
+{#
+/**
+ * @file
+ * Optional wallet CTA fragment (legacy).
+ *
+ * Prefer Digital Pass actions in myeventlane-order-detail.html.twig.
+ * Install official Apple/Google badge artwork under assets/web/ when ready.
+ *
+ * Available variables:
+ * - apple_url: Apple Wallet download URL.
+ * - google_url: Google Wallet save URL.
+ */
+#}
+<div class="mel-wallet-buttons">
+  {% if apple_url|default('') %}
+    <a class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--apple" href="{{ apple_url }}" download>
+      {{ 'Add to Apple Wallet'|t }}
+    </a>
+  {% endif %}
+  {% if google_url|default('') %}
+    <a class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--google" href="{{ google_url }}" rel="noopener noreferrer">
+      {{ 'Add to Google Wallet'|t }}
+    </a>
+  {% endif %}
 </div>

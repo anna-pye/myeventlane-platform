@@ -43,9 +43,9 @@ final class CustomerHubBookingPresentationTest extends UnitTestCase {
     $enriched = $this->builder()->enrichBookingPresentation($row, 'upcoming', $now, 7);
     $this->assertSame('today', $enriched['status_key']);
     $this->assertSame('Today', $enriched['status_label']);
-    $this->assertSame('View booking', $enriched['primary_cta']['label']);
+    $this->assertSame('View Digital Pass', $enriched['primary_cta']['label']);
     $this->assertSame('/my-tickets/order/9', $enriched['primary_cta']['url']);
-    $this->assertSame('View ticket', $enriched['secondary_cta']['label']);
+    $this->assertSame('Download PDF', $enriched['secondary_cta']['label']);
   }
 
   /**

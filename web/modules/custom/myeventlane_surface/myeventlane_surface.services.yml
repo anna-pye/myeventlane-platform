@@ -246,6 +246,7 @@ services:
     class: Drupal\myeventlane_surface\MelCustomerContinuityPresenter
     arguments:
       - '@myeventlane_surface.state_readiness_helper'
+      - '@?myeventlane_wallet.presentation_gate'
 
   myeventlane_surface.vendor_dashboard_action_queue_governance:
     class: Drupal\myeventlane_surface\MelVendorDashboardActionQueueGovernance

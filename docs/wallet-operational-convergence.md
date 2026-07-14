@@ -30,7 +30,7 @@ The following must remain stable unless explicitly re-scoped with scanner and cu
 - Wallet **path patterns** and **route names** (`myeventlane_wallet.apple`, `myeventlane_wallet.google`).
 - **QR payload formats** (`mel:v1:` and `mel:v1:json:`), signing, and ticket codes (owned by `TicketQrPayload` and ticket issuance).
 - **Guest continuity** for orders purchased as `uid` 0 with email-based access for signed-in purchasers.
-- **Google Wallet save URL** placeholder until JWT integration is implemented.
+- **Google Wallet save URL** shape (`https://pay.google.com/gp/v/save/{jwt}`) with **Generic Pass** JWT payload (`genericClasses` / `genericObjects`) per Google’s Generic Pass docs.
 
 ## Forbidden patterns
 
@@ -42,7 +42,8 @@ The following must remain stable unless explicitly re-scoped with scanner and cu
 ## Residual intentional boundaries
 
 - **Multi-ticket order items (quantity > 1)** still share one wallet URL per order item; resolver picks a single deterministic row. Holder-email disambiguation applies when exactly one row matches the active account email. This matches the historical limitation of order-item-keyed wallet links documented in Phase 2B.
-- **Production `.pkpass` zip signing** remains future work; Phase 2C only guarantees **canonical operational payload scaffolding** inside the generated artifact path used by tests and local verification.
+- **Production `.pkpass` zip signing** and **Google JWT save links** are implemented on the canonical builders (`PkPassBuilder` + `WalletSigner`, `GoogleWalletBuilder`). Credential paths stay in `$settings['myeventlane_wallet']` — see [operations/wallet-configuration.md](./operations/wallet-configuration.md).
+- When **no** signing material is configured, `WalletPresentationGate` keeps customer CTAs off; wallet routes still enforce ownership and return 503 if generation is attempted without credentials.
 
 ## Related tests
 

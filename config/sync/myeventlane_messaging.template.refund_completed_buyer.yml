@@ -3,13 +3,13 @@ subject: 'Refund completed – {{ event_title }}'
 body_html: |-
   Hi there,
 
-  Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been completed.
+  Your refund for <strong>{{ event_title }}</strong> (Booking {{ order_number }}) has been completed.
 
   Amount refunded: {{ refunded_amount }}
 
   The refund should appear on your card within 2–5 business days.
 
-  <a href="{{ my_tickets_url }}">View your tickets</a>
+  <a href="{{ my_tickets_url }}">View Digital Pass</a>
 
   {% if tickets_cancelled and tickets_cancelled > 0 %}
   Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).

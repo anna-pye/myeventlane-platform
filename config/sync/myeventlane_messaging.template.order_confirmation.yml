@@ -150,21 +150,40 @@ body_html: |
 
     <tr>
       <td style="padding:0 0 24px 0;text-align:center;">
-        {% if not (is_guest ?? false) and order_url %}
+        {% set pass_url = digital_pass_url|default(order_url) %}
+        {% if not (is_guest ?? false) and pass_url %}
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ order_url }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ pass_url }}" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
             <w:anchorlock/>
-            <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">View My Booking</center>
+            <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">View Digital Pass</center>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-- -->
-          <a href="{{ order_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View My Booking</a>
+          <a href="{{ pass_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Digital Pass</a>
           <!--<![endif]-->
-          {% if event_url %}
-            <div style="margin-top:14px;">
-              <a href="{{ event_url }}" style="color:#6e7ef2;font-size:15px;font-weight:600;text-decoration:underline;">View Event</a>
+          {% if apple_wallet_url or google_wallet_url %}
+            <div style="margin-top:16px;">
+              {% if apple_wallet_url %}
+                <a href="{{ apple_wallet_url }}" style="display:inline-block;margin:4px 6px;background-color:#293241;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Apple Wallet</a>
+              {% endif %}
+              {% if google_wallet_url %}
+                <a href="{{ google_wallet_url }}" style="display:inline-block;margin:4px 6px;background-color:#293241;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Google Wallet</a>
+              {% endif %}
             </div>
           {% endif %}
+          <div style="margin-top:16px;font-size:15px;line-height:1.7;">
+            {% if pdf_url %}
+              <a href="{{ pdf_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">Download PDF</a>
+              {% if event_url or manage_booking_url %}<span style="color:#c5c7ce;"> · </span>{% endif %}
+            {% endif %}
+            {% if event_url %}
+              <a href="{{ event_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">View Event</a>
+              {% if manage_booking_url %}<span style="color:#c5c7ce;"> · </span>{% endif %}
+            {% endif %}
+            {% if manage_booking_url %}
+              <a href="{{ manage_booking_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">Manage Booking</a>
+            {% endif %}
+          </div>
         {% elseif event_url %}
           <!--[if mso]>
           <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ event_url }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
@@ -177,7 +196,7 @@ body_html: |
           <!--<![endif]-->
         {% endif %}
         {% if (is_guest ?? false) %}
-          <p style="margin:14px 0 0 0;font-size:14px;line-height:1.5;color:#5c6370;">Check your inbox for ticket PDFs, calendar files, and this order number — you can open them anytime without signing in.</p>
+          <p style="margin:14px 0 0 0;font-size:14px;line-height:1.5;color:#5c6370;">Check your inbox for ticket PDFs, calendar files, and this booking number — you can open them anytime without signing in.</p>
         {% endif %}
       </td>
     </tr>
@@ -189,7 +208,7 @@ body_html: |
           {% if (is_paid ?? true) %}
             <li style="margin:0 0 6px 0;">We'll email you if important event details change.</li>
             {% if (is_guest ?? false) %}
-              <li style="margin:0 0 6px 0;">Keep this confirmation handy. Sign in later to find tickets under My tickets, or use the links in your email.</li>
+              <li style="margin:0 0 6px 0;">Keep this confirmation handy. Sign in later to find tickets under My Bookings, or use the links in your email.</li>
             {% else %}
               <li style="margin:0 0 6px 0;">You'll find your booking in My Bookings.</li>
             {% endif %}

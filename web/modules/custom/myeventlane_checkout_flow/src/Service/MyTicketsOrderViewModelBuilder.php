@@ -11,7 +11,9 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_commerce\Service\OperationalOrderItemDisplayBuilder;
+use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
+use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Service\UniversalTicketViewModelBuilder;
 use Drupal\node\NodeInterface;
@@ -42,6 +44,8 @@ final class MyTicketsOrderViewModelBuilder {
     private readonly TicketLabelResolver $ticketLabelResolver,
     TranslationInterface $string_translation,
     private readonly ?OperationalOrderItemDisplayBuilder $operationalOrderItemDisplayBuilder = NULL,
+    private readonly ?MelReadinessHelper $readiness = NULL,
+    private readonly ?LegalSettingsService $legalSettings = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -150,6 +154,74 @@ final class MyTicketsOrderViewModelBuilder {
       ? (string) $this->t('Confirmed')
       : (string) $order->getState()->getLabel();
 
+    $ctaLabels = $this->readiness?->customerHubBookingCtaLabels() ?? [
+      'view_booking' => (string) $this->t('View Digital Pass'),
+      'view_ticket' => (string) $this->t('Show QR code'),
+      'view_event' => (string) $this->t('View event'),
+      'add_to_calendar' => (string) $this->t('Add to calendar'),
+      'download_ticket' => (string) $this->t('Download PDF'),
+      'get_directions' => (string) $this->t('Get directions'),
+      'contact_organiser' => (string) $this->t('Contact organiser'),
+      'help_centre' => (string) $this->t('Help Centre'),
+    ];
+
+    $help = $this->buildHelpLinks();
+    $bookingConfirmed = in_array($stateId, self::COMPLETED_ORDER_STATES, TRUE);
+    $bookingNumber = (string) ($order->getOrderNumber() ?? $order->id());
+    $enrichedTicketModels = [];
+    $readinessByEventId = [];
+    $passIndex = 0;
+    foreach ($ticketModels as $ticketModel) {
+      if (!is_array($ticketModel)) {
+        continue;
+      }
+      $enriched = $this->enrichDigitalPassPresentation(
+        $ticketModel,
+        $events,
+        $bookingNumber,
+        $ctaLabels,
+      );
+      $passIndex++;
+      $passEvent = is_array($enriched['pass']['event'] ?? NULL)
+        ? $enriched['pass']['event']
+        : NULL;
+      $eventId = (int) ($passEvent['id'] ?? ($enriched['event']['id'] ?? 0));
+      // One readiness accordion per event, under the first digital pass for that event.
+      if ($eventId > 0 && !isset($readinessByEventId[$eventId])) {
+        $passAnchor = $passIndex === 1 ? '#mel-pass-entry' : '#mel-pass-entry-' . $passIndex;
+        $readiness = $this->buildEventReadiness(
+          $order,
+          $passEvent !== NULL ? [$passEvent] : [],
+          [$enriched],
+          $help,
+          $ctaLabels,
+          $bookingConfirmed,
+          $passAnchor,
+        );
+        $readinessByEventId[$eventId] = $readiness;
+        $enriched['readiness'] = $readiness;
+      }
+      $enrichedTicketModels[] = $enriched;
+    }
+
+    $eventsList = array_values($events);
+    // Order-level alias: first attached pass readiness (hub/tests/legacy consumers).
+    $orderReadiness = NULL;
+    foreach ($enrichedTicketModels as $enrichedModel) {
+      if (isset($enrichedModel['readiness']) && is_array($enrichedModel['readiness'])) {
+        $orderReadiness = $enrichedModel['readiness'];
+        break;
+      }
+    }
+    $orderReadiness ??= $this->buildEventReadiness(
+      $order,
+      $eventsList,
+      $enrichedTicketModels,
+      $help,
+      $ctaLabels,
+      $bookingConfirmed,
+    );
+
     return [
       'order' => $order,
       'order_id' => $order->id(),
@@ -159,11 +231,14 @@ final class MyTicketsOrderViewModelBuilder {
       'state' => $order->getState()->getLabel(),
       'state_customer_presentation' => $stateCustomer,
       'total_price' => $order->getTotalPrice() ? (float) $order->getTotalPrice()->getNumber() : 0.0,
-      'events' => array_values($events),
-      'ticket_models' => array_values($ticketModels),
+      'events' => $eventsList,
+      'ticket_models' => $enrichedTicketModels,
       'ticket_items' => $legacyTicketItems,
       'donation_total' => $donationTotal,
       'has_upcoming_events' => $hasUpcomingEvents,
+      'help' => $help,
+      'pass_labels' => $ctaLabels,
+      'readiness' => $orderReadiness,
     ];
   }
 
@@ -215,6 +290,664 @@ final class MyTicketsOrderViewModelBuilder {
     }
 
     return $models;
+  }
+
+  /**
+   * Adds ACE digital-pass presentation fields without altering operational model keys.
+   *
+   * @param array<string, mixed> $ticketModel
+   *   Canonical ticket view model.
+   * @param array<int, array<string, mixed>> $events
+   *   Formatted events keyed by event id.
+   * @param array<string, string> $ctaLabels
+   *   Shared ACE CTA labels.
+   *
+   * @return array<string, mixed>
+   *   Ticket model with a `pass` presentation section.
+   */
+  private function enrichDigitalPassPresentation(array $ticketModel, array $events, string $bookingNumber, array $ctaLabels): array {
+    $eventId = (int) (($ticketModel['event']['id'] ?? 0));
+    $passEvent = $events[$eventId] ?? $this->eventFromTicketModel($ticketModel);
+    $statusKey = $this->resolveDigitalPassStatusKey($ticketModel);
+    $statusLabel = $this->readiness instanceof MelReadinessHelper
+      ? $this->readiness->customerDigitalPassStatusLabel($statusKey)
+      : $this->fallbackDigitalPassStatusLabel($statusKey);
+    $nextStep = $this->readiness instanceof MelReadinessHelper
+      ? $this->readiness->customerDigitalPassNextStep($statusKey)
+      : (string) $this->t('Show this QR code at entry when you arrive.');
+
+    $vendor = is_array($ticketModel['vendor'] ?? NULL) ? $ticketModel['vendor'] : [];
+    $organiser = trim((string) ($vendor['label'] ?? ''));
+
+    $ticketModel['pass'] = [
+      'status_key' => $statusKey,
+      'status_label' => $statusLabel,
+      'next_step' => $nextStep,
+      'booking_number' => $bookingNumber,
+      'organiser' => $organiser,
+      'event' => $passEvent,
+      'labels' => [
+        'download_ticket' => $ctaLabels['download_ticket'] ?? (string) $this->t('Download ticket'),
+        'add_to_calendar' => $ctaLabels['add_to_calendar'] ?? (string) $this->t('Add to calendar'),
+        'view_event' => $ctaLabels['view_event'] ?? (string) $this->t('View event'),
+        'view_booking' => $ctaLabels['view_booking'] ?? (string) $this->t('View booking'),
+      ],
+    ];
+
+    return $ticketModel;
+  }
+
+  /**
+   * Maps issued-ticket signals to ACE digital-pass status keys.
+   *
+   * @param array<string, mixed> $ticketModel
+   *   Canonical ticket view model.
+   */
+  private function resolveDigitalPassStatusKey(array $ticketModel): string {
+    $scannerStatus = (string) ($ticketModel['scanner']['status'] ?? '');
+    if (!empty($ticketModel['expiry']['expired']) || $scannerStatus === 'expired' || $scannerStatus === 'fulfilment_expired') {
+      return 'expired';
+    }
+
+    $status = (string) ($ticketModel['ticket']['status'] ?? '');
+    if ($status === Ticket::STATUS_CHECKED_IN || $scannerStatus === 'checked_in') {
+      return 'checked_in';
+    }
+    if (
+      $status === Ticket::STATUS_REFUNDED
+      || $status === Ticket::STATUS_VOID
+      || $scannerStatus === 'refunded'
+      || $scannerStatus === 'void'
+      || $scannerStatus === 'fulfilment_cancelled'
+    ) {
+      return 'cancelled';
+    }
+
+    return 'ticket_ready';
+  }
+
+  /**
+   * Fallback ACE pass labels when MelReadinessHelper is unavailable.
+   */
+  private function fallbackDigitalPassStatusLabel(string $statusKey): string {
+    return match ($statusKey) {
+      'checked_in' => (string) $this->t('Checked in'),
+      'expired' => (string) $this->t('Expired'),
+      'cancelled' => (string) $this->t('Cancelled'),
+      'payment_pending' => (string) $this->t('Booking received'),
+      default => (string) $this->t('Ticket ready'),
+    };
+  }
+
+  /**
+   * Existing help destinations only — no invented organiser contact routes.
+   *
+   * @return array{refund_url: string, help_centre_url: string}
+   *   Help link URLs for the pass footer.
+   */
+  private function buildHelpLinks(): array {
+    $refundUrl = '';
+    if ($this->legalSettings instanceof LegalSettingsService) {
+      $refundUrl = trim($this->legalSettings->getRefundPolicyUrl());
+    }
+    if ($refundUrl === '') {
+      $refundUrl = '/help/policies/refund-policy';
+    }
+
+    return [
+      'refund_url' => $refundUrl,
+      'help_centre_url' => $this->helpCentreUrl(),
+    ];
+  }
+
+  /**
+   * ACE Event Readiness panel — presentation orchestration over existing data.
+   *
+   * Does not invent venue/accessibility metadata. Omits checklist rows when the
+   * underlying field or link is empty. Reuses MelReadinessHelper copy and the
+   * existing messaging reminder timings (7d / 24h) as presentation note only.
+   *
+   * @param list<array<string, mixed>> $events
+   *   Events scoped to this readiness panel (normally the pass's event only).
+   * @param list<array<string, mixed>> $ticketModels
+   *   Ticket models for the same event / pass (normally a single row).
+   * @param array{refund_url: string, help_centre_url: string} $help
+   * @param array<string, string> $ctaLabels
+   * @param string $passEntryAnchor
+   *   In-page QR anchor for this pass (#mel-pass-entry or #mel-pass-entry-N).
+   *
+   * @return array<string, mixed>
+   */
+  private function buildEventReadiness(
+    OrderInterface $order,
+    array $events,
+    array $ticketModels,
+    array $help,
+    array $ctaLabels,
+    bool $bookingConfirmed,
+    string $passEntryAnchor = '#mel-pass-entry',
+  ): array {
+    $panel = $this->readiness instanceof MelReadinessHelper
+      ? $this->readiness->customerEventReadinessPanelLabels()
+      : [
+        'heading' => (string) $this->t('Event readiness'),
+        'summary' => (string) $this->t('Need more information?'),
+        'intro' => (string) $this->t('Accessibility, venue notes, refunds, and who to contact.'),
+        'checklist_heading' => (string) $this->t('Your checklist'),
+        'reminder_note' => (string) $this->t('We email a reminder 7 days and 24 hours before the event starts.'),
+      ];
+    $itemLabels = $this->readiness instanceof MelReadinessHelper
+      ? $this->readiness->customerEventReadinessItemLabels()
+      : [
+        'booking_confirmed' => (string) $this->t('Booking confirmed'),
+        'ticket_ready' => (string) $this->t('Ticket ready'),
+        'date_time' => (string) $this->t('Date & time'),
+        'venue' => (string) $this->t('Venue'),
+        'organiser' => (string) $this->t('Organiser'),
+        'accessibility' => (string) $this->t('Accessibility'),
+        'contact_organiser' => (string) $this->t('Contact organiser'),
+        'refund_policy' => (string) $this->t('Refund policy'),
+        'help' => (string) $this->t('Help'),
+      ];
+
+    // Always pair readiness to the ticket/pass shown — never an unrelated events[0].
+    $primaryTicket = $ticketModels[0] ?? NULL;
+    $primaryEvent = $this->resolveReadinessEventForTicket(
+      is_array($primaryTicket) ? $primaryTicket : NULL,
+      $events,
+    );
+    $pass = is_array($primaryTicket) && is_array($primaryTicket['pass'] ?? NULL)
+      ? $primaryTicket['pass']
+      : [];
+    $eventId = (int) ($primaryEvent['id'] ?? 0);
+    $eventContext = $this->loadEventReadinessContext($eventId);
+    $passEntryAnchor = $this->normalizePassEntryAnchor($passEntryAnchor);
+
+    $stateKey = $this->resolveEventReadinessStateKey(
+      $bookingConfirmed,
+      is_array($primaryTicket) ? $primaryTicket : NULL,
+      is_array($primaryEvent) ? $primaryEvent : NULL,
+    );
+    $stateLabel = $this->readiness instanceof MelReadinessHelper
+      ? $this->readiness->customerEventReadinessStatusLabel($stateKey)
+      : $this->fallbackDigitalPassStatusLabel($stateKey);
+
+    $items = [];
+    if ($bookingConfirmed) {
+      $items[] = [
+        'key' => 'booking_confirmed',
+        'label' => $itemLabels['booking_confirmed'],
+        'ready' => TRUE,
+        'detail' => (string) ($order->getOrderNumber() ?? $order->id()),
+        'url' => '',
+      ];
+    }
+
+    $ticketReady = is_array($primaryTicket)
+      && (
+        !empty($primaryTicket['qr']['data_uri'])
+        || !empty($primaryTicket['actions']['pdf']['download']['url'])
+        || (($pass['status_key'] ?? '') === 'ticket_ready')
+        || (($pass['status_key'] ?? '') === 'checked_in')
+      );
+    if ($ticketReady) {
+      $items[] = [
+        'key' => 'ticket_ready',
+        'label' => $itemLabels['ticket_ready'],
+        'ready' => TRUE,
+        'detail' => (string) ($primaryTicket['ticket']['code'] ?? ''),
+        'url' => $passEntryAnchor,
+      ];
+    }
+
+    if (is_array($primaryEvent)) {
+      $dateParts = array_filter([
+        (string) ($primaryEvent['start_date'] ?? ''),
+        (string) ($primaryEvent['start_time'] ?? ''),
+      ]);
+      if ($dateParts !== []) {
+        $items[] = [
+          'key' => 'date_time',
+          'label' => $itemLabels['date_time'],
+          'ready' => TRUE,
+          'detail' => implode(' · ', $dateParts),
+          'url' => (string) ($primaryEvent['ics_url'] ?? ''),
+        ];
+      }
+
+      $location = trim((string) ($primaryEvent['location'] ?? ''));
+      if ($location !== '') {
+        $items[] = [
+          'key' => 'venue',
+          'label' => $itemLabels['venue'],
+          'ready' => TRUE,
+          'detail' => $location,
+          'url' => $this->directionsUrl($location),
+        ];
+      }
+    }
+
+    $organiser = trim((string) ($pass['organiser'] ?? $eventContext['organiser'] ?? ''));
+    if ($organiser !== '') {
+      $items[] = [
+        'key' => 'organiser',
+        'label' => $itemLabels['organiser'],
+        'ready' => TRUE,
+        'detail' => $organiser,
+        'url' => (string) ($primaryEvent['url'] ?? ''),
+      ];
+    }
+
+    if ($eventContext['accessibility_summary'] !== '') {
+      $items[] = [
+        'key' => 'accessibility',
+        'label' => $itemLabels['accessibility'],
+        'ready' => TRUE,
+        'detail' => $eventContext['accessibility_summary'],
+        'url' => (string) ($primaryEvent['url'] ?? ''),
+      ];
+    }
+
+    $contactUrl = $eventContext['contact_mailto'];
+    if ($contactUrl === '' && is_array($primaryEvent)) {
+      $contactUrl = (string) ($primaryEvent['url'] ?? '');
+    }
+    if ($contactUrl !== '') {
+      $items[] = [
+        'key' => 'contact_organiser',
+        'label' => $itemLabels['contact_organiser'],
+        'ready' => TRUE,
+        'detail' => $eventContext['contact_email'] !== ''
+          ? $eventContext['contact_email']
+          : (string) $this->t('Details on the event page'),
+        'url' => $contactUrl,
+      ];
+    }
+
+    $refundUrl = trim((string) ($help['refund_url'] ?? ''));
+    if ($refundUrl !== '') {
+      $refundDetail = $eventContext['refund_label'] !== ''
+        ? $eventContext['refund_label']
+        : (string) $this->t('Platform refund policy');
+      $items[] = [
+        'key' => 'refund_policy',
+        'label' => $itemLabels['refund_policy'],
+        'ready' => TRUE,
+        'detail' => $refundDetail,
+        'url' => $refundUrl,
+      ];
+    }
+
+    $helpUrl = trim((string) ($help['help_centre_url'] ?? ''));
+    if ($helpUrl !== '') {
+      $items[] = [
+        'key' => 'help',
+        'label' => $itemLabels['help'],
+        'ready' => TRUE,
+        'detail' => (string) $this->t('Help Centre'),
+        'url' => $helpUrl,
+      ];
+    }
+
+    // Accordion content: secondary facts only (pass already shows booking/ticket/when).
+    $detailKeys = [
+      'accessibility',
+      'venue',
+      'contact_organiser',
+      'refund_policy',
+      'help',
+      'organiser',
+    ];
+    $detailItems = [];
+    foreach ($items as $item) {
+      if (in_array((string) ($item['key'] ?? ''), $detailKeys, TRUE)) {
+        $detailItems[] = $item;
+      }
+    }
+
+    return [
+      'heading' => $panel['heading'],
+      'summary' => $panel['summary'] ?? (string) $this->t('Need more information?'),
+      'intro' => $panel['intro'],
+      'checklist_heading' => $panel['checklist_heading'],
+      'state_key' => $stateKey,
+      'state_label' => $stateLabel,
+      'items' => $items,
+      'detail_items' => $detailItems,
+      'primary_action' => $this->resolveEventReadinessPrimaryAction(
+        $stateKey,
+        is_array($primaryEvent) ? $primaryEvent : NULL,
+        is_array($primaryTicket) ? $primaryTicket : NULL,
+        $help,
+        $ctaLabels,
+        $eventContext,
+        $passEntryAnchor,
+      ),
+      'reminder_note' => $panel['reminder_note'],
+    ];
+  }
+
+  /**
+   * Event for readiness must belong to the pass ticket, not a sibling events[0].
+   *
+   * @param array<string, mixed>|null $ticketModel
+   * @param list<array<string, mixed>> $events
+   *
+   * @return array<string, mixed>|null
+   */
+  private function resolveReadinessEventForTicket(?array $ticketModel, array $events): ?array {
+    if ($ticketModel === NULL) {
+      return $events[0] ?? NULL;
+    }
+
+    if (is_array($ticketModel['pass']['event'] ?? NULL)) {
+      return $ticketModel['pass']['event'];
+    }
+
+    $ticketEventId = (int) ($ticketModel['event']['id'] ?? 0);
+    if ($ticketEventId > 0) {
+      foreach ($events as $candidate) {
+        if (!is_array($candidate)) {
+          continue;
+        }
+        if ((int) ($candidate['id'] ?? 0) === $ticketEventId) {
+          return $candidate;
+        }
+      }
+      $fromTicket = $this->eventFromTicketModel($ticketModel);
+      if ($fromTicket !== NULL) {
+        return $fromTicket;
+      }
+    }
+
+    return $events[0] ?? NULL;
+  }
+
+  /**
+   * Restricts pass anchors to the Digital Pass QR fragment contract.
+   */
+  private function normalizePassEntryAnchor(string $anchor): string {
+    $anchor = trim($anchor);
+    if ($anchor === '#mel-pass-entry' || preg_match('/^#mel-pass-entry-\d+$/', $anchor) === 1) {
+      return $anchor;
+    }
+    return '#mel-pass-entry';
+  }
+
+  /**
+   * Loads optional event node fields for readiness — only values that exist.
+   *
+   * @return array{
+   *   organiser: string,
+   *   contact_email: string,
+   *   contact_mailto: string,
+   *   accessibility_summary: string,
+   *   refund_label: string
+   * }
+   */
+  private function loadEventReadinessContext(int $eventId): array {
+    $empty = [
+      'organiser' => '',
+      'contact_email' => '',
+      'contact_mailto' => '',
+      'accessibility_summary' => '',
+      'refund_label' => '',
+    ];
+    if ($eventId < 1) {
+      return $empty;
+    }
+
+    $event = $this->entityTypeManager->getStorage('node')->load($eventId);
+    if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+      return $empty;
+    }
+
+    $contactEmail = '';
+    if ($event->hasField('field_contact_email') && !$event->get('field_contact_email')->isEmpty()) {
+      $contactEmail = trim((string) $event->get('field_contact_email')->value);
+    }
+
+    $a11yParts = [];
+    if ($event->hasField('field_accessibility') && !$event->get('field_accessibility')->isEmpty()) {
+      foreach ($event->get('field_accessibility')->referencedEntities() as $term) {
+        $label = trim((string) $term->label());
+        if ($label !== '') {
+          $a11yParts[] = $label;
+        }
+      }
+    }
+    foreach (['field_accessibility_entry', 'field_accessibility_parking', 'field_accessibility_directions'] as $fieldName) {
+      if (!$event->hasField($fieldName) || $event->get($fieldName)->isEmpty()) {
+        continue;
+      }
+      $value = $event->get($fieldName)->value ?? $event->get($fieldName)->processed ?? '';
+      $text = trim(strip_tags((string) $value));
+      if ($text !== '') {
+        $a11yParts[] = mb_strlen($text) > 120 ? mb_substr($text, 0, 117) . '…' : $text;
+        break;
+      }
+    }
+
+    $refundLabel = '';
+    if ($event->hasField('field_refund_policy') && !$event->get('field_refund_policy')->isEmpty()) {
+      $value = (string) $event->get('field_refund_policy')->value;
+      if ($value !== '' && $value !== 'none_specified') {
+        $allowed = $event->get('field_refund_policy')->getFieldDefinition()->getSetting('allowed_values') ?? [];
+        if (is_array($allowed) && isset($allowed[$value]) && is_string($allowed[$value])) {
+          $refundLabel = $allowed[$value];
+        }
+        else {
+          foreach ($allowed as $option) {
+            if (is_array($option) && ($option['value'] ?? '') === $value) {
+              $refundLabel = (string) ($option['label'] ?? '');
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return [
+      'organiser' => '',
+      'contact_email' => $contactEmail,
+      'contact_mailto' => $contactEmail !== '' ? 'mailto:' . $contactEmail : '',
+      'accessibility_summary' => implode(' · ', array_slice($a11yParts, 0, 3)),
+      'refund_label' => $refundLabel,
+    ];
+  }
+
+  /**
+   * Resolves ACE readiness state without exposing Commerce workflow ids.
+   *
+   * @param array<string, mixed>|null $ticketModel
+   * @param array<string, mixed>|null $event
+   */
+  private function resolveEventReadinessStateKey(
+    bool $bookingConfirmed,
+    ?array $ticketModel,
+    ?array $event,
+  ): string {
+    if (!$bookingConfirmed) {
+      return 'payment_pending';
+    }
+
+    $passKey = '';
+    if (is_array($ticketModel) && is_array($ticketModel['pass'] ?? NULL)) {
+      $passKey = (string) ($ticketModel['pass']['status_key'] ?? '');
+    }
+    if (in_array($passKey, ['cancelled', 'expired', 'checked_in'], TRUE)) {
+      return $passKey;
+    }
+
+    $startTs = (int) ($event['start_timestamp'] ?? 0);
+    if ($startTs > 0) {
+      $startDay = date('Y-m-d', $startTs);
+      $today = date('Y-m-d');
+      if ($startDay === $today) {
+        return 'today';
+      }
+      if ($startDay === date('Y-m-d', time() + 86400)) {
+        return 'tomorrow';
+      }
+      if ($startTs < time()) {
+        return 'completed';
+      }
+    }
+
+    if ($passKey === 'ticket_ready' || $ticketModel !== NULL) {
+      return 'ticket_ready';
+    }
+
+    return 'confirmed';
+  }
+
+  /**
+   * One primary action that can succeed with existing URLs only.
+   *
+   * @param array<string, mixed>|null $event
+   * @param array<string, mixed>|null $ticketModel
+   * @param array{refund_url: string, help_centre_url: string} $help
+   * @param array<string, string> $ctaLabels
+   * @param array<string, string> $eventContext
+   *
+   * @return array{key: string, label: string, url: string}|null
+   */
+  private function resolveEventReadinessPrimaryAction(
+    string $stateKey,
+    ?array $event,
+    ?array $ticketModel,
+    array $help,
+    array $ctaLabels,
+    array $eventContext,
+    string $passEntryAnchor = '#mel-pass-entry',
+  ): ?array {
+    $helpUrl = trim((string) ($help['help_centre_url'] ?? ''));
+    $eventUrl = trim((string) ($event['url'] ?? ''));
+    $location = trim((string) ($event['location'] ?? ''));
+    $directionsUrl = $location !== '' ? $this->directionsUrl($location) : '';
+    $pdfUrl = trim((string) ($ticketModel['actions']['pdf']['download']['url'] ?? ''));
+    $hasQr = !empty($ticketModel['qr']['data_uri']);
+    $contactMailto = trim((string) ($eventContext['contact_mailto'] ?? ''));
+    $passEntryAnchor = $this->normalizePassEntryAnchor($passEntryAnchor);
+
+    if (in_array($stateKey, ['cancelled', 'expired'], TRUE)) {
+      if ($helpUrl !== '') {
+        return [
+          'key' => 'help_centre',
+          'label' => $ctaLabels['help_centre'] ?? (string) $this->t('Help Centre'),
+          'url' => $helpUrl,
+        ];
+      }
+      if ($eventUrl !== '') {
+        return [
+          'key' => 'view_event',
+          'label' => $ctaLabels['view_event'] ?? (string) $this->t('View event'),
+          'url' => $eventUrl,
+        ];
+      }
+      return NULL;
+    }
+
+    if ($stateKey === 'checked_in') {
+      if ($eventUrl !== '') {
+        return [
+          'key' => 'view_event',
+          'label' => $ctaLabels['view_event'] ?? (string) $this->t('View event'),
+          'url' => $eventUrl,
+        ];
+      }
+      return NULL;
+    }
+
+    if ($stateKey === 'today' && $hasQr) {
+      return [
+        'key' => 'view_ticket',
+        'label' => $ctaLabels['view_ticket'] ?? (string) $this->t('View ticket'),
+        'url' => $passEntryAnchor,
+      ];
+    }
+
+    if ($stateKey === 'today' && $directionsUrl !== '') {
+      return [
+        'key' => 'get_directions',
+        'label' => $ctaLabels['get_directions'] ?? (string) $this->t('Get directions'),
+        'url' => $directionsUrl,
+      ];
+    }
+
+    if ($hasQr || $ticketModel !== NULL) {
+      if ($hasQr) {
+        return [
+          'key' => 'view_ticket',
+          'label' => $ctaLabels['view_ticket'] ?? (string) $this->t('View ticket'),
+          'url' => $passEntryAnchor,
+        ];
+      }
+      if ($pdfUrl !== '') {
+        return [
+          'key' => 'download_ticket',
+          'label' => $ctaLabels['download_ticket'] ?? (string) $this->t('Download ticket'),
+          'url' => $pdfUrl,
+        ];
+      }
+    }
+
+    if ($directionsUrl !== '') {
+      return [
+        'key' => 'get_directions',
+        'label' => $ctaLabels['get_directions'] ?? (string) $this->t('Get directions'),
+        'url' => $directionsUrl,
+      ];
+    }
+
+    if ($contactMailto !== '') {
+      return [
+        'key' => 'contact_organiser',
+        'label' => $ctaLabels['contact_organiser'] ?? (string) $this->t('Contact organiser'),
+        'url' => $contactMailto,
+      ];
+    }
+
+    if ($eventUrl !== '') {
+      return [
+        'key' => 'view_event',
+        'label' => $ctaLabels['view_event'] ?? (string) $this->t('View event'),
+        'url' => $eventUrl,
+      ];
+    }
+
+    if ($helpUrl !== '') {
+      return [
+        'key' => 'help_centre',
+        'label' => $ctaLabels['help_centre'] ?? (string) $this->t('Help Centre'),
+        'url' => $helpUrl,
+      ];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Directions URL from an existing location string (same pattern as event pages).
+   */
+  private function directionsUrl(string $location): string {
+    $location = trim($location);
+    if ($location === '') {
+      return '';
+    }
+    return 'https://maps.google.com/?q=' . rawurlencode($location);
+  }
+
+  /**
+   * Resolves the Help Centre home URL when the route exists.
+   */
+  private function helpCentreUrl(): string {
+    try {
+      return Url::fromRoute('myeventlane_help_centre.home')->toString();
+    }
+    catch (\Throwable) {
+      return '/help';
+    }
   }
 
   /**

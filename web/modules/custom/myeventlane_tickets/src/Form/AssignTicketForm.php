@@ -66,7 +66,7 @@ final class AssignTicketForm extends FormBase {
     if ($ticket->get('status')->value !== Ticket::STATUS_ISSUED_UNASSIGNED) {
       $form['already_assigned'] = [
         '#type' => 'markup',
-        '#markup' => '<p>' . $this->t('This ticket is already assigned.') . ' <a href="' . Url::fromRoute('myeventlane_checkout_flow.my_tickets')->toString() . '">' . $this->t('View My Tickets') . '</a></p>',
+        '#markup' => '<p>' . $this->t('This ticket is already assigned.') . ' <a href="' . Url::fromRoute('myeventlane_checkout_flow.my_tickets')->toString() . '">' . $this->t('View My Bookings') . '</a></p>',
         '#weight' => -10,
       ];
       return $form;

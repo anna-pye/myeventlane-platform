@@ -16,8 +16,9 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * Server-side access for wallet routes aligned with ticket PDF entitlement rules.
  *
  * When a canonical issued ticket is resolved, access follows the same rules as
- * ticket PDF download for that row. Legacy routes without issued tickets keep
- * order-scoped checks only (compatibility), without issuing or mutating tickets.
+ * ticket PDF download for that row, plus wallet-specific denial for void,
+ * refunded, and fulfilment-cancelled entitlements. Legacy routes without issued
+ * tickets keep order-scoped checks only (compatibility).
  */
 final class WalletDownloadAccessChecker {
 
@@ -36,19 +37,26 @@ final class WalletDownloadAccessChecker {
    *   When PDF/wallet expiry window has elapsed (matches ticket PDF behaviour).
    */
   public function assertAuthorized(OrderItemInterface $order_item, ?Ticket $ticket, AccountInterface $account): void {
+    if ($ticket instanceof Ticket) {
+      if ((int) $ticket->get('order_item_id')->target_id !== (int) $order_item->id()) {
+        throw new AccessDeniedHttpException();
+      }
+      // Void/refunded/cancelled tickets never mint wallet passes — including admins.
+      if ($this->isWalletBlockedStatus($ticket)) {
+        throw new AccessDeniedHttpException('This ticket is no longer eligible for wallet download.');
+      }
+      if ($this->isExpired((int) $ticket->getCreatedTime())) {
+        throw new NotFoundHttpException();
+      }
+    }
+
     if ($account->hasPermission('administer myeventlane wallet') || $account->hasPermission('administer commerce_order')) {
       return;
     }
 
     if ($ticket instanceof Ticket) {
-      if ((int) $ticket->get('order_item_id')->target_id !== (int) $order_item->id()) {
-        throw new AccessDeniedHttpException();
-      }
       if (!$this->canAccessTicket($ticket, $account)) {
         throw new AccessDeniedHttpException();
-      }
-      if ($this->isExpired((int) $ticket->getCreatedTime())) {
-        throw new NotFoundHttpException();
       }
       return;
     }
@@ -117,6 +125,20 @@ final class WalletDownloadAccessChecker {
     }
     $expires_at = $created_timestamp + ($days * 86400);
     return time() > $expires_at;
+  }
+
+  /**
+   * Void, refunded, or fulfilment-cancelled tickets must not mint wallet passes.
+   */
+  public function isWalletBlockedStatus(Ticket $ticket): bool {
+    $status = '';
+    if ($ticket->hasField('status') && !$ticket->get('status')->isEmpty()) {
+      $status = trim((string) $ticket->get('status')->getString());
+    }
+    if (in_array($status, [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED], TRUE)) {
+      return TRUE;
+    }
+    return $ticket->getFulfilmentStatus() === Ticket::FULFILMENT_CANCELLED;
   }
 
 }

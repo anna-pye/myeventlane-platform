@@ -1,92 +1,276 @@
 {#
 /**
  * @file
- * Booking detail — wallet / boarding-pass presentation; shell provides page H1.
+ * Digital event pass — primary attendee experience.
+ *
+ * Hierarchy: Event → QR (hero) → Ticket → Wallet/PDF → Readiness accordion → Purchase.
+ * Operational models: UniversalTicketViewModelBuilder.
+ * ACE pass: ticket.pass. Readiness: ticket.readiness under each pass (order.readiness aliases first).
  */
 #}
 
 <div class="mel-order-detail mel-order-detail--wallet">
   <div class="mel-order-detail__nav">
-    <a href="{{ url('myeventlane_checkout_flow.my_tickets') }}" class="mel-link mel-back-link">
-      {{ '← Back to tickets'|t }}
+    <a href="{{ url('myeventlane_checkout_flow.my_tickets') }}" class="mel-link mel-back-link mel-order-detail__back">
+      {{ '← Back to bookings'|t }}
     </a>
   </div>
 
   {% if order.ticket_models|default([])|length > 0 %}
-  <div class="mel-order-detail__passes" aria-label="{{ 'Your tickets'|t }}">
+  <div class="mel-order-detail__passes" aria-label="{{ 'Your Digital Passes'|t }}">
     {% for ticket in order.ticket_models %}
-      {% set event = order.events|first %}
-      <article class="mel-ticket-pass">
+      {% set pass = ticket.pass|default({}) %}
+      {% set event = pass.event|default(null) %}
+      {% set status_key = pass.status_key|default('ticket_ready') %}
+      {% set labels = pass.labels|default({}) %}
+      {% set readiness = ticket.readiness|default({}) %}
+      <article class="mel-ticket-pass mel-ticket-pass--{{ status_key }}" aria-labelledby="mel-pass-title-{{ loop.index }}">
+
+        {# ---- Event (compact) ---- #}
         <header class="mel-ticket-pass__header">
           <div class="mel-ticket-pass__event">
-            {% if event %}
-              <h2 class="mel-ticket-pass__event-title">
-                <a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>
+            {% if event and event.title %}
+              <p class="mel-ticket-pass__eyebrow">{{ 'Digital Pass'|t }}</p>
+              <h2 class="mel-ticket-pass__event-title" id="mel-pass-title-{{ loop.index }}">
+                {% if event.url %}
+                  <a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>
+                {% else %}
+                  {{ event.title }}
+                {% endif %}
               </h2>
-              {% if event.start_date %}
-                <p class="mel-ticket-pass__when">
-                  {{ event.start_date }}{% if event.start_time %} · {{ event.start_time }}{% endif %}
-                  {% if event.location %} · {{ event.location }}{% endif %}
-                </p>
-              {% endif %}
+              <dl class="mel-ticket-pass__event-meta">
+                {% if event.start_date %}
+                  <div class="mel-ticket-pass__meta-row">
+                    <dt>{{ 'Date'|t }}</dt>
+                    <dd>{{ event.start_date }}</dd>
+                  </div>
+                {% endif %}
+                {% if event.start_time %}
+                  <div class="mel-ticket-pass__meta-row">
+                    <dt>{{ 'Time'|t }}</dt>
+                    <dd>{{ event.start_time }}{% if event.end_time %} – {{ event.end_time }}{% endif %}</dd>
+                  </div>
+                {% endif %}
+                {% if event.location %}
+                  <div class="mel-ticket-pass__meta-row">
+                    <dt>{{ 'Venue'|t }}</dt>
+                    <dd>{{ event.location }}</dd>
+                  </div>
+                {% endif %}
+              </dl>
             {% else %}
-              <h2 class="mel-ticket-pass__event-title">{{ ticket.ticket.entitlement_label }}</h2>
+              <p class="mel-ticket-pass__eyebrow">{{ 'Digital Pass'|t }}</p>
+              <h2 class="mel-ticket-pass__event-title" id="mel-pass-title-{{ loop.index }}">{{ ticket.ticket.entitlement_label }}</h2>
             {% endif %}
           </div>
-          <span class="mel-badge mel-badge--success mel-ticket-pass__status">{{ ticket.ticket.status_label }}</span>
+          <span
+            class="mel-badge mel-badge--{% if status_key == 'ticket_ready' %}success{% elseif status_key in ['cancelled', 'expired'] %}neutral{% elseif status_key == 'checked_in' %}info{% else %}info{% endif %} mel-ticket-pass__status"
+            role="status"
+            aria-label="{{ 'Ticket status: @status'|t({'@status': pass.status_label|default(ticket.ticket.status_label)}) }}"
+          >
+            {{ pass.status_label|default(ticket.ticket.status_label) }}
+          </span>
         </header>
 
+        {# ---- Large QR (hero) ---- #}
         {% if ticket.qr.data_uri %}
-          <div class="mel-ticket-pass__qr" aria-label="{{ 'Ticket QR code'|t }}">
-            <img src="{{ ticket.qr.data_uri }}" alt="{{ 'Scan at entry'|t }}" width="200" height="200">
-            <p class="mel-ticket-pass__qr-hint">{{ 'Show this code at entry'|t }}</p>
-          </div>
+          <section
+            class="mel-ticket-pass__qr mel-ticket-pass__qr--hero"
+            id="{% if loop.first %}mel-pass-entry{% else %}mel-pass-entry-{{ loop.index }}{% endif %}"
+            aria-labelledby="mel-pass-qr-{{ loop.index }}"
+          >
+            <h3 class="visually-hidden" id="mel-pass-qr-{{ loop.index }}">{{ 'Entry QR code'|t }}</h3>
+            <img
+              src="{{ ticket.qr.data_uri }}"
+              alt="{{ 'QR code for entry. Ticket code @code. Show this screen at the door.'|t({'@code': ticket.ticket.code|default('')}) }}"
+              width="280"
+              height="280"
+              decoding="async"
+            >
+            <p class="mel-ticket-pass__qr-hint">{{ pass.next_step|default('Show this QR code at entry when you arrive.'|t) }}</p>
+            <p class="mel-ticket-pass__qr-a11y">{{ 'If the QR code cannot be scanned, give staff your ticket code: @code'|t({'@code': ticket.ticket.code|default('')}) }}</p>
+          </section>
         {% elseif ticket.qr.unavailable|default(false) %}
-          <div class="mel-ticket-pass__qr-unavailable" role="status">
+          <div
+            class="mel-ticket-pass__qr-unavailable"
+            id="{% if loop.first %}mel-pass-entry{% else %}mel-pass-entry-{{ loop.index }}{% endif %}"
+            role="status"
+          >
             <p class="mel-ticket-pass__qr-unavailable-title">{{ 'QR code temporarily unavailable'|t }}</p>
             <p class="mel-ticket-pass__qr-unavailable-body">{{ 'Your booking remains valid. Please contact support if this issue persists.'|t }}</p>
+            {% if ticket.ticket.code %}
+              <p class="mel-ticket-pass__qr-a11y">{{ 'Ticket code: @code'|t({'@code': ticket.ticket.code}) }}</p>
+            {% endif %}
           </div>
         {% endif %}
 
-        <div class="mel-ticket-pass__details">
-          <p class="mel-ticket-pass__entitlement">
-            <strong>{{ ticket.ticket.entitlement_label }}</strong>
-          </p>
-          {% if ticket.holder.name or ticket.holder.email %}
-            <p class="mel-ticket-pass__holder">
-              <span class="mel-ticket-pass__label">{{ 'Ticket holder'|t }}</span>
-              {{ ticket.holder.name|default('') }}
-              {% if ticket.holder.email %}
-                <span class="mel-ticket-pass__email">{{ ticket.holder.email }}</span>
-              {% endif %}
-            </p>
-          {% endif %}
-        </div>
+        {# ---- Ticket meta ---- #}
+        <section class="mel-ticket-pass__ticket" aria-labelledby="mel-pass-ticket-{{ loop.index }}">
+          <h3 class="mel-ticket-pass__section-title" id="mel-pass-ticket-{{ loop.index }}">{{ 'Ticket'|t }}</h3>
+          <dl class="mel-ticket-pass__ticket-meta">
+            {% if ticket.holder.name or ticket.holder.email %}
+              <div class="mel-ticket-pass__meta-row">
+                <dt>{{ 'Ticket holder'|t }}</dt>
+                <dd>
+                  {{ ticket.holder.name|default('') }}
+                  {% if ticket.holder.email %}
+                    <span class="mel-ticket-pass__email">{{ ticket.holder.email }}</span>
+                  {% endif %}
+                </dd>
+              </div>
+            {% endif %}
+            <div class="mel-ticket-pass__meta-row">
+              <dt>{{ 'Ticket type'|t }}</dt>
+              <dd>{{ ticket.ticket.entitlement_label }}</dd>
+            </div>
+            <div class="mel-ticket-pass__meta-row">
+              <dt>{{ 'Status'|t }}</dt>
+              <dd>{{ pass.status_label|default(ticket.ticket.status_label) }}</dd>
+            </div>
+            {% if pass.booking_number %}
+              <div class="mel-ticket-pass__meta-row">
+                <dt>{{ 'Booking number'|t }}</dt>
+                <dd><code class="mel-ticket-pass__booking-number">{{ pass.booking_number }}</code></dd>
+              </div>
+            {% endif %}
+            {% if ticket.ticket.code %}
+              <div class="mel-ticket-pass__meta-row">
+                <dt>{{ 'Ticket code'|t }}</dt>
+                <dd><code class="mel-ticket-pass__ticket-code">{{ ticket.ticket.code }}</code></dd>
+              </div>
+            {% endif %}
+          </dl>
+        </section>
 
-        <div class="mel-ticket-pass__actions">
+        {# ---- Wallet + PDF (then secondary) ----
+           Official Add to Apple/Google Wallet badge SVGs must be installed at
+           myeventlane_wallet/assets/web/ (see assets/web/README.md). Until then,
+           accessible text CTAs are shown — never invent platform badges. #}
+        <div class="mel-ticket-pass__actions" aria-label="{{ 'Pass actions'|t }}">
+          {% if ticket.actions.wallet.apple.url|default('') %}
+            {# Official SVG badge preferred when assets/web/add-to-apple-wallet.svg is present. #}
+            <a href="{{ ticket.actions.wallet.apple.url }}" class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--apple" download>
+              {{ 'Add to Apple Wallet'|t }}
+            </a>
+          {% endif %}
+          {% if ticket.actions.wallet.google.url|default('') %}
+            {# Official SVG badge preferred when assets/web/add-to-google-wallet.svg is present. #}
+            <a href="{{ ticket.actions.wallet.google.url }}" class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--google" rel="noopener noreferrer">
+              {{ 'Add to Google Wallet'|t }}
+            </a>
+          {% endif %}
           {% if ticket.actions.pdf.download.url %}
-            <a href="{{ ticket.actions.pdf.download.url }}" class="mel-button mel-button--primary">
-              {{ 'Download ticket'|t }}
-            </a>
-          {% endif %}
-          {% if event and event.ics_url %}
-            <a href="{{ event.ics_url }}" class="mel-button mel-button--secondary" download>
-              {{ 'Add to calendar'|t }}
-            </a>
-          {% endif %}
-          {% if event %}
-            <a href="{{ event.url }}" class="mel-button mel-button--secondary">
-              {{ 'View event'|t }}
+            <a href="{{ ticket.actions.pdf.download.url }}" class="mel-button {% if ticket.actions.wallet.apple.url|default('') or ticket.actions.wallet.google.url|default('') %}mel-button--secondary{% else %}mel-button--primary{% endif %} mel-ticket-pass__pdf">
+              {{ labels.download_ticket|default('Download ticket'|t) }}
             </a>
           {% endif %}
         </div>
 
-        {% if ticket.scanner.message %}
-          <p class="mel-ticket-pass__scan-note">{{ ticket.scanner.message }}</p>
+        {% if (event and event.ics_url) or (event and event.url) %}
+          <div class="mel-ticket-pass__secondary-actions">
+            {% if event and event.ics_url %}
+              <a href="{{ event.ics_url }}" class="mel-link" download>
+                {{ labels.add_to_calendar|default('Add to calendar'|t) }}
+              </a>
+            {% endif %}
+            {% if event and event.url %}
+              <a href="{{ event.url }}" class="mel-link">
+                {{ labels.view_event|default('View event'|t) }}
+              </a>
+            {% endif %}
+          </div>
+        {% endif %}
+
+        {% if ticket.scanner.message and status_key != 'ticket_ready' %}
+          <p class="mel-ticket-pass__scan-note" role="status">{{ ticket.scanner.message }}</p>
+        {% endif %}
+
+        {# ---- Event Readiness for this pass's event only ---- #}
+        {% if readiness.primary_action|default(null) or readiness.detail_items|default([])|length > 0 %}
+          <details
+            class="mel-event-readiness mel-event-readiness--accordion mel-ticket-pass__readiness"
+            id="{% if loop.first %}mel-event-readiness{% else %}mel-event-readiness-{{ loop.index }}{% endif %}"
+          >
+            <summary class="mel-event-readiness__summary">
+              <span class="mel-event-readiness__summary-label">{{ readiness.summary|default('Need more information?'|t) }}</span>
+              <span class="mel-event-readiness__summary-hint">{{ readiness.heading|default('Event readiness'|t) }}</span>
+            </summary>
+            <div class="mel-event-readiness__panel">
+              {% if readiness.state_label %}
+                <p class="mel-event-readiness__state-line" role="status">
+                  <span class="visually-hidden">{{ 'Booking status'|t }}:</span>
+                  {{ readiness.state_label }}
+                </p>
+              {% endif %}
+              {% if readiness.intro %}
+                <p class="mel-event-readiness__intro">{{ readiness.intro }}</p>
+              {% endif %}
+              {% if readiness.primary_action and readiness.primary_action.url and readiness.primary_action.label %}
+                <div class="mel-event-readiness__primary">
+                  <a
+                    href="{{ readiness.primary_action.url }}"
+                    class="mel-button mel-button--primary mel-event-readiness__primary-action"
+                    {% if readiness.primary_action.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
+                  >{{ readiness.primary_action.label }}</a>
+                </div>
+              {% endif %}
+              {% if readiness.detail_items|default([])|length > 0 %}
+                <h3 class="visually-hidden" id="mel-event-readiness-checklist-{{ loop.index }}">{{ readiness.checklist_heading|default('Your checklist'|t) }}</h3>
+                <ul class="mel-event-readiness__checklist" aria-labelledby="mel-event-readiness-checklist-{{ loop.index }}">
+                  {% for item in readiness.detail_items %}
+                    <li class="mel-event-readiness__item mel-event-readiness__item--ready">
+                      <span class="mel-event-readiness__check" aria-hidden="true">✓</span>
+                      <div class="mel-event-readiness__item-body">
+                        <span class="mel-event-readiness__item-label">{{ item.label }}</span>
+                        {% if item.detail %}
+                          <span class="mel-event-readiness__item-detail">
+                            {% if item.url %}
+                              <a
+                                href="{{ item.url }}"
+                                class="mel-link"
+                                {% if item.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
+                              >{{ item.detail }}</a>
+                            {% else %}
+                              {{ item.detail }}
+                            {% endif %}
+                          </span>
+                        {% elseif item.url %}
+                          <a
+                            href="{{ item.url }}"
+                            class="mel-link mel-event-readiness__item-link"
+                            {% if item.url starts with 'http' %}rel="noopener noreferrer" target="_blank"{% endif %}
+                          >{{ item.label }}</a>
+                        {% endif %}
+                      </div>
+                    </li>
+                  {% endfor %}
+                </ul>
+              {% endif %}
+              {% if readiness.reminder_note %}
+                <p class="mel-event-readiness__reminder" role="note">{{ readiness.reminder_note }}</p>
+              {% endif %}
+            </div>
+          </details>
         {% endif %}
       </article>
     {% endfor %}
   </div>
+  {% elseif order.help is defined %}
+    {# Fallback help when no digital passes (legacy). #}
+    <aside class="mel-order-detail__help" aria-labelledby="mel-order-help-heading">
+      <h2 class="mel-order-detail__help-title" id="mel-order-help-heading">{{ 'Need help?'|t }}</h2>
+      <ul class="mel-order-detail__help-list">
+        {% if order.help.refund_url %}
+          <li><a href="{{ order.help.refund_url }}" class="mel-link">{{ 'Refund policy'|t }}</a></li>
+        {% endif %}
+        {% if order.help.help_centre_url %}
+          <li><a href="{{ order.help.help_centre_url }}" class="mel-link">{{ 'Help Centre'|t }}</a></li>
+        {% endif %}
+        {% if order.events|first and order.events|first.url %}
+          <li><a href="{{ order.events|first.url }}" class="mel-link">{{ 'Event page for organiser details'|t }}</a></li>
+        {% endif %}
+      </ul>
+    </aside>
   {% endif %}
 
   {% if operational_addon_guidance %}
@@ -145,7 +329,8 @@
     </div>
   {% endif %}
 
-  <details class="mel-order-detail__purchase mel-mt-6">
+  {# ---- Purchase details (collapsed; secondary) ---- #}
+  <details class="mel-order-detail__purchase" id="mel-order-purchase">
     <summary class="mel-order-detail__purchase-summary">{{ 'Purchase details'|t }}</summary>
     <div class="mel-order-detail__purchase-body">
       <p class="mel-order-detail__reference">
@@ -170,9 +355,9 @@
     </div>
   </details>
 
-  <div class="mel-order-actions mel-mt-6">
+  <div class="mel-order-actions">
     <a href="{{ url('myeventlane_checkout_flow.my_tickets') }}" class="mel-button mel-button--secondary">
-      {{ 'Back to tickets'|t }}
+      {{ 'Back to bookings'|t }}
     </a>
   </div>
 </div>

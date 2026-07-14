@@ -1,0 +1,8 @@
+apple_enabled: false
+apple_team_id: ''
+apple_pass_type_id: ''
+apple_organisation_name: 'MyEventLane'
+google_enabled: false
+google_issuer_id: ''
+show_wallet_buttons: true
+show_wallet_in_email: true
