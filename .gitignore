@@ -200,6 +200,11 @@ memory/
 docs/internal/
 *.bak
 
+# Local path pointers and ACE/agent workspace backups (do not commit).
+# Narrow patterns only — not a broad .tmp-* ignore (fixtures/release artefacts).
+.mel-*-backup-path.txt
+.tmp-ace-*-backup-*/
+
 # macOS
 .DS_Store
 
