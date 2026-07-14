@@ -95,6 +95,7 @@ services:
       $legalSettings: '@?myeventlane_legal.settings'
       $walletPresentationGate: '@?myeventlane_wallet.presentation_gate'
       $walletTicketResolver: '@?myeventlane_wallet.ticket_resolver'
+      $walletDownloadAccess: '@?myeventlane_wallet.download_access'
 
   myeventlane_messaging.scheduler.boost:
     class: Drupal\myeventlane_messaging\Scheduler\BoostReminderScheduler
