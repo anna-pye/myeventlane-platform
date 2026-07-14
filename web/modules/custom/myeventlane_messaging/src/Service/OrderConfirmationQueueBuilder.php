@@ -702,8 +702,10 @@ final class OrderConfirmationQueueBuilder {
    * Resolves one issued ticket for email CTAs (wallet + PDF).
    *
    * Prefer the same primary event shown in confirmation copy
-   * (first ticketable line's field_target_event), not the first ticket on any
-   * line item. Reuses WalletTicketResolver per matching order item.
+   * (first ticketable line's field_target_event). If that event has no issued
+   * ticket yet (common with staggered per-line issuance), fall back to any
+   * ready ticket on the order so PDF/wallet links are not omitted. Reuses
+   * WalletTicketResolver per matching order item.
    */
   private function resolvePrimaryIssuedTicketForOrder(OrderInterface $order, ?int $primary_event_id = NULL): ?Ticket {
     $customer = $order->getCustomer();
@@ -717,6 +719,13 @@ final class OrderConfirmationQueueBuilder {
       if ($ticket instanceof Ticket) {
         return $ticket;
       }
+      // Primary event has no ticket yet — use any other issued line.
+      if ($preferred_event_id !== NULL) {
+        $ticket = $this->resolveTicketFromOrderItems($order, $customer, NULL);
+        if ($ticket instanceof Ticket) {
+          return $ticket;
+        }
+      }
     }
 
     $order_id = (int) $order->id();
@@ -724,7 +733,14 @@ final class OrderConfirmationQueueBuilder {
       return NULL;
     }
 
-    return $this->loadFirstTicketForOrder($order_id, $preferred_event_id);
+    $ticket = $this->loadFirstTicketForOrder($order_id, $preferred_event_id);
+    if ($ticket instanceof Ticket) {
+      return $ticket;
+    }
+    if ($preferred_event_id !== NULL) {
+      return $this->loadFirstTicketForOrder($order_id, NULL);
+    }
+    return NULL;
   }
 
   /**
