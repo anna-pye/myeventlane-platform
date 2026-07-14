@@ -5,7 +5,9 @@ services:
 
   myeventlane_wallet.ticket_resolver:
     class: Drupal\myeventlane_wallet\Service\WalletTicketResolver
-    arguments: ['@entity_type.manager']
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_wallet.download_access'
 
   myeventlane_wallet.wallet_signer:
     class: Drupal\myeventlane_wallet\Service\WalletSigner

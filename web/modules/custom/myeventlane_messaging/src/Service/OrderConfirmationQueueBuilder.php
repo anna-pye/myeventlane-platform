@@ -16,6 +16,7 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
 use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
 use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
 use Drupal\node\NodeInterface;
@@ -45,6 +46,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly ?LegalSettingsService $legalSettings = NULL,
     private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
+    private readonly ?WalletDownloadAccessChecker $walletDownloadAccess = NULL,
   ) {}
 
   /**
@@ -87,7 +89,7 @@ final class OrderConfirmationQueueBuilder {
     if (!$is_guest) {
       $order_detail_path = '/my-tickets/order/' . $orderId;
       $order_url = $this->buildPublicUrl($order_detail_path);
-      $tickets_url = $order_url ? $order_url . '#tickets' : NULL;
+      $tickets_url = $order_url ? $order_url . '#mel-pass-entry' : NULL;
       if (!$order_url) {
         try {
           $order_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
@@ -95,7 +97,7 @@ final class OrderConfirmationQueueBuilder {
           ], ['absolute' => TRUE])->toString(TRUE)->getGeneratedUrl();
           $tickets_url = Url::fromRoute('myeventlane_checkout_flow.order_detail', [
             'commerce_order' => $orderId,
-          ], ['absolute' => TRUE, 'fragment' => 'tickets'])->toString(TRUE)->getGeneratedUrl();
+          ], ['absolute' => TRUE, 'fragment' => 'mel-pass-entry'])->toString(TRUE)->getGeneratedUrl();
         }
         catch (\Exception $e) {
           $this->logger->warning('Could not generate order/tickets URL: @message', [
@@ -766,7 +768,7 @@ final class OrderConfirmationQueueBuilder {
         continue;
       }
       $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $customer);
-      if ($ticket instanceof Ticket) {
+      if ($ticket instanceof Ticket && $this->isPassLinkEligible($ticket)) {
         return $ticket;
       }
     }
@@ -789,7 +791,7 @@ final class OrderConfirmationQueueBuilder {
   }
 
   /**
-   * Loads the lowest-ID issued ticket for an order, optionally by event.
+   * Loads the lowest-ID wallet-eligible ticket for an order, optionally by event.
    */
   private function loadFirstTicketForOrder(int $order_id, ?int $event_id): ?Ticket {
     try {
@@ -797,8 +799,8 @@ final class OrderConfirmationQueueBuilder {
         ->getQuery()
         ->accessCheck(FALSE)
         ->condition('order_id', $order_id)
-        ->sort('id')
-        ->range(0, 1);
+        ->condition('status', [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED], 'NOT IN')
+        ->sort('id');
       if ($event_id !== NULL && $event_id > 0) {
         $query->condition('event_id', $event_id);
       }
@@ -816,8 +818,36 @@ final class OrderConfirmationQueueBuilder {
       return NULL;
     }
 
-    $ticket = $this->entityTypeManager->getStorage('myeventlane_ticket')->load(reset($ids));
-    return $ticket instanceof Ticket ? $ticket : NULL;
+    $storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+    foreach ($ids as $id) {
+      $ticket = $storage->load($id);
+      if ($ticket instanceof Ticket && $this->isPassLinkEligible($ticket)) {
+        return $ticket;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Whether a ticket may be linked for PDF / wallet CTAs in confirmation email.
+   *
+   * Aligns with WalletDownloadAccessChecker::isWalletBlockedStatus() so email
+   * never points at a pass that wallet routes will deny.
+   */
+  private function isPassLinkEligible(Ticket $ticket): bool {
+    if ($this->walletDownloadAccess instanceof WalletDownloadAccessChecker) {
+      return !$this->walletDownloadAccess->isWalletBlockedStatus($ticket);
+    }
+
+    $status = '';
+    if ($ticket->hasField('status') && !$ticket->get('status')->isEmpty()) {
+      $status = trim((string) $ticket->get('status')->getString());
+    }
+    if (in_array($status, [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED], TRUE)) {
+      return FALSE;
+    }
+    return $ticket->getFulfilmentStatus() !== Ticket::FULFILMENT_CANCELLED;
   }
 
   /**

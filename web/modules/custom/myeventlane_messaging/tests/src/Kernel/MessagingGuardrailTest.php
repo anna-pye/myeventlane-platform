@@ -328,7 +328,7 @@ final class MessagingGuardrailTest extends KernelTestBase {
         'order_id' => 1001,
         'order_url' => 'https://example.test/my-tickets/order/1001',
         'digital_pass_url' => 'https://example.test/my-tickets/order/1001',
-        'tickets_url' => 'https://example.test/my-tickets/order/1001#tickets',
+        'tickets_url' => 'https://example.test/my-tickets/order/1001#mel-pass-entry',
         'apple_wallet_url' => NULL,
         'google_wallet_url' => NULL,
         'pdf_url' => 'https://example.test/ticket/ABC123/pdf',

@@ -19,16 +19,19 @@ final class WalletTicketResolver {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly WalletDownloadAccessChecker $downloadAccess,
   ) {}
 
   /**
    * Loads issued tickets for an order item and picks the operational row.
    *
-   * When multiple ticket rows exist for one order item (quantity > 1), prefers
-   * the single row whose holder email matches the active account email when
-   * exactly one such row exists; otherwise uses the lowest ticket ID for a
-   * deterministic choice. This mirrors inward-only compatibility used on PDF
-   * surfaces without changing public wallet URLs.
+   * Prefers tickets that are still wallet-eligible (not void, refunded, or
+   * fulfilment-cancelled). When multiple eligible rows exist for one order
+   * item (quantity > 1), prefers the single row whose holder email matches the
+   * active account email when exactly one such row exists; otherwise uses the
+   * lowest ticket ID for a deterministic choice. When every row is blocked,
+   * returns the lowest-ID blocked row so WalletDownloadAccessChecker can deny
+   * with the correct message (avoids the NULL legacy path).
    *
    * @return \Drupal\myeventlane_tickets\Entity\Ticket|null
    *   An issued ticket, or NULL when none exist (legacy compatibility path).
@@ -51,17 +54,26 @@ final class WalletTicketResolver {
       return ((int) $a->id()) <=> ((int) $b->id());
     });
 
-    if (count($list) === 1) {
-      return $list[0];
+    $eligible = [];
+    foreach ($list as $ticket) {
+      if (!$this->downloadAccess->isWalletBlockedStatus($ticket)) {
+        $eligible[] = $ticket;
+      }
+    }
+    // Prefer usable entitlements; keep blocked rows only so access can deny.
+    $pool = $eligible !== [] ? $eligible : $list;
+
+    if (count($pool) === 1) {
+      return $pool[0];
     }
 
     $account_email = strtolower(trim((string) $account->getEmail()));
     if ($account_email === '') {
-      return $list[0];
+      return $pool[0];
     }
 
     $matches = [];
-    foreach ($list as $ticket) {
+    foreach ($pool as $ticket) {
       if ($ticket->get('holder_email')->isEmpty()) {
         continue;
       }
@@ -75,7 +87,7 @@ final class WalletTicketResolver {
       return $matches[0];
     }
 
-    return $list[0];
+    return $pool[0];
   }
 
 }
