@@ -411,11 +411,56 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
   }
 
   /**
+   * Same-event multi-pass bookings keep readiness on every digital pass.
+   */
+  public function testSameEventPassesEachGetReadiness(): void {
+    $order = $this->createOrder();
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-SAME-A',
+      'status' => Ticket::STATUS_ASSIGNED,
+      'event_id' => $this->event->id(),
+      'order_item_id' => 1,
+    ]);
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-SAME-B',
+      'status' => Ticket::STATUS_ASSIGNED,
+      'event_id' => $this->event->id(),
+      'order_item_id' => 2,
+    ]);
+
+    $model = $this->builder()->build($order, TRUE);
+    $this->assertCount(2, $model['ticket_models']);
+    $first = $model['ticket_models'][0];
+    $second = $model['ticket_models'][1];
+
+    $this->assertArrayHasKey('readiness', $first);
+    $this->assertArrayHasKey('readiness', $second);
+    $this->assertSame('Gate A', $this->readinessVenueDetail($first['readiness']));
+    $this->assertSame('Gate A', $this->readinessVenueDetail($second['readiness']));
+    $this->assertSame('#mel-pass-entry', $first['readiness']['primary_action']['url']);
+    $this->assertSame('#mel-pass-entry-2', $second['readiness']['primary_action']['url']);
+    $this->assertSame('MEL-SAME-A', $this->readinessTicketCode($first['readiness']));
+    $this->assertSame('MEL-SAME-B', $this->readinessTicketCode($second['readiness']));
+  }
+
+  /**
    * @param array<string, mixed> $readiness
    */
   private function readinessVenueDetail(array $readiness): string {
     foreach ($readiness['detail_items'] ?? [] as $item) {
       if (($item['key'] ?? '') === 'venue') {
+        return (string) ($item['detail'] ?? '');
+      }
+    }
+    return '';
+  }
+
+  /**
+   * @param array<string, mixed> $readiness
+   */
+  private function readinessTicketCode(array $readiness): string {
+    foreach ($readiness['items'] ?? [] as $item) {
+      if (($item['key'] ?? '') === 'ticket_ready') {
         return (string) ($item['detail'] ?? '');
       }
     }

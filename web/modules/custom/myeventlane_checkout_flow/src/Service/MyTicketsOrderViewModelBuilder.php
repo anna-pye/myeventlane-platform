@@ -169,7 +169,6 @@ final class MyTicketsOrderViewModelBuilder {
     $bookingConfirmed = in_array($stateId, self::COMPLETED_ORDER_STATES, TRUE);
     $bookingNumber = (string) ($order->getOrderNumber() ?? $order->id());
     $enrichedTicketModels = [];
-    $readinessByEventId = [];
     $passIndex = 0;
     foreach ($ticketModels as $ticketModel) {
       if (!is_array($ticketModel)) {
@@ -186,10 +185,11 @@ final class MyTicketsOrderViewModelBuilder {
         ? $enriched['pass']['event']
         : NULL;
       $eventId = (int) ($passEvent['id'] ?? ($enriched['event']['id'] ?? 0));
-      // One readiness accordion per event, under the first digital pass for that event.
-      if ($eventId > 0 && !isset($readinessByEventId[$eventId])) {
+      // Every digital pass gets its own readiness accordion (same-event bookings
+      // included). Primary action anchors to this pass's QR, not a sibling pass.
+      if ($eventId > 0) {
         $passAnchor = $passIndex === 1 ? '#mel-pass-entry' : '#mel-pass-entry-' . $passIndex;
-        $readiness = $this->buildEventReadiness(
+        $enriched['readiness'] = $this->buildEventReadiness(
           $order,
           $passEvent !== NULL ? [$passEvent] : [],
           [$enriched],
@@ -198,8 +198,6 @@ final class MyTicketsOrderViewModelBuilder {
           $bookingConfirmed,
           $passAnchor,
         );
-        $readinessByEventId[$eventId] = $readiness;
-        $enriched['readiness'] = $readiness;
       }
       $enrichedTicketModels[] = $enriched;
     }
