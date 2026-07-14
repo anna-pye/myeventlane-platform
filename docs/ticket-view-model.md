@@ -92,3 +92,23 @@ Do not rely on Twig hiding or frontend filtering. Any new surface consuming this
 ## Backwards Compatibility
 
 This slice does not remove legacy order-item PDF routes, attendee fallbacks, wallet routes, scanner routes, or `mel:v1:` QR support. It introduces the shared model those surfaces will converge on in later Phase 2B slices.
+
+## QR inclusion flag
+
+`UniversalTicketViewModelBuilder::build($ticket, bool $include_qr = TRUE, bool $allow_qr_unavailable = FALSE)` controls QR generation and missing-secret behaviour.
+
+| Caller | `$include_qr` | `$allow_qr_unavailable` |
+|--------|----------------|-------------------------|
+| My Tickets overview (`/my-tickets`) | `FALSE` | n/a (QR skipped) |
+| My Tickets order detail | `TRUE` | `TRUE` (via `MyTicketsOrderViewModelBuilder`) |
+| PDF / Apple Wallet / default `build()` | `TRUE` (default) | `FALSE` (default; fail-loud) |
+
+When signing is required (`qr_payload_mode` ≠ `code_only`) and `MEL_QR_SECRET` (or settings equivalent) is missing:
+
+- `$allow_qr_unavailable = TRUE` → `qr.unavailable = TRUE` (customer order detail trust panel)
+- otherwise → `RuntimeException` (PDF / wallet / canonical default paths)
+
+`code_only` mode does not require a signing secret; `drush mel:qr-secret-status`, `mel:health`, and `mel:healthcheck` treat a missing secret as PASS in that mode.
+
+Direct `TicketQrPayload::buildForTicket()` callers (e.g. scanners) still fail loud when signing is required and the secret is missing.
+

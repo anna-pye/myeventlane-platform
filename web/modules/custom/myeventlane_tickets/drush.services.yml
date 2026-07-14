@@ -1,0 +1,7 @@
+services:
+  myeventlane_tickets.commands:
+    class: Drupal\myeventlane_tickets\Commands\TicketsCommands
+    arguments:
+      - '@myeventlane_tickets.ticket_qr_payload'
+    tags:
+      - { name: drush.command }

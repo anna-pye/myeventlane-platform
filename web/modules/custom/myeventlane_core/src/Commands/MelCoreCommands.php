@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Commands;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_core\PlatformFeeDefaults;
 use Drupal\myeventlane_core\ReleaseMetadataSchema;
 use Drush\Commands\DrushCommands;
@@ -80,6 +81,36 @@ final class MelCoreCommands extends DrushCommands {
     }
     else {
       $this->io()->note('APP_ENV not set to production|staging — skipping strict domain trio assertion.');
+    }
+
+
+    // Mirrors TicketQrPayload secret resolution without depending on tickets.
+    // code_only mode does not use HMAC signing — missing secret is healthy.
+    $qrMode = (string) ($this->configFactory->get('myeventlane_tickets.settings')->get('qr_payload_mode') ?? 'signed');
+    $qrRequiresSigning = $qrMode !== 'code_only';
+    $qrSource = NULL;
+    $qrSecret = Settings::get('myeventlane_qr_secret');
+    if (!empty($qrSecret)) {
+      $qrSource = 'settings:myeventlane_qr_secret';
+    }
+    elseif (!empty(Settings::get('myeventlane_ticket_qr_secret'))) {
+      $qrSource = 'settings:myeventlane_ticket_qr_secret';
+    }
+    elseif ((getenv('MEL_QR_SECRET') ?: '') !== '') {
+      $qrSource = 'env:MEL_QR_SECRET';
+    }
+    if (!$qrRequiresSigning) {
+      $this->io()->writeln(sprintf(
+        'QR signing secret: PASS (not required; qr_payload_mode=code_only%s)',
+        $qrSource !== NULL ? '; optional source ' . $qrSource : '',
+      ));
+    }
+    elseif ($qrSource === NULL) {
+      $this->io()->error("QR signing secret: FAIL — MEL_QR_SECRET missing (set host env or \$settings['myeventlane_qr_secret']).");
+      $failures++;
+    }
+    else {
+      $this->io()->writeln(sprintf('QR signing secret: PASS (source: %s)', $qrSource));
     }
 
     if ($failures > 0) {

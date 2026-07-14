@@ -80,3 +80,32 @@ Same chain **except**:
 - Missing optional local files do not fatal (`file_exists` / `is_readable` guards).
 - Missing required shared session fragment fails deploy verification in `scripts/deploy/remote-deploy.sh`.
 - Secrets must not live in tracked PHP/YAML; use `MEL_STRIPE_*`, `STRIPE_*`, `MEL_POSTMARK_*`, `MEL_QR_SECRET`, `MEL_AUTH_*`, `MEL_OPENAI_API_KEY`.
+
+## Ticket QR signing secret
+
+Required for signed ticket QR payloads (`mel:v1:` / `mel:v1:json:`).
+
+| Environment | Requirement |
+|-------------|-------------|
+| DDEV local | Optional: set `MEL_QR_SECRET` in `.ddev/config.local.yaml`. If unset, `settings.mel_shared_session.php` applies a **local-only** default when `IS_DDEV_PROJECT=true`. |
+| Staging | **Required:** `MEL_QR_SECRET` on PHP-FPM and CLI (deploy Drush). |
+| Production | **Required:** `MEL_QR_SECRET` on PHP-FPM and CLI. |
+
+Resolution order (see `TicketQrPayload`):
+
+1. `$settings['myeventlane_qr_secret']` (usually from `MEL_QR_SECRET` via `settings.mel_shared_session.php`)
+2. Legacy `$settings['myeventlane_ticket_qr_secret']`
+3. Environment `MEL_QR_SECRET`
+
+**Never** store the signing secret in `config/sync` or `myeventlane_tickets.settings`.
+
+Validation:
+
+```bash
+ddev drush mel:qr-secret-status
+ddev drush mel:healthcheck
+ddev drush mel:health
+```
+
+Expect Status: **PASS** and a source label such as `settings:myeventlane_qr_secret` (never the raw secret).
+

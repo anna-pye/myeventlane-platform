@@ -14,5 +14,6 @@ services:
       - '@queue'
       - '@twig'
       - '@module_handler'
+      - '@?myeventlane_tickets.ticket_qr_payload'
     tags:
       - { name: drush.command }

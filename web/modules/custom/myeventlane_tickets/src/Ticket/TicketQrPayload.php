@@ -226,20 +226,72 @@ final class TicketQrPayload {
   }
 
   /**
+   * Whether a QR signing secret is available from settings or environment.
+   */
+  public function isSecretConfigured(): bool {
+    return $this->resolveSecretSource() !== NULL;
+  }
+
+  /**
+   * Resolves which non-empty source would supply the QR signing secret.
+   *
+   * Order matches getSecret(): settings key, legacy settings key, then MEL_QR_SECRET.
+   * Does not reveal the secret value.
+   *
+   * @return string|null
+   *   Machine-safe source label, or NULL when missing.
+   */
+  public function resolveSecretSource(): ?string {
+    $secret = Settings::get('myeventlane_qr_secret');
+    if (!empty($secret)) {
+      return 'settings:myeventlane_qr_secret';
+    }
+
+    $legacy = Settings::get('myeventlane_ticket_qr_secret');
+    if (!empty($legacy)) {
+      return 'settings:myeventlane_ticket_qr_secret';
+    }
+
+    $env = getenv('MEL_QR_SECRET') ?: '';
+    if ($env !== '') {
+      return 'env:MEL_QR_SECRET';
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Whether the active qr_payload_mode requires a signing secret.
+   */
+  public function requiresSigningSecret(): bool {
+    $mode = (string) ($this->configFactory->get('myeventlane_tickets.settings')->get('qr_payload_mode') ?? 'signed');
+    return $mode !== 'code_only';
+  }
+
+  /**
+   * Whether host QR signing configuration is healthy for the active mode.
+   *
+   * code_only does not use HMAC signing, so a missing secret is healthy.
+   */
+  public function isSigningConfigurationHealthy(): bool {
+    return !$this->requiresSigningSecret() || $this->isSecretConfigured();
+  }
+
+  /**
    * Gets QR signing secret from settings.php first, then environment.
    */
   private function getSecret(): string {
+    if (!$this->isSecretConfigured()) {
+      $this->logger->error('MEL QR signing secret is not configured.');
+      throw new \RuntimeException('MEL QR signing secret is not configured.');
+    }
+
     $secret = Settings::get('myeventlane_qr_secret');
     if (empty($secret)) {
       $secret = Settings::get('myeventlane_ticket_qr_secret');
     }
     if (empty($secret)) {
       $secret = getenv('MEL_QR_SECRET') ?: '';
-    }
-
-    if (empty($secret)) {
-      $this->logger->error('MEL QR signing secret is not configured.');
-      throw new \RuntimeException('MEL QR signing secret is not configured.');
     }
 
     return (string) $secret;

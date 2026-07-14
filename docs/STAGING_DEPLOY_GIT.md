@@ -50,7 +50,7 @@ If **Build** succeeds and **Deploy to staging** is red, the problem is in the de
 
 **Secrets to verify** (Repository **Settings → Secrets and variables**): `SSH_PRIVATE_KEY`, `SSH_HOST`, `SSH_USER` must match a key that is authorised on the staging host.
 
-**Host application secrets** (server env / shared `settings.php`, not GitHub Actions and not `config/sync`): `MEL_QR_SECRET` is required. `remote-deploy.sh` runs `drush mel:qr-secret-status` on the **new release after bootstrap and before** switching `current/`. Deploy aborts (no activation) if the check fails.
+**Host application secrets** (staging server env / shared `settings.php`, **not** GitHub Actions secrets and **not** `config/sync`): `MEL_QR_SECRET` must be set so ticket QR HMAC signing works. Verify with `drush mel:qr-secret-status` (expect Status: PASS).
 
 ## 4. Optional: other deploy triggers (not in the repo today)
 

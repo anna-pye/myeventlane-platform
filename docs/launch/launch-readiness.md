@@ -1141,7 +1141,7 @@ Custom Views plugins implement `VendorStoreAccess` which uses static service cal
 | C9 | Site slogan typo corrected (`evnts` → `events`) | ❌ | Critical | Yes |
 | C10 | Google Maps API key restricted to production domains | 🔲 | High | No |
 | C11 | Postmark sender domain and signatures verified | 🔲 | Critical | Yes |
-| C12 | QR signing secret (`MEL_QR_SECRET`) set in production settings | 🔲 | Critical | Yes |
+| C12 | QR signing secret (`MEL_QR_SECRET`) set in production settings; verify with `drush mel:qr-secret-status` (PASS) | 🔲 | Critical | Yes |
 
 ### 14.4 Payments
 
