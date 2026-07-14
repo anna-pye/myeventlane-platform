@@ -360,6 +360,66 @@ final class MyTicketsOrderViewModelBuilderTest extends KernelTestBase {
     $this->assertNotContains('booking_confirmed', $detailKeys);
     $this->assertNotContains('ticket_ready', $detailKeys);
     $this->assertContains('venue', $detailKeys);
+    $this->assertSame($readiness, $model['ticket_models'][0]['readiness']);
+  }
+
+  /**
+   * Multi-event bookings attach readiness to each pass's own event.
+   */
+  public function testEventReadinessMatchesEachDigitalPassEvent(): void {
+    $order = $this->createOrder();
+    $secondStart = time() + (60 * 86400);
+    $secondEvent = Node::create([
+      'type' => 'event',
+      'title' => 'Second Pass Event',
+      'uid' => $this->customer->id(),
+      'status' => 1,
+      'field_event_start' => gmdate('Y-m-d\TH:i:s', $secondStart),
+      'field_event_end' => gmdate('Y-m-d\TH:i:s', $secondStart + 7200),
+      'field_venue_name' => 'Gate B',
+      'field_event_vendor' => $this->customer->id(),
+    ]);
+    $secondEvent->save();
+
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-READY-A',
+      'status' => Ticket::STATUS_ASSIGNED,
+      'event_id' => $this->event->id(),
+      'order_item_id' => 1,
+    ]);
+    $this->createTicket($order, [
+      'ticket_code' => 'MEL-READY-B',
+      'status' => Ticket::STATUS_ASSIGNED,
+      'event_id' => $secondEvent->id(),
+      'order_item_id' => 2,
+    ]);
+
+    $model = $this->builder()->build($order, TRUE);
+    $this->assertCount(2, $model['ticket_models']);
+
+    $first = $model['ticket_models'][0];
+    $second = $model['ticket_models'][1];
+    $this->assertArrayHasKey('readiness', $first);
+    $this->assertArrayHasKey('readiness', $second);
+    $this->assertSame('Gate A', $first['pass']['event']['location']);
+    $this->assertSame('Gate B', $second['pass']['event']['location']);
+    $this->assertSame('Gate A', $this->readinessVenueDetail($first['readiness']));
+    $this->assertSame('Gate B', $this->readinessVenueDetail($second['readiness']));
+    $this->assertSame('#mel-pass-entry', $first['readiness']['primary_action']['url']);
+    $this->assertSame('#mel-pass-entry-2', $second['readiness']['primary_action']['url']);
+    $this->assertSame($first['readiness'], $model['readiness']);
+  }
+
+  /**
+   * @param array<string, mixed> $readiness
+   */
+  private function readinessVenueDetail(array $readiness): string {
+    foreach ($readiness['detail_items'] ?? [] as $item) {
+      if (($item['key'] ?? '') === 'venue') {
+        return (string) ($item['detail'] ?? '');
+      }
+    }
+    return '';
   }
 
   /**

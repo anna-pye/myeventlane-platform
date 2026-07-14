@@ -165,21 +165,62 @@ final class MyTicketsOrderViewModelBuilder {
       'help_centre' => (string) $this->t('Help Centre'),
     ];
 
+    $help = $this->buildHelpLinks();
+    $bookingConfirmed = in_array($stateId, self::COMPLETED_ORDER_STATES, TRUE);
+    $bookingNumber = (string) ($order->getOrderNumber() ?? $order->id());
     $enrichedTicketModels = [];
+    $readinessByEventId = [];
+    $passIndex = 0;
     foreach ($ticketModels as $ticketModel) {
       if (!is_array($ticketModel)) {
         continue;
       }
-      $enrichedTicketModels[] = $this->enrichDigitalPassPresentation(
+      $enriched = $this->enrichDigitalPassPresentation(
         $ticketModel,
         $events,
-        (string) ($order->getOrderNumber() ?? $order->id()),
+        $bookingNumber,
         $ctaLabels,
       );
+      $passIndex++;
+      $passEvent = is_array($enriched['pass']['event'] ?? NULL)
+        ? $enriched['pass']['event']
+        : NULL;
+      $eventId = (int) ($passEvent['id'] ?? ($enriched['event']['id'] ?? 0));
+      // One readiness accordion per event, under the first digital pass for that event.
+      if ($eventId > 0 && !isset($readinessByEventId[$eventId])) {
+        $passAnchor = $passIndex === 1 ? '#mel-pass-entry' : '#mel-pass-entry-' . $passIndex;
+        $readiness = $this->buildEventReadiness(
+          $order,
+          $passEvent !== NULL ? [$passEvent] : [],
+          [$enriched],
+          $help,
+          $ctaLabels,
+          $bookingConfirmed,
+          $passAnchor,
+        );
+        $readinessByEventId[$eventId] = $readiness;
+        $enriched['readiness'] = $readiness;
+      }
+      $enrichedTicketModels[] = $enriched;
     }
 
-    $help = $this->buildHelpLinks();
     $eventsList = array_values($events);
+    // Order-level alias: first attached pass readiness (hub/tests/legacy consumers).
+    $orderReadiness = NULL;
+    foreach ($enrichedTicketModels as $enrichedModel) {
+      if (isset($enrichedModel['readiness']) && is_array($enrichedModel['readiness'])) {
+        $orderReadiness = $enrichedModel['readiness'];
+        break;
+      }
+    }
+    $orderReadiness ??= $this->buildEventReadiness(
+      $order,
+      $eventsList,
+      $enrichedTicketModels,
+      $help,
+      $ctaLabels,
+      $bookingConfirmed,
+    );
 
     return [
       'order' => $order,
@@ -197,14 +238,7 @@ final class MyTicketsOrderViewModelBuilder {
       'has_upcoming_events' => $hasUpcomingEvents,
       'help' => $help,
       'pass_labels' => $ctaLabels,
-      'readiness' => $this->buildEventReadiness(
-        $order,
-        $eventsList,
-        $enrichedTicketModels,
-        $help,
-        $ctaLabels,
-        in_array($stateId, self::COMPLETED_ORDER_STATES, TRUE),
-      ),
+      'readiness' => $orderReadiness,
     ];
   }
 
@@ -374,9 +408,13 @@ final class MyTicketsOrderViewModelBuilder {
    * existing messaging reminder timings (7d / 24h) as presentation note only.
    *
    * @param list<array<string, mixed>> $events
+   *   Events scoped to this readiness panel (normally the pass's event only).
    * @param list<array<string, mixed>> $ticketModels
+   *   Ticket models for the same event / pass (normally a single row).
    * @param array{refund_url: string, help_centre_url: string} $help
    * @param array<string, string> $ctaLabels
+   * @param string $passEntryAnchor
+   *   In-page QR anchor for this pass (#mel-pass-entry or #mel-pass-entry-N).
    *
    * @return array<string, mixed>
    */
@@ -387,6 +425,7 @@ final class MyTicketsOrderViewModelBuilder {
     array $help,
     array $ctaLabels,
     bool $bookingConfirmed,
+    string $passEntryAnchor = '#mel-pass-entry',
   ): array {
     $panel = $this->readiness instanceof MelReadinessHelper
       ? $this->readiness->customerEventReadinessPanelLabels()
@@ -411,13 +450,18 @@ final class MyTicketsOrderViewModelBuilder {
         'help' => (string) $this->t('Help'),
       ];
 
-    $primaryEvent = $events[0] ?? NULL;
+    // Always pair readiness to the ticket/pass shown — never an unrelated events[0].
     $primaryTicket = $ticketModels[0] ?? NULL;
+    $primaryEvent = $this->resolveReadinessEventForTicket(
+      is_array($primaryTicket) ? $primaryTicket : NULL,
+      $events,
+    );
     $pass = is_array($primaryTicket) && is_array($primaryTicket['pass'] ?? NULL)
       ? $primaryTicket['pass']
       : [];
     $eventId = (int) ($primaryEvent['id'] ?? 0);
     $eventContext = $this->loadEventReadinessContext($eventId);
+    $passEntryAnchor = $this->normalizePassEntryAnchor($passEntryAnchor);
 
     $stateKey = $this->resolveEventReadinessStateKey(
       $bookingConfirmed,
@@ -452,7 +496,7 @@ final class MyTicketsOrderViewModelBuilder {
         'label' => $itemLabels['ticket_ready'],
         'ready' => TRUE,
         'detail' => (string) ($primaryTicket['ticket']['code'] ?? ''),
-        'url' => '#mel-pass-entry',
+        'url' => $passEntryAnchor,
       ];
     }
 
@@ -577,9 +621,57 @@ final class MyTicketsOrderViewModelBuilder {
         $help,
         $ctaLabels,
         $eventContext,
+        $passEntryAnchor,
       ),
       'reminder_note' => $panel['reminder_note'],
     ];
+  }
+
+  /**
+   * Event for readiness must belong to the pass ticket, not a sibling events[0].
+   *
+   * @param array<string, mixed>|null $ticketModel
+   * @param list<array<string, mixed>> $events
+   *
+   * @return array<string, mixed>|null
+   */
+  private function resolveReadinessEventForTicket(?array $ticketModel, array $events): ?array {
+    if ($ticketModel === NULL) {
+      return $events[0] ?? NULL;
+    }
+
+    if (is_array($ticketModel['pass']['event'] ?? NULL)) {
+      return $ticketModel['pass']['event'];
+    }
+
+    $ticketEventId = (int) ($ticketModel['event']['id'] ?? 0);
+    if ($ticketEventId > 0) {
+      foreach ($events as $candidate) {
+        if (!is_array($candidate)) {
+          continue;
+        }
+        if ((int) ($candidate['id'] ?? 0) === $ticketEventId) {
+          return $candidate;
+        }
+      }
+      $fromTicket = $this->eventFromTicketModel($ticketModel);
+      if ($fromTicket !== NULL) {
+        return $fromTicket;
+      }
+    }
+
+    return $events[0] ?? NULL;
+  }
+
+  /**
+   * Restricts pass anchors to the Digital Pass QR fragment contract.
+   */
+  private function normalizePassEntryAnchor(string $anchor): string {
+    $anchor = trim($anchor);
+    if ($anchor === '#mel-pass-entry' || preg_match('/^#mel-pass-entry-\d+$/', $anchor) === 1) {
+      return $anchor;
+    }
+    return '#mel-pass-entry';
   }
 
   /**
@@ -727,6 +819,7 @@ final class MyTicketsOrderViewModelBuilder {
     array $help,
     array $ctaLabels,
     array $eventContext,
+    string $passEntryAnchor = '#mel-pass-entry',
   ): ?array {
     $helpUrl = trim((string) ($help['help_centre_url'] ?? ''));
     $eventUrl = trim((string) ($event['url'] ?? ''));
@@ -735,6 +828,7 @@ final class MyTicketsOrderViewModelBuilder {
     $pdfUrl = trim((string) ($ticketModel['actions']['pdf']['download']['url'] ?? ''));
     $hasQr = !empty($ticketModel['qr']['data_uri']);
     $contactMailto = trim((string) ($eventContext['contact_mailto'] ?? ''));
+    $passEntryAnchor = $this->normalizePassEntryAnchor($passEntryAnchor);
 
     if (in_array($stateKey, ['cancelled', 'expired'], TRUE)) {
       if ($helpUrl !== '') {
@@ -769,7 +863,7 @@ final class MyTicketsOrderViewModelBuilder {
       return [
         'key' => 'view_ticket',
         'label' => $ctaLabels['view_ticket'] ?? (string) $this->t('View ticket'),
-        'url' => '#mel-pass-entry',
+        'url' => $passEntryAnchor,
       ];
     }
 
@@ -786,7 +880,7 @@ final class MyTicketsOrderViewModelBuilder {
         return [
           'key' => 'view_ticket',
           'label' => $ctaLabels['view_ticket'] ?? (string) $this->t('View ticket'),
-          'url' => '#mel-pass-entry',
+          'url' => $passEntryAnchor,
         ];
       }
       if ($pdfUrl !== '') {
