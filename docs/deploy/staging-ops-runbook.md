@@ -138,6 +138,7 @@ Expect: `Drupal bootstrap : Successful`, database connected.
 - [ ] `show-release.sh --path ~/staging/current --verify` exits 0
 - [ ] HTTP homepage returns 200 with Drupal headers
 - [ ] `drush status` bootstrap successful
+- [ ] `drush mel:qr-secret-status` reports **PASS** (host `MEL_QR_SECRET` or `$settings['myeventlane_qr_secret']`; never in `config/sync`)
 - [ ] Production HOLD path untouched
 - [ ] No ad-hoc server overlay of `remote-deploy.sh` on the activation path
 

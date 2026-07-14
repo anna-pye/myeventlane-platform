@@ -41,6 +41,11 @@
             <img src="{{ ticket.qr.data_uri }}" alt="{{ 'Scan at entry'|t }}" width="200" height="200">
             <p class="mel-ticket-pass__qr-hint">{{ 'Show this code at entry'|t }}</p>
           </div>
+        {% elseif ticket.qr.unavailable|default(false) %}
+          <div class="mel-ticket-pass__qr-unavailable" role="status">
+            <p class="mel-ticket-pass__qr-unavailable-title">{{ 'QR code temporarily unavailable'|t }}</p>
+            <p class="mel-ticket-pass__qr-unavailable-body">{{ 'Your booking remains valid. Please contact support if this issue persists.'|t }}</p>
+          </div>
         {% endif %}
 
         <div class="mel-ticket-pass__details">

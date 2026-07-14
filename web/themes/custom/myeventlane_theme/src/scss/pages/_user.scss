@@ -763,6 +763,29 @@
   text-align: center;
 }
 
+
+.mel-ticket-pass__qr-unavailable {
+  margin: spacing.mel-space(4);
+  padding: spacing.mel-space(4);
+  border-radius: radii.$mel-radius-sm;
+  background: colors.$mel-color-bg;
+  text-align: center;
+}
+
+.mel-ticket-pass__qr-unavailable-title {
+  margin: 0 0 spacing.mel-space(2);
+  font-size: typography.mel-font-size(base);
+  font-weight: 600;
+  color: colors.$mel-color-text;
+}
+
+.mel-ticket-pass__qr-unavailable-body {
+  margin: 0;
+  font-size: typography.mel-font-size(sm);
+  color: colors.$mel-color-text-muted;
+}
+
+
 .mel-ticket-pass__details {
   padding: spacing.mel-space(4);
 }

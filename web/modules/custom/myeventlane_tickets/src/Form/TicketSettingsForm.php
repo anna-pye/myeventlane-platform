@@ -4,14 +4,36 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_tickets\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\Core\Site\Settings;
+use Drupal\myeventlane_tickets\Ticket\TicketQrPayload;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configuration form for ticket PDF generation and download settings.
  */
 final class TicketSettingsForm extends ConfigFormBase {
+
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    TypedConfigManagerInterface $typedConfigManager,
+    private readonly TicketQrPayload $ticketQrPayload,
+  ) {
+    parent::__construct($config_factory, $typedConfigManager);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('config.typed'),
+      $container->get('myeventlane_tickets.ticket_qr_payload'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -129,16 +151,26 @@ final class TicketSettingsForm extends ConfigFormBase {
     $form['security'] = [
       '#type' => 'details',
       '#title' => $this->t('QR signing'),
-      '#open' => FALSE,
+      '#open' => TRUE,
     ];
 
+    $source = $this->ticketQrPayload->resolveSecretSource();
+    if (!$this->ticketQrPayload->requiresSigningSecret()) {
+      $markup = $source === NULL
+        ? $this->t('Status: <strong>PASS</strong> — Not required (QR payload mode is ticket code only)')
+        : $this->t('Status: <strong>PASS</strong> — Not required (code only); optional source: @source', ['@source' => $source]);
+    }
+    elseif ($source === NULL) {
+      $markup = $this->t('Status: <strong>FAIL</strong> — MEL_QR_SECRET missing');
+    }
+    else {
+      $markup = $this->t('Status: <strong>PASS</strong> — Source: @source', ['@source' => $source]);
+    }
     $form['security']['qr_secret_status'] = [
       '#type' => 'item',
       '#title' => $this->t('QR signing secret'),
-      '#markup' => $this->isQrSecretConfigured()
-        ? $this->t('Configured by environment: yes')
-        : $this->t('Configured by environment: no'),
-      '#description' => $this->t('Set $settings[\'myeventlane_qr_secret\'] in settings.php or the MEL_QR_SECRET environment variable. Secrets are never stored in exported configuration.'),
+      '#markup' => $markup,
+      '#description' => $this->t("Set \$settings['myeventlane_qr_secret'] in settings.php or the MEL_QR_SECRET environment variable when using signed QR mode. Secrets are never stored in exported configuration. Verify with: drush mel:qr-secret-status"),
     ];
 
     return parent::buildForm($form, $form_state);
@@ -161,23 +193,6 @@ final class TicketSettingsForm extends ConfigFormBase {
       ->save();
 
     parent::submitForm($form, $form_state);
-  }
-
-  /**
-   * Whether the QR signing secret is available from settings or environment.
-   */
-  private function isQrSecretConfigured(): bool {
-    $secret = Settings::get('myeventlane_qr_secret');
-    if (!empty($secret)) {
-      return TRUE;
-    }
-
-    $legacy = Settings::get('myeventlane_ticket_qr_secret');
-    if (!empty($legacy)) {
-      return TRUE;
-    }
-
-    return !empty(getenv('MEL_QR_SECRET'));
   }
 
 }
