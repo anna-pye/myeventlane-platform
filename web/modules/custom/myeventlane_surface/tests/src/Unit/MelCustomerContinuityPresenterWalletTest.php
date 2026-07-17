@@ -6,9 +6,11 @@ namespace Drupal\Tests\myeventlane_surface\Unit;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_surface\MelCustomerContinuityPresenter;
+use Drupal\myeventlane_wallet\Service\WalletActionBuilder;
 use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
 use Drupal\myeventlane_wallet\Service\WalletSigner;
 use Drupal\Tests\UnitTestCase;
@@ -52,7 +54,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
    */
   public function testGateOffEmitsNoWalletActions(): void {
     new Settings(['myeventlane_wallet' => []]);
-    $gate = $this->gate([
+    $builder = $this->actionBuilder([
       'apple_enabled' => TRUE,
       'google_enabled' => TRUE,
       'apple_team_id' => 'ABCDE12345',
@@ -62,7 +64,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       'show_wallet_in_email' => TRUE,
     ]);
 
-    $presentation = $this->presenter($gate)->buildCheckoutCompletionPresentation(
+    $presentation = $this->presenter($builder)->buildCheckoutCompletionPresentation(
       'buyer@example.test',
       '1001',
       42,
@@ -76,7 +78,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       55,
     );
 
-    $this->assertFalse($gate->shouldEmitWalletActions());
+    $this->assertSame(['apple' => NULL, 'google' => NULL], $builder->buildForOrderItem(55));
     $this->assertSame(['apple' => NULL, 'google' => NULL], $presentation['wallet']);
   }
 
@@ -97,7 +99,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       ],
     ]);
 
-    $gate = $this->gate([
+    $builder = $this->actionBuilder([
       'apple_enabled' => TRUE,
       'google_enabled' => TRUE,
       'apple_team_id' => 'ABCDE12345',
@@ -107,7 +109,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       'show_wallet_in_email' => TRUE,
     ]);
 
-    $presentation = $this->presenter($gate)->buildCheckoutCompletionPresentation(
+    $presentation = $this->presenter($builder)->buildCheckoutCompletionPresentation(
       'buyer@example.test',
       '1001',
       42,
@@ -121,9 +123,6 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       55,
     );
 
-    $this->assertTrue($gate->shouldEmitWalletActions());
-    $this->assertTrue($gate->isAppleWalletPresentable());
-    $this->assertTrue($gate->isGoogleWalletPresentable());
     $this->assertSame('Add to Apple Wallet', $presentation['wallet']['apple']['label']);
     $this->assertSame('myeventlane_wallet.apple', $presentation['wallet']['apple']['route']);
     $this->assertSame('/wallet/apple/55', $presentation['wallet']['apple']['url']);
@@ -149,7 +148,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       ],
     ]);
 
-    $gate = $this->gate([
+    $builder = $this->actionBuilder([
       'apple_enabled' => TRUE,
       'google_enabled' => TRUE,
       'apple_team_id' => 'ABCDE12345',
@@ -158,9 +157,9 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       'show_wallet_buttons' => TRUE,
       'show_wallet_in_email' => TRUE,
     ]);
-    $this->assertTrue($gate->shouldEmitWalletActions());
+    $this->assertNotNull($builder->buildForOrderItem(55)['apple']);
 
-    $presentation = $this->presenter($gate)->buildCheckoutCompletionPresentation(
+    $presentation = $this->presenter($builder)->buildCheckoutCompletionPresentation(
       'guest@example.test',
       '1001',
       NULL,
@@ -193,7 +192,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       ],
     ]);
 
-    $gate = $this->gate([
+    $builder = $this->actionBuilder([
       'apple_enabled' => TRUE,
       'google_enabled' => TRUE,
       'apple_team_id' => 'ABCDE12345',
@@ -203,7 +202,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       'show_wallet_in_email' => TRUE,
     ]);
 
-    $presentation = $this->presenter($gate)->buildCheckoutCompletionPresentation(
+    $presentation = $this->presenter($builder)->buildCheckoutCompletionPresentation(
       'buyer@example.test',
       '1001',
       42,
@@ -217,8 +216,6 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       77,
     );
 
-    $this->assertTrue($gate->isAppleWalletPresentable());
-    $this->assertFalse($gate->isGoogleWalletPresentable());
     $this->assertSame('/wallet/apple/77', $presentation['wallet']['apple']['url']);
     $this->assertNull($presentation['wallet']['google']);
   }
@@ -240,7 +237,7 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       ],
     ]);
 
-    $gate = $this->gate([
+    $builder = $this->actionBuilder([
       'apple_enabled' => TRUE,
       'google_enabled' => TRUE,
       'apple_team_id' => 'ABCDE12345',
@@ -250,10 +247,15 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
       'show_wallet_in_email' => TRUE,
     ]);
 
-    $this->assertFalse($gate->shouldEmitWalletActions());
-    $this->assertTrue($gate->shouldEmitWalletInEmail());
+    $this->assertSame(
+      ['apple' => NULL, 'google' => NULL],
+      $builder->buildForOrderItem(55, WalletActionBuilder::SURFACE_ACTIONS),
+    );
+    $this->assertNotNull(
+      $builder->buildForOrderItem(55, WalletActionBuilder::SURFACE_EMAIL)['apple'],
+    );
 
-    $presentation = $this->presenter($gate)->buildCheckoutCompletionPresentation(
+    $presentation = $this->presenter($builder)->buildCheckoutCompletionPresentation(
       'buyer@example.test',
       '1001',
       42,
@@ -270,17 +272,17 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
     $this->assertSame(['apple' => NULL, 'google' => NULL], $presentation['wallet']);
   }
 
-  private function presenter(WalletPresentationGate $gate): MelCustomerContinuityPresenter {
+  private function presenter(WalletActionBuilder $builder): MelCustomerContinuityPresenter {
     return new MelCustomerContinuityPresenter(
       new MelReadinessHelper($this->getStringTranslationStub()),
-      $gate,
+      $builder,
     );
   }
 
   /**
    * @param array<string, mixed> $values
    */
-  private function gate(array $values): WalletPresentationGate {
+  private function actionBuilder(array $values): WalletActionBuilder {
     $config = $this->createMock(ImmutableConfig::class);
     $config->method('get')->willReturnCallback(
       static fn (string $key): mixed => $values[$key] ?? NULL,
@@ -288,7 +290,10 @@ final class MelCustomerContinuityPresenterWalletTest extends UnitTestCase {
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->method('get')->with('myeventlane_wallet.settings')->willReturn($config);
     $signer = new WalletSigner($config_factory, new NullLogger());
-    return new WalletPresentationGate($config_factory, $signer);
+    $gate = new WalletPresentationGate($config_factory, $signer);
+    $modules = $this->createMock(ModuleExtensionList::class);
+    $modules->method('getPath')->with('myeventlane_wallet')->willReturn('modules/custom/myeventlane_wallet');
+    return new WalletActionBuilder($gate, $modules);
   }
 
   private function writeAppleCredentials(): void {

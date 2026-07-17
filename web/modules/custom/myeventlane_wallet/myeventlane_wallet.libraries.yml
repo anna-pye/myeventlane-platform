@@ -1,0 +1,4 @@
+wallet_badges:
+  css:
+    component:
+      css/wallet-badges.css: {}

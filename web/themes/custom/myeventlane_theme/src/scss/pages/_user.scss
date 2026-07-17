@@ -1049,19 +1049,34 @@
   gap: spacing.mel-space(2);
   padding: spacing.mel-space(4);
 
-  @media (min-width: 414px) {
+  @media (min-width: 768px) {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: center;
   }
 
   .mel-button,
-  .mel-ticket-pass__wallet {
+  .mel-ticket-pass__wallet,
+  .mel-wallet-badge {
     min-height: 48px;
     min-width: 44px;
     flex: 1 1 auto;
     justify-content: center;
   }
+
+  .mel-wallet-buttons {
+    flex: 1 1 auto;
+  }
+}
+
+.mel-ticket-pass__pdf {
+  min-height: 48px;
+  flex: 1 1 auto;
+  justify-content: center;
+}
+
+.mel-ticket-pass__pdf-icon {
+  flex: 0 0 auto;
 }
 
 .mel-ticket-pass__secondary-actions {

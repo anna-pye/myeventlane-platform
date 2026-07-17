@@ -122,13 +122,19 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $context = $this->sampleContext();
     $context['apple_wallet_url'] = 'https://example.test/wallet/apple/55';
     $context['google_wallet_url'] = 'https://example.test/wallet/google/55';
+    $context['apple_wallet_badge_url'] = 'https://example.test/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg';
+    $context['google_wallet_badge_url'] = 'https://example.test/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png';
+    $context['pdf_url'] = 'https://example.test/ticket/ABC123/pdf';
 
     $body = trim($twig->createTemplate((string) $data['body_html'])->render($context));
 
     $this->assertStringContainsString('Add to Apple Wallet', $body);
     $this->assertStringContainsString('Add to Google Wallet', $body);
+    $this->assertStringContainsString('Download PDF', $body);
     $this->assertStringContainsString('/wallet/apple/55', $body);
     $this->assertStringContainsString('/wallet/google/55', $body);
+    $this->assertStringContainsString('add-to-apple-wallet.svg', $body);
+    $this->assertStringContainsString('add-to-google-wallet.png', $body);
   }
 
   /**
@@ -260,6 +266,8 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
       'tickets_need_assignment' => FALSE,
       'apple_wallet_url' => NULL,
       'google_wallet_url' => NULL,
+      'apple_wallet_badge_url' => NULL,
+      'google_wallet_badge_url' => NULL,
       'pdf_url' => 'https://example.test/ticket/ABC123/pdf',
       'manage_booking_url' => 'https://example.test/my-tickets',
       'events' => [

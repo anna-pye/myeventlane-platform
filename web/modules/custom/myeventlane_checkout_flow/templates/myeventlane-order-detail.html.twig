@@ -142,26 +142,19 @@
           </dl>
         </section>
 
-        {# ---- Wallet + PDF (then secondary) ----
-           Official Add to Apple/Google Wallet badge SVGs must be installed at
-           myeventlane_wallet/assets/web/ (see assets/web/README.md). Until then,
-           accessible text CTAs are shown — never invent platform badges. #}
+        {# ---- Wallet + PDF (then secondary). Badges via canonical wallet-buttons. #}
         <div class="mel-ticket-pass__actions" aria-label="{{ 'Pass actions'|t }}">
-          {% if ticket.actions.wallet.apple.url|default('') %}
-            {# Official SVG badge preferred when assets/web/add-to-apple-wallet.svg is present. #}
-            <a href="{{ ticket.actions.wallet.apple.url }}" class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--apple" download>
-              {{ 'Add to Apple Wallet'|t }}
-            </a>
-          {% endif %}
-          {% if ticket.actions.wallet.google.url|default('') %}
-            {# Official SVG badge preferred when assets/web/add-to-google-wallet.svg is present. #}
-            <a href="{{ ticket.actions.wallet.google.url }}" class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--google" rel="noopener noreferrer">
-              {{ 'Add to Google Wallet'|t }}
-            </a>
-          {% endif %}
+          {% include '@myeventlane_wallet/wallet-buttons.html.twig' with {
+            apple: ticket.actions.wallet.apple|default(null),
+            google: ticket.actions.wallet.google|default(null),
+            variant: 'pass'
+          } only %}
           {% if ticket.actions.pdf.download.url %}
-            <a href="{{ ticket.actions.pdf.download.url }}" class="mel-button {% if ticket.actions.wallet.apple.url|default('') or ticket.actions.wallet.google.url|default('') %}mel-button--secondary{% else %}mel-button--primary{% endif %} mel-ticket-pass__pdf">
-              {{ labels.download_ticket|default('Download ticket'|t) }}
+            <a href="{{ ticket.actions.pdf.download.url }}" class="mel-btn mel-btn--cta mel-ticket-pass__pdf" download>
+              <svg class="mel-ticket-pass__pdf-icon" width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                <path d="M12 3v11m0 0 4-4m-4 4-4-4M5 17v2a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"/>
+              </svg>
+              <span>{{ labels.download_ticket|default('Download ticket'|t) }}</span>
             </a>
           {% endif %}
         </div>
