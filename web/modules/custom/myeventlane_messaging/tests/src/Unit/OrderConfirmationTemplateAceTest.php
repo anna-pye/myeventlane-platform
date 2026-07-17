@@ -6,7 +6,9 @@ namespace Drupal\Tests\myeventlane_messaging\Unit;
 
 use Drupal\Component\Serialization\Yaml;
 use Drupal\myeventlane_core\Service\LanguageStyleService;
+use Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
@@ -135,6 +137,24 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $this->assertStringContainsString('/wallet/google/55', $body);
     $this->assertStringContainsString('add-to-apple-wallet.svg', $body);
     $this->assertStringContainsString('add-to-google-wallet.png', $body);
+  }
+
+  /**
+   * Email wallet CTAs never use the action builder's host-relative fallback.
+   */
+  public function testWalletEmailUrlRejectsHostRelativeFallback(): void {
+    $reflection = new \ReflectionClass(OrderConfirmationQueueBuilder::class);
+    $builder = $reflection->newInstanceWithoutConstructor();
+    $logger = $reflection->getProperty('logger');
+    $logger->setValue($builder, new NullLogger());
+    $method = $reflection->getMethod('walletEmailUrl');
+    $method->setAccessible(TRUE);
+
+    $this->assertNull($method->invoke($builder, NULL, '/wallet/apple/55'));
+    $this->assertSame(
+      'https://example.test/wallet/apple/55',
+      $method->invoke($builder, NULL, 'https://example.test/wallet/apple/55'),
+    );
   }
 
   /**
