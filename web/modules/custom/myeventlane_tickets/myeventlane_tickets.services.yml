@@ -197,7 +197,7 @@ services:
       - '@myeventlane_tickets.operational_continuity_policy_manager'
       - '@myeventlane_tickets.occupancy_policy_manager'
       - '@logger.channel.myeventlane_tickets'
-      - '@?myeventlane_wallet.presentation_gate'
+      - '@?myeventlane_wallet.action_builder'
 
   myeventlane_tickets.ticket_mailer:
     class: Drupal\myeventlane_tickets\Service\TicketMailer

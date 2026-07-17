@@ -277,14 +277,20 @@
   gap: spacing.mel-space(4);
 }
 
-// Secondary wallet CTAs (below View Digital Pass). Same gate/routes as Digital Pass.
+// Wallet CTAs (below View Digital Pass). Official badges via mel-wallet-buttons.
 .mel-confirmation-wallet-actions {
   display: flex;
   flex-wrap: wrap;
   gap: spacing.mel-space(2);
+  width: 100%;
 
-  .mel-confirmation-button {
-    min-height: 44px;
+  .mel-wallet-buttons {
+    width: 100%;
+  }
+
+  .mel-confirmation-button,
+  .mel-wallet-badge {
+    min-height: 48px;
     min-width: 44px;
     flex: 1 1 auto;
     justify-content: center;

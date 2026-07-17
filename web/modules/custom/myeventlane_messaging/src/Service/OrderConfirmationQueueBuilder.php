@@ -16,8 +16,8 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_wallet\Service\WalletActionBuilder;
 use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
-use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
 use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -44,7 +44,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
     private readonly ?LegalSettingsService $legalSettings = NULL,
-    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
+    private readonly ?WalletActionBuilder $walletActionBuilder = NULL,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
     private readonly ?WalletDownloadAccessChecker $walletDownloadAccess = NULL,
   ) {}
@@ -183,6 +183,8 @@ final class OrderConfirmationQueueBuilder {
       'tickets_need_assignment' => $tickets_need_assignment,
       'apple_wallet_url' => $pass_actions['apple_wallet_url'],
       'google_wallet_url' => $pass_actions['google_wallet_url'],
+      'apple_wallet_badge_url' => $pass_actions['apple_wallet_badge_url'],
+      'google_wallet_badge_url' => $pass_actions['google_wallet_badge_url'],
       'pdf_url' => $pass_actions['pdf_url'],
       'manage_booking_url' => $pass_actions['manage_booking_url'],
     ];
@@ -605,15 +607,16 @@ final class OrderConfirmationQueueBuilder {
   }
 
   /**
-   * Digital Pass email actions via canonical routes + WalletPresentationGate.
+   * Digital Pass email actions via canonical WalletActionBuilder.
    *
    * Guests receive PDF/ICS attachments only (no authenticated pass/wallet URLs).
-   * Wallet links appear only when shouldEmitWalletInEmail() and the provider
-   * is presentable — never disabled placeholders.
+   * Wallet links appear only when the gate emits email CTAs — never placeholders.
    *
    * @return array{
    *   apple_wallet_url: string|null,
    *   google_wallet_url: string|null,
+   *   apple_wallet_badge_url: string|null,
+   *   google_wallet_badge_url: string|null,
    *   pdf_url: string|null,
    *   manage_booking_url: string|null
    * }
@@ -622,6 +625,8 @@ final class OrderConfirmationQueueBuilder {
     $actions = [
       'apple_wallet_url' => NULL,
       'google_wallet_url' => NULL,
+      'apple_wallet_badge_url' => NULL,
+      'google_wallet_badge_url' => NULL,
       'pdf_url' => NULL,
       'manage_booking_url' => NULL,
     ];
@@ -669,8 +674,7 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
-    if (!$this->walletPresentationGate instanceof WalletPresentationGate
-      || !$this->walletPresentationGate->shouldEmitWalletInEmail()) {
+    if (!$this->walletActionBuilder instanceof WalletActionBuilder) {
       return $actions;
     }
 
@@ -682,19 +686,35 @@ final class OrderConfirmationQueueBuilder {
       return $actions;
     }
 
-    if ($this->walletPresentationGate->isAppleWalletPresentable()) {
-      $actions['apple_wallet_url'] = $this->absoluteWalletUrl(
-        'myeventlane_wallet.apple',
-        ['order_item_id' => $order_item_id],
-        '/wallet/apple/' . $order_item_id,
+    $wallet = $this->walletActionBuilder->buildForOrderItem(
+      $order_item_id,
+      WalletActionBuilder::SURFACE_EMAIL,
+      TRUE,
+    );
+
+    if (is_array($wallet['apple'] ?? NULL)) {
+      $actions['apple_wallet_url'] = $this->walletEmailUrl(
+        $this->absoluteWalletUrl(
+          'myeventlane_wallet.apple',
+          ['order_item_id' => $order_item_id],
+          '/wallet/apple/' . $order_item_id,
+        ),
+        $wallet['apple']['url'] ?? NULL,
       );
+      $badge = $wallet['apple']['badge']['src'] ?? NULL;
+      $actions['apple_wallet_badge_url'] = $this->walletEmailBadgeUrl($badge);
     }
-    if ($this->walletPresentationGate->isGoogleWalletPresentable()) {
-      $actions['google_wallet_url'] = $this->absoluteWalletUrl(
-        'myeventlane_wallet.google',
-        ['order_item_id' => $order_item_id],
-        '/wallet/google/' . $order_item_id,
+    if (is_array($wallet['google'] ?? NULL)) {
+      $actions['google_wallet_url'] = $this->walletEmailUrl(
+        $this->absoluteWalletUrl(
+          'myeventlane_wallet.google',
+          ['order_item_id' => $order_item_id],
+          '/wallet/google/' . $order_item_id,
+        ),
+        $wallet['google']['url'] ?? NULL,
       );
+      $badge = $wallet['google']['badge']['src'] ?? NULL;
+      $actions['google_wallet_badge_url'] = $this->walletEmailBadgeUrl($badge);
     }
 
     return $actions;
@@ -872,6 +892,83 @@ final class OrderConfirmationQueueBuilder {
       ]);
       return NULL;
     }
+  }
+
+  /**
+   * Selects an email-safe wallet URL.
+   *
+   * WalletActionBuilder may return its path fallback when route generation
+   * fails. Host-relative paths are valid on rendered site pages but invalid in
+   * email clients, so omit that CTA unless an absolute HTTP(S) URL exists.
+   */
+  private function walletEmailUrl(?string $canonical_url, mixed $fallback_url): ?string {
+    if ($this->isAbsoluteHttpUrl($canonical_url)) {
+      return $canonical_url;
+    }
+
+    if (is_string($fallback_url) && $this->isAbsoluteHttpUrl($fallback_url)) {
+      return $fallback_url;
+    }
+
+    if (is_string($fallback_url) && $fallback_url !== '') {
+      $this->logger->warning('Omitting wallet email CTA because its fallback URL is not absolute: @url', [
+        '@url' => $fallback_url,
+      ]);
+    }
+    return NULL;
+  }
+
+  /**
+   * Determines whether a URL is usable by an email client.
+   */
+  private function isAbsoluteHttpUrl(?string $url): bool {
+    if ($url === NULL || $url === '') {
+      return FALSE;
+    }
+
+    $parts = parse_url($url);
+    return is_array($parts)
+      && isset($parts['host'])
+      && isset($parts['scheme'])
+      && in_array(strtolower($parts['scheme']), ['http', 'https'], TRUE);
+  }
+
+  /**
+   * Selects an email-safe badge URL on the public domain.
+   *
+   * WalletActionBuilder generates base: URLs against the active host. An
+   * email may be queued while handling a vendor or admin request, so resolve
+   * the asset path through the configured public domain instead. SVG is
+   * deliberately excluded because it is not reliably rendered by email
+   * clients; the template then uses its accessible text CTA fallback.
+   */
+  private function walletEmailBadgeUrl(mixed $badge_url): ?string {
+    if (!is_string($badge_url) || $badge_url === '') {
+      return NULL;
+    }
+
+    $path = parse_url($badge_url, PHP_URL_PATH);
+    if (!is_string($path) || !str_starts_with($path, '/')) {
+      $this->logger->warning('Omitting wallet email badge because its asset path is invalid: @url', [
+        '@url' => $badge_url,
+      ]);
+      return NULL;
+    }
+
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (!in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'webp'], TRUE)) {
+      return NULL;
+    }
+
+    $public_url = $this->buildPublicUrl($path);
+    if ($this->isAbsoluteHttpUrl($public_url)) {
+      return $public_url;
+    }
+
+    $this->logger->warning('Omitting wallet email badge because its public URL could not be generated: @url', [
+      '@url' => $badge_url,
+    ]);
+    return NULL;
   }
 
   private function formatPrice(float $amount): string {

@@ -161,21 +161,32 @@ body_html: |
           <!--[if !mso]><!-- -->
           <a href="{{ pass_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Digital Pass</a>
           <!--<![endif]-->
-          {% if apple_wallet_url or google_wallet_url %}
-            <div style="margin-top:16px;">
+          {% if apple_wallet_url or google_wallet_url or pdf_url %}
+            <div style="margin-top:20px;" role="group" aria-label="Pass actions">
               {% if apple_wallet_url %}
-                <a href="{{ apple_wallet_url }}" style="display:inline-block;margin:4px 6px;background-color:#293241;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Apple Wallet</a>
+                <a href="{{ apple_wallet_url }}" style="display:inline-block;margin:6px 8px;text-decoration:none;line-height:0;vertical-align:middle;" aria-label="Add to Apple Wallet">
+                  {% if apple_wallet_badge_url %}
+                    <img src="{{ apple_wallet_badge_url }}" alt="Add to Apple Wallet" width="156" height="48" style="display:block;width:156px;height:auto;border:0;outline:none;">
+                  {% else %}
+                    <span style="display:inline-block;background-color:#1f1f1f;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Apple Wallet</span>
+                  {% endif %}
+                </a>
               {% endif %}
               {% if google_wallet_url %}
-                <a href="{{ google_wallet_url }}" style="display:inline-block;margin:4px 6px;background-color:#293241;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Google Wallet</a>
+                <a href="{{ google_wallet_url }}" style="display:inline-block;margin:6px 8px;text-decoration:none;line-height:0;vertical-align:middle;" aria-label="Add to Google Wallet">
+                  {% if google_wallet_badge_url %}
+                    <img src="{{ google_wallet_badge_url }}" alt="Add to Google Wallet" width="200" height="48" style="display:block;width:200px;height:auto;border:0;outline:none;">
+                  {% else %}
+                    <span style="display:inline-block;background-color:#1f1f1f;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Google Wallet</span>
+                  {% endif %}
+                </a>
+              {% endif %}
+              {% if pdf_url %}
+                <a href="{{ pdf_url }}" style="display:inline-block;margin:6px 8px;background-color:#6b46ff;color:#ffffff !important;text-decoration:none;padding:14px 20px;border-radius:8px;font-weight:700;font-size:14px;line-height:1.25;vertical-align:middle;" aria-label="Download PDF">Download PDF</a>
               {% endif %}
             </div>
           {% endif %}
           <div style="margin-top:16px;font-size:15px;line-height:1.7;">
-            {% if pdf_url %}
-              <a href="{{ pdf_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">Download PDF</a>
-              {% if event_url or manage_booking_url %}<span style="color:#c5c7ce;"> · </span>{% endif %}
-            {% endif %}
             {% if event_url %}
               <a href="{{ event_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">View Event</a>
               {% if manage_booking_url %}<span style="color:#c5c7ce;"> · </span>{% endif %}

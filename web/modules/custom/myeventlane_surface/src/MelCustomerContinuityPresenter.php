@@ -7,7 +7,7 @@ namespace Drupal\myeventlane_surface;
 use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
-use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
+use Drupal\myeventlane_wallet\Service\WalletActionBuilder;
 
 /**
  * Customer confirmation surfaces: governed CTA ordering without duplicating workflow rules.
@@ -15,14 +15,13 @@ use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
  * Sequencing aligns with MELExperienceRegistry::rsvp_completion_calendar_prompt and
  * MelWorkflowRegistry::first_rsvp next-step recommendations (event return, calendar export).
  *
- * Wallet actions reuse WalletPresentationGate + the same route contracts as
- * UniversalTicketViewModelBuilder (myeventlane_wallet.apple / .google).
+ * Wallet actions are owned by WalletActionBuilder (canonical CTA builder).
  */
 final class MelCustomerContinuityPresenter {
 
   public function __construct(
     private readonly MelReadinessHelper $readinessHelper,
-    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
+    private readonly ?WalletActionBuilder $walletActionBuilder = NULL,
   ) {}
 
   /**
@@ -294,12 +293,12 @@ final class MelCustomerContinuityPresenter {
   }
 
   /**
-   * Wallet CTAs matching UniversalTicketViewModelBuilder::buildWalletActions().
+   * Wallet CTAs via canonical WalletActionBuilder.
    *
-   * Guests never receive URLs. When WalletPresentationGate declines emission,
-   * both providers stay NULL (no disabled / "Coming Soon" placeholders).
+   * Guests never receive URLs. When the gate declines emission, both providers
+   * stay NULL (no disabled / "Coming Soon" placeholders).
    *
-   * @return array{apple: array<string, string>|null, google: array<string, string>|null}
+   * @return array{apple: array<string, mixed>|null, google: array<string, mixed>|null}
    */
   private function buildCheckoutWalletActions(
     bool $is_authenticated,
@@ -314,49 +313,14 @@ final class MelCustomerContinuityPresenter {
     if (!$is_authenticated || !$has_customer || !$has_tickets || $order_item_id < 1) {
       return $empty;
     }
-    if (!$this->walletPresentationGate instanceof WalletPresentationGate
-      || !$this->walletPresentationGate->shouldEmitWalletActions()) {
+    if (!$this->walletActionBuilder instanceof WalletActionBuilder) {
       return $empty;
     }
 
-    $actions = $empty;
-    if ($this->walletPresentationGate->isAppleWalletPresentable()) {
-      $actions['apple'] = [
-        'label' => 'Add to Apple Wallet',
-        'route' => 'myeventlane_wallet.apple',
-        'url' => $this->walletRouteUrl(
-          'myeventlane_wallet.apple',
-          ['order_item_id' => $order_item_id],
-          '/wallet/apple/' . $order_item_id,
-        ),
-      ];
-    }
-    if ($this->walletPresentationGate->isGoogleWalletPresentable()) {
-      $actions['google'] = [
-        'label' => 'Add to Google Wallet',
-        'route' => 'myeventlane_wallet.google',
-        'url' => $this->walletRouteUrl(
-          'myeventlane_wallet.google',
-          ['order_item_id' => $order_item_id],
-          '/wallet/google/' . $order_item_id,
-        ),
-      ];
-    }
-    return $actions;
-  }
-
-  /**
-   * Canonical wallet route URL (same fallback shape as UniversalTicketViewModelBuilder).
-   *
-   * @param array<string, int> $parameters
-   */
-  private function walletRouteUrl(string $route_name, array $parameters, string $fallback): string {
-    try {
-      return Url::fromRoute($route_name, $parameters)->toString();
-    }
-    catch (\Throwable) {
-      return $fallback;
-    }
+    return $this->walletActionBuilder->buildForOrderItem(
+      $order_item_id,
+      WalletActionBuilder::SURFACE_ACTIONS,
+    );
   }
 
   /**
