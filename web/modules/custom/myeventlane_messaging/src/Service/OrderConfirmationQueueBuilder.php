@@ -702,7 +702,7 @@ final class OrderConfirmationQueueBuilder {
         $wallet['apple']['url'] ?? NULL,
       );
       $badge = $wallet['apple']['badge']['src'] ?? NULL;
-      $actions['apple_wallet_badge_url'] = is_string($badge) && $badge !== '' ? $badge : NULL;
+      $actions['apple_wallet_badge_url'] = $this->walletEmailBadgeUrl($badge);
     }
     if (is_array($wallet['google'] ?? NULL)) {
       $actions['google_wallet_url'] = $this->walletEmailUrl(
@@ -714,7 +714,7 @@ final class OrderConfirmationQueueBuilder {
         $wallet['google']['url'] ?? NULL,
       );
       $badge = $wallet['google']['badge']['src'] ?? NULL;
-      $actions['google_wallet_badge_url'] = is_string($badge) && $badge !== '' ? $badge : NULL;
+      $actions['google_wallet_badge_url'] = $this->walletEmailBadgeUrl($badge);
     }
 
     return $actions;
@@ -931,6 +931,44 @@ final class OrderConfirmationQueueBuilder {
       && isset($parts['host'])
       && isset($parts['scheme'])
       && in_array(strtolower($parts['scheme']), ['http', 'https'], TRUE);
+  }
+
+  /**
+   * Selects an email-safe badge URL on the public domain.
+   *
+   * WalletActionBuilder generates base: URLs against the active host. An
+   * email may be queued while handling a vendor or admin request, so resolve
+   * the asset path through the configured public domain instead. SVG is
+   * deliberately excluded because it is not reliably rendered by email
+   * clients; the template then uses its accessible text CTA fallback.
+   */
+  private function walletEmailBadgeUrl(mixed $badge_url): ?string {
+    if (!is_string($badge_url) || $badge_url === '') {
+      return NULL;
+    }
+
+    $path = parse_url($badge_url, PHP_URL_PATH);
+    if (!is_string($path) || !str_starts_with($path, '/')) {
+      $this->logger->warning('Omitting wallet email badge because its asset path is invalid: @url', [
+        '@url' => $badge_url,
+      ]);
+      return NULL;
+    }
+
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (!in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'webp'], TRUE)) {
+      return NULL;
+    }
+
+    $public_url = $this->buildPublicUrl($path);
+    if ($this->isAbsoluteHttpUrl($public_url)) {
+      return $public_url;
+    }
+
+    $this->logger->warning('Omitting wallet email badge because its public URL could not be generated: @url', [
+      '@url' => $badge_url,
+    ]);
+    return NULL;
   }
 
   private function formatPrice(float $amount): string {
