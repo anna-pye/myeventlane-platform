@@ -46,6 +46,7 @@ final class FulfillmentLifecycleConvergenceKernelTest extends KernelTestBase {
     'system',
     'user',
     'field',
+    'filter',
     'text',
     'link',
     'path',
