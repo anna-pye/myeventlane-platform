@@ -5,6 +5,7 @@ dependencies:
   module:
     - commerce_payment
     - commerce_promotion
+    - commerce_stripe
     - myeventlane_checkout_flow
     - myeventlane_checkout_paragraph
     - myeventlane_commerce
@@ -43,6 +44,20 @@ configuration:
       wrapper_element: container
       always_display: true
       require_payment_method: false
+    stripe_review:
+      display_label: null
+      step: review
+      weight: 0
+      wrapper_element: container
+      button_id: edit-actions-next
+      auto_submit_review_form: false
+      setup_future_usage: ''
+    payment_process:
+      display_label: null
+      step: payment
+      weight: 8
+      wrapper_element: container
+      capture: true
     grouped_order_summary:
       display_label: null
       step: _disabled
