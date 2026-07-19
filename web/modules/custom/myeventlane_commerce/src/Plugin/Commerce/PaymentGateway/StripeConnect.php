@@ -23,6 +23,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   label = @Translation("Stripe Connect (Vendor Payments)"),
  *   display_label = @Translation("Credit card"),
  *   forms = {
+ *     "offsite-payment" = "Drupal\commerce_stripe\PluginForm\OffsiteRedirect\PaymentOffsiteForm",
  *     "add-payment-method" = "Drupal\commerce_stripe\PluginForm\PaymentMethodAddForm",
  *   },
  *   payment_method_types = {"credit_card"},
