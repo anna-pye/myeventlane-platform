@@ -1,7 +1,9 @@
 uuid: 5592f26a-985a-40c9-a373-02cd69d7180d
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  module:
+    - commerce_order
 id: mel_stripe_cc
 label: 'MEL - Manual'
 weight: null
@@ -15,5 +17,11 @@ configuration:
   instructions:
     value: 'This is a test Payment Gateway '
     format: plain_text
-conditions: {  }
+conditions:
+  -
+    plugin: current_user_role
+    configuration:
+      matching_strategy: any
+      roles:
+        administrator: administrator
 conditionOperator: AND

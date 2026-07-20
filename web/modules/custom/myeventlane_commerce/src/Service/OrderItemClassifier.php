@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_commerce\Service;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 
 /**
@@ -48,6 +49,25 @@ class OrderItemClassifier {
     'checkout_donation',
     'platform_donation',
     'rsvp_donation',
+  ];
+
+  /**
+   * Product variation type for ticket revenue.
+   */
+  private const TICKET_VARIATION_TYPE = 'ticket_variation';
+
+  /**
+   * Product variation type for MEL Pro.
+   */
+  private const MEL_PRO_VARIATION_TYPE = 'mel_pro_subscription_variation';
+
+  /**
+   * Order types that must never create payout ledger liabilities.
+   */
+  private const PAYOUT_LEDGER_EXCLUDED_ORDER_TYPES = [
+    'platform_donation',
+    'rsvp_donation',
+    'recurring',
   ];
 
   /**
@@ -140,6 +160,88 @@ class OrderItemClassifier {
    */
   public function isPlatformDonation(OrderItemInterface $item): bool {
     return in_array($item->bundle(), self::PLATFORM_DONATION_TYPES, TRUE);
+  }
+
+  /**
+   * Checks if an order item is MEL Pro subscription inventory.
+   */
+  public function isMelPro(OrderItemInterface $item): bool {
+    $purchasedEntity = $item->getPurchasedEntity();
+    if (!$purchasedEntity) {
+      return FALSE;
+    }
+    return $purchasedEntity->getEntityTypeId() === 'commerce_product_variation'
+      && $purchasedEntity->bundle() === self::MEL_PRO_VARIATION_TYPE;
+  }
+
+  /**
+   * Checks if an order item is ticket variation revenue.
+   */
+  public function isTicketRevenue(OrderItemInterface $item): bool {
+    if ($this->isBoost($item) || $this->isDonation($item) || $this->isMelPro($item)) {
+      return FALSE;
+    }
+    $purchasedEntity = $item->getPurchasedEntity();
+    if (!$purchasedEntity) {
+      return FALSE;
+    }
+    return $purchasedEntity->getEntityTypeId() === 'commerce_product_variation'
+      && $purchasedEntity->bundle() === self::TICKET_VARIATION_TYPE;
+  }
+
+  /**
+   * Whether a line item may justify a vendor payout ledger row.
+   *
+   * Launch rules (CF-007 remediation):
+   * - Ticket revenue (`ticket_variation`)
+   * - Organiser donation line (`checkout_donation`)
+   *
+   * Explicitly not eligible: Boost, platform donation, RSVP donation lines,
+   * MEL Pro, fees/adjustments (not order items).
+   */
+  public function isPayoutLedgerEligibleItem(OrderItemInterface $item): bool {
+    if ($this->isBoost($item) || $this->isPlatformDonation($item) || $this->isMelPro($item)) {
+      return FALSE;
+    }
+    // RSVP donation lines are organiser-labelled historically but belong to
+    // non-vendor order types excluded at order level; do not allow alone.
+    if ($item->bundle() === 'rsvp_donation') {
+      return FALSE;
+    }
+    if ($item->bundle() === 'checkout_donation') {
+      return TRUE;
+    }
+    return $this->isTicketRevenue($item);
+  }
+
+  /**
+   * Whether an order may receive a payout ledger liability row.
+   */
+  public function isPayoutLedgerEligibleOrder(OrderInterface $order): bool {
+    if (in_array($order->bundle(), self::PAYOUT_LEDGER_EXCLUDED_ORDER_TYPES, TRUE)) {
+      return FALSE;
+    }
+    foreach ($order->getItems() as $item) {
+      if ($this->isPayoutLedgerEligibleItem($item)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Whether the order should use the recurring Payment Element gateway.
+   */
+  public function requiresRecurringPaymentGateway(OrderInterface $order): bool {
+    if ($order->bundle() === 'recurring') {
+      return TRUE;
+    }
+    foreach ($order->getItems() as $item) {
+      if ($this->isMelPro($item)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

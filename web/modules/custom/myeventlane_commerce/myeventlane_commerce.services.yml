@@ -14,6 +14,15 @@ services:
   myeventlane_commerce.order_item_classifier:
     class: Drupal\myeventlane_commerce\Service\OrderItemClassifier
 
+  myeventlane_commerce.filter_payment_gateways_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\FilterPaymentGatewaysSubscriber
+    arguments:
+      - '@myeventlane_commerce.order_item_classifier'
+      - '@current_user'
+      - '@logger.channel.myeventlane_commerce'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_commerce.ticket_backed_order_item_classifier:
     class: Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifier
     arguments:
