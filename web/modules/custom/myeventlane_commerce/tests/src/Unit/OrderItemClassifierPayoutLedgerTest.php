@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_commerce\Unit;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\Tests\UnitTestCase;
@@ -56,6 +57,68 @@ final class OrderItemClassifierPayoutLedgerTest extends UnitTestCase {
     $item->method('bundle')->willReturn('default');
     $item->method('getPurchasedEntity')->willReturn($variation);
     $this->assertTrue($this->classifier->isPayoutLedgerEligibleItem($item));
+  }
+
+  /**
+   * @covers ::isPayoutLedgerEligibleItem
+   * @covers ::isOperationalVendorRevenue
+   */
+  public function testOperationalMerchandiseVariationIsLedgerEligible(): void {
+    $product = $this->createMock(ProductInterface::class);
+    $product->method('bundle')->willReturn('operational_merchandise');
+
+    $variation = $this->createMock(ProductVariationInterface::class);
+    $variation->method('getEntityTypeId')->willReturn('commerce_product_variation');
+    $variation->method('bundle')->willReturn('operational_merchandise_var');
+    $variation->method('getProduct')->willReturn($product);
+
+    $item = $this->createMock(OrderItemInterface::class);
+    $item->method('bundle')->willReturn('default');
+    $item->method('getPurchasedEntity')->willReturn($variation);
+    $this->assertTrue($this->classifier->isOperationalVendorRevenue($item));
+    $this->assertTrue($this->classifier->isPayoutLedgerEligibleItem($item));
+  }
+
+  /**
+   * @covers ::isPayoutLedgerEligibleItem
+   * @covers ::isOperationalVendorRevenue
+   */
+  public function testOperationalBundleVariationIsLedgerEligible(): void {
+    $product = $this->createMock(ProductInterface::class);
+    $product->method('bundle')->willReturn('operational_bundle');
+
+    $variation = $this->createMock(ProductVariationInterface::class);
+    $variation->method('getEntityTypeId')->willReturn('commerce_product_variation');
+    $variation->method('bundle')->willReturn('operational_bundle_var');
+    $variation->method('getProduct')->willReturn($product);
+
+    $item = $this->createMock(OrderItemInterface::class);
+    $item->method('bundle')->willReturn('default');
+    $item->method('getPurchasedEntity')->willReturn($variation);
+    $this->assertTrue($this->classifier->isOperationalVendorRevenue($item));
+    $this->assertTrue($this->classifier->isPayoutLedgerEligibleItem($item));
+  }
+
+  /**
+   * @covers ::isPayoutLedgerEligibleOrder
+   */
+  public function testMerchOnlyOrderIsLedgerEligible(): void {
+    $product = $this->createMock(ProductInterface::class);
+    $product->method('bundle')->willReturn('operational_merchandise');
+
+    $variation = $this->createMock(ProductVariationInterface::class);
+    $variation->method('getEntityTypeId')->willReturn('commerce_product_variation');
+    $variation->method('bundle')->willReturn('operational_merchandise_var');
+    $variation->method('getProduct')->willReturn($product);
+
+    $item = $this->createMock(OrderItemInterface::class);
+    $item->method('bundle')->willReturn('default');
+    $item->method('getPurchasedEntity')->willReturn($variation);
+
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('bundle')->willReturn('default');
+    $order->method('getItems')->willReturn([$item]);
+    $this->assertTrue($this->classifier->isPayoutLedgerEligibleOrder($order));
   }
 
   /**

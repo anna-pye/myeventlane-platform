@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_commerce\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\myeventlane_core\Commerce\OperationalProductBundles;
 
 /**
  * Canonical order item classifier for Commerce revenue and checkout logic.
@@ -60,6 +61,22 @@ class OrderItemClassifier {
    * Product variation type for MEL Pro.
    */
   private const MEL_PRO_VARIATION_TYPE = 'mel_pro_subscription_variation';
+
+  /**
+   * Operational variation types that are vendor-payable (merchandise / add-ons).
+   *
+   * Mirrors OperationalVariationStockResolver::OPERATIONAL_VARIATION_BUNDLES.
+   * Product-bundle check via OperationalProductBundles is preferred when the
+   * purchased entity still resolves a product.
+   *
+   * @var list<string>
+   */
+  private const OPERATIONAL_VARIATION_TYPES = [
+    'operational_merchandise_var',
+    'operational_bundle_var',
+    'hospitality_package_var',
+    'timed_collection_var',
+  ];
 
   /**
    * Order types that must never create payout ledger liabilities.
@@ -190,10 +207,38 @@ class OrderItemClassifier {
   }
 
   /**
+   * Checks if an order item is operational merchandise / add-on vendor revenue.
+   *
+   * Includes event-scoped extras sold as Commerce products (merch, packages,
+   * hospitality, timed collection). These are not tickets and must not flow
+   * through ticket issuance, but under platform-collect + Transfer they are
+   * still vendor-payable and must justify a payout ledger row.
+   */
+  public function isOperationalVendorRevenue(OrderItemInterface $item): bool {
+    if ($this->isBoost($item) || $this->isDonation($item) || $this->isMelPro($item)) {
+      return FALSE;
+    }
+
+    $purchasedEntity = $item->getPurchasedEntity();
+    if (!$purchasedEntity
+      || $purchasedEntity->getEntityTypeId() !== 'commerce_product_variation') {
+      return FALSE;
+    }
+
+    $product = $purchasedEntity->getProduct();
+    if ($product && OperationalProductBundles::isOperationalProductBundle($product->bundle())) {
+      return TRUE;
+    }
+
+    return in_array($purchasedEntity->bundle(), self::OPERATIONAL_VARIATION_TYPES, TRUE);
+  }
+
+  /**
    * Whether a line item may justify a vendor payout ledger row.
    *
    * Launch rules (CF-007 remediation):
    * - Ticket revenue (`ticket_variation`)
+   * - Operational merchandise / bundle add-ons (vendor extras)
    * - Organiser donation line (`checkout_donation`)
    *
    * Explicitly not eligible: Boost, platform donation, RSVP donation lines,
@@ -211,7 +256,7 @@ class OrderItemClassifier {
     if ($item->bundle() === 'checkout_donation') {
       return TRUE;
     }
-    return $this->isTicketRevenue($item);
+    return $this->isTicketRevenue($item) || $this->isOperationalVendorRevenue($item);
   }
 
   /**
