@@ -100,15 +100,16 @@ final class WalletActionBuilderTest extends UnitTestCase {
   }
 
   /**
-   * Absolute mode must not emit host-relative route or badge fallbacks.
+   * Absolute mode omits relative wallet routes but keeps recoverable badge paths.
    *
-   * Unit tests lack a full URL generator, so generation throws and previously
-   * returned `/wallet/...` / `/modules/...` paths that email clients cannot
-   * resolve. Absolute mode must omit those values instead.
+   * Unit tests lack a full URL generator, so generation throws. Wallet route
+   * CTAs must not emit host-relative `/wallet/...` fallbacks for email. Badge
+   * assets keep their site-relative path so OrderConfirmationQueueBuilder can
+   * rewrite them through walletEmailBadgeUrl()/buildPublicUrl().
    *
    * @covers ::buildForOrderItem
    */
-  public function testAbsoluteModeOmitsRelativeFallbacks(): void {
+  public function testAbsoluteModeOmitsRelativeRouteFallbacksButKeepsBadgePaths(): void {
     $this->writeAppleCredentials();
     $this->writeServiceAccount();
     new Settings([
@@ -130,8 +131,6 @@ final class WalletActionBuilderTest extends UnitTestCase {
       'show_wallet_in_email' => TRUE,
     ]);
 
-    // Committed badge assets must be discoverable so resolveBadgeUrl() enters
-    // the URI-generation catch path rather than returning early for missing files.
     $this->assertFileExists(
       DRUPAL_ROOT . '/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg',
     );
@@ -141,9 +140,15 @@ final class WalletActionBuilderTest extends UnitTestCase {
 
     $actions = $builder->buildForOrderItem(55, WalletActionBuilder::SURFACE_EMAIL, TRUE);
     $this->assertSame('', $actions['apple']['url']);
-    $this->assertNull($actions['apple']['badge']);
     $this->assertSame('', $actions['google']['url']);
-    $this->assertNull($actions['google']['badge']);
+    $this->assertSame(
+      '/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg',
+      $actions['apple']['badge']['src'],
+    );
+    $this->assertSame(
+      '/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png',
+      $actions['google']['badge']['src'],
+    );
   }
 
   /**

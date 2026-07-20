@@ -146,8 +146,9 @@ final class WalletActionBuilder {
       return $url->toString();
     }
     catch (\Throwable) {
-      // Site-relative fallbacks are valid on rendered pages but unusable in
-      // email clients. Omit the CTA URL when an absolute URL was required.
+      // Site-relative wallet routes are valid on rendered pages but unusable in
+      // email clients. Omit the CTA URL when an absolute URL was required;
+      // OrderConfirmationQueueBuilder recovers via absoluteWalletUrl() instead.
       return $absolute ? '' : $fallback;
     }
   }
@@ -157,6 +158,7 @@ final class WalletActionBuilder {
     if ($relative === NULL) {
       return NULL;
     }
+    $relative_url = '/' . ltrim($relative, '/');
     try {
       $url = Url::fromUri('base:/' . ltrim($relative, '/'), ['absolute' => $absolute]);
       if ($absolute) {
@@ -165,9 +167,12 @@ final class WalletActionBuilder {
       return $url->toString();
     }
     catch (\Throwable) {
-      // Same absolute-mode rule as routeUrl(): never emit a host-relative badge
-      // src for email surfaces.
-      return $absolute ? NULL : '/' . ltrim($relative, '/');
+      // Keep the site-relative asset path when absolute generation fails.
+      // Confirmation email assembly rewrites this through
+      // walletEmailBadgeUrl()/buildPublicUrl() onto the public domain. Returning
+      // NULL here would drop branded Google Wallet images even when the file
+      // exists. (Unlike wallet route CTAs, badge paths are recoverable.)
+      return $relative_url;
     }
   }
 
