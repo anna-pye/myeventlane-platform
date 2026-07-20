@@ -9,6 +9,7 @@ dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_tickets:myeventlane_tickets
   - drupal:commerce_order
+  - crop:crop
 
 
 

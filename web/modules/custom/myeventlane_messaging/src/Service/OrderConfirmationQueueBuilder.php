@@ -16,8 +16,8 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_wallet\Service\WalletActionBuilder;
 use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
-use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
 use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
@@ -44,7 +44,7 @@ final class OrderConfirmationQueueBuilder {
     private readonly TaxInvoicePresentationBuilder $taxInvoicePresentation,
     private readonly ?object $icsGenerator = NULL,
     private readonly ?LegalSettingsService $legalSettings = NULL,
-    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
+    private readonly ?WalletActionBuilder $walletActionBuilder = NULL,
     private readonly ?WalletTicketResolver $walletTicketResolver = NULL,
     private readonly ?WalletDownloadAccessChecker $walletDownloadAccess = NULL,
   ) {}
@@ -183,6 +183,8 @@ final class OrderConfirmationQueueBuilder {
       'tickets_need_assignment' => $tickets_need_assignment,
       'apple_wallet_url' => $pass_actions['apple_wallet_url'],
       'google_wallet_url' => $pass_actions['google_wallet_url'],
+      'apple_wallet_badge_url' => $pass_actions['apple_wallet_badge_url'],
+      'google_wallet_badge_url' => $pass_actions['google_wallet_badge_url'],
       'pdf_url' => $pass_actions['pdf_url'],
       'manage_booking_url' => $pass_actions['manage_booking_url'],
     ];
@@ -605,15 +607,16 @@ final class OrderConfirmationQueueBuilder {
   }
 
   /**
-   * Digital Pass email actions via canonical routes + WalletPresentationGate.
+   * Digital Pass email actions via canonical WalletActionBuilder.
    *
    * Guests receive PDF/ICS attachments only (no authenticated pass/wallet URLs).
-   * Wallet links appear only when shouldEmitWalletInEmail() and the provider
-   * is presentable — never disabled placeholders.
+   * Wallet links appear only when the gate emits email CTAs — never placeholders.
    *
    * @return array{
    *   apple_wallet_url: string|null,
    *   google_wallet_url: string|null,
+   *   apple_wallet_badge_url: string|null,
+   *   google_wallet_badge_url: string|null,
    *   pdf_url: string|null,
    *   manage_booking_url: string|null
    * }
@@ -622,6 +625,8 @@ final class OrderConfirmationQueueBuilder {
     $actions = [
       'apple_wallet_url' => NULL,
       'google_wallet_url' => NULL,
+      'apple_wallet_badge_url' => NULL,
+      'google_wallet_badge_url' => NULL,
       'pdf_url' => NULL,
       'manage_booking_url' => NULL,
     ];
@@ -669,8 +674,7 @@ final class OrderConfirmationQueueBuilder {
       }
     }
 
-    if (!$this->walletPresentationGate instanceof WalletPresentationGate
-      || !$this->walletPresentationGate->shouldEmitWalletInEmail()) {
+    if (!$this->walletActionBuilder instanceof WalletActionBuilder) {
       return $actions;
     }
 
@@ -682,19 +686,35 @@ final class OrderConfirmationQueueBuilder {
       return $actions;
     }
 
-    if ($this->walletPresentationGate->isAppleWalletPresentable()) {
+    $wallet = $this->walletActionBuilder->buildForOrderItem(
+      $order_item_id,
+      WalletActionBuilder::SURFACE_EMAIL,
+      TRUE,
+    );
+
+    if (is_array($wallet['apple'] ?? NULL)) {
       $actions['apple_wallet_url'] = $this->absoluteWalletUrl(
         'myeventlane_wallet.apple',
         ['order_item_id' => $order_item_id],
         '/wallet/apple/' . $order_item_id,
-      );
+      ) ?? (string) ($wallet['apple']['url'] ?? '');
+      if ($actions['apple_wallet_url'] === '') {
+        $actions['apple_wallet_url'] = NULL;
+      }
+      $badge = $wallet['apple']['badge']['src'] ?? NULL;
+      $actions['apple_wallet_badge_url'] = is_string($badge) && $badge !== '' ? $badge : NULL;
     }
-    if ($this->walletPresentationGate->isGoogleWalletPresentable()) {
+    if (is_array($wallet['google'] ?? NULL)) {
       $actions['google_wallet_url'] = $this->absoluteWalletUrl(
         'myeventlane_wallet.google',
         ['order_item_id' => $order_item_id],
         '/wallet/google/' . $order_item_id,
-      );
+      ) ?? (string) ($wallet['google']['url'] ?? '');
+      if ($actions['google_wallet_url'] === '') {
+        $actions['google_wallet_url'] = NULL;
+      }
+      $badge = $wallet['google']['badge']['src'] ?? NULL;
+      $actions['google_wallet_badge_url'] = is_string($badge) && $badge !== '' ? $badge : NULL;
     }
 
     return $actions;

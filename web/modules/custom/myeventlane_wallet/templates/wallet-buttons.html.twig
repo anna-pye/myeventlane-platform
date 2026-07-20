@@ -1,25 +1,66 @@
 {#
 /**
  * @file
- * Optional wallet CTA fragment (legacy).
+ * Canonical Apple / Google Wallet CTA fragment.
  *
- * Prefer Digital Pass actions in myeventlane-order-detail.html.twig.
- * Install official Apple/Google badge artwork under assets/web/ when ready.
+ * Consumes WalletActionBuilder action arrays. Prefer official badge artwork
+ * under assets/web/; fall back to accessible text using official product names.
  *
  * Available variables:
- * - apple_url: Apple Wallet download URL.
- * - google_url: Google Wallet save URL.
+ * - apple: action array|null from WalletActionBuilder
+ * - google: action array|null from WalletActionBuilder
+ * - variant: 'default'|'confirmation'|'pass'
  */
 #}
-<div class="mel-wallet-buttons">
-  {% if apple_url|default('') %}
-    <a class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--apple" href="{{ apple_url }}" download>
-      {{ 'Add to Apple Wallet'|t }}
-    </a>
-  {% endif %}
-  {% if google_url|default('') %}
-    <a class="mel-button mel-button--secondary mel-ticket-pass__wallet mel-ticket-pass__wallet--google" href="{{ google_url }}" rel="noopener noreferrer">
-      {{ 'Add to Google Wallet'|t }}
-    </a>
-  {% endif %}
-</div>
+{% set variant = variant|default('default') %}
+{% set apple_url = apple.url|default('') %}
+{% set google_url = google.url|default('') %}
+{% if apple_url or google_url %}
+  {{ attach_library('myeventlane_wallet/wallet_badges') }}
+  <div class="mel-wallet-buttons mel-wallet-buttons--{{ variant }}" role="group" aria-label="{{ 'Wallet'|t }}">
+    {% if apple_url %}
+      <a
+        href="{{ apple_url }}"
+        class="mel-wallet-badge mel-wallet-badge--apple"
+        download
+        aria-label="{{ apple.aria_label|default(apple.label|default('Add to Apple Wallet'|t)) }}"
+      >
+        {% if apple.badge.src|default('') %}
+          <img
+            class="mel-wallet-badge__img"
+            src="{{ apple.badge.src }}"
+            alt="{{ apple.badge.alt|default('Add to Apple Wallet'|t) }}"
+            width="156"
+            height="48"
+            loading="lazy"
+            decoding="async"
+          >
+        {% else %}
+          <span class="mel-wallet-badge__fallback">{{ apple.label|default('Add to Apple Wallet'|t) }}</span>
+        {% endif %}
+      </a>
+    {% endif %}
+    {% if google_url %}
+      <a
+        href="{{ google_url }}"
+        class="mel-wallet-badge mel-wallet-badge--google"
+        rel="noopener noreferrer"
+        aria-label="{{ google.aria_label|default(google.label|default('Add to Google Wallet'|t)) }}"
+      >
+        {% if google.badge.src|default('') %}
+          <img
+            class="mel-wallet-badge__img"
+            src="{{ google.badge.src }}"
+            alt="{{ google.badge.alt|default('Add to Google Wallet'|t) }}"
+            width="200"
+            height="48"
+            loading="lazy"
+            decoding="async"
+          >
+        {% else %}
+          <span class="mel-wallet-badge__fallback">{{ google.label|default('Add to Google Wallet'|t) }}</span>
+        {% endif %}
+      </a>
+    {% endif %}
+  </div>
+{% endif %}

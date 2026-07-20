@@ -20,9 +20,14 @@ use ZipArchive;
  *
  * Issued tickets drive pass content through UniversalTicketViewModelBuilder
  * (QR payloads originate from TicketQrPayload inside that builder). Signing is
- * owned exclusively by WalletSigner.
+ * owned exclusively by WalletSigner — do not change signing from this class.
  */
 final class PkPassBuilder {
+
+  /**
+   * Canonical MEL organisation display name when config is empty.
+   */
+  private const DEFAULT_ORGANISATION_NAME = 'MyEventLane';
 
   public function __construct(
     private readonly FileSystemInterface $fileSystem,
@@ -31,6 +36,7 @@ final class PkPassBuilder {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly ModuleExtensionList $moduleExtensionList,
     private readonly LoggerInterface $logger,
+    private readonly WalletEventPresentation $walletEventPresentation,
   ) {}
 
   /**
@@ -64,7 +70,7 @@ final class PkPassBuilder {
     }
 
     try {
-      $this->writePassBundle($workDir, $passJson);
+      $this->writePassBundle($workDir, $passJson, $ticket);
       $this->writeManifest($workDir);
       $signature = $this->walletSigner->sign($workDir . '/manifest.json');
       if (file_put_contents($workDir . '/signature', $signature) === FALSE) {
@@ -99,7 +105,7 @@ final class PkPassBuilder {
     $config = $this->configFactory->get('myeventlane_wallet.settings');
     $team_id = trim((string) $config->get('apple_team_id'));
     $pass_type_id = trim((string) $config->get('apple_pass_type_id'));
-    $org = trim((string) ($config->get('apple_organisation_name') ?: 'MyEventLane'));
+    $org = $this->organisationName();
     if ($team_id === '' || $pass_type_id === '') {
       throw new RuntimeException('Apple Wallet team ID and pass type ID are required.');
     }
@@ -110,11 +116,12 @@ final class PkPassBuilder {
       throw new RuntimeException('Apple Wallet pass requires ticket code and QR payload.');
     }
 
-    $event_label = (string) ($model['event']['label'] ?? 'Event');
-    $holder = (string) ($model['holder']['name'] ?? '');
-    $entitlement = (string) ($model['ticket']['entitlement_label'] ?? $model['ticket']['entitlement_type'] ?? 'Ticket');
+    $presentation = $this->walletEventPresentation->build($ticket, $model, $org);
+    $event_label = $presentation['event_label'];
     $serial = $this->resolveSerialNumber($orderItem, $ticket, $ticket_code);
 
+    // Cohesive MEL branding: organisationName + logoText always match platform
+    // config (never per-organiser). Description stays event-scoped for clarity.
     $pass = [
       'formatVersion' => 1,
       'passTypeIdentifier' => $pass_type_id,
@@ -123,9 +130,9 @@ final class PkPassBuilder {
       'organizationName' => $org,
       'description' => $event_label,
       'logoText' => $org,
-      'foregroundColor' => 'rgb(33, 33, 33)',
-      'backgroundColor' => 'rgb(255, 240, 245)',
-      'labelColor' => 'rgb(90, 90, 90)',
+      'foregroundColor' => 'rgb(41, 50, 65)',
+      'backgroundColor' => 'rgb(255, 247, 238)',
+      'labelColor' => 'rgb(107, 70, 255)',
       'barcode' => [
         'format' => 'PKBarcodeFormatQR',
         'message' => $qr_payload,
@@ -138,46 +145,19 @@ final class PkPassBuilder {
           'messageEncoding' => 'iso-8859-1',
         ],
       ],
-      'eventTicket' => [
-        'primaryFields' => [
-          [
-            'key' => 'event',
-            'label' => 'EVENT',
-            'value' => $event_label,
-          ],
-        ],
-        'secondaryFields' => [
-          [
-            'key' => 'ticket_type',
-            'label' => 'TICKET',
-            'value' => $entitlement,
-          ],
-        ],
-        'auxiliaryFields' => array_values(array_filter([
-          $holder !== '' ? [
-            'key' => 'holder',
-            'label' => 'NAME',
-            'value' => $holder,
-          ] : NULL,
-          [
-            'key' => 'code',
-            'label' => 'CODE',
-            'value' => $ticket_code,
-          ],
-        ])),
-        'backFields' => [
-          [
-            'key' => 'booking',
-            'label' => 'Booking reference',
-            'value' => $ticket_code,
-          ],
-        ],
-      ],
+      'eventTicket' => $presentation['event_ticket'],
     ];
 
-    $relevant_date = $this->relevantDateIso($model);
+    $relevant_date = $presentation['relevant_date'];
     if ($relevant_date !== NULL) {
       $pass['relevantDate'] = $relevant_date;
+    }
+
+    if ($presentation['locations'] !== []) {
+      $pass['locations'] = $presentation['locations'];
+    }
+    if ($presentation['semantics'] !== []) {
+      $pass['semantics'] = $presentation['semantics'];
     }
 
     try {
@@ -189,25 +169,19 @@ final class PkPassBuilder {
   }
 
   /**
-   * @param array<string, mixed> $model
-   *   Universal ticket view model.
+   * Platform organisation name used for organizationName and logoText.
    */
-  private function relevantDateIso(array $model): ?string {
-    $start = $model['event']['start'] ?? NULL;
-    if (is_array($start)) {
-      $timestamp = $start['timestamp'] ?? NULL;
-      if (is_int($timestamp) && $timestamp > 0) {
-        return gmdate('Y-m-d\TH:i:s\Z', $timestamp);
-      }
-      $raw = $start['raw'] ?? NULL;
-      if (is_string($raw) && trim($raw) !== '') {
-        $ts = strtotime($raw);
-        if ($ts !== FALSE) {
-          return gmdate('Y-m-d\TH:i:s\Z', $ts);
-        }
-      }
+  private function organisationName(): string {
+    $configured = trim((string) ($this->configFactory->get('myeventlane_wallet.settings')->get('apple_organisation_name') ?: ''));
+    if ($configured === '') {
+      return self::DEFAULT_ORGANISATION_NAME;
     }
-    return NULL;
+    // Normalise legacy spacing / casing drift toward cohesive MEL branding.
+    $compact = strtolower(preg_replace('/\s+/', '', $configured) ?? '');
+    if ($compact === 'myeventlane') {
+      return self::DEFAULT_ORGANISATION_NAME;
+    }
+    return $configured;
   }
 
   private function resolveSerialNumber(OrderItemInterface $orderItem, Ticket $ticket, string $ticket_code): string {
@@ -221,13 +195,19 @@ final class PkPassBuilder {
     return $uuid !== '' ? $uuid : ('mel-' . $orderItem->id() . '-' . $ticket_code);
   }
 
-  private function writePassBundle(string $workDir, string $passJson): void {
+  private function writePassBundle(string $workDir, string $passJson, Ticket $ticket): void {
     if (file_put_contents($workDir . '/pass.json', $passJson) === FALSE) {
       throw new RuntimeException('Unable to write pass.json.');
     }
 
     $assets_dir = $this->moduleExtensionList->getPath('myeventlane_wallet') . '/assets/pass';
-    foreach (['icon.png', 'paula.r@example.org', 'logo.png'] as $asset) {
+    foreach ([
+      'icon.png',
+      'icon@2x.png',
+      'icon@3x.png',
+      'logo.png',
+      'logo@2x.png',
+    ] as $asset) {
       $source = $assets_dir . '/' . $asset;
       if (!is_file($source)) {
         throw new RuntimeException('Required Apple Wallet asset missing: ' . $asset);
@@ -236,6 +216,10 @@ final class PkPassBuilder {
         throw new RuntimeException('Unable to copy Apple Wallet asset: ' . $asset);
       }
     }
+
+    // strip.png is optional. It is included only when the attendee's event
+    // supplies a usable hero; platform branding must never replace it.
+    $this->walletEventPresentation->writeStripImage($workDir . '/strip.png', $ticket);
   }
 
   private function writeManifest(string $workDir): void {

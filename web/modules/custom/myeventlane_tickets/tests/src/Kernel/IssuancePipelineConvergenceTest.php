@@ -48,12 +48,14 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     'system',
     'user',
     'field',
+    'filter',
     'text',
     'link',
     'path',
     'path_alias',
     'views',
     'address',
+    'crop',
     'node',
     'options',
     'datetime',
@@ -375,6 +377,24 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $pass = $this->readPkPassJson($path);
     $this->assertSame($expected, $pass['barcode']['message']);
     $this->assertSame('PKBarcodeFormatQR', $pass['barcode']['format']);
+    $this->assertSame('Issuance Event', $pass['eventTicket']['primaryFields'][0]['value']);
+    $this->assertSame('PKDateStyleMedium', $pass['eventTicket']['secondaryFields'][0]['dateStyle']);
+    $this->assertSame('PKDateStyleShort', $pass['eventTicket']['secondaryFields'][1]['timeStyle']);
+    $this->assertSame('Hall A', $pass['eventTicket']['auxiliaryFields'][0]['value']);
+    $this->assertNotSame('', $pass['eventTicket']['auxiliaryFields'][1]['value']);
+    $this->assertSame('MyEventLane', $pass['organizationName']);
+    $this->assertSame('MyEventLane', $pass['logoText']);
+    $this->assertArrayHasKey('relevantDate', $pass);
+
+    $zip = new ZipArchive();
+    $this->assertTrue($zip->open($path) === TRUE);
+    foreach (['logo.png', 'logo@2x.png', 'icon.png', 'icon@2x.png', 'icon@3x.png'] as $asset) {
+      $this->assertNotFalse($zip->locateName($asset), $asset . ' must be bundled in the pass.');
+    }
+    $this->assertFalse($zip->locateName('strip.png') !== FALSE, 'A pass without a usable event hero must omit strip.png.');
+    $this->assertFalse($zip->locateName('background.png') !== FALSE);
+    $this->assertFalse($zip->locateName('thumbnail.png') !== FALSE);
+    $zip->close();
   }
 
   /**

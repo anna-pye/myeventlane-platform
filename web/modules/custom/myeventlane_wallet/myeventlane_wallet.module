@@ -1,0 +1,24 @@
+<?php
+
+/**
+ * @file
+ * MyEventLane Wallet module hooks.
+ */
+
+declare(strict_types=1);
+
+/**
+ * Implements hook_theme().
+ */
+function myeventlane_wallet_theme(): array {
+  return [
+    'myeventlane_wallet_buttons' => [
+      'variables' => [
+        'apple' => NULL,
+        'google' => NULL,
+        'variant' => 'default',
+      ],
+      'template' => 'wallet-buttons',
+    ],
+  ];
+}

@@ -24,6 +24,14 @@ services:
       - '@config.factory'
       - '@extension.list.module'
       - '@logger.channel.myeventlane_wallet'
+      - '@myeventlane_wallet.event_presentation'
+
+  myeventlane_wallet.event_presentation:
+    class: Drupal\myeventlane_wallet\Service\WalletEventPresentation
+    arguments:
+      - '@file_system'
+      - '@logger.channel.myeventlane_wallet'
+      - '@?myeventlane_event.geo_resolver'
 
   myeventlane_wallet.google_wallet_builder:
     class: Drupal\myeventlane_wallet\Service\GoogleWalletBuilder
@@ -37,6 +45,12 @@ services:
     arguments:
       - '@config.factory'
       - '@myeventlane_wallet.wallet_signer'
+
+  myeventlane_wallet.action_builder:
+    class: Drupal\myeventlane_wallet\Service\WalletActionBuilder
+    arguments:
+      - '@myeventlane_wallet.presentation_gate'
+      - '@extension.list.module'
 
   logger.channel.myeventlane_wallet:
     class: Drupal\Core\Logger\LoggerChannel

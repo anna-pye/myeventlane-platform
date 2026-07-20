@@ -1,16 +1,29 @@
-# Official wallet CTA assets (required for branded buttons)
+# Official wallet CTA assets
 
-Do **not** invent Apple or Google wallet badges.
+Do **not** invent Apple or Google wallet badges. Use only platform-provided artwork.
 
-## Install
+## Installed (this directory)
 
-1. Download official **Add to Apple Wallet** SVG from [Apple’s badge guidelines](https://developer.apple.com/wallet/add-to-apple-wallet-guidelines/) (Apple Developer Program membership required).
-2. Download official **Add to Google Wallet** SVG from [Google Wallet brand guidelines](https://developers.google.com/wallet/generic/resources/brand-guidelines) (PNG/SVG asset packs).
-3. Place files here (names expected by theme SCSS background hooks when enabled):
+| File | Source |
+|------|--------|
+| `add-to-apple-wallet.svg` | [Apple Add to Apple Wallet guidelines](https://developer.apple.com/wallet/add-to-apple-wallet-guidelines/) |
+| `add-to-google-wallet.svg` | [Google Wallet brand guidelines](https://developers.google.com/wallet/generic/resources/brand-guidelines) (enAU primary button) |
+| `add-to-google-wallet.png` | Same Google pack — PNG for email clients |
 
-   - `add-to-apple-wallet.svg`
-   - `add-to-google-wallet.svg`
+Canonical CTA builder: `myeventlane_wallet.action_builder` (`WalletActionBuilder`).
 
-4. Clear Drupal/theme caches after deploy.
+Canonical Twig fragment: `wallet-buttons.html.twig` (theme hook `myeventlane_wallet_buttons`).
 
-Until these files exist, Digital Pass shows accessible text CTAs that use the official product names only.
+## Refresh / reinstall
+
+1. Apple: download official SVG from Apple’s badge guidelines (Wallet Marketing Agreement).
+2. Google: download SVG/PNG packs from Google’s brand guidelines (`add-to-wallet-svg.zip` / `add-to-wallet-png.zip`).
+3. Prefer Australian English (`enAU_*`) when available.
+4. Clear Drupal caches after replacing files.
+
+## Presentation rules
+
+- Do not recreate, recolour, flip, animate, or shadow the badges.
+- Keep badges secondary to MEL product identity.
+- Maintain clear space; keep minimum height ~48px on interactive surfaces.
+- On very dark backgrounds, Apple artwork may sit on a light clear-space pad (see `css/wallet-badges.css`).

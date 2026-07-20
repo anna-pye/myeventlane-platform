@@ -1,0 +1,100 @@
+/**
+ * Official Apple / Google Wallet badge CTAs.
+ *
+ * Do not restyle platform badge artwork. Layout, focus, and spacing only.
+ */
+
+.mel-wallet-buttons {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: var(--mel-space-2, 8px);
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .mel-wallet-buttons {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.mel-wallet-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  min-width: 44px;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 0.5rem;
+  line-height: 0;
+  text-decoration: none;
+  flex: 0 1 auto;
+}
+
+.mel-wallet-badge:focus {
+  outline: 2px solid var(--mel-focus, #f26d5b);
+  outline-offset: 3px;
+}
+
+.mel-wallet-badge:focus:not(:focus-visible) {
+  outline: none;
+}
+
+.mel-wallet-badge:focus-visible {
+  outline: 2px solid var(--mel-focus, #f26d5b);
+  outline-offset: 3px;
+}
+
+.mel-wallet-badge__img {
+  display: block;
+  width: auto;
+  height: 48px;
+  max-width: 100%;
+}
+
+/* Dark mode: Apple outline-friendly clear space; Google button stays black. */
+@media (prefers-color-scheme: dark) {
+  .mel-wallet-badge--apple {
+    background-color: #f5f5f7;
+    border-radius: 0.5rem;
+    padding: 0.25rem 0.35rem;
+  }
+
+  .mel-wallet-badge--google {
+    /* Official black button already contrasts on dark surfaces. */
+    background-color: transparent;
+  }
+}
+
+[data-theme="dark"] .mel-wallet-badge--apple,
+.mel-theme--dark .mel-wallet-badge--apple {
+  background-color: #f5f5f7;
+  border-radius: 0.5rem;
+  padding: 0.25rem 0.35rem;
+}
+
+.mel-wallet-badge__fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0.75rem 1.125rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  color: #ffffff;
+  background-color: #1f1f1f;
+}
+
+.mel-wallet-buttons--confirmation {
+  width: 100%;
+}
+
+.mel-wallet-buttons--confirmation .mel-wallet-badge {
+  flex: 1 1 auto;
+}

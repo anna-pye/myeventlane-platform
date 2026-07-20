@@ -11,7 +11,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Ticket\QrCodeGenerator;
 use Drupal\myeventlane_tickets\Ticket\TicketQrPayload;
-use Drupal\myeventlane_wallet\Service\WalletPresentationGate;
+use Drupal\myeventlane_wallet\Service\WalletActionBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -34,7 +34,7 @@ final class UniversalTicketViewModelBuilder {
     private readonly OperationalContinuityPolicyManager $operationalContinuityPolicyManager,
     private readonly OccupancyPolicyManager $occupancyPolicyManager,
     private readonly LoggerInterface $logger,
-    private readonly ?WalletPresentationGate $walletPresentationGate = NULL,
+    private readonly ?WalletActionBuilder $walletActionBuilder = NULL,
   ) {}
 
   /**
@@ -384,7 +384,7 @@ final class UniversalTicketViewModelBuilder {
   }
 
   /**
-   * Builds existing wallet route actions without changing wallet route contracts.
+   * Builds wallet CTAs via the canonical WalletActionBuilder.
    *
    * @return array<string, mixed>
    *   Wallet action metadata.
@@ -394,8 +394,7 @@ final class UniversalTicketViewModelBuilder {
       'apple' => NULL,
       'google' => NULL,
     ];
-    if (!$this->walletPresentationGate instanceof WalletPresentationGate
-      || !$this->walletPresentationGate->shouldEmitWalletActions()) {
+    if (!$this->walletActionBuilder instanceof WalletActionBuilder) {
       return $empty;
     }
 
@@ -404,22 +403,10 @@ final class UniversalTicketViewModelBuilder {
       return $empty;
     }
 
-    $actions = $empty;
-    if ($this->walletPresentationGate->isAppleWalletPresentable()) {
-      $actions['apple'] = [
-        'label' => 'Add to Apple Wallet',
-        'route' => 'myeventlane_wallet.apple',
-        'url' => $this->routeUrl('myeventlane_wallet.apple', ['order_item_id' => $order_item_id], '/wallet/apple/' . $order_item_id),
-      ];
-    }
-    if ($this->walletPresentationGate->isGoogleWalletPresentable()) {
-      $actions['google'] = [
-        'label' => 'Add to Google Wallet',
-        'route' => 'myeventlane_wallet.google',
-        'url' => $this->routeUrl('myeventlane_wallet.google', ['order_item_id' => $order_item_id], '/wallet/google/' . $order_item_id),
-      ];
-    }
-    return $actions;
+    return $this->walletActionBuilder->buildForOrderItem(
+      $order_item_id,
+      WalletActionBuilder::SURFACE_ACTIONS,
+    );
   }
 
   /**
