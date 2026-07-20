@@ -18,6 +18,10 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  * - Customers: tickets / boost / donations → stripe
  * - MEL Pro / recurring → stripe_pe_recurring
  * - mel_stripe_cc → administrators only (preserved for local/admin testing)
+ *
+ * Fail-safe: never remove Card Element for a recurring cart unless the PE
+ * recurring gateway is still present after Commerce conditions. Otherwise
+ * checkout can end with zero gateways (missing config/currency/variation).
  */
 final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface {
 
@@ -54,7 +58,16 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
 
     $requiresRecurring = $this->orderItemClassifier->requiresRecurringPaymentGateway($order);
     $isAdministrator = $this->currentUser->hasRole('administrator');
+    $hasRecurringGateway = $this->gatewayListContains($gateways, self::RECURRING_GATEWAY_ID);
     $removed = [];
+
+    if ($requiresRecurring && !$hasRecurringGateway) {
+      $this->logger->warning('Recurring cart order @oid has no @pe gateway after Commerce conditions; retaining @card if present so checkout is not empty.', [
+        '@oid' => (string) ($order->id() ?? 'new'),
+        '@pe' => self::RECURRING_GATEWAY_ID,
+        '@card' => self::CARD_GATEWAY_ID,
+      ]);
+    }
 
     foreach ($gateways as $id => $gateway) {
       $gatewayId = $gateway->id();
@@ -71,22 +84,47 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
         continue;
       }
 
-      if ($gatewayId === self::CARD_GATEWAY_ID && $requiresRecurring) {
+      // Only strip Card Element when PE recurring is actually available.
+      if ($gatewayId === self::CARD_GATEWAY_ID && $requiresRecurring && $hasRecurringGateway) {
         unset($gateways[$id]);
         $removed[] = $gatewayId;
       }
     }
 
     if ($removed !== []) {
-      $this->logger->info('Filtered payment gateways for order @oid: removed @removed (recurring=@recurring, admin=@admin).', [
+      $this->logger->info('Filtered payment gateways for order @oid: removed @removed (recurring=@recurring, admin=@admin, pe_present=@pe).', [
         '@oid' => (string) ($order->id() ?? 'new'),
         '@removed' => implode(',', array_unique($removed)),
+        '@recurring' => $requiresRecurring ? '1' : '0',
+        '@admin' => $isAdministrator ? '1' : '0',
+        '@pe' => $hasRecurringGateway ? '1' : '0',
+      ]);
+    }
+
+    if ($gateways === []) {
+      $this->logger->error('Payment gateway filter left order @oid with zero gateways (recurring=@recurring, admin=@admin).', [
+        '@oid' => (string) ($order->id() ?? 'new'),
         '@recurring' => $requiresRecurring ? '1' : '0',
         '@admin' => $isAdministrator ? '1' : '0',
       ]);
     }
 
     $event->setPaymentGateways($gateways);
+  }
+
+  /**
+   * Whether a gateway entity id is present in the filtered list.
+   *
+   * @param array<string|\Drupal\commerce_payment\Entity\PaymentGatewayInterface> $gateways
+   *   Gateway entities keyed by entity id or numeric index.
+   */
+  private function gatewayListContains(array $gateways, string $gatewayId): bool {
+    foreach ($gateways as $gateway) {
+      if ($gateway->id() === $gatewayId) {
+        return TRUE;
+      }
+    }
+    return FALSE;
   }
 
 }

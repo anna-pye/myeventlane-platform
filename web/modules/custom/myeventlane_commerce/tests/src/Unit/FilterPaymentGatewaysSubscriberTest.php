@@ -52,6 +52,28 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
   }
 
   /**
+   * Recurring cart without PE must keep Card Element (avoid empty checkout).
+   *
+   * @covers ::onFilterPaymentGateways
+   */
+  public function testProCartKeepsStripeWhenRecurringGatewayMissing(): void {
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger->expects($this->once())
+      ->method('warning')
+      ->with($this->stringContains('no @pe gateway'));
+
+    $subscriber = $this->createSubscriber(requiresRecurring: TRUE, isAdmin: FALSE, logger: $logger);
+    $gateways = [
+      'mel_stripe_cc' => $this->gateway('mel_stripe_cc'),
+      'stripe' => $this->gateway('stripe'),
+    ];
+    $event = new FilterPaymentGatewaysEvent($gateways, $this->createMock(OrderInterface::class));
+    $subscriber->onFilterPaymentGateways($event);
+    $remaining = array_keys($event->getPaymentGateways());
+    $this->assertSame(['stripe'], $remaining);
+  }
+
+  /**
    * @covers ::onFilterPaymentGateways
    */
   public function testAdministratorKeepsManualGatewayOnTicketCart(): void {
@@ -68,14 +90,14 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
     $this->assertSame(['mel_stripe_cc', 'stripe'], $remaining);
   }
 
-  private function createSubscriber(bool $requiresRecurring, bool $isAdmin): FilterPaymentGatewaysSubscriber {
+  private function createSubscriber(bool $requiresRecurring, bool $isAdmin, ?LoggerInterface $logger = NULL): FilterPaymentGatewaysSubscriber {
     $classifier = $this->createMock(OrderItemClassifier::class);
     $classifier->method('requiresRecurringPaymentGateway')->willReturn($requiresRecurring);
 
     $account = $this->createMock(AccountProxyInterface::class);
     $account->method('hasRole')->with('administrator')->willReturn($isAdmin);
 
-    $logger = $this->createMock(LoggerInterface::class);
+    $logger ??= $this->createMock(LoggerInterface::class);
     return new FilterPaymentGatewaysSubscriber($classifier, $account, $logger);
   }
 
