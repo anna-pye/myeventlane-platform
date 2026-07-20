@@ -18,7 +18,9 @@ use Psr\Log\LoggerInterface;
  *
  * Commission is computed from config (commission_rate); ledger stores gross,
  * commission, net per order. Ledger rows are auto-created when getKpis runs,
- * but only for payout-eligible vendor revenue (CF-007 remediation).
+ * but only for payout-eligible vendor revenue (CF-007 remediation). Gross is
+ * the sum of eligible line totals (+ booking Contribution adjustments), never
+ * the full order total (so mixed carts exclude Boost / platform revenue).
  */
 final class PlatformMetricsService {
 
@@ -228,8 +230,18 @@ final class PlatformMetricsService {
         continue;
       }
 
+      // Line-level eligible gross only (excludes Boost / platform revenue on
+      // mixed carts). Do not use order total_price__number.
+      $gross = $this->orderItemClassifier->getPayoutLedgerEligibleGross($order);
+      if ($gross <= 0) {
+        $this->logger->info('Payout ledger skip: order @oid type=@type has no positive vendor-payable gross.', [
+          '@oid' => (string) $orderId,
+          '@type' => $order->bundle(),
+        ]);
+        continue;
+      }
+
       $storeId = (int) ($o['store_id'] ?? 0);
-      $gross = round((float) ($o['total_price__number'] ?? 0), 2);
       $commission = round($gross * $commissionRate, 2);
       $net = round($gross - $commission, 2);
       $created = (int) ($o['placed'] ?? $now);

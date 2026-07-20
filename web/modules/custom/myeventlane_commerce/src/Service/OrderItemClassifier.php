@@ -275,6 +275,46 @@ class OrderItemClassifier {
   }
 
   /**
+   * Sums vendor-payable gross for payout ledger liability.
+   *
+   * Uses eligible line totals only — never the order total — so mixed carts
+   * (e.g. tickets + Boost) do not record Boost or other platform revenue as
+   * vendor payout liability. Also includes the booking Contribution adjustment
+   * (`myeventlane_order_donation`) when present on the order.
+   *
+   * Excludes: Boost, platform/RSVP donation lines, MEL Pro, platform fees and
+   * other non-eligible adjustments.
+   */
+  public function getPayoutLedgerEligibleGross(OrderInterface $order): float {
+    if (in_array($order->bundle(), self::PAYOUT_LEDGER_EXCLUDED_ORDER_TYPES, TRUE)) {
+      return 0.0;
+    }
+
+    $gross = 0.0;
+    foreach ($order->getItems() as $item) {
+      if (!$this->isPayoutLedgerEligibleItem($item)) {
+        continue;
+      }
+      $totalPrice = $item->getTotalPrice();
+      if ($totalPrice) {
+        $gross += (float) $totalPrice->getNumber();
+      }
+    }
+
+    foreach ($order->getAdjustments() as $adjustment) {
+      if ((string) $adjustment->getSourceId() !== 'myeventlane_order_donation') {
+        continue;
+      }
+      $amount = $adjustment->getAmount();
+      if ($amount) {
+        $gross += (float) $amount->getNumber();
+      }
+    }
+
+    return round($gross, 2);
+  }
+
+  /**
    * Whether the order should use the recurring Payment Element gateway.
    */
   public function requiresRecurringPaymentGateway(OrderInterface $order): bool {
