@@ -693,28 +693,28 @@ final class OrderConfirmationQueueBuilder {
     );
 
     if (is_array($wallet['apple'] ?? NULL)) {
-      $actions['apple_wallet_url'] = $this->absoluteWalletUrl(
-        'myeventlane_wallet.apple',
-        ['order_item_id' => $order_item_id],
-        '/wallet/apple/' . $order_item_id,
-      ) ?? (string) ($wallet['apple']['url'] ?? '');
-      if ($actions['apple_wallet_url'] === '') {
-        $actions['apple_wallet_url'] = NULL;
-      }
+      $actions['apple_wallet_url'] = $this->walletEmailUrl(
+        $this->absoluteWalletUrl(
+          'myeventlane_wallet.apple',
+          ['order_item_id' => $order_item_id],
+          '/wallet/apple/' . $order_item_id,
+        ),
+        $wallet['apple']['url'] ?? NULL,
+      );
       $badge = $wallet['apple']['badge']['src'] ?? NULL;
-      $actions['apple_wallet_badge_url'] = is_string($badge) && $badge !== '' ? $badge : NULL;
+      $actions['apple_wallet_badge_url'] = $this->walletEmailBadgeUrl($badge);
     }
     if (is_array($wallet['google'] ?? NULL)) {
-      $actions['google_wallet_url'] = $this->absoluteWalletUrl(
-        'myeventlane_wallet.google',
-        ['order_item_id' => $order_item_id],
-        '/wallet/google/' . $order_item_id,
-      ) ?? (string) ($wallet['google']['url'] ?? '');
-      if ($actions['google_wallet_url'] === '') {
-        $actions['google_wallet_url'] = NULL;
-      }
+      $actions['google_wallet_url'] = $this->walletEmailUrl(
+        $this->absoluteWalletUrl(
+          'myeventlane_wallet.google',
+          ['order_item_id' => $order_item_id],
+          '/wallet/google/' . $order_item_id,
+        ),
+        $wallet['google']['url'] ?? NULL,
+      );
       $badge = $wallet['google']['badge']['src'] ?? NULL;
-      $actions['google_wallet_badge_url'] = is_string($badge) && $badge !== '' ? $badge : NULL;
+      $actions['google_wallet_badge_url'] = $this->walletEmailBadgeUrl($badge);
     }
 
     return $actions;
@@ -892,6 +892,83 @@ final class OrderConfirmationQueueBuilder {
       ]);
       return NULL;
     }
+  }
+
+  /**
+   * Selects an email-safe wallet URL.
+   *
+   * WalletActionBuilder may return its path fallback when route generation
+   * fails. Host-relative paths are valid on rendered site pages but invalid in
+   * email clients, so omit that CTA unless an absolute HTTP(S) URL exists.
+   */
+  private function walletEmailUrl(?string $canonical_url, mixed $fallback_url): ?string {
+    if ($this->isAbsoluteHttpUrl($canonical_url)) {
+      return $canonical_url;
+    }
+
+    if (is_string($fallback_url) && $this->isAbsoluteHttpUrl($fallback_url)) {
+      return $fallback_url;
+    }
+
+    if (is_string($fallback_url) && $fallback_url !== '') {
+      $this->logger->warning('Omitting wallet email CTA because its fallback URL is not absolute: @url', [
+        '@url' => $fallback_url,
+      ]);
+    }
+    return NULL;
+  }
+
+  /**
+   * Determines whether a URL is usable by an email client.
+   */
+  private function isAbsoluteHttpUrl(?string $url): bool {
+    if ($url === NULL || $url === '') {
+      return FALSE;
+    }
+
+    $parts = parse_url($url);
+    return is_array($parts)
+      && isset($parts['host'])
+      && isset($parts['scheme'])
+      && in_array(strtolower($parts['scheme']), ['http', 'https'], TRUE);
+  }
+
+  /**
+   * Selects an email-safe badge URL on the public domain.
+   *
+   * WalletActionBuilder generates base: URLs against the active host. An
+   * email may be queued while handling a vendor or admin request, so resolve
+   * the asset path through the configured public domain instead. SVG is
+   * deliberately excluded because it is not reliably rendered by email
+   * clients; the template then uses its accessible text CTA fallback.
+   */
+  private function walletEmailBadgeUrl(mixed $badge_url): ?string {
+    if (!is_string($badge_url) || $badge_url === '') {
+      return NULL;
+    }
+
+    $path = parse_url($badge_url, PHP_URL_PATH);
+    if (!is_string($path) || !str_starts_with($path, '/')) {
+      $this->logger->warning('Omitting wallet email badge because its asset path is invalid: @url', [
+        '@url' => $badge_url,
+      ]);
+      return NULL;
+    }
+
+    $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    if (!in_array($extension, ['png', 'jpg', 'jpeg', 'gif', 'webp'], TRUE)) {
+      return NULL;
+    }
+
+    $public_url = $this->buildPublicUrl($path);
+    if ($this->isAbsoluteHttpUrl($public_url)) {
+      return $public_url;
+    }
+
+    $this->logger->warning('Omitting wallet email badge because its public URL could not be generated: @url', [
+      '@url' => $badge_url,
+    ]);
+    return NULL;
   }
 
   private function formatPrice(float $amount): string {

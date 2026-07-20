@@ -146,7 +146,9 @@ final class WalletActionBuilder {
       return $url->toString();
     }
     catch (\Throwable) {
-      return $fallback;
+      // Site-relative fallbacks are valid on rendered pages but unusable in
+      // email clients. Omit the CTA URL when an absolute URL was required.
+      return $absolute ? '' : $fallback;
     }
   }
 
@@ -163,7 +165,9 @@ final class WalletActionBuilder {
       return $url->toString();
     }
     catch (\Throwable) {
-      return '/' . ltrim($relative, '/');
+      // Same absolute-mode rule as routeUrl(): never emit a host-relative badge
+      // src for email surfaces.
+      return $absolute ? NULL : '/' . ltrim($relative, '/');
     }
   }
 

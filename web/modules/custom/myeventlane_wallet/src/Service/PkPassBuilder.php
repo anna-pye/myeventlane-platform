@@ -70,7 +70,7 @@ final class PkPassBuilder {
     }
 
     try {
-      $this->writePassBundle($workDir, $passJson, $ticket);
+      $this->writePassBundle($workDir, $passJson);
       $this->writeManifest($workDir);
       $signature = $this->walletSigner->sign($workDir . '/manifest.json');
       if (file_put_contents($workDir . '/signature', $signature) === FALSE) {
@@ -195,7 +195,7 @@ final class PkPassBuilder {
     return $uuid !== '' ? $uuid : ('mel-' . $orderItem->id() . '-' . $ticket_code);
   }
 
-  private function writePassBundle(string $workDir, string $passJson, Ticket $ticket): void {
+  private function writePassBundle(string $workDir, string $passJson): void {
     if (file_put_contents($workDir . '/pass.json', $passJson) === FALSE) {
       throw new RuntimeException('Unable to write pass.json.');
     }
@@ -217,9 +217,8 @@ final class PkPassBuilder {
       }
     }
 
-    // strip.png is optional. It is included only when the attendee's event
-    // supplies a usable hero; platform branding must never replace it.
-    $this->walletEventPresentation->writeStripImage($workDir . '/strip.png', $ticket);
+    // Apple’s current Event Ticket image guidance does not support strip images.
+    // Do not package strip.png or substitute platform artwork.
   }
 
   private function writeManifest(string $workDir): void {

@@ -4,38 +4,24 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_wallet\Service;
 
-use Drupal\Core\File\FileSystemInterface;
-use Drupal\crop\Entity\Crop;
-use Drupal\crop\CropInterface;
-use Drupal\file\FileInterface;
 use Drupal\myeventlane_event\Service\EventGeoResolver;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\node\NodeInterface;
-use Psr\Log\LoggerInterface;
 
 /**
- * Builds confirmed Apple Wallet event-ticket presentation data.
+ * Builds native Apple Wallet event-ticket presentation data.
  *
- * This service owns attendee-facing event, venue, date, and location
+ * This service owns attendee-facing event, venue, address, date, and location
  * presentation. PkPassBuilder retains archive assembly and signing only.
  */
 final class WalletEventPresentation {
 
-  /**
-   * Apple PassKit event-ticket strip size at @2x.
-   */
-  private const STRIP_WIDTH = 750;
-
-  private const STRIP_HEIGHT = 196;
-
   public function __construct(
-    private readonly FileSystemInterface $fileSystem,
-    private readonly LoggerInterface $logger,
     private readonly ?EventGeoResolver $eventGeoResolver = NULL,
   ) {}
 
   /**
-   * Builds the legacy eventTicket fields and supported semantic metadata.
+   * Builds the compatible eventTicket fields and supported semantic metadata.
    *
    * @param array<string, mixed> $model
    *   The canonical issued-ticket view model.
@@ -95,16 +81,11 @@ final class WalletEventPresentation {
           'label' => 'VENUE',
           'value' => $venue['name'],
         ] : NULL,
-        $venue['address'] !== '' ? [
-          'key' => 'venue_address',
-          'label' => 'ADDRESS',
-          'value' => $venue['address'],
+        $venue['name'] === '' && $venue['locality_region'] !== '' ? [
+          'key' => 'venue_locality',
+          'label' => 'VENUE',
+          'value' => $venue['locality_region'],
         ] : NULL,
-        [
-          'key' => 'ticket_type',
-          'label' => 'TICKET',
-          'value' => $entitlement,
-        ],
         $holder !== '' ? [
           'key' => 'holder',
           'label' => 'NAME',
@@ -122,6 +103,11 @@ final class WalletEventPresentation {
           'label' => 'Ticket holder',
           'value' => $holder,
         ] : NULL,
+        [
+          'key' => 'admission',
+          'label' => 'Admission',
+          'value' => $entitlement,
+        ],
         [
           'key' => 'booking',
           'label' => 'Booking reference',
@@ -178,7 +164,7 @@ final class WalletEventPresentation {
   /**
    * @param array<string, mixed> $model
    *
-   * @return array{name: string, address: string}
+   * @return array{name: string, locality_region: string, address: string}
    *   Normalised venue details.
    */
   private function venuePresentation(Ticket $ticket, array $model): array {
@@ -186,6 +172,7 @@ final class WalletEventPresentation {
     if (!$event instanceof NodeInterface) {
       return [
         'name' => '',
+        'locality_region' => '',
         'address' => trim((string) ($model['event']['location'] ?? '')),
       ];
     }
@@ -199,20 +186,21 @@ final class WalletEventPresentation {
       }
     }
 
-    $address = $this->eventAddressField($event, 'field_venue_address');
-    if ($address === '') {
-      $address = $this->eventAddressField($event, 'field_location');
+    $address = $this->eventAddressPresentation($event, 'field_venue_address');
+    if ($address['formatted'] === '') {
+      $address = $this->eventAddressPresentation($event, 'field_location');
     }
-    if ($address === '' && $venue_entity && $venue_entity->hasField('primary_address') && !$venue_entity->get('primary_address')->isEmpty()) {
-      $address = trim((string) $venue_entity->get('primary_address')->value);
+    if ($address['formatted'] === '' && $venue_entity && $venue_entity->hasField('primary_address') && !$venue_entity->get('primary_address')->isEmpty()) {
+      $address['formatted'] = trim((string) $venue_entity->get('primary_address')->value);
     }
-    if ($address === '') {
-      $address = trim((string) ($model['event']['location'] ?? ''));
+    if ($address['formatted'] === '') {
+      $address['formatted'] = trim((string) ($model['event']['location'] ?? ''));
     }
 
     return [
       'name' => $name,
-      'address' => $address,
+      'locality_region' => $address['locality_region'],
+      'address' => $address['formatted'],
     ];
   }
 
@@ -223,13 +211,23 @@ final class WalletEventPresentation {
     return trim((string) ($event->get($field_name)->value ?? ''));
   }
 
-  private function eventAddressField(NodeInterface $event, string $field_name): string {
+  /**
+   * Returns both the canonical complete address and its front-pass-safe locality.
+   *
+   * Wallet must never abbreviate a street address merely to fit the front of a
+   * pass. The complete canonical value belongs on the back; locality and region
+   * are only used if there is no venue name to identify the event on the front.
+   *
+   * @return array{formatted: string, locality_region: string}
+   *   Address presentations derived from one structured address field.
+   */
+  private function eventAddressPresentation(NodeInterface $event, string $field_name): array {
     if (!$event->hasField($field_name) || $event->get($field_name)->isEmpty()) {
-      return '';
+      return ['formatted' => '', 'locality_region' => ''];
     }
     $value = $event->get($field_name)->first()?->getValue();
     if (!is_array($value)) {
-      return '';
+      return ['formatted' => '', 'locality_region' => ''];
     }
     $parts = [];
     foreach (['address_line1', 'address_line2', 'locality', 'administrative_area', 'postal_code', 'country_code'] as $key) {
@@ -237,7 +235,12 @@ final class WalletEventPresentation {
         $parts[] = trim((string) $value[$key]);
       }
     }
-    return implode(', ', array_filter($parts));
+    $locality = trim((string) ($value['locality'] ?? ''));
+    $region = trim((string) ($value['administrative_area'] ?? ''));
+    return [
+      'formatted' => implode(', ', array_filter($parts)),
+      'locality_region' => implode(', ', array_filter([$locality, $region])),
+    ];
   }
 
   /**
@@ -280,113 +283,6 @@ final class WalletEventPresentation {
       'longitude' => $lng,
       'relevantText' => $location_label !== '' ? 'Nearby: ' . $location_label : 'Your event is nearby',
     ]];
-  }
-
-  /**
-   * Writes strip.png from the event hero, or returns FALSE to omit it.
-   *
-   * Homepage merchandising eligibility is deliberately not consulted: a
-   * purchased ticket must use its event hero whenever the image is usable.
-   */
-  public function writeStripImage(string $destination, Ticket $ticket): bool {
-    $hero = $this->resolveEventHeroImage($ticket);
-    if ($hero === NULL) {
-      return FALSE;
-    }
-    if (!function_exists('imagecreatetruecolor')) {
-      $this->logger->warning('GD unavailable; using MEL strip fallback for Apple Wallet.');
-      return FALSE;
-    }
-
-    $source = @imagecreatefromstring((string) file_get_contents($hero['path']));
-    if ($source === FALSE) {
-      $this->logger->warning('Unable to decode event hero for Apple Wallet strip; using MEL fallback.');
-      return FALSE;
-    }
-
-    $src_w = imagesx($source);
-    $src_h = imagesy($source);
-    if ($src_w < self::STRIP_WIDTH || $src_h < self::STRIP_HEIGHT) {
-      $this->logger->warning('Event hero is too small for Apple Wallet strip; using MEL fallback.');
-      return FALSE;
-    }
-
-    $target_ratio = self::STRIP_WIDTH / self::STRIP_HEIGHT;
-    if (($src_w / $src_h) > $target_ratio) {
-      $crop_h = $src_h;
-      $crop_w = (int) round($src_h * $target_ratio);
-      $crop_x = $this->cropOrigin($this->heroFocalCoordinate($hero['uri'], 'x', $src_w, $src_h), $crop_w, $src_w);
-      $crop_y = 0;
-    }
-    else {
-      $crop_w = $src_w;
-      $crop_h = (int) round($src_w / $target_ratio);
-      $crop_x = 0;
-      $crop_y = $this->cropOrigin($this->heroFocalCoordinate($hero['uri'], 'y', $src_w, $src_h), $crop_h, $src_h);
-    }
-
-    $destination_image = imagecreatetruecolor(self::STRIP_WIDTH, self::STRIP_HEIGHT);
-    if ($destination_image === FALSE) {
-      return FALSE;
-    }
-    imagecopyresampled($destination_image, $source, 0, 0, $crop_x, $crop_y, self::STRIP_WIDTH, self::STRIP_HEIGHT, $crop_w, $crop_h);
-    $ok = imagepng($destination_image, $destination);
-    if (!$ok) {
-      $this->logger->error('Unable to write Apple Wallet strip.png from event hero.');
-    }
-    return $ok;
-  }
-
-  /**
-   * @return array{path: string, uri: string}|null
-   *   A locally readable event hero image.
-   */
-  private function resolveEventHeroImage(Ticket $ticket): ?array {
-    $event = $ticket->get('event_id')->entity;
-    if (!$event instanceof NodeInterface || !$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
-      return NULL;
-    }
-
-    $file = $event->get('field_event_image')->entity;
-    if (!$file instanceof FileInterface) {
-      $media = $event->get('field_event_image')->entity;
-      if ($media && method_exists($media, 'hasField') && $media->hasField('field_media_image') && !$media->get('field_media_image')->isEmpty()) {
-        $file = $media->get('field_media_image')->entity;
-      }
-    }
-    if (!$file instanceof FileInterface) {
-      return NULL;
-    }
-
-    $uri = $file->getFileUri();
-    $path = $this->fileSystem->realpath($uri);
-    if (!is_string($uri) || $uri === '' || !is_string($path) || $path === '' || !is_file($path)) {
-      return NULL;
-    }
-    if ($file->getMimeType() !== '' && !in_array($file->getMimeType(), ['image/jpeg', 'image/png', 'image/webp'], TRUE)) {
-      return NULL;
-    }
-    return ['path' => $path, 'uri' => $uri];
-  }
-
-  private function heroFocalCoordinate(string $uri, string $axis, int $source_width, int $source_height): int {
-    foreach (['event_hero', 'focal_point'] as $crop_type) {
-      $crop = Crop::findCrop($uri, $crop_type);
-      if (!$crop instanceof CropInterface || $crop->get($axis)->isEmpty()) {
-        continue;
-      }
-      $coordinate = (int) $crop->get($axis)->value;
-      $extent_property = $axis === 'x' ? 'width' : 'height';
-      if (!$crop->get($extent_property)->isEmpty()) {
-        $coordinate += (int) floor(((int) $crop->get($extent_property)->value) / 2);
-      }
-      return max(0, min($coordinate, $axis === 'x' ? $source_width : $source_height));
-    }
-    return (int) floor(($axis === 'x' ? $source_width : $source_height) / 2);
-  }
-
-  private function cropOrigin(int $focal_coordinate, int $crop_extent, int $source_extent): int {
-    return max(0, min((int) round($focal_coordinate - ($crop_extent / 2)), max(0, $source_extent - $crop_extent)));
   }
 
 }

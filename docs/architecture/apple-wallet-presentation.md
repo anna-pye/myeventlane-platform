@@ -2,89 +2,136 @@
 
 ## Responsibility boundaries
 
-`WalletEventPresentation` owns the attendee-facing event-ticket projection:
+`WalletEventPresentation` owns the attendee-facing `eventTicket` projection:
+the event, date, venue, address, admission details, and location metadata.
+`PkPassBuilder` owns `pass.json` assembly, static identity assets, manifest
+creation, signing input, and archive generation.
 
-- event-ticket fields;
-- venue name and address formatting;
-- event date presentation;
-- Wallet location and semantic metadata;
-- event-hero selection and strip-image generation.
+Signing remains exclusively in `WalletSigner`. QR payload creation remains
+exclusively in `UniversalTicketViewModelBuilder` / `TicketQrPayload`.
 
-`PkPassBuilder` owns package mechanics only:
+## Apple authority and implementation principles
 
-- pass identifier, serial number, organisation branding, and barcode insertion;
-- `pass.json` assembly;
-- required static asset packaging;
-- manifest creation, signing input creation, and archive generation.
+MEL follows Apple's current [Wallet Human Interface
+Guidelines](https://developer.apple.com/design/human-interface-guidelines/wallet),
+[Event Ticket guidance](https://developer.apple.com/documentation/walletpasses/creating-an-event-pass-using-semantic-tags),
+[Pass Images](https://developer.apple.com/documentation/walletpasses/creating-a-pass-with-pass-designer),
+[Creating the source for a
+Pass](https://developer.apple.com/documentation/walletpasses/creating-the-source-for-a-pass),
+and [Building a Pass](https://developer.apple.com/documentation/walletpasses/building-a-pass).
 
-Signing remains exclusively in `WalletSigner`. QR payload creation remains in
-`UniversalTicketViewModelBuilder` / `TicketQrPayload`.
+MyEventLane intentionally follows Apple’s Wallet conventions rather than
+reproducing the MyEventLane visual identity inside Wallet. The attendee
+experience should feel native to the platform while preserving organiser and
+event identity through Apple’s supported pass fields.
 
-## Image selection
+Applied principles:
 
-The pass package always includes the module assets `icon.png`, `icon@2x.png`,
-`icon@3x.png`, `logo.png`, and `logo@2x.png`.
+- use the Event Ticket pass type for admission;
+- make the entry decision glanceable: event, date, time, venue, attendee, and
+  QR code take precedence;
+- preserve the QR code as the admission mechanism and do not compete with it;
+- let Wallet determine its native field layout and wrapping; and
+- keep issuer identity subtle, with no duplicated brand treatment.
 
-For `strip.png`, WalletEventPresentation first resolves the event's
-`field_event_image` (direct file, or image Media's `field_media_image`). It
-creates a 750×196 PNG crop, preferring an `event_hero` crop, then a
-`focal_point` crop, then a centred crop.
+## HIG audit checklist
 
-If the event image is absent, unreadable, unsupported, too small, cannot be
-decoded, GD is unavailable, or the generated PNG cannot be written, the pass
-omits `strip.png`. Wallet must never replace an attendee's event artwork with
-MEL branding, a mascot, decorative artwork, or text.
+- [x] Entry-first hierarchy: the front contains only event title, date, time,
+  venue or locality fallback, attendee when available, and the QR code.
+- [x] Admission-specific information is reverse-only. This includes the
+  current admission label and supports future values such as VIP, Early Bird,
+  Weekend Pass, Session, or Reserved Seating without putting them on the
+  front.
+- [x] Long street addresses are reverse-only. The front never truncates an
+  address to make it fit.
+- [x] The event title is the sole primary field. Wallet controls field
+  visibility when values wrap or exceed device capacity.
+- [x] MEL’s icon, logo, and logo text are the only issuer identity assets;
+  there is no duplicate branded event image or static strip.
+- [x] QR payload, pass signing, and repository-proven semantic metadata remain
+  separate from presentation policy.
 
-Homepage merchandising eligibility is never part of this decision.
-`BoostedEventQualityGate` checks editorial readiness for discovery surfaces;
-it must not suppress the branded image of an already purchased ticket.
+## Front and reverse hierarchy
 
-## Event title
+The compatible `eventTicket` front contains:
 
-The attendee-facing event title is the event node label exposed by
-`UniversalTicketViewModelBuilder` as `model.event.label`. There is no separate
-public-title field in the event schema; checkout and ticket-mailer attendee
-surfaces use the same node label. Wallet therefore uses this canonical ticket
-model value and does not construct a title from internal operational metadata.
+1. Event title — primary field.
+2. Date — secondary field.
+3. Time — secondary field.
+4. Venue — auxiliary field. When no venue name is available, locality and
+   region may appear instead.
+5. Attendee — auxiliary field when available.
+6. QR code — supplied by the canonical ticket QR service.
 
-## Venue and address resolution
+The reverse/details contains:
 
-Venue name precedence:
+- complete formatted venue address;
+- attendee name;
+- admission-specific information;
+- booking reference;
+- ticket code;
+- organiser; and
+- issuing platform.
 
-1. event `field_venue_name`;
-2. referenced `field_venue` entity label.
+Support, refund, and website information are not currently emitted because the
+issued-ticket model does not provide canonical Wallet-specific values. They
+must not be inferred from checkout content or duplicated from another surface.
 
-Address precedence:
+The full address uses the single Wallet venue formatter. Structured addresses
+retain address line 1, address line 2, locality, administrative area, postal
+code, and country code. Venue-name precedence is event `field_venue_name`,
+then the referenced `field_venue` label. Address precedence is event
+`field_venue_address`, event `field_location`, referenced Venue
+`primary_address`, then the issued-ticket model's legacy `event.location`.
 
-1. event `field_venue_address`;
-2. event `field_location`;
-3. referenced Venue entity `primary_address`;
-4. the legacy `event.location` string in the issued-ticket model.
+## Wallet image policy
 
-Structured event addresses are rendered as comma-separated address line 1,
-address line 2, locality, administrative area, postal code, and country code.
-The address is emitted as both an auxiliary event-ticket field and back-field
-detail.
+MEL has one explicit Event Ticket policy: **never package `strip.png`.**
 
-## Semantic metadata
+Apple’s current Pass Designer image matrix marks strip images unavailable for
+Event Tickets. This policy is intentionally stricter than suitability detection
+because the repository cannot reliably prove that an uploaded hero is free of
+screenshots, embedded text, logos, character sheets, marketing graphics,
+decorative borders, or empty space. Therefore MEL does not:
 
-Only values proven by MEL's issued ticket and event data are emitted:
+- assess heroes for conditional strip use;
+- crop, infer a focal point, or create a Wallet-specific derivative;
+- substitute issuer branding or any MEL artwork as filler; or
+- package static event art that can impair readability or QR scanning.
 
-- `eventName`;
-- `eventStartDate`;
-- `eventEndDate`;
-- `venueName`;
-- `venueLocation` when `EventGeoResolver` returns valid coordinates.
+The supplied icon and logo assets remain required identity assets at their
+provided resolutions. A future image change requires an Apple-documented Event
+Ticket placement for MEL’s supported devices and a separate implementation
+decision; existing focal-point metadata has no Wallet runtime role.
 
-The pass also retains legacy `eventTicket` fields and root `locations` for
-compatible rendering and relevance.
+## Poster Event Ticket ADR
 
-No performer, venue-room, seat, or Apple event-type fields are emitted: MEL
-does not provide a proven canonical source or mapping for them.
+**Decision:** defer `preferredStyleSchemes: ["posterEventTicket",
+"eventTicket"]` until after launch.
 
-## Poster event tickets
+Apple documents poster Event Tickets for iOS 26 and later and watchOS 26 and
+later. They can use semantic tags to create a richer native event experience
+and retain legacy `eventTicket` fields for devices that fall back to the
+traditional design.
 
-`posterEventTicket` and `preferredStyleSchemes` are intentionally deferred.
-They require reviewed event-type and other semantic data contracts that are
-not available in the current model. The legacy `eventTicket` structure remains
-the compatible production presentation.
+- Benefits: better native event context and system-generated layout on
+  supported devices.
+- Trade-offs: Apple explicitly says poster Event Tickets are incompatible with
+  QR or barcode entry. MEL’s QR is the production admission contract.
+- Compatibility: legacy `eventTicket` fields remain necessary for unsupported
+  devices and as the current universal entry pass.
+- Migration effort: introduce and validate a non-barcode admission path, then
+  govern required semantics including venue region, venue room, and applicable
+  event-type data. Do not invent missing semantics.
+- Roadmap: launch the legacy native Event Ticket with QR; reassess only after a
+  non-barcode admission capability and the required data contracts are proven.
+
+## Semantics and constraints
+
+Only repository-proven metadata is emitted: `eventName`, event start/end,
+`venueName`, and `venueLocation` when `EventGeoResolver` returns valid
+coordinates. Root `locations` remains for compatible relevance behaviour.
+
+Apple controls final field wrapping, truncation, and device-specific capacity.
+MEL therefore keeps the entry information minimal and preserves operational
+details on the reverse.

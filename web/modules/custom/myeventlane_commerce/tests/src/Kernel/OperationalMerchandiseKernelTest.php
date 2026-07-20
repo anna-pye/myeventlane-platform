@@ -47,6 +47,7 @@ class OperationalMerchandiseKernelTest extends KernelTestBase {
     'system',
     'user',
     'field',
+    'filter',
     'text',
     'node',
     'path',

@@ -29,8 +29,6 @@ services:
   myeventlane_wallet.event_presentation:
     class: Drupal\myeventlane_wallet\Service\WalletEventPresentation
     arguments:
-      - '@file_system'
-      - '@logger.channel.myeventlane_wallet'
       - '@?myeventlane_event.geo_resolver'
 
   myeventlane_wallet.google_wallet_builder:

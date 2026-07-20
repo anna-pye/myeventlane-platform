@@ -5,8 +5,14 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_messaging\Unit;
 
 use Drupal\Component\Serialization\Yaml;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\myeventlane_core\Service\LanguageStyleService;
+use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Twig\Environment;
 use Twig\Loader\ArrayLoader;
 
@@ -122,7 +128,7 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $context = $this->sampleContext();
     $context['apple_wallet_url'] = 'https://example.test/wallet/apple/55';
     $context['google_wallet_url'] = 'https://example.test/wallet/google/55';
-    $context['apple_wallet_badge_url'] = 'https://example.test/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg';
+    $context['apple_wallet_badge_url'] = NULL;
     $context['google_wallet_badge_url'] = 'https://example.test/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png';
     $context['pdf_url'] = 'https://example.test/ticket/ABC123/pdf';
 
@@ -133,8 +139,58 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $this->assertStringContainsString('Download PDF', $body);
     $this->assertStringContainsString('/wallet/apple/55', $body);
     $this->assertStringContainsString('/wallet/google/55', $body);
-    $this->assertStringContainsString('add-to-apple-wallet.svg', $body);
+    $this->assertStringNotContainsString('add-to-apple-wallet.svg', $body);
     $this->assertStringContainsString('add-to-google-wallet.png', $body);
+  }
+
+  /**
+   * Email wallet CTAs never use the action builder's host-relative fallback.
+   */
+  public function testWalletEmailUrlRejectsHostRelativeFallback(): void {
+    $reflection = new \ReflectionClass(OrderConfirmationQueueBuilder::class);
+    $builder = $reflection->newInstanceWithoutConstructor();
+    $logger = $reflection->getProperty('logger');
+    $logger->setValue($builder, new NullLogger());
+    $method = $reflection->getMethod('walletEmailUrl');
+    $method->setAccessible(TRUE);
+
+    $this->assertNull($method->invoke($builder, NULL, '/wallet/apple/55'));
+    $this->assertSame(
+      'https://example.test/wallet/apple/55',
+      $method->invoke($builder, NULL, 'https://example.test/wallet/apple/55'),
+    );
+  }
+
+  /**
+   * Wallet email badges use public-domain raster assets only.
+   */
+  public function testWalletEmailBadgeUsesPublicDomainAndRejectsSvg(): void {
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')
+      ->with('public_domain')
+      ->willReturn('https://public.example.test');
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->method('get')
+      ->with('myeventlane_core.domain_settings')
+      ->willReturn($config);
+
+    $reflection = new \ReflectionClass(OrderConfirmationQueueBuilder::class);
+    $builder = $reflection->newInstanceWithoutConstructor();
+    $reflection->getProperty('domainDetector')->setValue(
+      $builder,
+      new DomainDetector(new RequestStack(), $config_factory),
+    );
+    $reflection->getProperty('logger')->setValue($builder, new NullLogger());
+    $method = $reflection->getMethod('walletEmailBadgeUrl');
+    $method->setAccessible(TRUE);
+
+    $this->assertSame(
+      'https://public.example.test/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png',
+      $method->invoke($builder, 'https://vendor.example.test/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png'),
+    );
+    $this->assertNull(
+      $method->invoke($builder, 'https://vendor.example.test/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg'),
+    );
   }
 
   /**

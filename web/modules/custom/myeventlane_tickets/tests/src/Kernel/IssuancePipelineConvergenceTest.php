@@ -55,7 +55,6 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     'path_alias',
     'views',
     'address',
-    'crop',
     'node',
     'options',
     'datetime',
@@ -370,6 +369,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $tickets = $this->loadTicketsForOrder((int) $order->id());
     $this->assertNotEmpty($tickets);
     $ticket = $tickets[0];
+    $ticket->set('holder_name', 'Pat Holder');
+    $ticket->save();
     $expected = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
     /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
     $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
@@ -381,7 +382,13 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertSame('PKDateStyleMedium', $pass['eventTicket']['secondaryFields'][0]['dateStyle']);
     $this->assertSame('PKDateStyleShort', $pass['eventTicket']['secondaryFields'][1]['timeStyle']);
     $this->assertSame('Hall A', $pass['eventTicket']['auxiliaryFields'][0]['value']);
-    $this->assertNotSame('', $pass['eventTicket']['auxiliaryFields'][1]['value']);
+    $this->assertSame('NAME', $pass['eventTicket']['auxiliaryFields'][1]['label']);
+    $this->assertSame('Pat Holder', $pass['eventTicket']['auxiliaryFields'][1]['value']);
+    $this->assertNotContains('Admission', array_column($pass['eventTicket']['auxiliaryFields'], 'label'));
+    $this->assertNotContains('ADDRESS', array_column($pass['eventTicket']['auxiliaryFields'], 'label'));
+    $this->assertContains('admission', array_column($pass['eventTicket']['backFields'], 'key'));
+    $this->assertSame('Issuance Event', $pass['semantics']['eventName']);
+    $this->assertSame('Hall A', $pass['semantics']['venueName']);
     $this->assertSame('MyEventLane', $pass['organizationName']);
     $this->assertSame('MyEventLane', $pass['logoText']);
     $this->assertArrayHasKey('relevantDate', $pass);
@@ -391,7 +398,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     foreach (['logo.png', 'logo@2x.png', 'icon.png', 'icon@2x.png', 'icon@3x.png'] as $asset) {
       $this->assertNotFalse($zip->locateName($asset), $asset . ' must be bundled in the pass.');
     }
-    $this->assertFalse($zip->locateName('strip.png') !== FALSE, 'A pass without a usable event hero must omit strip.png.');
+    $this->assertFalse($zip->locateName('strip.png') !== FALSE, 'Event Ticket passes must omit strip.png.');
     $this->assertFalse($zip->locateName('background.png') !== FALSE);
     $this->assertFalse($zip->locateName('thumbnail.png') !== FALSE);
     $zip->close();
@@ -771,8 +778,18 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertTrue($zip->open($pkpassPath) === TRUE);
     $json = $zip->getFromName('pass.json');
     $this->assertNotFalse($json);
-    $this->assertNotFalse($zip->getFromName('manifest.json'));
+    $manifest_json = $zip->getFromName('manifest.json');
+    $this->assertNotFalse($manifest_json);
     $this->assertNotFalse($zip->getFromName('signature'));
+    $manifest = json_decode((string) $manifest_json, TRUE);
+    $this->assertIsArray($manifest);
+    foreach ($manifest as $filename => $hash) {
+      $this->assertIsString($filename);
+      $this->assertIsString($hash);
+      $contents = $zip->getFromName($filename);
+      $this->assertNotFalse($contents, $filename . ' must be present in the pass bundle.');
+      $this->assertSame($hash, sha1((string) $contents), $filename . ' must match its manifest hash.');
+    }
     $zip->close();
     $decoded = json_decode((string) $json, TRUE);
     $this->assertIsArray($decoded);
