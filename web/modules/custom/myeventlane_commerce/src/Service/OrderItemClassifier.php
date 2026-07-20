@@ -315,7 +315,10 @@ class OrderItemClassifier {
   }
 
   /**
-   * Whether the order should use the recurring Payment Element gateway.
+   * Whether the order contains MEL Pro / recurring inventory.
+   *
+   * True when any line is MEL Pro (including mixed ticket + Pro carts).
+   * Use requiresExclusiveRecurringPaymentGateway() before stripping Card Element.
    */
   public function requiresRecurringPaymentGateway(OrderInterface $order): bool {
     if ($order->bundle() === 'recurring') {
@@ -327,6 +330,31 @@ class OrderItemClassifier {
       }
     }
     return FALSE;
+  }
+
+  /**
+   * Whether the order may use PE recurring exclusively (no Card Element).
+   *
+   * True for Commerce Recurring renewals and Pro-only carts. False for mixed
+   * carts (e.g. tickets + MEL Pro) so ticket lines are not charged on the
+   * off_session Payment Element gateway.
+   */
+  public function requiresExclusiveRecurringPaymentGateway(OrderInterface $order): bool {
+    if ($order->bundle() === 'recurring') {
+      return TRUE;
+    }
+
+    $hasPro = FALSE;
+    foreach ($order->getItems() as $item) {
+      if ($this->isMelPro($item)) {
+        $hasPro = TRUE;
+        continue;
+      }
+      // Any non-Pro line blocks exclusive PE (tickets, boost, donations, etc.).
+      return FALSE;
+    }
+
+    return $hasPro;
   }
 
 }

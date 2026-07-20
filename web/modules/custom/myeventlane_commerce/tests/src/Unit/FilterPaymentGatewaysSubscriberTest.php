@@ -23,7 +23,11 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
    * @covers ::onFilterPaymentGateways
    */
   public function testTicketCartKeepsStripeOnlyForCustomers(): void {
-    $subscriber = $this->createSubscriber(requiresRecurring: FALSE, isAdmin: FALSE);
+    $subscriber = $this->createSubscriber(
+      requiresRecurring: FALSE,
+      exclusiveRecurring: FALSE,
+      isAdmin: FALSE,
+    );
     $gateways = [
       'mel_stripe_cc' => $this->gateway('mel_stripe_cc'),
       'stripe' => $this->gateway('stripe'),
@@ -39,7 +43,11 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
    * @covers ::onFilterPaymentGateways
    */
   public function testProCartKeepsRecurringOnly(): void {
-    $subscriber = $this->createSubscriber(requiresRecurring: TRUE, isAdmin: FALSE);
+    $subscriber = $this->createSubscriber(
+      requiresRecurring: TRUE,
+      exclusiveRecurring: TRUE,
+      isAdmin: FALSE,
+    );
     $gateways = [
       'mel_stripe_cc' => $this->gateway('mel_stripe_cc'),
       'stripe' => $this->gateway('stripe'),
@@ -49,6 +57,34 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
     $subscriber->onFilterPaymentGateways($event);
     $remaining = array_keys($event->getPaymentGateways());
     $this->assertSame(['stripe_pe_recurring'], $remaining);
+  }
+
+  /**
+   * Mixed ticket + Pro must keep Card Element and drop off_session PE.
+   *
+   * @covers ::onFilterPaymentGateways
+   */
+  public function testMixedProAndTicketCartKeepsStripeOnly(): void {
+    $logger = $this->createMock(LoggerInterface::class);
+    $logger->expects($this->once())
+      ->method('warning')
+      ->with($this->stringContains('Mixed Pro cart'));
+
+    $subscriber = $this->createSubscriber(
+      requiresRecurring: TRUE,
+      exclusiveRecurring: FALSE,
+      isAdmin: FALSE,
+      logger: $logger,
+    );
+    $gateways = [
+      'mel_stripe_cc' => $this->gateway('mel_stripe_cc'),
+      'stripe' => $this->gateway('stripe'),
+      'stripe_pe_recurring' => $this->gateway('stripe_pe_recurring'),
+    ];
+    $event = new FilterPaymentGatewaysEvent($gateways, $this->createMock(OrderInterface::class));
+    $subscriber->onFilterPaymentGateways($event);
+    $remaining = array_keys($event->getPaymentGateways());
+    $this->assertSame(['stripe'], $remaining);
   }
 
   /**
@@ -62,7 +98,12 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
       ->method('warning')
       ->with($this->stringContains('no @pe gateway'));
 
-    $subscriber = $this->createSubscriber(requiresRecurring: TRUE, isAdmin: FALSE, logger: $logger);
+    $subscriber = $this->createSubscriber(
+      requiresRecurring: TRUE,
+      exclusiveRecurring: TRUE,
+      isAdmin: FALSE,
+      logger: $logger,
+    );
     $gateways = [
       'mel_stripe_cc' => $this->gateway('mel_stripe_cc'),
       'stripe' => $this->gateway('stripe'),
@@ -77,7 +118,11 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
    * @covers ::onFilterPaymentGateways
    */
   public function testAdministratorKeepsManualGatewayOnTicketCart(): void {
-    $subscriber = $this->createSubscriber(requiresRecurring: FALSE, isAdmin: TRUE);
+    $subscriber = $this->createSubscriber(
+      requiresRecurring: FALSE,
+      exclusiveRecurring: FALSE,
+      isAdmin: TRUE,
+    );
     $gateways = [
       'mel_stripe_cc' => $this->gateway('mel_stripe_cc'),
       'stripe' => $this->gateway('stripe'),
@@ -90,9 +135,15 @@ final class FilterPaymentGatewaysSubscriberTest extends UnitTestCase {
     $this->assertSame(['mel_stripe_cc', 'stripe'], $remaining);
   }
 
-  private function createSubscriber(bool $requiresRecurring, bool $isAdmin, ?LoggerInterface $logger = NULL): FilterPaymentGatewaysSubscriber {
+  private function createSubscriber(
+    bool $requiresRecurring,
+    bool $exclusiveRecurring,
+    bool $isAdmin,
+    ?LoggerInterface $logger = NULL,
+  ): FilterPaymentGatewaysSubscriber {
     $classifier = $this->createMock(OrderItemClassifier::class);
     $classifier->method('requiresRecurringPaymentGateway')->willReturn($requiresRecurring);
+    $classifier->method('requiresExclusiveRecurringPaymentGateway')->willReturn($exclusiveRecurring);
 
     $account = $this->createMock(AccountProxyInterface::class);
     $account->method('hasRole')->with('administrator')->willReturn($isAdmin);

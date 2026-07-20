@@ -16,12 +16,13 @@ use Symfony\Component\EventDispatcher\EventSubscriberInterface;
  *
  * Target:
  * - Customers: tickets / boost / donations → stripe
- * - MEL Pro / recurring → stripe_pe_recurring
+ * - MEL Pro / recurring (Pro-only carts) → stripe_pe_recurring
+ * - Mixed ticket + Pro carts → stripe (Card Element); PE removed
  * - mel_stripe_cc → administrators only (preserved for local/admin testing)
  *
- * Fail-safe: never remove Card Element for a recurring cart unless the PE
- * recurring gateway is still present after Commerce conditions. Otherwise
- * checkout can end with zero gateways (missing config/currency/variation).
+ * Fail-safe: never remove Card Element for an exclusive recurring cart unless
+ * the PE recurring gateway is still present after Commerce conditions.
+ * Otherwise checkout can end with zero gateways (missing config/currency).
  */
 final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface {
 
@@ -57,11 +58,20 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
     }
 
     $requiresRecurring = $this->orderItemClassifier->requiresRecurringPaymentGateway($order);
+    $exclusiveRecurring = $this->orderItemClassifier->requiresExclusiveRecurringPaymentGateway($order);
     $isAdministrator = $this->currentUser->hasRole('administrator');
     $hasRecurringGateway = $this->gatewayListContains($gateways, self::RECURRING_GATEWAY_ID);
     $removed = [];
 
-    if ($requiresRecurring && !$hasRecurringGateway) {
+    if ($requiresRecurring && !$exclusiveRecurring) {
+      $this->logger->warning('Mixed Pro cart order @oid keeps @card and drops @pe so non-Pro lines are not charged off_session.', [
+        '@oid' => (string) ($order->id() ?? 'new'),
+        '@card' => self::CARD_GATEWAY_ID,
+        '@pe' => self::RECURRING_GATEWAY_ID,
+      ]);
+    }
+
+    if ($exclusiveRecurring && !$hasRecurringGateway) {
       $this->logger->warning('Recurring cart order @oid has no @pe gateway after Commerce conditions; retaining @card if present so checkout is not empty.', [
         '@oid' => (string) ($order->id() ?? 'new'),
         '@pe' => self::RECURRING_GATEWAY_ID,
@@ -78,33 +88,36 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
         continue;
       }
 
-      if ($gatewayId === self::RECURRING_GATEWAY_ID && !$requiresRecurring) {
+      // PE only for Pro-only / recurring renewals — not mixed ticket + Pro carts.
+      if ($gatewayId === self::RECURRING_GATEWAY_ID && !$exclusiveRecurring) {
         unset($gateways[$id]);
         $removed[] = $gatewayId;
         continue;
       }
 
-      // Only strip Card Element when PE recurring is actually available.
-      if ($gatewayId === self::CARD_GATEWAY_ID && $requiresRecurring && $hasRecurringGateway) {
+      // Only strip Card Element when the cart is exclusive recurring and PE is available.
+      if ($gatewayId === self::CARD_GATEWAY_ID && $exclusiveRecurring && $hasRecurringGateway) {
         unset($gateways[$id]);
         $removed[] = $gatewayId;
       }
     }
 
     if ($removed !== []) {
-      $this->logger->info('Filtered payment gateways for order @oid: removed @removed (recurring=@recurring, admin=@admin, pe_present=@pe).', [
+      $this->logger->info('Filtered payment gateways for order @oid: removed @removed (recurring=@recurring, exclusive=@exclusive, admin=@admin, pe_present=@pe).', [
         '@oid' => (string) ($order->id() ?? 'new'),
         '@removed' => implode(',', array_unique($removed)),
         '@recurring' => $requiresRecurring ? '1' : '0',
+        '@exclusive' => $exclusiveRecurring ? '1' : '0',
         '@admin' => $isAdministrator ? '1' : '0',
         '@pe' => $hasRecurringGateway ? '1' : '0',
       ]);
     }
 
     if ($gateways === []) {
-      $this->logger->error('Payment gateway filter left order @oid with zero gateways (recurring=@recurring, admin=@admin).', [
+      $this->logger->error('Payment gateway filter left order @oid with zero gateways (recurring=@recurring, exclusive=@exclusive, admin=@admin).', [
         '@oid' => (string) ($order->id() ?? 'new'),
         '@recurring' => $requiresRecurring ? '1' : '0',
+        '@exclusive' => $exclusiveRecurring ? '1' : '0',
         '@admin' => $isAdministrator ? '1' : '0',
       ]);
     }

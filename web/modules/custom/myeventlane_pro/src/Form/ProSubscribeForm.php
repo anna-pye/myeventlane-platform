@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_pro\Form;
 use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -24,8 +25,17 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * State-changing action (cart add) happens inside submitForm(), which is
  * POST-only and automatically CSRF-protected by Form API.
+ *
+ * Pro must check out alone on stripe_pe_recurring (off_session). The shared
+ * default cart may already hold tickets/boost; those lines are cleared before
+ * Pro is added so mixed carts cannot be charged entirely on PE.
  */
 final class ProSubscribeForm extends FormBase {
+
+  /**
+   * Variation bundle that identifies MEL Pro subscription inventory.
+   */
+  private const MEL_PRO_VARIATION_TYPE = 'mel_pro_subscription_variation';
 
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
@@ -108,7 +118,7 @@ final class ProSubscribeForm extends FormBase {
         'No active Pro variation found (configure a published commerce variation of type @type or set pro_variation_sku). Configured SKU: @sku',
         [
           '@sku' => $this->productResolver->getConfiguredSku() ?: '(empty)',
-          '@type' => 'mel_pro_subscription_variation',
+          '@type' => self::MEL_PRO_VARIATION_TYPE,
         ],
       );
       $this->messenger()->addError($this->t('Pro subscription is not currently available.'));
@@ -151,6 +161,20 @@ final class ProSubscribeForm extends FormBase {
       $cart->save();
     }
 
+    // Pro must not share a cart with tickets/boost/etc. Mixed carts would either
+    // charge tickets on off_session PE or charge Pro without a dedicated PE path.
+    if ($this->cartHasNonProItems($cart)) {
+      $this->logger->notice(
+        'Clearing non-Pro lines from cart @order_id before Pro subscribe for user @uid.',
+        [
+          '@order_id' => (string) $cart->id(),
+          '@uid' => (string) $currentUid,
+        ],
+      );
+      $this->cartManager->emptyCart($cart);
+      $this->messenger()->addStatus($this->t('Your previous cart items were removed so Pro can be checked out on its own. Add tickets again after your subscription is active if needed.'));
+    }
+
     $this->cartManager->addEntity($cart, $variation);
     // Persist customer ownership defensively after cart mutations.
     if ((int) $cart->getCustomerId() !== $currentUid) {
@@ -167,6 +191,30 @@ final class ProSubscribeForm extends FormBase {
       ],
     );
     $form_state->setRedirectUrl($this->buildCheckoutRedirectUrl($cart));
+  }
+
+  /**
+   * Whether the cart contains any line that is not MEL Pro.
+   */
+  private function cartHasNonProItems(OrderInterface $cart): bool {
+    foreach ($cart->getItems() as $item) {
+      if (!$this->isMelProOrderItem($item)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Whether an order item is MEL Pro subscription inventory.
+   */
+  private function isMelProOrderItem(OrderItemInterface $item): bool {
+    $purchasedEntity = $item->getPurchasedEntity();
+    if (!$purchasedEntity) {
+      return FALSE;
+    }
+    return $purchasedEntity->getEntityTypeId() === 'commerce_product_variation'
+      && $purchasedEntity->bundle() === self::MEL_PRO_VARIATION_TYPE;
   }
 
   /**

@@ -233,6 +233,7 @@ final class OrderItemClassifierPayoutLedgerTest extends UnitTestCase {
 
   /**
    * @covers ::requiresRecurringPaymentGateway
+   * @covers ::requiresExclusiveRecurringPaymentGateway
    */
   public function testRequiresRecurringForMelPro(): void {
     $variation = $this->createMock(ProductVariationInterface::class);
@@ -248,6 +249,40 @@ final class OrderItemClassifierPayoutLedgerTest extends UnitTestCase {
     $order->method('bundle')->willReturn('default');
     $order->method('getItems')->willReturn([$item]);
     $this->assertTrue($this->classifier->requiresRecurringPaymentGateway($order));
+    $this->assertTrue($this->classifier->requiresExclusiveRecurringPaymentGateway($order));
+  }
+
+  /**
+   * Mixed ticket + Pro requires recurring presence but not exclusive PE.
+   *
+   * @covers ::requiresRecurringPaymentGateway
+   * @covers ::requiresExclusiveRecurringPaymentGateway
+   */
+  public function testMixedTicketAndProIsNotExclusiveRecurring(): void {
+    $ticketVariation = $this->createMock(ProductVariationInterface::class);
+    $ticketVariation->method('getEntityTypeId')->willReturn('commerce_product_variation');
+    $ticketVariation->method('bundle')->willReturn('ticket_variation');
+    $ticketVariation->method('getProduct')->willReturn(NULL);
+
+    $ticketItem = $this->createMock(OrderItemInterface::class);
+    $ticketItem->method('bundle')->willReturn('default');
+    $ticketItem->method('getPurchasedEntity')->willReturn($ticketVariation);
+
+    $proVariation = $this->createMock(ProductVariationInterface::class);
+    $proVariation->method('getEntityTypeId')->willReturn('commerce_product_variation');
+    $proVariation->method('bundle')->willReturn('mel_pro_subscription_variation');
+    $proVariation->method('getProduct')->willReturn(NULL);
+
+    $proItem = $this->createMock(OrderItemInterface::class);
+    $proItem->method('bundle')->willReturn('default');
+    $proItem->method('getPurchasedEntity')->willReturn($proVariation);
+
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('bundle')->willReturn('default');
+    $order->method('getItems')->willReturn([$ticketItem, $proItem]);
+
+    $this->assertTrue($this->classifier->requiresRecurringPaymentGateway($order));
+    $this->assertFalse($this->classifier->requiresExclusiveRecurringPaymentGateway($order));
   }
 
 }
