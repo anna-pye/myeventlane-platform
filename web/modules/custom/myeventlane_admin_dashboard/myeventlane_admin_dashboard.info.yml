@@ -9,6 +9,7 @@ dependencies:
   - drupal:views
   - commerce_order:commerce_order
   - myeventlane_analytics:myeventlane_analytics
+  - myeventlane_commerce:myeventlane_commerce
   - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - myeventlane_event:myeventlane_event

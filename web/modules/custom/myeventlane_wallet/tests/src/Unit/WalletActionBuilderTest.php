@@ -100,6 +100,58 @@ final class WalletActionBuilderTest extends UnitTestCase {
   }
 
   /**
+   * Absolute mode omits relative wallet routes but keeps recoverable badge paths.
+   *
+   * Unit tests lack a full URL generator, so generation throws. Wallet route
+   * CTAs must not emit host-relative `/wallet/...` fallbacks for email. Badge
+   * assets keep their site-relative path so OrderConfirmationQueueBuilder can
+   * rewrite them through walletEmailBadgeUrl()/buildPublicUrl().
+   *
+   * @covers ::buildForOrderItem
+   */
+  public function testAbsoluteModeOmitsRelativeRouteFallbacksButKeepsBadgePaths(): void {
+    $this->writeAppleCredentials();
+    $this->writeServiceAccount();
+    new Settings([
+      'myeventlane_wallet' => [
+        'apple_certificate_path' => $this->tempDir . '/pass_cert.pem',
+        'apple_private_key_path' => $this->tempDir . '/pass_key.pem',
+        'apple_wwdr_certificate_path' => $this->tempDir . '/wwdr.pem',
+        'google_service_account_json_path' => $this->tempDir . '/sa.json',
+      ],
+    ]);
+
+    $builder = $this->builder([
+      'apple_enabled' => TRUE,
+      'google_enabled' => TRUE,
+      'apple_team_id' => 'ABCDE12345',
+      'apple_pass_type_id' => 'pass.com.example.mel',
+      'google_issuer_id' => '3388000000000000000',
+      'show_wallet_buttons' => TRUE,
+      'show_wallet_in_email' => TRUE,
+    ]);
+
+    $this->assertFileExists(
+      DRUPAL_ROOT . '/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg',
+    );
+    $this->assertFileExists(
+      DRUPAL_ROOT . '/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png',
+    );
+
+    $actions = $builder->buildForOrderItem(55, WalletActionBuilder::SURFACE_EMAIL, TRUE);
+    $this->assertSame('', $actions['apple']['url']);
+    $this->assertSame('', $actions['google']['url']);
+    $this->assertSame(
+      '/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg',
+      $actions['apple']['badge']['src'],
+    );
+    $this->assertSame(
+      '/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png',
+      $actions['google']['badge']['src'],
+    );
+  }
+
+  /**
    * @covers ::buildForOrderItem
    */
   public function testEmailSurfaceRespectsEmailFlag(): void {

@@ -7,6 +7,8 @@ services:
       - '@cache.default'
       - '@config.factory'
       - '@datetime.time'
+      - '@myeventlane_commerce.order_item_classifier'
+      - '@logger.channel.myeventlane_admin_dashboard'
 
   myeventlane_admin_dashboard.financial_export_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\FinancialExportController

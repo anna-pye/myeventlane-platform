@@ -4,17 +4,23 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_admin_dashboard\Service;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
+use Psr\Log\LoggerInterface;
 
 /**
  * Platform-level metrics: KPIs, revenue series, vendor ranking, payout liability.
  *
  * Commission is computed from config (commission_rate); ledger stores gross,
- * commission, net per order. Ledger rows are auto-created when getKpis runs.
+ * commission, net per order. Ledger rows are auto-created when getKpis runs,
+ * but only for payout-eligible vendor revenue (CF-007 remediation). Gross is
+ * the sum of eligible line totals (+ booking Contribution adjustments), never
+ * the full order total (so mixed carts exclude Boost / platform revenue).
  */
 final class PlatformMetricsService {
 
@@ -35,12 +41,15 @@ final class PlatformMetricsService {
     private readonly CacheBackendInterface $cache,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly TimeInterface $time,
+    private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
    * Returns KPI tile data for the last N days.
    *
-   * Ensures ledger row exists for each completed order (inserts unpaid if missing).
+   * Ensures ledger row exists for each completed payout-eligible order
+   * (inserts unpaid if missing).
    *
    * @return array{
    *   total_orders: int,
@@ -156,7 +165,7 @@ final class PlatformMetricsService {
   }
 
   /**
-   * Builds KPI data. Ensures ledger rows exist for completed orders.
+   * Builds KPI data. Ensures ledger rows exist for payout-eligible orders.
    */
   private function buildKpis(int $days): array {
     if (!$this->database->schema()->tableExists('commerce_order')) {
@@ -196,14 +205,43 @@ final class PlatformMetricsService {
       ->fetchCol();
     $existing = array_map('intval', $existing);
 
-    // Auto-create ledger rows for orders without one.
+    $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
+
+    // Auto-create ledger rows for payout-eligible orders without one.
     foreach ($orders as $o) {
       $orderId = (int) ($o['order_id'] ?? 0);
       if ($orderId <= 0 || in_array($orderId, $existing, TRUE)) {
         continue;
       }
+
+      $order = $orderStorage->load($orderId);
+      if (!$order instanceof OrderInterface) {
+        $this->logger->error('Payout ledger skip: commerce order @oid could not be loaded.', [
+          '@oid' => (string) $orderId,
+        ]);
+        continue;
+      }
+
+      if (!$this->orderItemClassifier->isPayoutLedgerEligibleOrder($order)) {
+        $this->logger->info('Payout ledger skip: order @oid type=@type is not vendor-payable revenue.', [
+          '@oid' => (string) $orderId,
+          '@type' => $order->bundle(),
+        ]);
+        continue;
+      }
+
+      // Line-level eligible gross only (excludes Boost / platform revenue on
+      // mixed carts). Do not use order total_price__number.
+      $gross = $this->orderItemClassifier->getPayoutLedgerEligibleGross($order);
+      if ($gross <= 0) {
+        $this->logger->info('Payout ledger skip: order @oid type=@type has no positive vendor-payable gross.', [
+          '@oid' => (string) $orderId,
+          '@type' => $order->bundle(),
+        ]);
+        continue;
+      }
+
       $storeId = (int) ($o['store_id'] ?? 0);
-      $gross = round((float) ($o['total_price__number'] ?? 0), 2);
       $commission = round($gross * $commissionRate, 2);
       $net = round($gross - $commission, 2);
       $created = (int) ($o['placed'] ?? $now);

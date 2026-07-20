@@ -3,6 +3,9 @@ langcode: en
 status: true
 dependencies:
   module:
+    - commerce_order
+    - commerce_price
+    - commerce_product
     - commerce_stripe
 id: stripe_pe_recurring
 label: 'Stripe (Payment Element) — Recurring'
@@ -37,4 +40,9 @@ conditions:
     configuration:
       currencies:
         - AUD
-conditionOperator: OR
+  -
+    plugin: order_variation_type
+    configuration:
+      variation_types:
+        - mel_pro_subscription_variation
+conditionOperator: AND
