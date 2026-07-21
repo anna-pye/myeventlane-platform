@@ -42,6 +42,7 @@ final class RsvpOrganiserViewScope {
    * Event node IDs the account may list RSVPs for (any publish state).
    *
    * @return list<int>
+   *   Managed event node IDs, or an empty list when none apply.
    */
   public function getManagedEventIds(AccountInterface $account): array {
     $uid = (int) $account->id();
