@@ -106,6 +106,7 @@ permissions:
   - 'purchase boost for events'
   - request_refunds
   - 'resolve vendor escalations'
+  - 'resend ticket emails'
   - 'reuse mel_ticket_type entities'
   - 'scan qr codes'
   - 'toggle check-in status'

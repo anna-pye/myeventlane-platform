@@ -87,11 +87,13 @@ myeventlane_tickets.event_tickets_groups:
     _controller: '\Drupal\myeventlane_tickets\Controller\VendorEventTicketGroupsController::list'
     _title: 'Ticket groups'
   requirements:
-    _permission: 'manage own events tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
   options:
     parameters:
       event:
         type: entity:node
+        bundle:
+          - event
 
 myeventlane_tickets.event_tickets_groups_add:
   path: '/vendor/events/{event}/tickets/groups/add'
@@ -201,11 +203,13 @@ myeventlane_tickets.event_tickets_widgets:
     _controller: '\Drupal\myeventlane_tickets\Controller\VendorEventWidgetsController::list'
     _title: 'Embedded widgets'
   requirements:
-    _permission: 'manage own events tickets'
+    _custom_access: 'myeventlane_tickets.access.event_tickets:access'
   options:
     parameters:
       event:
         type: entity:node
+        bundle:
+          - event
 
 myeventlane_tickets.event_tickets_widgets_add:
   path: '/vendor/events/{event}/tickets/widgets/add'
@@ -415,6 +419,7 @@ myeventlane_tickets.ticket_resend:
   requirements:
     _permission: 'resend ticket emails'
     _custom_access: 'myeventlane_tickets.access.ticket_operations:accessResend'
+    _csrf_token: 'TRUE'
   options:
     parameters:
       myeventlane_ticket:

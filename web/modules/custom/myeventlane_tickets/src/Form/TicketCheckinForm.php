@@ -108,7 +108,11 @@ final class TicketCheckinForm extends FormBase {
         '@code' => (string) $result['ticket_label'],
       ]));
       if (!empty($result['ticket_id'])) {
-        $resend_url = Url::fromRoute('myeventlane_tickets.ticket_resend', ['myeventlane_ticket' => $result['ticket_id']], ['absolute' => TRUE])->toString();
+        $resend_url = Url::fromRoute(
+          'myeventlane_tickets.ticket_resend',
+          ['myeventlane_ticket' => $result['ticket_id']],
+          ['absolute' => TRUE],
+        )->toString();
         $this->messenger()->addStatus($this->t('Resend link: @url', ['@url' => $resend_url]));
       }
     }

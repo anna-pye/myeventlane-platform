@@ -49,6 +49,7 @@ myeventlane_checkin.toggle:
     _controller: '\Drupal\myeventlane_checkin\Controller\CheckInController::toggle'
   requirements:
     _permission: 'toggle check-in status'
+    _method: 'POST'
     node: \d+
     attendee_id: \d+
   options:
