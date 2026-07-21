@@ -10,23 +10,31 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolver;
-use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Access checker for the canonical vendor Event Studio workspace.
+ *
+ * Organiser owner and team membership (workspace parity) are sufficient.
+ * Node entity update access alone is not required: Drupal node grants often
+ * only cover the author, which would incorrectly block organiser-owner and
+ * non-author team members from Studio despite event-management parity.
  */
 final class EventStudioAccess implements ContainerInjectionInterface {
 
   public function __construct(
     private readonly CurrentVendorResolver $currentVendorResolver,
-    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerInterface $logger,
   ) {}
 
+  /**
+   * {@inheritdoc}
+   */
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_vendor.current_vendor_resolver'),
@@ -36,6 +44,9 @@ final class EventStudioAccess implements ContainerInjectionInterface {
     );
   }
 
+  /**
+   * Access callback for Event Studio routes.
+   */
   public function access(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     $event = $route_match->getParameter('node') ?? $route_match->getParameter('event');
     if (is_numeric($event)) {
@@ -73,14 +84,6 @@ final class EventStudioAccess implements ContainerInjectionInterface {
     if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
       return AccessResult::forbidden()
         ->addCacheableDependency($event)
-        ->addCacheableDependency($vendor)
-        ->addCacheContexts(['user']);
-    }
-
-    $entity_access = $event->access('update', $account, TRUE);
-    if (!$entity_access->isAllowed()) {
-      return $entity_access
-        ->andIf(AccessResult::forbidden())
         ->addCacheableDependency($vendor)
         ->addCacheContexts(['user']);
     }

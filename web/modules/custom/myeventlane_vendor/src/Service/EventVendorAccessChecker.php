@@ -10,8 +10,9 @@ use Drupal\node\NodeInterface;
 /**
  * Event access aligned with VendorConsoleBaseController::assertEventOwnership.
  *
- * Use for route access and API checks so vendor team members (field_event_vendor
- * → field_vendor_users) have the same event reach as the node author.
+ * Use for route access and API checks so organiser owners and team members
+ * (field_event_vendor → vendor owner uid or field_vendor_users) have the same
+ * event reach as the node author.
  *
  * This does not assert vendor domain or global vendor console permissions; those
  * belong on routes or calling code. Admin/staff bypasses are left to callers.
@@ -19,7 +20,7 @@ use Drupal\node\NodeInterface;
 final class EventVendorAccessChecker implements EventVendorAccessCheckerInterface {
 
   /**
-   * TRUE when the account is the event author or listed on the linked vendor.
+   * TRUE when the account is the event author or manages via the linked organiser.
    */
   public function accountHasWorkspaceParityForEvent(NodeInterface $event, AccountInterface $account): bool {
     if ($event->bundle() !== 'event') {
@@ -32,10 +33,16 @@ final class EventVendorAccessChecker implements EventVendorAccessCheckerInterfac
 
     if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
       $vendor = $event->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-            return TRUE;
+      if ($vendor) {
+        if (method_exists($vendor, 'getOwnerId')
+          && (int) $vendor->getOwnerId() === (int) $account->id()) {
+          return TRUE;
+        }
+        if (method_exists($vendor, 'hasField') && $vendor->hasField('field_vendor_users')) {
+          foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
+            if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
+              return TRUE;
+            }
           }
         }
       }

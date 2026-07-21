@@ -90,13 +90,20 @@ abstract class VendorConsoleBaseController {
       return;
     }
 
-    // Vendor membership check via field_event_vendor -> field_vendor_users.
+    // Organiser account owner or team member via field_event_vendor.
+    // Keep parity with EventVendorAccessChecker::accountHasWorkspaceParityForEvent().
     if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
       $vendor = $event->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $this->currentUser->id()) {
-            return;
+      if ($vendor) {
+        if (method_exists($vendor, 'getOwnerId')
+          && (int) $vendor->getOwnerId() === (int) $this->currentUser->id()) {
+          return;
+        }
+        if ($vendor->hasField('field_vendor_users')) {
+          foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
+            if (isset($item['target_id']) && (int) $item['target_id'] === (int) $this->currentUser->id()) {
+              return;
+            }
           }
         }
       }
