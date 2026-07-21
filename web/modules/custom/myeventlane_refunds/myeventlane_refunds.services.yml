@@ -27,6 +27,7 @@ services:
     arguments:
       - '@myeventlane_refunds.access_resolver'
       - '@myeventlane_event.event_mode_manager'
+      - '@myeventlane_refunds.refund_request_storage'
 
   myeventlane_refunds.retry_access:
     class: Drupal\myeventlane_refunds\Access\RetryRefundAccessCheck
@@ -35,12 +36,16 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_refunds.access_resolver'
 
+  myeventlane_refunds.store_ownership_bridge:
+    class: Drupal\myeventlane_refunds\Service\VendorOwnershipStoreBridge
+    arguments: ['@myeventlane_checkout_flow.vendor_ownership_resolver']
+
   myeventlane_refunds.access_resolver:
     class: Drupal\myeventlane_refunds\Service\RefundAccessResolver
     arguments:
-      - '@myeventlane_checkout_flow.vendor_ownership_resolver'
-      - '@entity_type.manager'
+      - '@myeventlane_refunds.store_ownership_bridge'
       - '@myeventlane_refunds.order_inspector'
+      - '@myeventlane_vendor.event_access_checker'
 
   myeventlane_refunds.processor:
     class: Drupal\myeventlane_refunds\Service\RefundProcessor

@@ -74,16 +74,13 @@ final class VendorRefundRequestRejectForm extends FormBase {
 
     $event = $this->entityTypeManager->getStorage('node')->load($req['event_id']);
     $nodeId = $node instanceof NodeInterface ? $node->id() : (is_numeric($node) ? $node : NULL);
+    // Route-event / refund-request mismatch: hard deny (no soft page leak).
     if (!$event instanceof NodeInterface || $nodeId === NULL || (int) $event->id() !== (int) $nodeId) {
-      $form['error'] = [
-        '#type' => 'markup',
-        '#markup' => '<p>' . $this->t('Event mismatch.') . '</p>',
-      ];
-      return $form;
+      throw new AccessDeniedHttpException();
     }
 
     if (!$this->accessResolver->vendorCanManageEvent($event, $this->currentUser())) {
-      throw new AccessDeniedHttpException('You cannot reject refunds for this event.');
+      throw new AccessDeniedHttpException();
     }
 
     $form['#node'] = $node;
