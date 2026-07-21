@@ -107,7 +107,7 @@ class CreateEventGatewayController extends ControllerBase {
 
     $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     $has_vendor = $vendor_ids !== [];
-    $draft_nid = $this->eventStudioCreate->findLatestUnpublishedEventNidForUser($uid);
+    $draft_nid = $this->eventStudioCreate->findLatestResumableDraftNidForUser($uid);
 
     if (!$has_vendor) {
       if ($draft_nid !== NULL) {
@@ -201,13 +201,27 @@ class CreateEventGatewayController extends ControllerBase {
       $this->messenger()->addWarning($this->t('Accept terms to publish.'));
     }
 
+    $http_request = $this->requestStack->getCurrentRequest();
+    $is_first_event = $http_request !== NULL
+      && (string) $http_request->query->get('mel_first_event') === '1';
+
+    // First-event onboarding may continue an existing draft silently.
+    // Explicit Create event otherwise offers Continue / Start new.
     if ($draft_nid !== NULL) {
-      return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.edit', ['node' => $draft_nid])->toString());
+      if ($is_first_event) {
+        return new RedirectResponse(
+          Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $draft_nid], [
+            'query' => ['mel_first_event' => '1'],
+          ])->toString(),
+        );
+      }
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_vendor.create_event_draft_choice')->toString(),
+      );
     }
 
     $options = [];
-    $http_request = $this->requestStack->getCurrentRequest();
-    if ($http_request !== NULL && (string) $http_request->query->get('mel_first_event') === '1') {
+    if ($is_first_event) {
       $options['query'] = ['mel_first_event' => '1'];
     }
     $create_url = Url::fromRoute('myeventlane_event_studio.create', [], $options);

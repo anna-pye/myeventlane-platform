@@ -92,14 +92,21 @@ final class EventStudioController extends ControllerBase {
       $destination .= '?' . http_build_query($request->query->all(), '', '&', PHP_QUERY_RFC3986);
     }
 
-    $draft_nid = $this->eventStudioCreate->findLatestUnpublishedEventNidForUser($uid);
+    $is_first_event = $request !== NULL
+      && (string) $request->query->get('mel_first_event') === '1';
+    $draft_nid = $this->eventStudioCreate->findLatestResumableDraftNidForUser($uid);
     if ($draft_nid !== NULL) {
-      $route_params = ['node' => $draft_nid];
-      $url_options = [];
-      if ($request !== NULL && $request->query->count() > 0) {
-        $url_options['query'] = $request->query->all();
+      // Preserve intentional first-event onboarding continuation.
+      if ($is_first_event) {
+        $url_options = ['query' => $request->query->all()];
+        return new RedirectResponse(
+          Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $draft_nid], $url_options)->toString(),
+        );
       }
-      return new RedirectResponse(Url::fromRoute('myeventlane_event_studio.workspace', $route_params, $url_options)->toString());
+      // Explicit create with an unfinished draft → choice screen (CSRF form).
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_vendor.create_event_draft_choice')->toString(),
+      );
     }
 
     $node = $this->eventStudioCreate->createDraftEventForUser($uid);

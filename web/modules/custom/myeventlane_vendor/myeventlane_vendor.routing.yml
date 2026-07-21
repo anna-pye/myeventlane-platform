@@ -378,6 +378,17 @@ myeventlane_vendor.console.events_add:
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
+# Explicit choice when Create event finds a resumable unfinished draft.
+myeventlane_vendor.create_event_draft_choice:
+  path: '/vendor/events/create/draft-choice'
+  defaults:
+    _form: '\Drupal\myeventlane_vendor\Form\EventDraftChoiceForm'
+    _title: 'Continue or start new'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme
+
 myeventlane_vendor.console.event_workspace:
   path: '/vendor/events/{event}'
   defaults:
