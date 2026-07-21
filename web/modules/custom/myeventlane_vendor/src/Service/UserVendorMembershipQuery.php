@@ -14,7 +14,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
  * and for event nodes the user manages as author or via {@see getManagedEventNodeIds()}.
  * Used by post-login routing, vendor KPIs, and ticket/RSVP aggregation — do not duplicate.
  */
-final class UserVendorMembershipQuery {
+final class UserVendorMembershipQuery implements UserVendorMembershipQueryInterface {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -22,9 +22,7 @@ final class UserVendorMembershipQuery {
   ) {}
 
   /**
-   * Returns vendor IDs where the user is owner (uid) or listed in field_vendor_users.
-   *
-   * @return list<int>
+   * {@inheritdoc}
    */
   public function getVendorIdsForUser(int $uid): array {
     if ($uid <= 0 || !$this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
@@ -49,18 +47,7 @@ final class UserVendorMembershipQuery {
   }
 
   /**
-   * Event node IDs for events the user manages (author or vendor team member).
-   *
-   * When $publishedOnly is TRUE, only published events are returned (dashboard KPI parity).
-   * When FALSE, draft/unpublished events are included (e.g. payout history for past sales).
-   *
-   * @param int $uid
-   *   The user ID.
-   * @param bool $publishedOnly
-   *   TRUE to restrict to published nodes (status = 1).
-   *
-   * @return list<int>
-   *   Event node IDs.
+   * {@inheritdoc}
    */
   public function getManagedEventNodeIds(int $uid, bool $publishedOnly): array {
     if ($uid <= 0) {

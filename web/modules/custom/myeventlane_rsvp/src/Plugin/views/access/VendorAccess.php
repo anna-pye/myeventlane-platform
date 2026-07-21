@@ -1,14 +1,20 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_rsvp\Plugin\views\access;
 
-use Drupal\views\Plugin\views\access\AccessPluginBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\views\Plugin\views\access\AccessPluginBase;
 use Symfony\Component\Routing\Route;
 
 /**
- * Provides vendor-level access for RSVP Views.
+ * Provides vendor-level page access for RSVP Views.
+ *
+ * Page gate only: authenticated organisers (or staff). Row isolation is enforced
+ * by {@see \Drupal\myeventlane_rsvp\Service\RsvpOrganiserViewScope} via the
+ * organiser-owned filter and hook_views_query_alter — not by this plugin.
  *
  * @ViewsAccess(
  *   id = "myeventlane_rsvp_vendor_access",
@@ -18,44 +24,50 @@ use Symfony\Component\Routing\Route;
 class VendorAccess extends AccessPluginBase {
 
   /**
-   * Core access check.
+   * {@inheritdoc}
    */
   public function access(AccountInterface $account) {
-    if ($account->hasPermission('administer nodes')) {
+    if ($account->hasPermission('administer nodes')
+      || $account->hasPermission('administer rsvps')) {
       return TRUE;
     }
-    if ($account->isAuthenticated() &&
-        ($account->hasPermission('create event content') ||
-         $account->hasPermission('edit own event content'))) {
-      return TRUE;
+
+    if (!$account->isAuthenticated()) {
+      return FALSE;
     }
-    return FALSE;
+
+    // Coarse organiser capability check. Cross-tenant PII is prevented by query
+    // scoping (managed event IDs), not by this page-level gate.
+    return $account->hasPermission('manage own event rsvps')
+      || $account->hasPermission('create event content')
+      || $account->hasPermission('edit own event content')
+      || $account->hasPermission('access vendor console');
   }
 
   /**
-   * Optional summary text in UI.
+   * {@inheritdoc}
    */
   public function summaryTitle() {
-    return $this->t('Vendor RSVP Access');
+    return $this->t('Vendor RSVP Access (organiser-scoped rows)');
   }
 
   /**
-   * Options form (none needed).
+   * {@inheritdoc}
    */
   public function buildOptionsForm(&$form, FormStateInterface $form_state) {
     // No settings.
   }
 
   /**
-   * Required by AccessPluginBase.
+   * {@inheritdoc}
    */
   public function validate() {}
 
   /**
-   * REQUIRED signature to satisfy AccessPluginBase.
+   * {@inheritdoc}
    */
   public function alterRouteDefinition(Route $route) {
-    // No alteration needed.
+    // Access callback remains plugin-driven; query scope is separate.
   }
 
 }

@@ -9,6 +9,8 @@ declare(strict_types=1);
 
 use Drupal\Core\Block\BlockPluginInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\views\Plugin\views\query\QueryPluginBase;
+use Drupal\views\ViewExecutable;
 
 /**
  * Implements hook_mail().
@@ -114,6 +116,22 @@ function myeventlane_rsvp_block_build_alter(array &$build, BlockPluginInterface 
       ],
     ];
   }
+}
+
+/**
+ * Implements hook_views_query_alter().
+ *
+ * Defence-in-depth for /dashboard/rsvps: even if the organiser-owned Views
+ * filter is removed from config, rows remain scoped to managed events.
+ */
+function myeventlane_rsvp_views_query_alter(ViewExecutable $view, QueryPluginBase $query): void {
+  if ($view->id() !== 'myeventlane_vendor_rsvps') {
+    return;
+  }
+
+  /** @var \Drupal\myeventlane_rsvp\Service\RsvpOrganiserViewScope $scope */
+  $scope = \Drupal::service('myeventlane_rsvp.organiser_view_scope');
+  $scope->applyToViewsQuery($query, \Drupal::currentUser());
 }
 
 /**
