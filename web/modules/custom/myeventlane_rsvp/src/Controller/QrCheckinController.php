@@ -9,10 +9,10 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Flood\FloodInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsAccessInterface;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
 use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -42,9 +42,9 @@ final class QrCheckinController extends ControllerBase {
     private readonly ConfigFactoryInterface $config,
     private readonly FloodInterface $flood,
     private readonly AccountProxyInterface $account,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
     private readonly ?AttendanceManager $attendanceManager = NULL,
     private readonly mixed $melAttendeeCheckinManager = NULL,
-    private readonly ?MelAttendeeOperationsAccessInterface $attendeeOperationsAccess = NULL,
   ) {}
 
   /**
@@ -56,14 +56,12 @@ final class QrCheckinController extends ControllerBase {
       $c->get('config.factory'),
       $c->get('flood'),
       $c->get('current_user'),
+      $c->get('myeventlane_vendor.event_access_checker'),
       $c->has('myeventlane_event_attendees.manager')
         ? $c->get('myeventlane_event_attendees.manager')
         : NULL,
       $c->has('myeventlane_checkout_flow.attendee_checkin_manager')
         ? $c->get('myeventlane_checkout_flow.attendee_checkin_manager')
-        : NULL,
-      $c->has('myeventlane_checkout_flow.attendee_operations_access')
-        ? $c->get('myeventlane_checkout_flow.attendee_operations_access')
         : NULL,
     );
   }
@@ -288,7 +286,8 @@ final class QrCheckinController extends ControllerBase {
    * Checks if the current user can manage the event for QR check-in.
    *
    * RSVP product/admin permissions preserved; organiser membership via
-   * MelAttendeeOperationsAccess → EventVendorAccessChecker workspace parity.
+   * EventVendorAccessChecker workspace parity (same service Mel delegates to).
+   * Does not require myeventlane_checkout_flow.
    */
   private function canManageEvent(NodeInterface $event): bool {
     $account = $this->account->getAccount();
@@ -298,11 +297,7 @@ final class QrCheckinController extends ControllerBase {
     if (!$account->hasPermission('manage own event rsvps')) {
       return FALSE;
     }
-    if ($this->attendeeOperationsAccess instanceof MelAttendeeOperationsAccessInterface) {
-      return $this->attendeeOperationsAccess->accountHasOrganiserOwnership($event, $account);
-    }
-    // Fail closed when Mel attendee ops is unavailable.
-    return FALSE;
+    return $this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account);
   }
 
   /**
