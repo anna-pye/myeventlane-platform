@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_messaging\Form;
 
-use Drupal\Core\Form\FormBase;
-use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
-use Drupal\node\NodeInterface;
+use Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsAccessInterface;
 use Drupal\myeventlane_messaging\Service\AttendeeRecipientResolver;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
-use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
@@ -35,6 +35,8 @@ final class VendorNotifyForm extends FormBase {
    *   The messaging manager.
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
+   * @param \Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsAccessInterface $attendeeOperationsAccess
+   *   Canonical attendee operations access (delegates to workspace parity).
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -42,6 +44,7 @@ final class VendorNotifyForm extends FormBase {
     private readonly AttendeeRecipientResolver $recipientResolver,
     private readonly MessagingManager $messagingManager,
     private readonly Connection $database,
+    private readonly MelAttendeeOperationsAccessInterface $attendeeOperationsAccess,
   ) {}
 
   /**
@@ -54,6 +57,7 @@ final class VendorNotifyForm extends FormBase {
       $container->get('myeventlane_messaging.attendee_recipient_resolver'),
       $container->get('myeventlane_messaging.manager'),
       $container->get('database'),
+      $container->get('myeventlane_checkout_flow.attendee_operations_access'),
     );
   }
 
@@ -67,7 +71,7 @@ final class VendorNotifyForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, NodeInterface $event = NULL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $event = NULL): array {
     if (!$event) {
       throw new AccessDeniedHttpException('Event not found.');
     }
@@ -232,6 +236,9 @@ final class VendorNotifyForm extends FormBase {
   /**
    * Asserts that the current user can manage the given event.
    *
+   * Staff bypass preserved; organiser membership via Mel attendee ops
+   * → EventVendorAccessChecker workspace parity.
+   *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
@@ -246,21 +253,8 @@ final class VendorNotifyForm extends FormBase {
       return;
     }
 
-    // Owner check.
-    if ((int) $event->getOwnerId() === $uid) {
+    if ($this->attendeeOperationsAccess->accountHasOrganiserOwnership($event, $this->currentUser)) {
       return;
-    }
-
-    // Vendor membership check via field_event_vendor -> field_vendor_users.
-    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
-      $vendor = $event->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === $uid) {
-            return;
-          }
-        }
-      }
     }
 
     throw new AccessDeniedHttpException('You do not have permission to notify attendees for this event.');

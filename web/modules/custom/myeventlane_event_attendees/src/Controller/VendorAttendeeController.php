@@ -15,6 +15,7 @@ use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
 use Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder;
 use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -52,6 +53,7 @@ final class VendorAttendeeController extends ControllerBase {
     private readonly MelAttendeeExportBuilder $exportBuilder,
     private readonly mixed $melAttendeeCheckinManager,
     private readonly CsrfTokenGenerator $csrfToken,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -67,14 +69,17 @@ final class VendorAttendeeController extends ControllerBase {
         ? $container->get('myeventlane_checkout_flow.attendee_checkin_manager')
         : NULL,
       $container->get('csrf_token'),
+      // MelAttendeeOperationsAccess lives in checkout_flow (depends on this
+      // module); ownership uses the same canonical checker Mel delegates to.
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
   /**
    * Access check for vendor attendee routes.
    *
-   * Aligned with VendorEventAccess: owner, vendor users (field_event_vendor →
-   * field_vendor_users), or admin can access.
+   * Product gates preserved; organiser membership is workspace parity via
+   * EventVendorAccessChecker (MelAttendeeOperationsAccess delegate).
    */
   public function access(NodeInterface $node, AccountInterface $account): AccessResultInterface {
     // Must be an event node.
@@ -91,25 +96,11 @@ final class VendorAttendeeController extends ControllerBase {
       return AccessResult::forbidden('You do not have access to view attendees for this event.');
     }
 
-    // Event owner.
-    if ((int) $node->getOwnerId() === (int) $account->id()) {
+    // Canonical workspace parity: author, vendor entity owner, or team.
+    if ($this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
       return AccessResult::allowed()
         ->cachePerUser()
         ->addCacheableDependency($node);
-    }
-
-    // Vendor user via field_event_vendor → field_vendor_users (aligns with VendorEventAccess).
-    if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
-      $vendor = $node->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-            return AccessResult::allowed()
-              ->cachePerUser()
-              ->addCacheableDependency($node);
-          }
-        }
-      }
     }
 
     return AccessResult::forbidden('You do not have access to view attendees for this event.');
@@ -118,7 +109,7 @@ final class VendorAttendeeController extends ControllerBase {
   /**
    * Access check for single attendee operations.
    *
-   * Reuses same policy as access(): owner, vendor users, or admin.
+   * Reuses same policy as access(): admin, product permission, or parity.
    */
   public function accessAttendee(EventAttendee $event_attendee, AccountInterface $account): AccessResultInterface {
     $event = $event_attendee->getEvent();
@@ -371,6 +362,7 @@ final class VendorAttendeeController extends ControllerBase {
    * not registered (e.g. minimal install profiles).
    *
    * @return array<string, mixed>
+   *   Empty attendee list render payload.
    */
   private function governedEmptyAttendees(): array {
     if (\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
@@ -580,6 +572,7 @@ final class VendorAttendeeController extends ControllerBase {
    * suitable for both JSON and flash-message rendering.
    *
    * @return array{0: bool, 1: string, 2: \Stringable|string}
+   *   Tuple of success flag, machine reason, and user message.
    */
   private function performAttendeeCheckIn(EventAttendee $event_attendee): array {
     $name = $event_attendee->getName();

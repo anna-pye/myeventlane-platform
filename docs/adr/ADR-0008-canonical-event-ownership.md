@@ -2,8 +2,7 @@
 
 ## Status
 
-Proposed (Phase 2B.1 discovery).  
-**Accepted for planning.** Implementation must not begin until Workstream 1 tests land.
+**Accepted.** Workstream 1 (canonical API) and Workstream 2A (attendee ownership) implemented on `feature/mel-canonical-ownership-api`.
 
 ## Date
 

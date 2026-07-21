@@ -105,6 +105,13 @@ final class MelAttendeeOperationsAccess implements MelAttendeeOperationsAccessIn
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function accountHasOrganiserOwnership(NodeInterface $event, AccountInterface $account): bool {
+    return $this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account);
+  }
+
+  /**
    * Internal: shared resolution. Returns a fully cacheable AccessResult.
    */
   private function resolve(string $action, NodeInterface $event, AccountInterface $account): AccessResultInterface {

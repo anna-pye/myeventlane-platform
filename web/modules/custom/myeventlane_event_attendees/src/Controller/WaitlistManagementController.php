@@ -8,6 +8,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -23,6 +24,7 @@ final class WaitlistManagementController extends ControllerBase {
    */
   public function __construct(
     private readonly AttendanceWaitlistManager $waitlistManager,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
   ) {}
 
   /**
@@ -31,6 +33,9 @@ final class WaitlistManagementController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_event_attendees.waitlist'),
+      // MelAttendeeOperationsAccess lives in checkout_flow (depends on this
+      // module); ownership uses the same canonical checker Mel delegates to.
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -155,6 +160,9 @@ final class WaitlistManagementController extends ControllerBase {
   /**
    * Access callback for waitlist management.
    *
+   * Staff bypass and cache metadata preserved; organiser membership is
+   * workspace parity via EventVendorAccessChecker (Mel delegate).
+   *
    * @param \Drupal\node\NodeInterface $node
    *   The event node.
    * @param \Drupal\Core\Session\AccountInterface $account
@@ -173,21 +181,9 @@ final class WaitlistManagementController extends ControllerBase {
       return AccessResult::allowed()->cachePerPermissions();
     }
 
-    // Check if user owns the event.
-    if ((int) $node->getOwnerId() === (int) $account->id()) {
+    // Canonical workspace parity: author, vendor entity owner, or team.
+    if ($this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
       return AccessResult::allowed()->cachePerPermissions()->addCacheableDependency($node);
-    }
-
-    // Check vendor association via field_event_vendor.
-    if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
-      $vendor = $node->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-            return AccessResult::allowed()->cachePerPermissions()->addCacheableDependency($node);
-          }
-        }
-      }
     }
 
     return AccessResult::forbidden()->cachePerPermissions()->addCacheableDependency($node);

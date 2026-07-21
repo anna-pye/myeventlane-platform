@@ -1,9 +1,9 @@
 # Phase 2B — Ownership Architecture Consolidation
 
 **Date:** 2026-07-21  
-**Status:** Workstream 1 implemented (behaviour-neutral canonical API lock)  
+**Status:** Workstream 2A implemented (attendee ownership consolidation)  
 **Branch evidence:** `feature/mel-canonical-ownership-api`  
-**Prerequisite:** Phase 2A.2 security hotfix (RSVP isolation, export hardening, check-in bind)  
+**Prerequisite:** Phase 2A.2 security hotfix (RSVP isolation, export hardening, check-in bind); Workstream 1 canonical API  
 **Companion plan (shorter):** `docs/implementation/phase2b-ownership-consolidation-plan.md`  
 **ADR:** `docs/adr/ADR-0008-canonical-event-ownership.md`
 
@@ -519,12 +519,89 @@ ddev exec vendor/bin/phpunit -c web/core \
 ## Exit criteria
 
 - [x] Workstream 1: thin `assertEventOwnership` → `EventVendorAccessChecker`; equivalence tests  
-- [ ] Call-site inventory closed; no divergent private ownership helpers for console PII/mutations  
-- [ ] Parity ≡ managed-set proven in tests (legacy field policy explicit)  
+- [x] Workstream 2A: attendee / waitlist / messaging / QR / ACH ownership → Mel → checker (or checker where Mel is cycle-blocked)  
+- [x] Parity ≡ managed-set proven for modern `field_event_vendor` events; legacy `field_vendor` widen documented (no reconciliation invented)  
+- [ ] Call-site inventory closed for non-attendee surfaces (Workstream 2B)  
 - [ ] Check-in routes ownership at route layer; Phase 2A.2 bind retained  
-- [ ] Attendee + refund parity aligned  
+- [ ] Refund parity AND store aligned (Workstream 2B)  
 - [ ] Order detail IDOR tests green  
 - [ ] CSRF follow-up fixed or still explicitly deferred  
+
+---
+
+## Workstream 2A — Attendee ownership consolidation (2026-07-21)
+
+### Scope
+
+Attendee-facing organiser workflows only. Excluded: refunds, Boost, charts, analytics, APIs, Event Studio, Commerce permissions, route conversions, check-in route refactoring.
+
+### Components migrated
+
+| Class | Current ownership model | Canonical replacement | Behaviour change |
+|---|---|---|---|
+| `VendorAttendeeController::access` / `accessAttendee` | Team-partial (author + `field_vendor_users`) | Product gates + `EventVendorAccessChecker` (Mel delegate; Mel lives in `checkout_flow` which depends on this module) | **Vendor entity owner** gains access when `view own event attendees` holds |
+| `WaitlistManagementController::access` | Team-partial | Staff bypass preserved + `EventVendorAccessChecker` | **Vendor entity owner** gains access |
+| `VendorNotifyForm::assertEventOwnership` | Team-partial | Staff bypass + `MelAttendeeOperationsAccess::accountHasOrganiserOwnership` → checker | **Vendor entity owner** gains access |
+| `MessageAttendeesController::assertAccess` | Private owner/team (already included vendor entity owner) | Pro gate + Mel ownership hop | **None** for organisers (cleanup only) |
+| `QrCheckinController::canManageEvent` | Team-partial | RSVP perms + Mel ownership hop | **Vendor entity owner** gains access when `manage own event rsvps` holds |
+| `EventAttendeeAccessControlHandler` | Author-only + own-attendee perms | Same product perms + checker parity | **Vendor entity owner / team** gain entity view/update/delete when product perms hold |
+| `AttendeeExportController` / `AttendeeCsvExportAccess` | Already parity (Phase 2A.2) | Unchanged (already `EventVendorAccessChecker`) | None |
+
+### Ownership paths removed
+
+- Private author / `field_vendor_users` loops in attendee list, waitlist, notify form, QR validate
+- Private `resolveEventVendor` / `isVendorMember` helpers on `MessageAttendeesController`
+
+### Intentional behavioural improvements
+
+- Vendor entity owners (not listed on `field_vendor_users`) can use attendee list, waitlist, notify, QR validate, and attendee entity ACH where they previously could not
+- Unrelated organisers remain denied; customer-facing behaviour unchanged; routes/menus/Commerce permissions unchanged
+
+### Module dependency note
+
+`myeventlane_checkout_flow` depends on `myeventlane_event_attendees`, so attendee controllers cannot hard-inject `MelAttendeeOperationsAccess` without a cycle. Those surfaces call `EventVendorAccessChecker` directly — the same service Mel delegates to. Messaging / Pro / RSVP inject Mel.
+
+### Mel API addition
+
+- `MelAttendeeOperationsAccessInterface::accountHasOrganiserOwnership()` — ownership-only hop (no staff/product gates) so callers preserve their existing admin and permission composition
+
+### Equivalence verification
+
+- `ManagedSetWorkspaceParityEquivalenceTest`: for modern `field_event_vendor` events, managed-set membership ⇔ workspace parity across author / vendor owner / team / stranger / anon
+- Legacy `field_vendor` managed-set widen vs parity is an **explicit documented divergence**; no reconciliation invented in 2A
+
+### Cache verification (before → after)
+
+| Surface | Cache contexts | Cache tags / deps | max-age | Menu / local tasks |
+|---|---|---|---|---|
+| `VendorAttendeeController::access` | Unchanged (`user` on allow; perms on admin) | Unchanged (`addCacheableDependency($node)`) | Unchanged | Unchanged |
+| `WaitlistManagementController::access` | Unchanged (`cachePerPermissions`) | Unchanged (node dep) | Unchanged | Unchanged |
+| `EventAttendeeAccessControlHandler` | Unchanged (`user` / perms) | Unchanged (entity dep) | Unchanged | N/A |
+| Notify / Message / QR asserts | N/A (exceptions) | N/A | N/A | Unchanged |
+| Routes / YAML | Unchanged | Unchanged | Unchanged | Unchanged |
+
+### Tests added
+
+- `VendorAttendeeAccessOwnershipTest`
+- `WaitlistManagementAccessOwnershipTest`
+- `EventAttendeeAccessControlHandlerOwnershipTest`
+- `VendorNotifyFormOwnershipTest`
+- `MessageAttendeesOwnershipTest`
+- `QrCheckinOwnershipTest`
+- `ManagedSetWorkspaceParityEquivalenceTest`
+- Extended: `MelAttendeeOperationsAccessTest`, `AttendeeExportAccessTest`
+
+### Remaining Workstream 2B
+
+- Boost vendor workspace path, ChartData access, RefundAccessResolver AND parity, Vendor API team parity
+- `ManageEventControllerBase::access()` composition without dropping `edit own event content`
+- Optional: move Mel into `event_attendees` to eliminate cycle soft-path
+
+### Remaining Workstream 3
+
+- Route `_custom_access` for check-in + console event tabs
+- Order detail IDOR bind
+- CSRF follow-up for legacy check-in (or keep deferred)
 
 ---
 
@@ -573,17 +650,9 @@ ddev exec vendor/bin/phpunit -c web/core \
 - `EventVendorAccessCheckerTest` — anonymous, authenticated non-organiser, admin-without-membership, non-event bundle
 - `VendorConsoleBaseControllerOwnershipEquivalenceTest` — legacy ≡ checker ≡ wrapper for author / vendor owner / team / stranger / non-organiser; admin bypass; anonymous deny
 
-### Remaining Workstream 2
+### Remaining after Workstream 1 (superseded by 2A log above)
 
-- Align team-partial / author-only / store-primary gates (attendees, waitlist, messaging, boost vendor path, QR, charts, ACH, refunds AND parity, vendor API)
-- Prove managed-set ≡ parity (legacy `field_vendor` policy)
-- Carefully compose `ManageEventControllerBase::access()` with checker **without** dropping `edit own event content`
-
-### Remaining Workstream 3
-
-- Route `_custom_access` for check-in + console event tabs
-- Order detail IDOR bind
-- CSRF follow-up for legacy check-in (or keep deferred)
+See **Workstream 2A** and **Remaining Workstream 2B / 3** sections.
 
 ---
 
