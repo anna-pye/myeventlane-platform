@@ -42,6 +42,10 @@ final class VendorEventStudioCreateService {
    * A resumable draft is an unpublished event whose lifecycle state is empty or
    * explicitly "draft". Unpublished events in terminal/operational states
    * (ended, cancelled, archived, live, etc.) do not capture Create event.
+   *
+   * Lifecycle filtering happens in the entity query (not a newest-N PHP window)
+   * so older drafts remain discoverable when many newer unpublished non-drafts
+   * exist.
    */
   public function findLatestResumableDraftNidForUser(int $uid): ?int {
     if ($uid <= 0) {
@@ -49,32 +53,27 @@ final class VendorEventStudioCreateService {
     }
     try {
       $storage = $this->entityTypeManager->getStorage('node');
-      // Load a small newest-first window and filter by lifecycle in PHP so we
-      // do not invent a new state field while still avoiding status=0 traps.
-      $ids = $storage->getQuery()
+      $query = $storage->getQuery()
         ->accessCheck(TRUE)
         ->condition('type', 'event')
         ->condition('uid', $uid)
         ->condition('status', 0)
         ->sort('changed', 'DESC')
-        ->range(0, 10)
-        ->execute();
-      if (empty($ids)) {
+        ->range(0, 1);
+
+      // Match isResumableDraftEvent(): empty lifecycle OR explicit "draft".
+      $query->condition(
+        $query->orConditionGroup()
+          ->notExists('field_event_state')
+          ->condition('field_event_state', 'draft'),
+      );
+
+      $ids = $query->execute();
+      if ($ids === []) {
         return NULL;
       }
 
-      /** @var array<int, \Drupal\node\NodeInterface> $nodes */
-      $nodes = $storage->loadMultiple($ids);
-      foreach ($ids as $nid) {
-        $node = $nodes[(int) $nid] ?? NULL;
-        if (!$node instanceof NodeInterface) {
-          continue;
-        }
-        if ($this->isResumableDraftEvent($node)) {
-          return (int) $node->id();
-        }
-      }
-      return NULL;
+      return (int) reset($ids);
     }
     catch (\Throwable $e) {
       $this->logger->warning('VendorEventStudioCreateService: draft lookup failed for uid=@uid: @m', [

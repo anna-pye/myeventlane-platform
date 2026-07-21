@@ -103,6 +103,7 @@ Event Studio allows when workspace parity holds (node `update` grant no longer r
 |---|---|
 | Check-in success printed an absolute resend URL that could leave the organiser host/session (CSRF `_csrf_token` then 403) | Relative resend URL via `Url::toString()` + clickable `:url` message link |
 | Studio load used parity, but autosave/publish/AI/governance still required `node.update` | Dropped `_entity_access: node.update` from Studio mutation routes; controllers/forms gate on workspace parity only |
+| Draft lookup only scanned newest 10 unpublished nodes in PHP, hiding older resumable drafts | Entity query filters empty/`draft` lifecycle with `range(0, 1)` |
 
 ---
 

@@ -83,6 +83,25 @@ final class VendorEventStudioCreateDraftLogicTest extends TestCase {
     $this->assertFalse($this->service->isResumableDraftEvent($event));
   }
 
+  /**
+   * Lookup must filter lifecycle in SQL, not a newest-N PHP window.
+   *
+   * @covers ::findLatestResumableDraftNidForUser
+   */
+  public function testDraftLookupFiltersLifecycleInEntityQuery(): void {
+    $path = dirname(__DIR__, 3) . '/src/Service/VendorEventStudioCreateService.php';
+    $this->assertFileExists($path);
+    $raw = file_get_contents($path);
+    $this->assertIsString($raw);
+    $this->assertStringContainsString("notExists('field_event_state')", $raw);
+    $this->assertStringContainsString("condition('field_event_state', 'draft')", $raw);
+    $this->assertStringContainsString('orConditionGroup()', $raw);
+    $this->assertStringContainsString('->range(0, 1)', $raw);
+    // The previous newest-10 PHP filter missed older drafts behind non-drafts.
+    $this->assertStringNotContainsString('->range(0, 10)', $raw);
+    $this->assertStringNotContainsString('loadMultiple($ids)', $raw);
+  }
+
   private function event(bool $published, ?string $state): NodeInterface {
     $event = $this->createMock(NodeInterface::class);
     $event->method('bundle')->willReturn('event');
