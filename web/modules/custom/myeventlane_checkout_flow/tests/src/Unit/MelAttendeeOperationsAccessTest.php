@@ -23,8 +23,7 @@ use Drupal\Tests\UnitTestCase;
 final class MelAttendeeOperationsAccessTest extends UnitTestCase {
 
   /**
-   * Sets up a container with cache_contexts_manager so AccessResult::cacheXxx
-   * methods can validate cache context tokens without bootstrapping Drupal.
+   * Sets up cache_contexts_manager for AccessResult without full bootstrap.
    */
   protected function setUp(): void {
     parent::setUp();
@@ -107,6 +106,18 @@ final class MelAttendeeOperationsAccessTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::accountHasOrganiserOwnership
+   */
+  public function testAccountHasOrganiserOwnershipDelegatesToChecker(): void {
+    $event = $this->mockNode('event');
+    $account = $this->createMock(AccountInterface::class);
+    $access = $this->makeAccess(workspaceParity: TRUE);
+    $this->assertTrue($access->accountHasOrganiserOwnership($event, $account));
+    $denied = $this->makeAccess(workspaceParity: FALSE);
+    $this->assertFalse($denied->accountHasOrganiserOwnership($event, $account));
+  }
+
+  /**
    * @covers ::canViewAttendeeRow
    */
   public function testAttendeeRowWithoutEventFailsClosed(): void {
@@ -121,6 +132,9 @@ final class MelAttendeeOperationsAccessTest extends UnitTestCase {
     $this->assertTrue($result->isForbidden());
   }
 
+  /**
+   * Builds MelAttendeeOperationsAccess with a stubbed parity checker.
+   */
   private function makeAccess(bool $workspaceParity): MelAttendeeOperationsAccess {
     $checker = $this->createMock(EventVendorAccessCheckerInterface::class);
     $checker->method('accountHasWorkspaceParityForEvent')->willReturn($workspaceParity);
@@ -130,6 +144,9 @@ final class MelAttendeeOperationsAccessTest extends UnitTestCase {
     );
   }
 
+  /**
+   * Builds a stub node of the given bundle.
+   */
   private function mockNode(string $bundle): NodeInterface {
     $event = $this->createMock(NodeInterface::class);
     $event->method('bundle')->willReturn($bundle);

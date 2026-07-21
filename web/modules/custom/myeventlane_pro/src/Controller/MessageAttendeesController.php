@@ -8,10 +8,12 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_checkout_flow\Service\MelAttendeeOperationsAccessInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_pro\Form\MessageAttendeesForm;
 use Drupal\myeventlane_pro\Service\ProAccessService;
 use Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -33,8 +35,10 @@ final class MessageAttendeesController extends VendorConsoleBaseController {
     MessengerInterface $messenger,
     private readonly ProAccessService $proAccess,
     private readonly FormBuilderInterface $formBuilder,
+    private readonly MelAttendeeOperationsAccessInterface $attendeeOperationsAccess,
+    ?EventVendorAccessCheckerInterface $eventVendorAccessChecker = NULL,
   ) {
-    parent::__construct($domain_detector, $current_user, $messenger);
+    parent::__construct($domain_detector, $current_user, $messenger, $eventVendorAccessChecker);
   }
 
   /**
@@ -47,6 +51,8 @@ final class MessageAttendeesController extends VendorConsoleBaseController {
       $container->get('messenger'),
       $container->get('myeventlane_pro.pro_access'),
       $container->get('form_builder'),
+      $container->get('myeventlane_checkout_flow.attendee_operations_access'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -83,6 +89,9 @@ final class MessageAttendeesController extends VendorConsoleBaseController {
   /**
    * Asserts the current user can message attendees of this event.
    *
+   * Pro product gate preserved; organiser membership via
+   * MelAttendeeOperationsAccess → EventVendorAccessChecker.
+   *
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    */
   private function assertAccess(NodeInterface $node): void {
@@ -100,42 +109,9 @@ final class MessageAttendeesController extends VendorConsoleBaseController {
       throw new AccessDeniedHttpException();
     }
 
-    if ((int) $node->getOwnerId() !== $uid) {
-      $vendor = $this->resolveEventVendor($node);
-      if (!$vendor || !$this->isVendorMember($vendor, $uid)) {
-        throw new AccessDeniedHttpException();
-      }
+    if (!$this->attendeeOperationsAccess->accountHasOrganiserOwnership($node, $account)) {
+      throw new AccessDeniedHttpException();
     }
-  }
-
-  /**
-   * Resolves the vendor entity for an event.
-   */
-  private function resolveEventVendor(NodeInterface $node): ?object {
-    if ($node->hasField('field_event_vendor') && !$node->get('field_event_vendor')->isEmpty()) {
-      return $node->get('field_event_vendor')->entity;
-    }
-    if ($node->hasField('field_vendor') && !$node->get('field_vendor')->isEmpty()) {
-      return $node->get('field_vendor')->entity;
-    }
-    return NULL;
-  }
-
-  /**
-   * Checks if the user is a member of the vendor.
-   */
-  private function isVendorMember(object $vendor, int $uid): bool {
-    if ($vendor->hasField('uid') && (int) $vendor->get('uid')->target_id === $uid) {
-      return TRUE;
-    }
-    if ($vendor->hasField('field_vendor_users')) {
-      foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-        if (isset($item['target_id']) && (int) $item['target_id'] === $uid) {
-          return TRUE;
-        }
-      }
-    }
-    return FALSE;
   }
 
 }

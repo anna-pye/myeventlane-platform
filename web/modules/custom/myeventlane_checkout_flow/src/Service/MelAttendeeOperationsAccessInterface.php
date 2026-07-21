@@ -18,16 +18,43 @@ use Drupal\node\NodeInterface;
  */
 interface MelAttendeeOperationsAccessInterface {
 
+  /**
+   * Whether the account can view attendees for an event.
+   */
   public function canViewAttendees(NodeInterface $event, AccountInterface $account): AccessResultInterface;
 
+  /**
+   * Whether the account can export attendees for an event.
+   */
   public function canExportAttendees(NodeInterface $event, AccountInterface $account): AccessResultInterface;
 
+  /**
+   * Whether the account can check attendees in for an event.
+   */
   public function canCheckInAttendees(NodeInterface $event, AccountInterface $account): AccessResultInterface;
 
+  /**
+   * Whether the account can cancel an attendance for an event.
+   */
   public function canCancelAttendance(NodeInterface $event, AccountInterface $account): AccessResultInterface;
 
+  /**
+   * Whether the account can view a single attendee row.
+   */
   public function canViewAttendeeRow(EventAttendee $attendee, AccountInterface $account): AccessResultInterface;
 
+  /**
+   * Whether any operational attendee action is allowed for the event.
+   */
   public function hasAnyOperationalAccess(NodeInterface $event, AccountInterface $account): AccessResultInterface;
+
+  /**
+   * Whether the account has organiser workspace parity for the event.
+   *
+   * Ownership-only hop (no staff bypass, no product permissions). Callers keep
+   * their existing admin/product gates and cache metadata; this replaces
+   * private author/team loops.
+   */
+  public function accountHasOrganiserOwnership(NodeInterface $event, AccountInterface $account): bool;
 
 }

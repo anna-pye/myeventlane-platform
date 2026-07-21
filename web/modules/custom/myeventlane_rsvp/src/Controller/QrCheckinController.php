@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManager;
 use Drupal\myeventlane_rsvp\Entity\RsvpSubmission;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -41,6 +42,7 @@ final class QrCheckinController extends ControllerBase {
     private readonly ConfigFactoryInterface $config,
     private readonly FloodInterface $flood,
     private readonly AccountProxyInterface $account,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
     private readonly ?AttendanceManager $attendanceManager = NULL,
     private readonly mixed $melAttendeeCheckinManager = NULL,
   ) {}
@@ -54,6 +56,7 @@ final class QrCheckinController extends ControllerBase {
       $c->get('config.factory'),
       $c->get('flood'),
       $c->get('current_user'),
+      $c->get('myeventlane_vendor.event_access_checker'),
       $c->has('myeventlane_event_attendees.manager')
         ? $c->get('myeventlane_event_attendees.manager')
         : NULL,
@@ -280,7 +283,11 @@ final class QrCheckinController extends ControllerBase {
   }
 
   /**
-   * Checks if the current user can manage the event (owner or vendor).
+   * Checks if the current user can manage the event for QR check-in.
+   *
+   * RSVP product/admin permissions preserved; organiser membership via
+   * EventVendorAccessChecker workspace parity (same service Mel delegates to).
+   * Does not require myeventlane_checkout_flow.
    */
   private function canManageEvent(NodeInterface $event): bool {
     $account = $this->account->getAccount();
@@ -290,20 +297,7 @@ final class QrCheckinController extends ControllerBase {
     if (!$account->hasPermission('manage own event rsvps')) {
       return FALSE;
     }
-    if ((int) $event->getOwnerId() === (int) $account->id()) {
-      return TRUE;
-    }
-    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
-      $vendor = $event->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-            return TRUE;
-          }
-        }
-      }
-    }
-    return FALSE;
+    return $this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account);
   }
 
   /**

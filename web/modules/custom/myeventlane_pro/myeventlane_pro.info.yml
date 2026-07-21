@@ -17,5 +17,6 @@ dependencies:
   - state_machine:state_machine
   - advancedqueue:advancedqueue
   - myeventlane_messaging:myeventlane_messaging
+  - myeventlane_checkout_flow:myeventlane_checkout_flow
   - myeventlane_vendor:myeventlane_vendor
   - myeventlane_boost:myeventlane_boost

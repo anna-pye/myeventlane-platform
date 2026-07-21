@@ -23,6 +23,16 @@ final class AttendeeExportAccessTest extends TestCase {
     $this->assertTrue($this->decide(FALSE, 'event', TRUE));
   }
 
+  public function testVendorEntityOwnerAllowedViaParity(): void {
+    // Workstream 2A: export already used EventVendorAccessChecker (Phase 2A.2).
+    // Vendor entity owner is allowed when parity is TRUE.
+    $this->assertTrue($this->decide(FALSE, 'event', TRUE));
+  }
+
+  public function testUnrelatedOrganiserDenied(): void {
+    $this->assertFalse($this->decide(FALSE, 'event', FALSE));
+  }
+
   public function testAdminAllowed(): void {
     $this->assertTrue($this->decide(TRUE, 'event', FALSE));
   }

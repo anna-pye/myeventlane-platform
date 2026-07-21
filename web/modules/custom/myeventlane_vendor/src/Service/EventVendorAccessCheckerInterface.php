@@ -8,19 +8,18 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Interface for {@see EventVendorAccessChecker}.
+ * Canonical per-event organiser ownership API (workspace parity).
  *
- * Extracted so MEL Attendee Operations Layer access policy can be unit-tested
- * without doubling the final implementation. The implementation remains
- * `final`; existing consumers that type-hint the concrete class continue to
- * work because the implementation now also implements this interface.
+ * @see \Drupal\myeventlane_vendor\Service\EventVendorAccessChecker
+ * @see docs/adr/ADR-0008-canonical-event-ownership.md
  */
 interface EventVendorAccessCheckerInterface {
 
   /**
-   * TRUE when the account is the event author or manages via the linked organiser.
+   * TRUE when the account is the event author or linked organiser manager.
    *
-   * Includes organiser entity owner (vendor uid) and field_vendor_users members.
+   * Includes organiser entity owner (vendor uid) and field_vendor_users.
+   * Does not grant staff/admin bypass — callers apply named permissions.
    */
   public function accountHasWorkspaceParityForEvent(NodeInterface $event, AccountInterface $account): bool;
 

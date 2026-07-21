@@ -9,10 +9,11 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
-use Symfony\Component\HttpFoundation\Request;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\VendorConsoleTrust;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
@@ -28,14 +29,25 @@ abstract class VendorConsoleBaseController {
   protected readonly MessengerInterface $messenger;
 
   /**
+   * Canonical ownership checker (optional for subclass ctor compat).
+   */
+  private readonly ?EventVendorAccessCheckerInterface $eventVendorAccessChecker;
+
+  /**
    * Constructs the base controller.
+   *
+   * The fourth argument is optional so existing subclass constructors that
+   * pass only domain detector / current user / messenger keep working. When
+   * omitted, the checker is resolved from the container on first assert.
    */
   public function __construct(
     protected readonly DomainDetector $domainDetector,
     protected readonly AccountProxyInterface $currentUser,
     MessengerInterface $messenger,
+    ?EventVendorAccessCheckerInterface $eventVendorAccessChecker = NULL,
   ) {
     $this->messenger = $messenger;
+    $this->eventVendorAccessChecker = $eventVendorAccessChecker;
   }
 
   /**
@@ -62,9 +74,8 @@ abstract class VendorConsoleBaseController {
     }
 
     // User has permission but is on main domain - still allow access
-    // (theme negotiator will handle theme switching, but we prefer vendor domain).
-    // For now, we allow access from both domains if user has permission.
-    return;
+    // (theme negotiator handles theme; vendor domain preferred).
+    // Allow access from both domains if user has permission.
   }
 
   /**
@@ -73,7 +84,8 @@ abstract class VendorConsoleBaseController {
    * This checks:
    *  - vendor domain
    *  - vendor console permission
-   *  - ownership via node owner OR linked vendor entity users.
+   *  - workspace parity via EventVendorAccessChecker
+   *  - administer nodes staff bypass (caller-side; not in the checker)
    *
    * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
    *   When access is denied.
@@ -85,31 +97,32 @@ abstract class VendorConsoleBaseController {
       return;
     }
 
-    // Owner check.
-    if ((int) $event->getOwnerId() === (int) $this->currentUser->id()) {
+    // Canonical ownership API — thin wrapper (Workstream 1).
+    $checker = $this->getEventVendorAccessChecker();
+    if ($checker->accountHasWorkspaceParityForEvent($event, $this->currentUser)) {
       return;
     }
 
-    // Organiser account owner or team member via field_event_vendor.
-    // Keep parity with EventVendorAccessChecker::accountHasWorkspaceParityForEvent().
-    if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
-      $vendor = $event->get('field_event_vendor')->entity;
-      if ($vendor) {
-        if (method_exists($vendor, 'getOwnerId')
-          && (int) $vendor->getOwnerId() === (int) $this->currentUser->id()) {
-          return;
-        }
-        if ($vendor->hasField('field_vendor_users')) {
-          foreach ($vendor->get('field_vendor_users')->getValue() as $item) {
-            if (isset($item['target_id']) && (int) $item['target_id'] === (int) $this->currentUser->id()) {
-              return;
-            }
-          }
-        }
-      }
+    throw new AccessDeniedHttpException();
+  }
+
+  /**
+   * Resolves the canonical event ownership checker.
+   */
+  protected function getEventVendorAccessChecker(): EventVendorAccessCheckerInterface {
+    if ($this->eventVendorAccessChecker instanceof EventVendorAccessCheckerInterface) {
+      return $this->eventVendorAccessChecker;
     }
 
-    throw new AccessDeniedHttpException();
+    // Matches other optional resolutions in this base
+    // (entityTypeManager, request).
+    $checker = \Drupal::service('myeventlane_vendor.event_access_checker');
+    if (!$checker instanceof EventVendorAccessCheckerInterface) {
+      throw new \RuntimeException(
+        'Service myeventlane_vendor.event_access_checker must implement EventVendorAccessCheckerInterface.',
+      );
+    }
+    return $checker;
   }
 
   /**
@@ -179,7 +192,7 @@ abstract class VendorConsoleBaseController {
       }
     }
 
-    // Legacy callers pass main column as `body`; prefer `content` for a single render path.
+    // Legacy callers pass main column as `body`; prefer `content`.
     if (!isset($render['#content']) && isset($render['#body'])) {
       $render['#content'] = $render['#body'];
     }
