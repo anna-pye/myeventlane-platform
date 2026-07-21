@@ -88,6 +88,13 @@ display:
           group: 1
           exposed: false
           label: Status
+        organiser_owned:
+          id: organiser_owned
+          table: rsvp_submission
+          field: organiser_owned
+          plugin_id: myeventlane_rsvp_organiser_owned
+          group: 1
+          exposed: false
       style:
         type: table
         options:

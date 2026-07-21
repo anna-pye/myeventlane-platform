@@ -4,4 +4,4 @@ myeventlane_views.attendee_csv:
     _controller: '\Drupal\myeventlane_views\Controller\AttendeeCsvController::handle'
     _title: 'Attendee CSV Export'
   requirements:
-    _permission: 'access content'
+    _custom_access: 'myeventlane_views.access.attendee_csv_export:access'

@@ -4,7 +4,7 @@ myeventlane_checkout_paragraph.vendor_attendees:
     _controller: '\Drupal\myeventlane_checkout_paragraph\Controller\VendorOrderController::attendees'
     _title: 'Attendee Details'
   requirements:
-    _permission: 'access content'
+    _custom_access: '\Drupal\myeventlane_checkout_paragraph\Controller\VendorOrderController::access'
   options:
     parameters:
       commerce_order:
@@ -16,8 +16,7 @@ myeventlane_checkout_paragraph.export_csv:
     _controller: '\Drupal\myeventlane_checkout_paragraph\Controller\AttendeeExportController::export'
     _title: 'Export Attendees CSV'
   requirements:
-    _permission: 'access content'
-    # optional: event: \d+
+    _custom_access: '\Drupal\myeventlane_checkout_paragraph\Controller\AttendeeExportController::access'
   options:
     parameters:
       event:
@@ -29,8 +28,7 @@ myeventlane_checkout_paragraph.export_csv_queue:
     _controller: '\Drupal\myeventlane_checkout_paragraph\Controller\AttendeeExportController::queueExport'
     _title: 'Request CSV Export'
   requirements:
-    _permission: 'access content'
-    # optional: event: \d+
+    _custom_access: '\Drupal\myeventlane_checkout_paragraph\Controller\AttendeeExportController::access'
   options:
     parameters:
       event:

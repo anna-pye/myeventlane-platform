@@ -1,0 +1,7 @@
+services:
+  myeventlane_views.access.attendee_csv_export:
+    class: Drupal\myeventlane_views\Access\AttendeeCsvExportAccess
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_vendor.event_access_checker'
+      - '@request_stack'

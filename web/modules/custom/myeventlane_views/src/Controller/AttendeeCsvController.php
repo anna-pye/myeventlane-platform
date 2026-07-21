@@ -8,22 +8,23 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Provides an attendee CSV export response (legacy URL).
  *
  * Delegates row generation to {@see MelAttendeeExportBuilder} so the legacy
  * `/dashboard/attendees/export` URL produces the same canonical row shape as
- * every other attendee CSV exporter. Per-row entity access is enforced by the
- * entity_attendee entity itself; the legacy paragraph-level access path is no
- * longer needed because we now read from event_attendee directly.
+ * every other attendee CSV exporter. Route access is enforced by
+ * {@see \Drupal\myeventlane_views\Access\AttendeeCsvExportAccess}; this
+ * controller re-checks ownership before streaming CSV.
  */
 final class AttendeeCsvController extends ControllerBase {
 
@@ -32,6 +33,7 @@ final class AttendeeCsvController extends ControllerBase {
     AccountProxyInterface $currentUser,
     private readonly LoggerChannelFactoryInterface $viewsLoggerFactory,
     private readonly MelAttendeeExportBuilder $exportBuilder,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
   ) {
     $this->entityTypeManager = $entityTypeManager;
     $this->currentUser = $currentUser;
@@ -46,6 +48,7 @@ final class AttendeeCsvController extends ControllerBase {
       $container->get('current_user'),
       $container->get('logger.factory'),
       $container->get('myeventlane_event_attendees.attendee_export_builder'),
+      $container->get('myeventlane_vendor.event_access_checker'),
     );
   }
 
@@ -66,7 +69,7 @@ final class AttendeeCsvController extends ControllerBase {
       $this->viewsLoggerFactory
         ->get('myeventlane_views')
         ->warning('Invalid event id @id passed to attendee CSV export.', ['@id' => (string) $eventIdRaw]);
-      return new Response('Invalid event id.', 400);
+      throw new AccessDeniedHttpException();
     }
 
     $event = $this->entityTypeManager->getStorage('node')->load($eventId);
@@ -74,34 +77,19 @@ final class AttendeeCsvController extends ControllerBase {
       $this->viewsLoggerFactory
         ->get('myeventlane_views')
         ->warning('Event @id not found or not an event for CSV export.', ['@id' => (string) $eventId]);
-      return new Response('Event not found.', 404);
+      throw new AccessDeniedHttpException();
     }
 
-    $entityAccess = $this->entityTypeManager
-      ->getAccessControlHandler('event_attendee')
-      ->createAccess(NULL, $this->currentUser, [], TRUE);
-
-    $allowed = FALSE;
-    foreach ($this->entityTypeManager
-      ->getStorage('event_attendee')
-      ->loadByProperties(['event' => $eventId]) as $row) {
-      if ($row instanceof EventAttendee) {
-        $rowAccess = $row->access('view', $this->currentUser);
-        if ($rowAccess) {
-          $allowed = TRUE;
-          break;
-        }
-      }
-    }
-
-    if (!$entityAccess->isAllowed() && !$allowed) {
+    $account = $this->currentUser;
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
       $this->viewsLoggerFactory
         ->get('myeventlane_views')
         ->info('Attendee CSV export denied for event @id, uid @uid.', [
           '@id' => (string) $eventId,
-          '@uid' => (string) $this->currentUser->id(),
+          '@uid' => (string) $account->id(),
         ]);
-      return new Response('Forbidden.', 403);
+      throw new AccessDeniedHttpException();
     }
 
     $this->viewsLoggerFactory

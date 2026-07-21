@@ -171,5 +171,14 @@ function myeventlane_rsvp_views_data() {
     'help'  => new TranslatableMarkup('Renders an RSVP submission in a view mode'),
   ];
 
+  // Organiser ownership filter (canonical managed-event set).
+  $data['rsvp_submission']['organiser_owned'] = [
+    'title' => new TranslatableMarkup('Organiser-owned events'),
+    'help' => new TranslatableMarkup('Limit RSVPs to events the current organiser manages (author, vendor owner, or team).'),
+    'filter' => [
+      'id' => 'myeventlane_rsvp_organiser_owned',
+    ],
+  ];
+
   return $data;
 }

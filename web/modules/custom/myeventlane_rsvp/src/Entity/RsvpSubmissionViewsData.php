@@ -1,16 +1,18 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Drupal\myeventlane_rsvp\Entity;
 
 use Drupal\views\EntityViewsData;
 
 /**
- *
+ * Views data for rsvp_submission.
  */
 class RsvpSubmissionViewsData extends EntityViewsData {
 
   /**
-   *
+   * {@inheritdoc}
    */
   public function getViewsData(): array {
     $data = parent::getViewsData();
@@ -111,6 +113,14 @@ class RsvpSubmissionViewsData extends EntityViewsData {
         'base' => 'users_field_data',
         'base field' => 'uid',
         'relationship field' => 'user_id',
+      ],
+    ];
+
+    $data['rsvp_submission']['organiser_owned'] = [
+      'title' => t('Organiser-owned events'),
+      'help' => t('Limit RSVPs to events the current organiser manages.'),
+      'filter' => [
+        'id' => 'myeventlane_rsvp_organiser_owned',
       ],
     ];
 

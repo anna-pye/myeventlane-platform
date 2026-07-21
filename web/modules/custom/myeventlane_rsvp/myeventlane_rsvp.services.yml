@@ -78,6 +78,10 @@ services:
     class: Drupal\myeventlane_rsvp\Service\RsvpPromotionManager
     arguments: ['@entity_type.manager']
 
+  myeventlane_rsvp.organiser_view_scope:
+    class: Drupal\myeventlane_rsvp\Service\RsvpOrganiserViewScope
+    arguments: ['@myeventlane_vendor.user_vendor_membership_query']
+
   myeventlane_rsvp.vendor_event_access:
     class: Drupal\myeventlane_rsvp\Access\VendorEventAccess
     arguments: ['@myeventlane_vendor.event_access_checker']
