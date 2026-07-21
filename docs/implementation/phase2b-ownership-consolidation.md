@@ -1,9 +1,9 @@
 # Phase 2B — Ownership Architecture Consolidation
 
 **Date:** 2026-07-21  
-**Status:** Workstream 2A implemented (attendee ownership consolidation)  
-**Branch evidence:** `feature/mel-canonical-ownership-api`  
-**Prerequisite:** Phase 2A.2 security hotfix (RSVP isolation, export hardening, check-in bind); Workstream 1 canonical API  
+**Status:** Workstream 2B-A implemented (financial + Vendor API ownership)  
+**Branch evidence:** `feature/mel-financial-api-ownership` (cut from `origin/main` after PR #699)  
+**Prerequisite:** Phase 2A.2; Workstream 1 canonical API; Workstream 2A attendee ownership  
 **Companion plan (shorter):** `docs/implementation/phase2b-ownership-consolidation-plan.md`  
 **ADR:** `docs/adr/ADR-0008-canonical-event-ownership.md`
 
@@ -521,9 +521,10 @@ ddev exec vendor/bin/phpunit -c web/core \
 - [x] Workstream 1: thin `assertEventOwnership` → `EventVendorAccessChecker`; equivalence tests  
 - [x] Workstream 2A: attendee / waitlist / messaging / QR / ACH ownership → Mel → checker (or checker where Mel is cycle-blocked)  
 - [x] Parity ≡ managed-set proven for modern `field_event_vendor` events; legacy `field_vendor` widen documented (no reconciliation invented)  
-- [ ] Call-site inventory closed for non-attendee surfaces (Workstream 2B)  
+- [x] Refund parity AND store aligned (Workstream 2B-A)  
+- [x] Vendor API ownership via checker after vendor identity resolution (Workstream 2B-A)  
+- [ ] Call-site inventory closed for remaining non-attendee surfaces (Workstream 2B-B: Boost, charts, ManageEventControllerBase)  
 - [ ] Check-in routes ownership at route layer; Phase 2A.2 bind retained  
-- [ ] Refund parity AND store aligned (Workstream 2B)  
 - [ ] Order detail IDOR tests green  
 - [ ] CSRF follow-up fixed or still explicitly deferred  
 
@@ -591,9 +592,9 @@ Attendee-facing organiser workflows only. Excluded: refunds, Boost, charts, anal
 - `ManagedSetWorkspaceParityEquivalenceTest`
 - Extended: `MelAttendeeOperationsAccessTest`, `AttendeeExportAccessTest`
 
-### Remaining Workstream 2B
+### Remaining Workstream 2B-B
 
-- Boost vendor workspace path, ChartData access, RefundAccessResolver AND parity, Vendor API team parity
+- Boost vendor workspace path, ChartData access
 - `ManageEventControllerBase::access()` composition without dropping `edit own event content`
 - Optional: move Mel into `event_attendees` to eliminate cycle soft-path
 
@@ -602,6 +603,75 @@ Attendee-facing organiser workflows only. Excluded: refunds, Boost, charts, anal
 - Route `_custom_access` for check-in + console event tabs
 - Order detail IDOR bind
 - CSRF follow-up for legacy check-in (or keep deferred)
+
+---
+
+## Workstream 2B-A — Financial and Vendor API ownership (2026-07-21)
+
+### Scope
+
+Refund / financial organiser access and Vendor API event ownership only.
+
+Excluded: Boost, charts, ManageEventControllerBase, route consolidation, check-in CSRF, dashboard changes, Commerce permission stripping, Stripe/gateway logic, API authentication redesign.
+
+### Refund ownership
+
+| Class / route | Previous rule | New rule | Behaviour change |
+|---|---|---|---|
+| `RefundAccessResolver::vendorCanManageEvent` | Author **OR** store owner (+ `administer commerce_order`) | `administer commerce_order` **OR** (workspace parity **AND** valid account store↔event) | Store-only bypass closed; team with parity+store gains manage; author without store denied |
+| `RefundAccessResolver::vendorCanRefundOrderForEvent` | Manage + event items + refundable state | Manage (above) + event items + order store↔event (non-admin) + refundable state + `manage_refunds` | Foreign order store fails closed for organisers |
+| `VendorRefundRequestAccessCheck` | Manage event + tickets mode | + bind `refund_request.event_id` to route `{node}` | Mismatched request denied at route access |
+| Approve/reject forms | Soft markup on mismatch / AccessDenied with message | Hard `AccessDeniedHttpException` (no existence leak) | Soft mismatch pages removed |
+| Cancel / VendorRefundForm / Retry | Via resolver | Inherit new resolver rules | Same as manage/refund above |
+
+Admin bypass: `administer commerce_order` retained for manage; refund still requires event items + refundable state; organiser order-store bind is not required for that staff permission.
+
+### Vendor API ownership
+
+| Item | Decision |
+|---|---|
+| API identity model | Vendor-scoped API keys via `ApiAuthenticationService` → `Vendor` entity |
+| Acting Drupal account | Vendor entity **owner** only |
+| Team members | **Not** separately representable via vendor-wide keys (residual product decision: user-scoped keys would be required) |
+| Event ownership | When `field_event_vendor` is set it **must** match authenticated vendor; then `EventVendorAccessChecker` for owner account |
+| Entity bind | Attendee/event mismatch already 403 in check-in; export/event gated by `vendorOwnsEvent` |
+| Error responses | Generic FORBIDDEN / UNAUTHORIZED; no customer PII |
+
+### Behaviour matrix (refund — non-admin expected)
+
+| Actor | Correct event/store | Foreign event | Foreign store | Mismatched request |
+|---|---|---|---|---|
+| Event author | PASS (with store + perm) | FAIL | FAIL | FAIL |
+| Vendor owner | PASS | FAIL | FAIL | FAIL |
+| Team member | PASS | FAIL | FAIL | FAIL |
+| Unrelated organiser | FAIL | FAIL | FAIL | FAIL |
+| Admin/staff | PASS (documented bypass) | PASS* | PASS* | FAIL at binder |
+
+\*Admin manage bypass; refund still needs event items + refundable state.
+
+### Behaviour matrix (Vendor API)
+
+| API identity | Own event | Team event (same vendor link) | Foreign event | Malformed bind |
+|---|---|---|---|---|
+| Vendor owner key | PASS | PASS (acts as owner; link matches) | FAIL | FAIL |
+| Team member key | N/A (no user-scoped key) | N/A | N/A | N/A |
+| Foreign vendor key | FAIL | FAIL | FAIL | FAIL |
+| Invalid credential | 401 | 401 | 401 | 401 |
+
+### Tests
+
+- `RefundAccessResolverOwnershipTest` (12)
+- `VendorRefundRequestAccessCheckBindingTest` (4)
+- `VendorApiOwnershipTest` (7)
+
+### Residual decisions
+
+- User-scoped Vendor API credentials (if team members need distinct API identity)
+- Mixed-order multi-event refund policy unchanged (still requires per-event items; no new multi-event allow)
+
+### Remaining after 2B-A
+
+See **Remaining Workstream 2B-B** and **Remaining Workstream 3**.
 
 ---
 

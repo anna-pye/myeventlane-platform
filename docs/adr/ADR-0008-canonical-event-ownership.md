@@ -2,7 +2,7 @@
 
 ## Status
 
-**Accepted.** Workstream 1 (canonical API) and Workstream 2A (attendee ownership) implemented on `feature/mel-canonical-ownership-api`.
+**Accepted.** Workstream 1 (canonical API), Workstream 2A (attendee ownership), and Workstream 2B-A (financial + Vendor API ownership) implemented.
 
 ## Date
 
@@ -59,6 +59,18 @@ These two MUST remain semantically aligned for modern events keyed by `field_eve
 5. `VendorConsoleAccess` remains the organiser console trust/onboarding gate. It is **not** event ownership.
 6. Staff bypasses stay on callers via named permissions (`administer nodes`, `administer event attendees`, `administer commerce_order`, domain admin perms). The parity checker itself does not grant admin.
 7. Soft redirects and UI hiding are never access control.
+
+### Ownership responsibilities
+
+| Responsibility | Canonical service |
+|---|---|
+| Workspace ownership | `EventVendorAccessChecker` |
+| Managed event lists | `UserVendorMembershipQuery` |
+| Attendee operations | `MelAttendeeOperationsAccess` |
+| Financial integrity | `RefundAccessResolver` composed with canonical parity |
+| Console trust | `VendorConsoleAccess` |
+| API authentication | Existing `ApiAuthenticationService` (vendor-scoped API keys) |
+| API event ownership | `EventVendorAccessChecker` after identity resolution (vendor owner account + vendor link bind) |
 
 ## Alternatives
 

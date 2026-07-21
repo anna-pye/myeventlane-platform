@@ -11,6 +11,7 @@ use Drupal\myeventlane_api\Service\ApiResponseFormatter;
 use Drupal\myeventlane_api\Service\RateLimiterService;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -28,12 +29,18 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
     ApiAuthenticationService $authenticationService,
     ApiResponseFormatter $responseFormatter,
     RateLimiterService $rateLimiter,
+    EventVendorAccessCheckerInterface $eventVendorAccessChecker,
     EntityTypeManagerInterface $entityTypeManager,
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly mixed $melAttendeeCheckinManager,
   ) {
-    parent::__construct($authenticationService, $responseFormatter, $rateLimiter);
-    $this->entityTypeManager = $entityTypeManager;
+    parent::__construct(
+      $authenticationService,
+      $responseFormatter,
+      $rateLimiter,
+      $eventVendorAccessChecker,
+      $entityTypeManager,
+    );
   }
 
   /**
@@ -44,6 +51,7 @@ final class VendorAttendeeApiController extends VendorApiBaseController {
       $container->get('myeventlane_api.authentication'),
       $container->get('myeventlane_api.response_formatter'),
       $container->get('myeventlane_api.rate_limiter'),
+      $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('entity_type.manager'),
       $container->get('myeventlane_event_attendees.manager'),
       $container->has('myeventlane_checkout_flow.attendee_checkin_manager')

@@ -5,10 +5,13 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_api\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_api\Service\ApiAuthenticationService;
 use Drupal\myeventlane_api\Service\ApiResponseFormatter;
 use Drupal\myeventlane_api\Service\RateLimiterService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -16,6 +19,15 @@ use Symfony\Component\HttpFoundation\Request;
 
 /**
  * Base controller for vendor API endpoints.
+ *
+ * API keys are vendor-scoped (not user-specific). After authentication the
+ * acting Drupal account is the vendor entity owner. Event access requires:
+ * - authenticated vendor identity
+ * - when the event is linked via field_event_vendor, that link must match the
+ *   authenticated vendor (vendor-scoped bind)
+ * - workspace parity for the vendor owner account.
+ *
+ * Team members are not separately representable via vendor-wide API keys.
  */
 abstract class VendorApiBaseController extends ControllerBase {
 
@@ -26,7 +38,11 @@ abstract class VendorApiBaseController extends ControllerBase {
     protected readonly ApiAuthenticationService $authenticationService,
     protected readonly ApiResponseFormatter $responseFormatter,
     protected readonly RateLimiterService $rateLimiter,
-  ) {}
+    protected readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
+    EntityTypeManagerInterface $entityTypeManager,
+  ) {
+    $this->entityTypeManager = $entityTypeManager;
+  }
 
   /**
    * {@inheritdoc}
@@ -36,6 +52,8 @@ abstract class VendorApiBaseController extends ControllerBase {
       $container->get('myeventlane_api.authentication'),
       $container->get('myeventlane_api.response_formatter'),
       $container->get('myeventlane_api.rate_limiter'),
+      $container->get('myeventlane_vendor.event_access_checker'),
+      $container->get('entity_type.manager'),
     );
   }
 
@@ -114,31 +132,47 @@ abstract class VendorApiBaseController extends ControllerBase {
   }
 
   /**
-   * Checks if a vendor owns an event.
+   * Checks if an authenticated vendor may access an event.
    *
    * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
-   *   The vendor entity.
+   *   The vendor entity resolved from the API key.
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
    * @return bool
-   *   TRUE if the vendor owns the event.
+   *   TRUE if the vendor may access the event.
    */
   protected function vendorOwnsEvent(Vendor $vendor, NodeInterface $event): bool {
-    // Check if event is linked to vendor.
+    if ($event->bundle() !== 'event') {
+      return FALSE;
+    }
+
+    // Vendor-scoped key: when an event vendor link exists it must match.
     if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
       $event_vendor = $event->get('field_event_vendor')->entity;
-      if ($event_vendor && $event_vendor->id() === $vendor->id()) {
-        return TRUE;
+      if (!$event_vendor || (int) $event_vendor->id() !== (int) $vendor->id()) {
+        return FALSE;
       }
     }
 
-    // Also check if vendor owner matches event owner.
-    if ($vendor->getOwnerId() && (int) $event->getOwnerId() === (int) $vendor->getOwnerId()) {
-      return TRUE;
+    $owner = $this->resolveVendorActingAccount($vendor);
+    if (!$owner instanceof AccountInterface) {
+      return FALSE;
     }
 
-    return FALSE;
+    return $this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $owner);
+  }
+
+  /**
+   * Resolves the Drupal account the vendor-wide API key acts as (vendor owner).
+   */
+  protected function resolveVendorActingAccount(Vendor $vendor): ?AccountInterface {
+    $owner_id = (int) $vendor->getOwnerId();
+    if ($owner_id <= 0) {
+      return NULL;
+    }
+    $owner = $this->entityTypeManager()->getStorage('user')->load($owner_id);
+    return $owner instanceof AccountInterface ? $owner : NULL;
   }
 
 }
