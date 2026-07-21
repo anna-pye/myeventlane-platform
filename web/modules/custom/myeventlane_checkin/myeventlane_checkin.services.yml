@@ -1,6 +1,15 @@
 services:
+  myeventlane_checkin.attendee_event_binder:
+    class: Drupal\myeventlane_checkin\Service\CheckInAttendeeEventBinder
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
+
   myeventlane_checkin.storage:
     class: Drupal\myeventlane_checkin\Service\CheckInStorage
     arguments:
       - '@myeventlane_attendee.repository_resolver'
       - '@?myeventlane_checkout_flow.attendee_checkin_manager'
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@myeventlane_checkin.attendee_event_binder'

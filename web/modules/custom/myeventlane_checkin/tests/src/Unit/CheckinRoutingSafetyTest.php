@@ -37,4 +37,12 @@ final class CheckinRoutingSafetyTest extends TestCase {
     }
   }
 
+  public function testToggleControllerBindIsPresentInSource(): void {
+    $path = dirname(__DIR__, 3) . '/src/Controller/CheckInController.php';
+    $this->assertFileExists($path);
+    $raw = (string) file_get_contents($path);
+    $this->assertStringContainsString('attendeeBelongsToEvent', $raw);
+    $this->assertStringContainsString('AccessDeniedHttpException', $raw);
+  }
+
 }
