@@ -163,8 +163,10 @@ final class EventStudioAutosaveController {
       throw new AccessDeniedHttpException();
     }
 
-    if (!$event->access('update', $account) || !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
-      $this->logger->warning('Event Studio autosave denied: edit access nid=@nid uid=@uid', [
+    // Workspace parity (organiser owner / team) is sufficient — same as
+    // EventStudioAccess. Node entity update alone would block non-authors.
+    if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
+      $this->logger->warning('Event Studio autosave denied: workspace parity nid=@nid uid=@uid', [
         '@nid' => (string) $event->id(),
         '@uid' => (string) $account->id(),
       ]);

@@ -69,7 +69,7 @@ final class EventStudioTicketSuggestionsController implements ContainerInjection
       return new JsonResponse(['ok' => FALSE, 'error' => 'Not found'], 404);
     }
     if (!$this->currentUser->hasPermission('administer nodes')
-      && (!$loaded->access('update', $this->currentUser) || !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($loaded, $this->currentUser))) {
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($loaded, $this->currentUser)) {
       throw new AccessDeniedHttpException();
     }
 

@@ -97,6 +97,13 @@ Already on `EventTicketsAccess` — unchanged.
 Author **or** `field_vendor_users` **or** vendor entity owner uid.  
 Event Studio allows when workspace parity holds (node `update` grant no longer required).
 
+### Follow-up defects repaired (2026-07-21)
+
+| Defect | Fix |
+|---|---|
+| Check-in success printed an absolute resend URL that could leave the organiser host/session (CSRF `_csrf_token` then 403) | Relative resend URL via `Url::toString()` + clickable `:url` message link |
+| Studio load used parity, but autosave/publish/AI/governance still required `node.update` | Dropped `_entity_access: node.update` from Studio mutation routes; controllers/forms gate on workspace parity only |
+
 ---
 
 ## 5. Create-event behaviour before and after
@@ -151,7 +158,8 @@ Genuine cross-organiser access still returns access denied (no existence leak of
 - `TicketListRoutingAccessTest` — list routes + resend CSRF/permission
 - `TicketResendAccessDecisionTest` — resend decision matrix
 - `CheckinRoutingSafetyTest` — POST toggle + permission string parity
-- `EventStudioAccessParityTest` — Studio access contract (parity, no node-update gate)
+- `EventStudioAccessParityTest` — Studio access + mutation routes + autosave contract (parity, no node-update gate)
+- `TicketCheckinResendLinkContractTest` — relative CSRF-safe resend link in check-in success
 
 ---
 

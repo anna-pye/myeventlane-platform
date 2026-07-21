@@ -13,7 +13,6 @@ myeventlane_event_studio.edit:
     _controller: myeventlane_event_studio.controller:buildEdit
     _title_callback: myeventlane_event_studio.controller:editTitle
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     node: \d+
   options:
@@ -273,7 +272,6 @@ myeventlane_event_studio.edit_basic:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToInformation'
     _title: 'Basic info'
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
@@ -286,7 +284,6 @@ myeventlane_event_studio.edit_datetime:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToInformation'
     _title: 'Date & location'
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
@@ -299,7 +296,6 @@ myeventlane_event_studio.edit_tickets:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToTickets'
     _title: 'Tickets'
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
@@ -312,7 +308,6 @@ myeventlane_event_studio.edit_description:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToContent'
     _title: 'Description'
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
@@ -325,7 +320,6 @@ myeventlane_event_studio.edit_preview:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToContent'
     _title: 'Preview'
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
@@ -338,7 +332,6 @@ myeventlane_event_studio.edit_publish:
     _controller: '\Drupal\myeventlane_event_studio\Controller\EventStudioController::redirectLegacyEditToSettings'
     _title: 'Publish'
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
   options:
     parameters:
@@ -361,7 +354,6 @@ myeventlane_event_studio.publish:
     _controller: myeventlane_event_studio.publish_controller:publish
   methods: [POST]
   requirements:
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     _csrf_request_header_token: 'TRUE'
     node: \d+
@@ -376,9 +368,7 @@ myeventlane_event_studio.governance_refresh:
     _controller: myeventlane_event_studio.governance_refresh_controller:refresh
   methods: [POST]
   requirements:
-    _permission: 'access content'
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     _csrf_request_header_token: 'TRUE'
     node: \d+
   options:
@@ -392,9 +382,7 @@ myeventlane_event_studio.governance_component:
     _controller: myeventlane_event_studio.governance_component_controller:render
   methods: [POST]
   requirements:
-    _permission: 'access content'
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    _entity_access: 'node.update'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     _csrf_request_header_token: 'TRUE'
     node: \d+
     component: 'intelligence|workflow|state|continuity'
@@ -412,7 +400,6 @@ myeventlane_event_studio.ai_assist:
   methods: [POST]
   requirements:
     _permission: 'access content'
-    _entity_access: 'node.update'
     _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
     _csrf_request_header_token: 'TRUE'
     node: \d+

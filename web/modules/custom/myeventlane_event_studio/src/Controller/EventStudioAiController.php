@@ -136,8 +136,8 @@ final class EventStudioAiController {
       return;
     }
 
-    if (!$node->access('update', $account) || !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
-      $this->logger->warning('Event Studio AI assist denied: edit access nid=@nid uid=@uid', [
+    if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      $this->logger->warning('Event Studio AI assist denied: workspace parity nid=@nid uid=@uid', [
         '@nid' => (string) $node->id(),
         '@uid' => (string) $account->id(),
       ]);

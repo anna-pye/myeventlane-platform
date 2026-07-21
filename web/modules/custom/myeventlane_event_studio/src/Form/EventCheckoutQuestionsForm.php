@@ -804,14 +804,12 @@ final class EventCheckoutQuestionsForm extends FormBase {
     if ($this->studioCurrentUser->hasPermission('administer nodes')) {
       return;
     }
+    // Workspace parity is sufficient (organiser owner / team), matching EventStudioAccess.
     if (!$this->studioEventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $this->studioCurrentUser)) {
       $this->studioLogger->warning('Event Studio questions access denied for event @nid uid @uid.', [
         '@nid' => (string) $event->id(),
         '@uid' => (string) $this->studioCurrentUser->id(),
       ]);
-      throw new AccessDeniedHttpException();
-    }
-    if (!$event->access('update', $this->studioCurrentUser)) {
       throw new AccessDeniedHttpException();
     }
   }

@@ -104,16 +104,23 @@ final class TicketCheckinForm extends FormBase {
     );
 
     if ($result['ok']) {
-      $this->messenger()->addStatus($this->t('Checked in ticket @code successfully.', [
-        '@code' => (string) $result['ticket_label'],
-      ]));
       if (!empty($result['ticket_id'])) {
+        // Relative URL + Url::toString() (no bubbleable metadata) embeds a real
+        // session CSRF token. Absolute URLs can target the wrong MEL host and
+        // drop the organiser session, so the advertised link would 403.
         $resend_url = Url::fromRoute(
           'myeventlane_tickets.ticket_resend',
           ['myeventlane_ticket' => $result['ticket_id']],
-          ['absolute' => TRUE],
         )->toString();
-        $this->messenger()->addStatus($this->t('Resend link: @url', ['@url' => $resend_url]));
+        $this->messenger()->addStatus($this->t('Checked in ticket @code successfully. <a href=":url">Resend the ticket email</a> if they need another copy.', [
+          '@code' => (string) $result['ticket_label'],
+          ':url' => $resend_url,
+        ]));
+      }
+      else {
+        $this->messenger()->addStatus($this->t('Checked in ticket @code successfully.', [
+          '@code' => (string) $result['ticket_label'],
+        ]));
       }
     }
     elseif (in_array((string) $result['result'], ['already_checked_in'], TRUE)) {

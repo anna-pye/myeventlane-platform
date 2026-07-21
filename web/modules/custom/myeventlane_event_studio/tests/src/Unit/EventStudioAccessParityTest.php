@@ -31,4 +31,31 @@ final class EventStudioAccessParityTest extends TestCase {
     $this->assertStringNotContainsString('access("update"', $raw);
   }
 
+  /**
+   * Mutation routes must not AND EventStudioAccess with node.update.
+   */
+  public function testStudioMutationRoutesDoNotRequireNodeUpdateEntityAccess(): void {
+    $path = dirname(__DIR__, 3) . '/myeventlane_event_studio.routing.yml';
+    $this->assertFileExists($path);
+    $raw = file_get_contents($path);
+    $this->assertIsString($raw);
+    $this->assertStringNotContainsString("_entity_access: 'node.update'", $raw);
+    $this->assertStringNotContainsString('_entity_access: "node.update"', $raw);
+    $this->assertStringContainsString('myeventlane_event_studio.publish', $raw);
+    $this->assertStringContainsString('EventStudioAccess::access', $raw);
+  }
+
+  /**
+   * Autosave controller must gate on workspace parity, not node.update.
+   */
+  public function testAutosaveControllerUsesWorkspaceParityWithoutNodeUpdateGate(): void {
+    $path = dirname(__DIR__, 3) . '/src/Controller/EventStudioAutosaveController.php';
+    $this->assertFileExists($path);
+    $raw = file_get_contents($path);
+    $this->assertIsString($raw);
+    $this->assertStringContainsString('accountHasWorkspaceParityForEvent', $raw);
+    $this->assertStringNotContainsString("access('update'", $raw);
+    $this->assertStringNotContainsString('access("update"', $raw);
+  }
+
 }
