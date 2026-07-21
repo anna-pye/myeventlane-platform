@@ -14,11 +14,12 @@ use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
 use Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder;
 use Drupal\myeventlane_event_attendees\Service\VendorAttendeePresentationService;
-use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Controller for vendor attendee export.
@@ -34,7 +35,7 @@ final class AttendeeExportController extends ControllerBase implements Container
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorAttendeePresentationService $vendorPresentation,
     private readonly MessengerInterface $messengerService,
-    private readonly EventVendorAccessChecker $eventAccessChecker,
+    private readonly EventVendorAccessCheckerInterface $eventAccessChecker,
     private readonly MelAttendeeExportBuilder $exportBuilder,
   ) {}
 
@@ -55,8 +56,12 @@ final class AttendeeExportController extends ControllerBase implements Container
    * Access check: event workspace parity (owner or vendor team) or admin.
    */
   public function access(NodeInterface $event, AccountInterface $account): AccessResult {
+    if ($event->bundle() !== 'event') {
+      return AccessResult::forbidden('Not an event.')->addCacheableDependency($event);
+    }
+
     if ($account->hasPermission('administer nodes')) {
-      return AccessResult::allowed()->cachePerPermissions();
+      return AccessResult::allowed()->cachePerPermissions()->addCacheableDependency($event);
     }
 
     if ($this->eventAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
@@ -69,12 +74,8 @@ final class AttendeeExportController extends ControllerBase implements Container
   /**
    * Export attendee info for a given event as CSV.
    */
-  public function export(NodeInterface $event): StreamedResponse|RedirectResponse {
-    $access = $this->access($event, $this->currentUser());
-    if ($access->isForbidden()) {
-      $this->messengerService->addError($this->t('You do not have access to export this event.'));
-      return $this->redirect('<front>');
-    }
+  public function export(NodeInterface $event): StreamedResponse {
+    $this->assertExportAccess($event);
 
     $filename = $this->exportBuilder->buildFilename($event, 'attendees');
     $rows = $this->exportBuilder->buildRowsForEvent($event);
@@ -115,12 +116,24 @@ final class AttendeeExportController extends ControllerBase implements Container
    * For now, this is a placeholder.
    */
   public function queueExport(NodeInterface $event): RedirectResponse {
+    $this->assertExportAccess($event);
+
     // @todo Generate export file, save to temporary storage,
-    // create secure download link, then call:
-    // \Drupal::service('myeventlane_automation.export_notification')
-    //   ->queueExportNotification($event, 'csv', $downloadUrl);
+    // then create secure download link and queue notification.
     $this->messengerService->addStatus($this->t('Export queued (implementation pending).'));
     return $this->redirect('<front>');
+  }
+
+  /**
+   * Hard-fails when route access was bypassed.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException
+   */
+  private function assertExportAccess(NodeInterface $event): void {
+    $access = $this->access($event, $this->currentUser());
+    if (!$access->isAllowed()) {
+      throw new AccessDeniedHttpException('Not authorized for this event.');
+    }
   }
 
 }

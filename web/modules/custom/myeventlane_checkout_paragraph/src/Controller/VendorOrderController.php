@@ -9,7 +9,6 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
-use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\TicketLabelResolver;
@@ -17,7 +16,7 @@ use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Vendor controller to show attendee details for an order.
@@ -33,7 +32,6 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
    * VendorOrderController constructor.
    */
   public function __construct(
-    private readonly MessengerInterface $messengerService,
     private readonly TicketLabelResolver $ticketLabelResolver,
     private readonly EventVendorAccessChecker $eventAccessChecker,
   ) {}
@@ -43,7 +41,6 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('messenger'),
       $container->get('myeventlane_core.ticket_label_resolver'),
       $container->get('myeventlane_vendor.event_access_checker'),
     );
@@ -54,7 +51,7 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
    */
   public function access(Order $commerce_order, AccountInterface $account): AccessResult {
     if ($account->hasPermission('administer nodes')) {
-      return AccessResult::allowed()->cachePerPermissions();
+      return AccessResult::allowed()->cachePerPermissions()->addCacheableDependency($commerce_order);
     }
 
     foreach ($commerce_order->getItems() as $item) {
@@ -68,17 +65,16 @@ final class VendorOrderController extends ControllerBase implements ContainerInj
       }
     }
 
-    return AccessResult::forbidden('No access to attendee list.')->cachePerUser();
+    return AccessResult::forbidden('No access to attendee list.')->cachePerUser()->addCacheableDependency($commerce_order);
   }
 
   /**
    * Show attendee details for a single order.
    */
-  public function attendees(Order $commerce_order): array|RedirectResponse {
+  public function attendees(Order $commerce_order): array {
     $access = $this->access($commerce_order, $this->currentUser());
-    if ($access->isForbidden()) {
-      $this->messengerService->addError($this->t('You do not have access to view these attendees.'));
-      return $this->redirect('<front>');
+    if (!$access->isAllowed()) {
+      throw new AccessDeniedHttpException('No access to attendee list.');
     }
 
     $account = $this->currentUser();
