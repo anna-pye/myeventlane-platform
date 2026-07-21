@@ -8,19 +8,21 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Event access aligned with VendorConsoleBaseController::assertEventOwnership.
+ * Canonical per-event organiser ownership (workspace parity).
  *
- * Use for route access and API checks so organiser owners and team members
- * (field_event_vendor → vendor owner uid or field_vendor_users) have the same
- * event reach as the node author.
+ * TRUE when the account is the event author, the linked vendor entity owner,
+ * or a member of that vendor's field_vendor_users.
  *
- * This does not assert vendor domain or global vendor console permissions; those
- * belong on routes or calling code. Admin/staff bypasses are left to callers.
+ * This does not assert vendor domain or global vendor console permissions;
+ * those belong on routes or calling code. Staff bypasses are left to callers.
+ *
+ * @see \Drupal\myeventlane_vendor\Controller\VendorConsoleBaseController::assertEventOwnership()
+ * @see docs/adr/ADR-0008-canonical-event-ownership.md
  */
 final class EventVendorAccessChecker implements EventVendorAccessCheckerInterface {
 
   /**
-   * TRUE when the account is the event author or manages via the linked organiser.
+   * {@inheritdoc}
    */
   public function accountHasWorkspaceParityForEvent(NodeInterface $event, AccountInterface $account): bool {
     if ($event->bundle() !== 'event') {
