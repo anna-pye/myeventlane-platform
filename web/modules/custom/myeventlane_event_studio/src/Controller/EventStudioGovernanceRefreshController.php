@@ -42,21 +42,13 @@ final class EventStudioGovernanceRefreshController {
       throw new AccessDeniedHttpException();
     }
 
-    if (!$account->hasPermission('administer nodes')) {
-      if (!$node->access('update', $account)) {
-        $this->logger->warning('Event Studio governance refresh denied: node update nid=@nid uid=@uid', [
-          '@nid' => (string) $node->id(),
-          '@uid' => (string) $account->id(),
-        ]);
-        throw new AccessDeniedHttpException();
-      }
-      if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
-        $this->logger->warning('Event Studio governance refresh denied: workspace parity nid=@nid uid=@uid', [
-          '@nid' => (string) $node->id(),
-          '@uid' => (string) $account->id(),
-        ]);
-        throw new AccessDeniedHttpException();
-      }
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      $this->logger->warning('Event Studio governance refresh denied: workspace parity nid=@nid uid=@uid', [
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
     }
 
     $baseline = NULL;

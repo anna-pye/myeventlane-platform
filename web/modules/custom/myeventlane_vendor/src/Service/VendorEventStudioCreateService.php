@@ -37,26 +37,43 @@ final class VendorEventStudioCreateService {
   }
 
   /**
-   * Latest unpublished event owned by the user (single-draft resume).
+   * Latest resumable draft event owned by the user.
+   *
+   * A resumable draft is an unpublished event whose lifecycle state is empty or
+   * explicitly "draft". Unpublished events in terminal/operational states
+   * (ended, cancelled, archived, live, etc.) do not capture Create event.
+   *
+   * Lifecycle filtering happens in the entity query (not a newest-N PHP window)
+   * so older drafts remain discoverable when many newer unpublished non-drafts
+   * exist.
    */
-  public function findLatestUnpublishedEventNidForUser(int $uid): ?int {
+  public function findLatestResumableDraftNidForUser(int $uid): ?int {
     if ($uid <= 0) {
       return NULL;
     }
     try {
-      $ids = $this->entityTypeManager->getStorage('node')->getQuery()
+      $storage = $this->entityTypeManager->getStorage('node');
+      $query = $storage->getQuery()
         ->accessCheck(TRUE)
         ->condition('type', 'event')
         ->condition('uid', $uid)
         ->condition('status', 0)
         ->sort('changed', 'DESC')
-        ->range(0, 1)
-        ->execute();
-      if (empty($ids)) {
+        ->range(0, 1);
+
+      // Match isResumableDraftEvent(): empty lifecycle OR explicit "draft".
+      $query->condition(
+        $query->orConditionGroup()
+          ->notExists('field_event_state')
+          ->condition('field_event_state', 'draft'),
+      );
+
+      $ids = $query->execute();
+      if ($ids === []) {
         return NULL;
       }
-      $nid = (int) reset($ids);
-      return $nid > 0 ? $nid : NULL;
+
+      return (int) reset($ids);
     }
     catch (\Throwable $e) {
       $this->logger->warning('VendorEventStudioCreateService: draft lookup failed for uid=@uid: @m', [
@@ -65,6 +82,49 @@ final class VendorEventStudioCreateService {
       ]);
       return NULL;
     }
+  }
+
+  /**
+   * Backward-compatible alias for resumable draft lookup.
+   *
+   * @param int $uid
+   *   The organiser user ID.
+   *
+   * @return int|null
+   *   Resumable draft node ID, or NULL.
+   */
+  public function findLatestUnpublishedEventNidForUser(int $uid): ?int {
+    return $this->findLatestResumableDraftNidForUser($uid);
+  }
+
+  /**
+   * Whether an unpublished event should offer Continue / Start new.
+   *
+   * Only empty lifecycle or explicit "draft" count. Unpublished events left in
+   * operational/terminal states (ended, cancelled, live, etc.) do not.
+   */
+  public function isResumableDraftEvent(NodeInterface $event): bool {
+    if ($event->bundle() !== 'event' || $event->isPublished()) {
+      return FALSE;
+    }
+
+    if (!$event->hasField('field_event_state') || $event->get('field_event_state')->isEmpty()) {
+      return TRUE;
+    }
+
+    return (string) $event->get('field_event_state')->value === 'draft';
+  }
+
+  /**
+   * Loads the latest resumable draft node for display on the choice screen.
+   */
+  public function loadLatestResumableDraftForUser(int $uid): ?NodeInterface {
+    $nid = $this->findLatestResumableDraftNidForUser($uid);
+    if ($nid === NULL) {
+      return NULL;
+    }
+    $node = $this->entityTypeManager->getStorage('node')->load($nid);
+    return $node instanceof NodeInterface ? $node : NULL;
   }
 
   /**
@@ -84,6 +144,9 @@ final class VendorEventStudioCreateService {
         'uid' => $uid,
         'status' => 0,
       ]);
+      if ($node->hasField('field_event_state')) {
+        $node->set('field_event_state', 'draft');
+      }
       EventNodeRevisionSave::prepare($node, 'Event Studio draft created.');
       $node->save();
     }
@@ -96,6 +159,22 @@ final class VendorEventStudioCreateService {
     }
 
     return $node;
+  }
+
+  /**
+   * Studio workspace URL for an event (canonical create landing).
+   *
+   * @param int $nid
+   *   Event node ID.
+   * @param array<string, mixed> $query
+   *   Optional query parameters to preserve (e.g. mel_first_event).
+   */
+  public function studioWorkspaceUrl(int $nid, array $query = []): Url {
+    $options = [];
+    if ($query !== []) {
+      $options['query'] = $query;
+    }
+    return Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $nid], $options);
   }
 
   /**

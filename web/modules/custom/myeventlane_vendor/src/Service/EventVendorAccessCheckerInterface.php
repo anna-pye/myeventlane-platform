@@ -18,7 +18,9 @@ use Drupal\node\NodeInterface;
 interface EventVendorAccessCheckerInterface {
 
   /**
-   * TRUE when the account is the event author or listed on the linked vendor.
+   * TRUE when the account is the event author or manages via the linked organiser.
+   *
+   * Includes organiser entity owner (vendor uid) and field_vendor_users members.
    */
   public function accountHasWorkspaceParityForEvent(NodeInterface $event, AccountInterface $account): bool;
 

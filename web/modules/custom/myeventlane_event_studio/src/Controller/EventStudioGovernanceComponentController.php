@@ -55,23 +55,14 @@ final class EventStudioGovernanceComponentController {
       throw new AccessDeniedHttpException();
     }
 
-    if (!$account->hasPermission('administer nodes')) {
-      if (!$node->access('update', $account)) {
-        $this->logger->warning('Event Studio component refresh denied: node update component=@component nid=@nid uid=@uid', [
-          '@component' => $component,
-          '@nid' => (string) $node->id(),
-          '@uid' => (string) $account->id(),
-        ]);
-        throw new AccessDeniedHttpException();
-      }
-      if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
-        $this->logger->warning('Event Studio component refresh denied: workspace parity component=@component nid=@nid uid=@uid', [
-          '@component' => $component,
-          '@nid' => (string) $node->id(),
-          '@uid' => (string) $account->id(),
-        ]);
-        throw new AccessDeniedHttpException();
-      }
+    if (!$account->hasPermission('administer nodes')
+      && !$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($node, $account)) {
+      $this->logger->warning('Event Studio component refresh denied: workspace parity component=@component nid=@nid uid=@uid', [
+        '@component' => $component,
+        '@nid' => (string) $node->id(),
+        '@uid' => (string) $account->id(),
+      ]);
+      throw new AccessDeniedHttpException();
     }
 
     try {

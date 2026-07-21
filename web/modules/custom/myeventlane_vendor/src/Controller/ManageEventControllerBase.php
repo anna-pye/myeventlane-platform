@@ -70,17 +70,27 @@ abstract class ManageEventControllerBase extends ControllerBase {
         ->addCacheableDependency($event);
     }
 
-    // Check vendor relationship if field exists.
+    // Organiser owner or team member via field_event_vendor (parity with
+    // EventVendorAccessChecker::accountHasWorkspaceParityForEvent).
     if ($event->hasField('field_event_vendor') && !$event->get('field_event_vendor')->isEmpty()) {
       $vendor = $event->get('field_event_vendor')->entity;
-      if ($vendor && $vendor->hasField('field_vendor_users')) {
-        $vendor_users = $vendor->get('field_vendor_users')->getValue();
-        foreach ($vendor_users as $item) {
-          if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
-            return AccessResult::allowed()
-              ->cachePerUser()
-              ->addCacheableDependency($event)
-              ->addCacheableDependency($vendor);
+      if ($vendor) {
+        if (method_exists($vendor, 'getOwnerId')
+          && (int) $vendor->getOwnerId() === (int) $account->id()) {
+          return AccessResult::allowed()
+            ->cachePerUser()
+            ->addCacheableDependency($event)
+            ->addCacheableDependency($vendor);
+        }
+        if ($vendor->hasField('field_vendor_users')) {
+          $vendor_users = $vendor->get('field_vendor_users')->getValue();
+          foreach ($vendor_users as $item) {
+            if (isset($item['target_id']) && (int) $item['target_id'] === (int) $account->id()) {
+              return AccessResult::allowed()
+                ->cachePerUser()
+                ->addCacheableDependency($event)
+                ->addCacheableDependency($vendor);
+            }
           }
         }
       }

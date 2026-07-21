@@ -9,7 +9,7 @@ use Drupal\Core\Access\AccessResultInterface;
 use Drupal\Core\Routing\Access\AccessInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_tickets\Service\EventAccess;
-use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 
 /**
@@ -22,7 +22,7 @@ final class EventTicketsAccess implements AccessInterface {
    */
   public function __construct(
     private readonly EventAccess $eventAccess,
-    private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
   ) {}
 
   /**
