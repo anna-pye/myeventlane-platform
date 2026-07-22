@@ -37,7 +37,7 @@ final class ManageEventCheckoutQuestionsController extends ManageEventController
    * {@inheritdoc}
    */
   protected function getPageTitle(NodeInterface $event): string {
-    return (string) $this->t('Checkout questions');
+    return (string) $this->t('Guest questions');
   }
 
 }

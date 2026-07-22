@@ -360,7 +360,7 @@ final class EventSuggestionFormatter {
       $url = Url::fromRoute('myeventlane_boost.vendor_boost_wizard', ['event' => $event->id()])->toString();
       return [
         'type' => 'link',
-        'label' => (string) $this->t('Promote event'),
+        'label' => (string) $this->t('Marketing'),
         'url' => $url,
       ];
     }

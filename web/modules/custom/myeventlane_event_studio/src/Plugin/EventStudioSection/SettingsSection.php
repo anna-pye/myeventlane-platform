@@ -12,7 +12,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'settings',
   title: 'Settings',
-  group: 'Manage Event',
+  group: 'Event',
   routeName: 'myeventlane_event_studio.workspace_settings',
   section_state: 'active',
   weight: 50,

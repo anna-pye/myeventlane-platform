@@ -43,7 +43,7 @@ final class MessagingForm extends EventStudioBaseForm {
       '#attributes' => ['class' => ['mel-event-studio-section__placeholder']],
       'copy' => [
         '#markup' => '<p>' . $this->t('After you publish, Boost and Featured help more people discover your event on MyEventLane. Set those up from the Boost section.') . '</p>'
-        . '<p>' . $this->t('Attendee Messaging is separate. Use it to send essential updates—such as time changes or cancellations—to people who already booked or RSVPed.') . '</p>'
+        . '<p>' . $this->t('Messages is separate. Use it to send essential updates—such as time changes or cancellations—to people who already booked or RSVPed.') . '</p>'
         . '<p>' . $this->t('This section is informational only. Nothing is configured here.') . '</p>',
       ],
     ];

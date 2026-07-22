@@ -460,7 +460,7 @@ final class EventModeManager {
         'configured' => $hasProduct,
         'product' => $this->getLinkedProduct($event),
         'message' => $hasProduct
-          ? (string) $this->t('Ticket product linked.')
+          ? (string) $this->t('Ticket linked.')
           : (string) $this->t('No ticket product linked yet.'),
       ],
       'external' => [

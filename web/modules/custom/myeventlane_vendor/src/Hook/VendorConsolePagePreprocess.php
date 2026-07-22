@@ -87,16 +87,16 @@ final class VendorConsolePagePreprocess {
       $health_status = $this->t('Missing location');
     }
     elseif (!$checklist['promotion']) {
-      $health_status = $this->t('Attendee messaging incomplete');
+      $health_status = $this->t('Messages incomplete');
     }
 
     $workspace_tabs = [
-      ['key' => 'overview', 'route' => 'myeventlane_vendor.console.event_workspace', 'label' => $this->t('Manage event'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event_id])->toString()],
+      ['key' => 'overview', 'route' => 'myeventlane_vendor.console.event_workspace', 'label' => $this->t('Overview'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event_id])->toString()],
       ['key' => 'tickets', 'route' => 'myeventlane_vendor.console.event_tickets', 'label' => $this->t('Tickets'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_tickets', ['event' => $event_id])->toString()],
       ['key' => 'attendees', 'route' => 'myeventlane_event_attendees.vendor_list', 'label' => $this->t('Attendees'), 'url' => Url::fromRoute('myeventlane_event_attendees.vendor_list', ['node' => $event_id])->toString()],
       ['key' => 'orders', 'route' => 'myeventlane_vendor.console.event_orders', 'label' => $this->t('Orders'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $event_id])->toString()],
-      ['key' => 'promotion', 'route' => 'myeventlane_vendor.console.event_promotion', 'label' => $this->t('Attendee Messaging'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_promotion', ['event' => $event_id])->toString()],
-      ['key' => 'analytics', 'route' => 'myeventlane_vendor.console.event_analytics', 'label' => $this->t('Insights'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_analytics', ['event' => $event_id])->toString()],
+      ['key' => 'promotion', 'route' => 'myeventlane_vendor.console.event_promotion', 'label' => $this->t('Messages'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_promotion', ['event' => $event_id])->toString()],
+      ['key' => 'analytics', 'route' => 'myeventlane_vendor.console.event_analytics', 'label' => $this->t('Analytics'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_analytics', ['event' => $event_id])->toString()],
       ['key' => 'settings', 'route' => 'myeventlane_vendor.console.event_settings', 'label' => $this->t('Settings'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_settings', ['event' => $event_id])->toString()],
       ['key' => 'publish', 'route' => 'myeventlane_vendor.console.event_publish', 'label' => $this->t('Publish'), 'url' => Url::fromRoute('myeventlane_vendor.console.event_publish', ['event' => $event_id])->toString()],
     ];

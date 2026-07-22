@@ -33,7 +33,7 @@
             {{ 'Edit ticket types'|t }}
           </a>
           <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.checkout_questions', { event: event_id|default(event.id()) }) }}">
-            {{ 'Checkout questions'|t }}
+            {{ 'Guest questions'|t }}
           </a>
           <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.payments', { event: event_id|default(event.id()) }) }}">
             {{ 'Payment settings'|t }}

@@ -245,7 +245,7 @@ final class MelReadinessHelper {
    * Guest/anonymous notice when analytics routes are reachable without a session.
    */
   public function vendorOrganiserPortalSignInAnalyticsBody(): string {
-    return (string) $this->t('Insights are available once you sign in as an organiser.');
+    return (string) $this->t('Analytics are available once you sign in as an organiser.');
   }
 
   /**
@@ -433,7 +433,7 @@ final class MelReadinessHelper {
   public function customerCheckoutStepAttendees(): array {
     return [
       'eyebrow' => (string) $this->t('Step 2'),
-      'heading' => (string) $this->t('Ticket holders'),
+      'heading' => (string) $this->t('Attendees'),
       'intro' => (string) $this->t('Add each ticket holder once. Sections fold closed as you finish so the next ticket stays in focus.'),
     ];
   }
@@ -1682,7 +1682,7 @@ final class MelReadinessHelper {
         'label' => (string) $this->t('Attendees'),
         'message' => $hasActivity
           ? (string) $this->t('Bookings are visible in attendee and check-in tools.')
-          : (string) $this->t('Ticket holders will appear here after bookings begin.'),
+          : (string) $this->t('Attendees will appear here after bookings begin.'),
         'severity' => $hasActivity ? 'success' : 'info',
       ],
       [
@@ -1754,7 +1754,7 @@ final class MelReadinessHelper {
           'key' => 'post_event_followup',
           'stage' => (string) $this->t('Post-Event Follow-up'),
           'message' => $isPast
-            ? (string) $this->t('Your event has ended. Ticket holders and RSVP responses remain available from this workspace.')
+            ? (string) $this->t('Your event has ended. Attendees and RSVP responses remain available from this workspace.')
             : (string) $this->t('After the event, attendee activity remains available from your organiser dashboard and event workspace.'),
           'severity' => $isPast ? 'neutral' : 'info',
         ],

@@ -95,7 +95,7 @@ final class EventIntelligenceService {
         $primary[] = [
           'title' => (string) $this->t('Start getting your first bookings'),
           'description' => (string) $this->t('Share your event or boost visibility.'),
-          'cta' => (string) $this->t('Promote event'),
+          'cta' => (string) $this->t('Marketing'),
           'url' => $url,
         ];
       }

@@ -150,7 +150,7 @@ final class TicketGroup extends ContentEntityBase implements EntityChangedInterf
 
     // Ticket product references (multiple).
     $fields['ticket_products'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(new TranslatableMarkup('Ticket Products'))
+      ->setLabel(new TranslatableMarkup('Tickets'))
       ->setDescription(new TranslatableMarkup('The ticket products in this group.'))
       ->setRequired(FALSE)
       ->setCardinality(-1)

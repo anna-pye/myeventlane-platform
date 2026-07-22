@@ -21,7 +21,7 @@ myeventlane_vendor.admin_link:
 # using the *target* route’s path, so it stays correct for menu/cross-URL
 # access checks, not just the current browser path.
 myeventlane_vendor.menu_account.dashboard:
-  title: 'Home'
+  title: 'Dashboard'
   route_name: myeventlane_vendor.console.dashboard
   menu_name: account
   weight: -50

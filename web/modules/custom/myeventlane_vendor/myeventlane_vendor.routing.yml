@@ -332,7 +332,7 @@ myeventlane_vendor.console.studio:
   path: '/vendor/studio'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioRedirectController::studio'
-    _title: 'Event Editor'
+    _title: 'Edit event'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
@@ -342,7 +342,7 @@ myeventlane_vendor.console.event_editor:
   path: '/vendor/events/{event}/editor'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\VendorStudioRedirectController::eventEditor'
-    _title: 'Event Editor'
+    _title: 'Edit event'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
@@ -393,7 +393,7 @@ myeventlane_vendor.console.event_workspace:
   path: '/vendor/events/{event}'
   defaults:
     _controller: 'myeventlane_vendor.controller.event_workspace:workspace'
-    _title: 'Event Manager'
+    _title: 'Event Workspace'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
@@ -408,7 +408,7 @@ myeventlane_vendor.console.event_overview:
   path: '/vendor/events/{event}/overview'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_event_overview:overview'
-    _title: 'Manage event'
+    _title: 'Overview'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     event: '\d+'
@@ -578,7 +578,7 @@ myeventlane_vendor.console.event_promotion:
   path: '/vendor/events/{event}/promotion'
   defaults:
     _form: '\Drupal\myeventlane_vendor_comms\Form\VendorEventCommsForm'
-    _title: 'Attendee Messaging'
+    _title: 'Messages'
   requirements:
     _entity_access: 'event.view'
     _custom_access: '\Drupal\myeventlane_vendor_comms\Controller\VendorCommsController::checkAccess'
@@ -635,7 +635,7 @@ myeventlane_vendor.console.boost:
   path: '/vendor/boost'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_boost:boost'
-    _title: 'Promote event'
+    _title: 'Boost'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
@@ -705,7 +705,7 @@ myeventlane_vendor.manage_event.checkout_questions:
   path: '/vendor/event/{event}/checkout-questions'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventCheckoutQuestionsController::checkoutQuestions'
-    _title: 'Checkout questions'
+    _title: 'Guest questions'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventCheckoutQuestionsController::access'
   options:
@@ -736,9 +736,9 @@ myeventlane_vendor.manage_event.promote:
   path: '/vendor/event/{event}/promote'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
-    _title: 'Promote'
+    _title: 'Marketing'
     step: 'myeventlane_vendor.manage_event.promote'
-    title: 'Promote'
+    title: 'Marketing'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
   options:
@@ -752,9 +752,9 @@ myeventlane_vendor.manage_event.payments:
   path: '/vendor/event/{event}/payments'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
-    _title: 'Payments & fees'
+    _title: 'Payments'
     step: 'myeventlane_vendor.manage_event.payments'
-    title: 'Payments & fees'
+    title: 'Payments'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
   options:
@@ -768,9 +768,9 @@ myeventlane_vendor.manage_event.comms:
   path: '/vendor/event/{event}/comms'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
-    _title: 'Comms'
+    _title: 'Messages'
     step: 'myeventlane_vendor.manage_event.comms'
-    title: 'Comms'
+    title: 'Messages'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
   options:
@@ -784,9 +784,9 @@ myeventlane_vendor.manage_event.advanced:
   path: '/vendor/event/{event}/advanced'
   defaults:
     _controller: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::placeholder'
-    _title: 'Advanced'
+    _title: 'Settings'
     step: 'myeventlane_vendor.manage_event.advanced'
-    title: 'Advanced'
+    title: 'Settings'
   requirements:
     _custom_access: '\Drupal\myeventlane_vendor\Controller\ManageEventPlaceholderController::access'
   options:

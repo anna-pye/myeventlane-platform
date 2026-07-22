@@ -841,7 +841,7 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
           'persistTicketManagerRows could not create a ticket product for event @nid.',
           ['@nid' => (string) $nid],
         );
-        return ['ok' => FALSE, 'messages' => ['Ticket product missing. Link a ticket product before saving tickets.']];
+        return ['ok' => FALSE, 'messages' => ['Tickets not set up. Link a ticket before saving tickets.']];
       }
     }
 
@@ -948,7 +948,7 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
 
     $freshProduct = $this->loadTicketProductForManagerPersist($event);
     if (!$freshProduct instanceof ProductInterface) {
-      return ['ok' => FALSE, 'messages' => ['Ticket product missing after save.']];
+      return ['ok' => FALSE, 'messages' => ['Tickets not set up after save.']];
     }
 
     $ordered_tier_ids = [];

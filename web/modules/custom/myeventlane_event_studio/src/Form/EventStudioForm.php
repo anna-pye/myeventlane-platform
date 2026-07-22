@@ -892,14 +892,14 @@ final class EventStudioForm extends FormBase {
 
     $form['mel']['field_product_target'] = [
       '#type' => 'entity_autocomplete',
-      '#title' => $this->t('Ticket product'),
+      '#title' => $this->t('Ticket'),
       '#target_type' => 'commerce_product',
       '#selection_handler' => 'default',
       '#selection_settings' => [
         'target_bundles' => ['ticket' => 'ticket'],
       ],
       '#default_value' => $product_default,
-      '#description' => $this->t('Required for paid events: link your Commerce ticket product, then manage ticket types on the Tickets screen.'),
+      '#description' => $this->t('Required for paid events: link your ticket, then manage ticket types on the Tickets screen.'),
       '#attributes' => ['class' => ['mel-input']],
       '#states' => [
         'visible' => [
@@ -944,7 +944,7 @@ final class EventStudioForm extends FormBase {
         'copy' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Checkout questions are managed in the Checkout questions workspace. Use that table for status, ticket targeting, and archiving.'),
+          '#value' => $this->t('Guest questions are managed in the Guest questions workspace. Use that table for status, ticket targeting, and archiving.'),
           '#attributes' => ['class' => ['mel-event-studio-questions__builder-cta-copy']],
         ],
         'copy_secondary' => [
@@ -1492,7 +1492,7 @@ final class EventStudioForm extends FormBase {
         $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Only one ticket can be marked as best value.'));
       }
       if ($event->id() !== NULL && $active_count === 0 && !$this->eventHasPaidTicketTypesOnField($event)) {
-        $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Paid events need at least one ticket with a name and price. Add a ticket row below or use the Advanced ticket manager.'));
+        $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Paid events need at least one ticket with a name and price. Add a ticket row below or use Advanced ticket tools.'));
       }
 
       $needs_active_paid = FALSE;
@@ -1837,7 +1837,7 @@ final class EventStudioForm extends FormBase {
       ? ($external !== '' ? (string) $this->t('Set') : (string) $this->t('Not set'))
       : '—';
     $paid_note = ($type === 'paid' && $needs_ticket_product)
-      ? '<li class="mel-ticket-summary__warn">' . (string) $this->t('Ticket product still needed — link one above or add it from the event Tickets tab.') . '</li>'
+      ? '<li class="mel-ticket-summary__warn">' . (string) $this->t('Tickets not set up — link your ticket above or add it from the event Tickets tab.') . '</li>'
       : '';
 
     return '<ul class="mel-ticket-summary__list">'

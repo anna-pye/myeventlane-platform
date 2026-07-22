@@ -583,7 +583,7 @@ final class EventStudioExtrasProductEditorBuilder {
       ],
       'manage_event' => [
         '#type' => 'link',
-        '#title' => $this->t('Manage event'),
+        '#title' => $this->t('Overview'),
         '#url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()]),
         '#attributes' => ['class' => ['mel-event-product-editor__manage-link']],
       ],
@@ -1371,10 +1371,10 @@ final class EventStudioExtrasProductEditorBuilder {
           '#value' => $this->t('Packing slips, parking slips and labels'),
           '#attributes' => ['class' => ['mel-es-card__title']],
         ],
-        'helper' => $this->sectionHelper((string) $this->t('Print tools live in Manage event once this item starts selling.')),
+        'helper' => $this->sectionHelper((string) $this->t('Print tools live in Overview once this item starts selling.')),
         'cta' => [
           '#type' => 'link',
-          '#title' => $this->t('Back to Manage event'),
+          '#title' => $this->t('Back to Overview'),
           '#url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()]),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-event-product-editor__manage-cta']],
         ],

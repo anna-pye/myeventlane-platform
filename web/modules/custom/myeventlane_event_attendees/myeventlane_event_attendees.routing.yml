@@ -44,7 +44,7 @@ myeventlane_event_attendees.vendor_operations:
   path: '/vendor/events/{node}/operations'
   defaults:
     _controller: 'myeventlane_checkout_flow.controller.vendor_event_operations:page'
-    _title: 'Live operations'
+    _title: 'Door Mode'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     node: '\d+'

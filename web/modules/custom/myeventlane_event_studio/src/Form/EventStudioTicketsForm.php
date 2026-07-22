@@ -85,7 +85,7 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
 
     $form['mel']['field_product_target'] = [
       '#type' => 'entity_autocomplete',
-      '#title' => $this->t('Ticket product'),
+      '#title' => $this->t('Ticket'),
       '#target_type' => 'commerce_product',
       '#selection_handler' => 'default',
       '#selection_settings' => [

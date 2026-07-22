@@ -219,7 +219,7 @@ final class EventCheckoutQuestionsForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->messenger()->addStatus($this->t('Checkout questions saved.'));
+    $this->messenger()->addStatus($this->t('Guest questions saved.'));
   }
 
   /**

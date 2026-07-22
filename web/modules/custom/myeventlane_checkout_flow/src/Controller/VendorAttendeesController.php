@@ -191,7 +191,7 @@ final class VendorAttendeesController extends ControllerBase {
 
     $build = [
       '#theme' => 'myeventlane_vendor_attendees_dashboard',
-      '#title' => $this->t('Attendees & Sales'),
+      '#title' => $this->t('Attendees'),
       '#events' => $eventData,
       '#mel_cards' => $melCards,
       '#mel_kpis' => $melKpis,

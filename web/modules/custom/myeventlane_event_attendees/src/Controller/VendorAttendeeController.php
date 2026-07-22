@@ -125,7 +125,7 @@ final class VendorAttendeeController extends ControllerBase {
    * Page title callback for attendee list.
    */
   public function listTitle(NodeInterface $node): string {
-    return (string) $this->t('Ticket holders for @event', ['@event' => $node->label()]);
+    return (string) $this->t('Attendees for @event', ['@event' => $node->label()]);
   }
 
   /**
@@ -266,7 +266,7 @@ final class VendorAttendeeController extends ControllerBase {
       $build['ticket_section']['title'] = [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Ticket holders (@count)', ['@count' => count($grouped['ticket'])]),
+        '#value' => $this->t('Attendees (@count)', ['@count' => count($grouped['ticket'])]),
       ];
 
       foreach ($ticketTypeGroups as $variationId => $group) {

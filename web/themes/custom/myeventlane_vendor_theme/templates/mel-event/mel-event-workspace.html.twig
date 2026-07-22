@@ -63,7 +63,7 @@
                   <a class="mel-btn mel-btn--secondary" href="{{ model.actions.preview }}">{{ 'Preview public event'|t }}</a>
                 {% endif %}
                 {% if model.actions.advanced_tickets is not null %}
-                  <a class="mel-btn mel-btn--ghost" href="{{ model.actions.advanced_tickets }}">{{ 'Advanced ticket manager'|t }}</a>
+                  <a class="mel-btn mel-btn--ghost" href="{{ model.actions.advanced_tickets }}">{{ 'Advanced ticket tools'|t }}</a>
                 {% endif %}
               </div>
             </div>
@@ -329,7 +329,7 @@
     <div class="mel-event-management-shell">
       {% if manage_event_back.url is defined and manage_event_back.url %}
         <nav class="mel-event-manage-back mel-event-management-shell__back" aria-label="{{ 'Event navigation'|t }}">
-          <a href="{{ manage_event_back.url }}" class="mel-event-manage-back__link mel-btn mel-btn--ghost">{{ manage_event_back.label|default('Back to Manage event'|t) }}</a>
+          <a href="{{ manage_event_back.url }}" class="mel-event-manage-back__link mel-btn mel-btn--ghost">{{ manage_event_back.label|default('Back to Overview'|t) }}</a>
         </nav>
       {% endif %}
       <div class="mel-event-management-shell__header">

@@ -109,7 +109,7 @@
                 <dd>{{ a.phone|default('—') }}</dd>
                 <dt>{{ 'Ticket code'|t }}</dt>
                 <dd>{% if a.ticket_code %}{{ a.ticket_code }}{% else %}—{% endif %}</dd>
-                <dt>{{ 'Product variation'|t }}</dt>
+                <dt>{{ 'Ticket option'|t }}</dt>
                 <dd>{{ a.ticket_type }}</dd>
                 {% if a.custom_answers is defined %}
                   {% for row in a.custom_answers %}

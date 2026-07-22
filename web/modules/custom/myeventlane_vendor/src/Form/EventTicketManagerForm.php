@@ -141,7 +141,7 @@ final class EventTicketManagerForm extends FormBase {
       if ($show_workspace) {
         $form['back_nav']['workspace'] = [
           '#type' => 'link',
-          '#title' => $this->t('Back to Manage event'),
+          '#title' => $this->t('Back to Overview'),
           '#url' => $workspace_url,
           '#attributes' => ['class' => ['mel-ticket-manager-back-nav__link']],
         ];
@@ -532,7 +532,7 @@ final class EventTicketManagerForm extends FormBase {
       : '';
     $product = $this->loadTicketProduct($event);
     if (!$product instanceof ProductInterface && !in_array($event_type, ['paid', 'both'], TRUE)) {
-      $form_state->setErrorByName('', $this->t('Ticket product missing. Finish ticket setup in Event Studio or link a ticket product before saving tickets.'));
+      $form_state->setErrorByName('', $this->t('Tickets not set up. Finish ticket setup in Event Studio or link a ticket before saving tickets.'));
       return;
     }
 
@@ -638,7 +638,7 @@ final class EventTicketManagerForm extends FormBase {
       : '';
     $product = $this->loadTicketProduct($event);
     if (!$product instanceof ProductInterface && !in_array($event_type, ['paid', 'both'], TRUE)) {
-      $this->messenger()->addError($this->t('Ticket product missing. Finish ticket setup before saving tickets.'));
+      $this->messenger()->addError($this->t('Tickets not set up. Finish ticket setup before saving tickets.'));
       return;
     }
 

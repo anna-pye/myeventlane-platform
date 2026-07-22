@@ -11,8 +11,8 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'questions',
-  title: 'Checkout questions',
-  group: 'Commerce',
+  title: 'Guest questions',
+  group: 'Tickets & sales',
   routeName: 'myeventlane_event_studio.workspace_questions',
   section_state: 'active',
   weight: 110,

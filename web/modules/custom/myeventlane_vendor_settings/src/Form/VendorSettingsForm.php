@@ -910,7 +910,7 @@ class VendorSettingsForm extends FormBase {
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
     ];
     $form['store']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal entity details stay in sync with your Commerce store. Stripe status reflects the last saved connection state (no live API calls here).') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal entity details stay in sync with your account. Stripe status reflects the last saved connection state (no live API calls here).') . '</p>',
       '#weight' => -10,
     ];
     // Business Information subsection.
@@ -1909,7 +1909,7 @@ class VendorSettingsForm extends FormBase {
         'Vendor settings save failed: no linked store after ensureStoreForVendor for vendor @id',
         ['@id' => (string) $vendor->id()]
       );
-      $this->messenger()->addWarning($this->t('Your profile changes could not be linked to a Commerce store yet. Payment and tax settings may be incomplete; contact support if this persists.'));
+      $this->messenger()->addWarning($this->t('Your profile changes could not be linked to your account for payments yet. Payment and tax settings may be incomplete; contact support if this persists.'));
     }
     else {
       if ($store->hasField('field_abn')) {

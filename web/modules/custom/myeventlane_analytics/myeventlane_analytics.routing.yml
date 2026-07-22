@@ -15,7 +15,7 @@ myeventlane_analytics.dashboard:
   path: '/vendor/analytics'
   defaults:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsDashboardController::dashboard'
-    _title: 'Analytics Dashboard'
+    _title: 'Analytics'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     _myeventlane_pro_access: 'TRUE'

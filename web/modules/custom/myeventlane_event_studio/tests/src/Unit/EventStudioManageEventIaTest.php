@@ -19,7 +19,7 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringNotContainsString('buildTicketSalesPanel', $contents);
     $this->assertStringNotContainsString("form['ticket_sales']", $contents);
     $this->assertStringNotContainsString('EventStudioCommerceSalesSummaryBuilder', $contents);
-    $this->assertStringContainsString('View ticket sales in Manage event', $contents);
+    $this->assertStringContainsString('View ticket sales in Overview', $contents);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $contents);
   }
 
@@ -48,14 +48,14 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('mel_event_studio_extras_sales_panel', $controller);
   }
 
-  public function testVendorEventTabsUseManageEventLabel(): void {
+  public function testVendorEventTabsUseOverviewLabel(): void {
     $tabs = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventTabsService.php');
     $tasks = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/myeventlane_vendor.links.task.yml');
     $this->assertIsString($tabs);
     $this->assertIsString($tasks);
-    $this->assertStringContainsString('Manage event', $tabs);
+    $this->assertStringContainsString('Overview', $tabs);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $tabs);
-    $this->assertStringContainsString("title: 'Manage event'", $tasks);
+    $this->assertStringContainsString("title: 'Overview'", $tasks);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $tasks);
   }
 
@@ -65,8 +65,26 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertIsString($theme);
     $this->assertIsString($twig);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $theme);
-    $this->assertStringContainsString('Back to Manage event', $theme);
+    $this->assertStringContainsString('Back to Overview', $theme);
     $this->assertStringContainsString('manage_event_back', $twig);
+  }
+
+  public function testStudioTopBarOverviewLinkPointsToVendorWorkspace(): void {
+    $topbar = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-topbar.html.twig');
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
+    $shellCss = file_get_contents(dirname(__DIR__, 3) . '/css/mel-event-studio-shell.css');
+    $this->assertIsString($topbar);
+    $this->assertIsString($controller);
+    $this->assertIsString($shellCss);
+    $this->assertStringContainsString('show_manage_event_link', $topbar);
+    $this->assertStringContainsString('Overview', $topbar);
+    $this->assertStringContainsString('manage_event_url', $topbar);
+    $this->assertStringContainsString("hasPermission('administer nodes')", $controller);
+    $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $controller);
+    $this->assertStringContainsString('mel-event-studio-topbar__primary', $topbar);
+    $this->assertStringContainsString('{% if topbar.state %}', $topbar);
+    $this->assertStringContainsString('display: flex', $shellCss);
+    $this->assertStringNotContainsString('grid-template-columns: minmax(0, 1fr) auto auto', $shellCss);
   }
 
   public function testCommerceSalesSummaryBuilderStillProvidesEditTicketsLink(): void {
@@ -75,24 +93,6 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('buildTicketSalesPanelRenderArray', $contents);
     $this->assertStringContainsString('myeventlane_event_studio.workspace_tickets', $contents);
     $this->assertStringContainsString('Edit tickets', $contents);
-  }
-
-  public function testStudioTopBarManageEventLinkPointsToVendorWorkspace(): void {
-    $topbar = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-topbar.html.twig');
-    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
-    $shellCss = file_get_contents(dirname(__DIR__, 3) . '/css/mel-event-studio-shell.css');
-    $this->assertIsString($topbar);
-    $this->assertIsString($controller);
-    $this->assertIsString($shellCss);
-    $this->assertStringContainsString('show_manage_event_link', $topbar);
-    $this->assertStringContainsString('Manage event', $topbar);
-    $this->assertStringContainsString('manage_event_url', $topbar);
-    $this->assertStringContainsString("hasPermission('administer nodes')", $controller);
-    $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $controller);
-    $this->assertStringContainsString('mel-event-studio-topbar__primary', $topbar);
-    $this->assertStringContainsString('{% if topbar.state %}', $topbar);
-    $this->assertStringContainsString('display: flex', $shellCss);
-    $this->assertStringNotContainsString('grid-template-columns: minmax(0, 1fr) auto auto', $shellCss);
   }
 
   public function testVendorManageLinksPointToEventStudioWorkspace(): void {
@@ -224,7 +224,7 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('aria-disabled="true"', $twig);
     $this->assertStringNotContainsString('href="#"', $twig);
     $this->assertStringContainsString('operational_documents_note', $form);
-    $this->assertStringContainsString('packing slips, parking slips, and labels from Manage event', $form);
+    $this->assertStringContainsString('packing slips, parking slips, and labels from Overview', $form);
   }
 
   public function testOperationalDocumentsDoNotReferenceTicketPdfOrQr(): void {
@@ -251,9 +251,9 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('buildProductOptionsSection', $builder);
     $this->assertStringContainsString('buildOperationalDocumentsSection', $builder);
     $this->assertStringContainsString('Packing slips, parking slips and labels', $builder);
-    $this->assertStringContainsString('Print tools live in Manage event once this item starts selling', $builder);
+    $this->assertStringContainsString('Print tools live in Overview once this item starts selling', $builder);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $builder);
-    $this->assertStringContainsString('Back to Manage event', $builder);
+    $this->assertStringContainsString('Back to Overview', $builder);
     $this->assertStringNotContainsString('packing_slip.pdf', $builder);
     $this->assertStringNotContainsString('print/download', $builder);
     $this->assertStringContainsString('syncVariationsFromProductOptions', $manager);
@@ -285,7 +285,7 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $theme = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/myeventlane_vendor_theme.theme');
     $this->assertIsString($theme);
     $this->assertStringNotContainsString("'studio' =>", $theme);
-    $this->assertStringContainsString("'route' => 'myeventlane_event_studio.create'", $theme);
+    $this->assertStringContainsString("'route' => 'myeventlane_vendor.create_event_gateway'", $theme);
   }
 
   public function testExtrasProductEditorUsesSingleColumnLayoutAndStickyFooter(): void {

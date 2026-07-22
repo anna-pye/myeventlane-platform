@@ -122,19 +122,19 @@ final class OperationalCapabilityStudioBuilder {
     $binding = (string) ($commerce['binding_state'] ?? OperationalCapabilityCommerceLinkManager::BINDING_UNBOUND);
     return match ($binding) {
       OperationalCapabilityCommerceLinkManager::BINDING_BOUND => [
-        'label' => (string) $this->t('Commerce linked'),
+        'label' => (string) $this->t('Tickets connected'),
         'tone' => 'success',
       ],
       OperationalCapabilityCommerceLinkManager::BINDING_PARTIAL => [
-        'label' => (string) $this->t('Commerce partial'),
+        'label' => (string) $this->t('Tickets need attention'),
         'tone' => 'warning',
       ],
       OperationalCapabilityCommerceLinkManager::BINDING_INVALID => [
-        'label' => (string) $this->t('Commerce invalid'),
+        'label' => (string) $this->t('Tickets need attention'),
         'tone' => 'warning',
       ],
       default => [
-        'label' => (string) $this->t('Commerce not linked'),
+        'label' => (string) $this->t('Tickets not set up'),
         'tone' => 'muted',
       ],
     };

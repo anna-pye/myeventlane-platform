@@ -67,7 +67,7 @@
     <div class="mel-analytics-lock-content">
 
       {% if model.insights is defined and model.insights is not empty %}
-        <section class="mel-vendor-analytics-v2__insights" aria-label="{{ 'Insights'|t }}">
+        <section class="mel-vendor-analytics-v2__insights" aria-label="{{ 'Analytics'|t }}">
           {% for insight in model.insights %}
             <div class="mel-vendor-analytics-v2__insight mel-vendor-analytics-v2__insight--{{ insight.severity|default('info') }}" role="status">
               <h2 class="mel-vendor-analytics-v2__insight-title">{{ insight.title }}</h2>

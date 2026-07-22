@@ -32,7 +32,7 @@
 
   {% if data.insights|default([])|length > 0 %}
     <div class="mel-refund-analytics-card__insights" aria-label="{{ 'Refund insights'|t }}">
-      <p class="mel-insights-title">{{ 'Insights'|t }}</p>
+      <p class="mel-insights-title">{{ 'Analytics'|t }}</p>
       {% for insight in data.insights %}
         <div class="mel-insight">{{ insight|t }}</div>
       {% endfor %}

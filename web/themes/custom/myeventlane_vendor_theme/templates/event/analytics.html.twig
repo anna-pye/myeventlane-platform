@@ -6,12 +6,12 @@
  */
 #}
 {% if workspace_back_url or edit_event_url or export_pdf_url or export_excel_url %}
-  <nav class="mel-live-ops__quick-bar" role="region" aria-label="{{ 'Insights actions'|t }}">
+  <nav class="mel-live-ops__quick-bar" role="region" aria-label="{{ 'Analytics actions'|t }}">
     <div class="mel-live-ops__quick-inner" role="toolbar">
       {% if workspace_back_url %}
         <a href="{{ workspace_back_url }}" class="mel-live-ops__action mel-live-ops__action--lavender" data-icon="list">
           <span class="mel-live-ops__action-glyph" aria-hidden="true"></span>
-          <span class="mel-live-ops__action-label">{{ 'Back to Manage event'|t }}</span>
+          <span class="mel-live-ops__action-label">{{ 'Back to Overview'|t }}</span>
         </a>
       {% endif %}
       {% if edit_event_url %}

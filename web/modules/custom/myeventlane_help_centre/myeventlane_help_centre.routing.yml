@@ -49,7 +49,7 @@ myeventlane_help_centre.vendors_index:
   path: '/help/vendors'
   defaults:
     _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorsIndex'
-    _title: 'Help for Vendors'
+    _title: 'Help for organisers'
   requirements:
     _access: 'TRUE'
 
@@ -107,7 +107,7 @@ myeventlane_help_centre.vendor_help:
   path: '/vendor/help'
   defaults:
     _controller: '\Drupal\myeventlane_help_centre\Controller\HelpCentreController::vendorHelp'
-    _title: 'Vendor help'
+    _title: 'Help'
   requirements:
     _permission: 'access content'
 

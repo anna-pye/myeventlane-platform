@@ -2635,7 +2635,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $alerts[] = [
           'type' => 'warning',
           'title' => (string) $this->t('Ticket setup required'),
-          'message' => (string) $this->t('@event has no ticket product configured.', ['@event' => $eventTitle]),
+          'message' => (string) $this->t('@event has tickets not set up.', ['@event' => $eventTitle]),
           'url' => '/vendor/events/' . $eventId . '/tickets',
           'link_label' => (string) $this->t('Configure tickets'),
         ];

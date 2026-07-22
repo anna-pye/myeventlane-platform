@@ -21,7 +21,7 @@ entity.myeventlane_vendor.delete_form:
 
 # Vendor event workspace — primary tabs (base_route shared; Boost + Refund use plugins).
 myeventlane_vendor.event_workspace.overview:
-  title: 'Manage event'
+  title: 'Overview'
   route_name: myeventlane_vendor.console.event_workspace
   base_route: myeventlane_vendor.console.event_workspace
   weight: -20
@@ -57,7 +57,7 @@ myeventlane_vendor.event_workspace.rsvps:
   weight: -6
 
 myeventlane_vendor.event_workspace.analytics:
-  title: 'Insights'
+  title: 'Analytics'
   route_name: myeventlane_vendor.console.event_analytics
   base_route: myeventlane_vendor.console.event_workspace
   weight: 10

@@ -113,7 +113,7 @@ final class VendorEventTabsService {
     $rows = [
       [
         'key' => 'overview',
-        'label' => (string) $t->translate('Manage event'),
+        'label' => (string) $t->translate('Overview'),
         'route' => 'myeventlane_vendor.console.event_workspace',
         'params' => ['event' => $id],
         'disabled' => FALSE,
@@ -121,7 +121,7 @@ final class VendorEventTabsService {
       ],
       [
         'key' => 'tickets',
-        'label' => (string) $t->translate('Advanced ticket manager'),
+        'label' => (string) $t->translate('Advanced ticket tools'),
         'route' => 'myeventlane_vendor.console.event_tickets',
         'params' => ['event' => $id],
         'disabled' => !$isTickets,
@@ -145,7 +145,7 @@ final class VendorEventTabsService {
       ],
       [
         'key' => 'operations',
-        'label' => (string) $t->translate('Live operations'),
+        'label' => (string) $t->translate('Door Mode'),
         'route' => 'myeventlane_event_attendees.vendor_operations',
         'params' => ['node' => $id],
         'disabled' => FALSE,
@@ -189,7 +189,7 @@ final class VendorEventTabsService {
 
     $rows[] = [
       'key' => 'analytics',
-      'label' => (string) $t->translate('Insights'),
+      'label' => (string) $t->translate('Analytics'),
       'route' => 'myeventlane_vendor.console.event_analytics',
       'params' => ['event' => $id],
       'disabled' => FALSE,
@@ -199,7 +199,7 @@ final class VendorEventTabsService {
     if ($this->routeExists('myeventlane_vendor.console.event_promotion')) {
       $rows[] = [
         'key' => 'promotion',
-        'label' => (string) $t->translate('Attendee Messaging'),
+        'label' => (string) $t->translate('Messages'),
         'route' => 'myeventlane_vendor.console.event_promotion',
         'params' => ['event' => $id],
         'disabled' => FALSE,

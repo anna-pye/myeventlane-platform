@@ -556,7 +556,7 @@
       </details>
 
       <details class="mel-vendor-dashboard__details mel-vendor-dashboard__details--utility mel-vendor-dashboard__details--analytics mel-vendor-dashboard__details--events">
-        <summary>{{ 'Insights'|t }}</summary>
+        <summary>{{ 'Analytics'|t }}</summary>
         <div class="mel-vendor-dashboard__details-grid mel-vendor-dashboard__details-grid--single">
           {% set analytics_data = analytics|default({}) %}
           {% set duplicate_analytics_keys = ['revenue', 'tickets_sold', 'rsvps', 'upcoming_events'] %}
@@ -702,7 +702,7 @@
           {% if growth_cards is defined and growth_cards|length > 0 %}
             <section class="mel-live-ops__panel mel-vendor-dashboard__panel" aria-labelledby="mel-growth-title">
               <div class="mel-live-ops__timeline-head">
-                <h2 class="mel-live-ops__panel-title" id="mel-growth-title">{{ 'Grow event guidance'|t }}</h2>
+                <h2 class="mel-live-ops__panel-title" id="mel-growth-title">{{ 'Marketing guidance'|t }}</h2>
                 <p class="mel-live-ops__panel-intro">{{ 'Suggestions remain secondary to organiser mission control.'|t }}</p>
               </div>
               <ul class="mel-vendor-dashboard__growth-feed" role="list">
@@ -791,7 +791,7 @@
                         <a class="mel-btn mel-btn--secondary mel-btn--sm" href="{{ links.attendees }}">{{ 'Attendees'|t }}</a>
                       {% endif %}
                       {% if links.analytics is defined and links.analytics %}
-                        <a class="mel-btn mel-btn--ghost mel-btn--sm" href="{{ links.analytics }}">{{ 'Insights'|t }}</a>
+                        <a class="mel-btn mel-btn--ghost mel-btn--sm" href="{{ links.analytics }}">{{ 'Analytics'|t }}</a>
                       {% endif %}
                       {% set removal = ev.removal|default(null) %}
                       {% if removal %}
@@ -818,7 +818,7 @@
           {% if analytics_summary.available is defined and analytics_summary.available and analytics_items is iterable and analytics_items|length > 0 %}
             <section class="mel-live-ops__panel mel-vendor-dashboard__panel" aria-labelledby="mel-dash-analytics-summary-title">
               <div class="mel-live-ops__timeline-head">
-                <h2 class="mel-live-ops__panel-title" id="mel-dash-analytics-summary-title">{{ 'Insights summary'|t }}</h2>
+                <h2 class="mel-live-ops__panel-title" id="mel-dash-analytics-summary-title">{{ 'Analytics summary'|t }}</h2>
                 <p class="mel-live-ops__panel-intro">{{ 'Detailed charts remain on analytics pages.'|t }}</p>
               </div>
               <div class="mel-live-ops__timeline-feed" role="list">

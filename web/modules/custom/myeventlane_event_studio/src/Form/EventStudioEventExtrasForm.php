@@ -213,7 +213,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       ],
       'ticket_sales_link' => [
         '#type' => 'link',
-        '#title' => $this->t('View ticket sales in Manage event'),
+        '#title' => $this->t('View ticket sales in Overview'),
         '#url' => Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()]),
         '#attributes' => [
           'class' => ['mel-event-extras-studio__ticket-sales-link', 'mel-text--muted'],
@@ -233,7 +233,7 @@ final class EventStudioEventExtrasForm extends FormBase {
       'operational_documents_note' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('After sales begin, you’ll be able to generate packing slips, parking slips, and labels from Manage event.'),
+        '#value' => $this->t('After sales begin, you’ll be able to generate packing slips, parking slips, and labels from Overview.'),
         '#attributes' => [
           'class' => ['mel-event-extras-studio__operational-docs-note', 'mel-text--muted'],
         ],
