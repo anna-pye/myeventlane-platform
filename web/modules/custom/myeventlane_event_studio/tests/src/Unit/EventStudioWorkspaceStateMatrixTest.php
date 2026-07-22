@@ -190,6 +190,10 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString('updateReadinessChecklist', $js);
     $this->assertStringContainsString('strip_explanation', $js);
     $this->assertStringContainsString('data-mel-readiness-explain', $js);
+    // Count-mode copy must match mel-event-studio-workspace.html.twig.
+    $this->assertStringContainsString("@count to finish", $js);
+    $this->assertStringContainsString("@count to review", $js);
+    $this->assertStringNotContainsString('blocker(s)', $js);
   }
 
   /**

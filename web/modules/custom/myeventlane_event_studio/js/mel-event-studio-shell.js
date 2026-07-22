@@ -382,9 +382,10 @@
       updateReadinessChecklist(strip, readiness.checklist);
     }
 
-    setText(strip, '[data-mel-readiness-errors-count]', Drupal.formatPlural((readiness.errors || []).length, '1 blocker', '@count blocker(s)'));
-    setText(strip, '[data-mel-readiness-warnings-count]', Drupal.formatPlural((readiness.warnings || []).length, '1 warning', '@count warning(s)'));
-    setText(strip, '[data-mel-readiness-recommendations-count]', Drupal.formatPlural((readiness.recommendations || []).length, '1 idea', '@count idea(s)'));
+    // Match server-rendered strip counts (mel-event-studio-workspace.html.twig).
+    setText(strip, '[data-mel-readiness-errors-count]', Drupal.t('@count to finish', { '@count': (readiness.errors || []).length }));
+    setText(strip, '[data-mel-readiness-warnings-count]', Drupal.t('@count to review', { '@count': (readiness.warnings || []).length }));
+    setText(strip, '[data-mel-readiness-recommendations-count]', Drupal.t('@count idea(s)', { '@count': (readiness.recommendations || []).length }));
     setText(strip, '[data-mel-readiness-completed-count]', Drupal.t('@count complete', { '@count': (readiness.completed || []).length }));
   }
 
