@@ -246,7 +246,10 @@ final class EventWorkspaceOverviewBuilder {
     if (($stripe['tone'] ?? '') === 'attention' && in_array($this->resolveEventBookingType($event, $eventMeta), ['paid', 'both'], TRUE)) {
       $tone = 'attention';
       if ($readiness->ready) {
-        $headline = (string) $this->t('Almost ready');
+        // Published events stay Live on the status pill — never claim "Almost ready".
+        $headline = $published
+          ? (string) $this->t('Live — payments need attention')
+          : (string) $this->t('Almost ready');
         $detail = (string) ($stripe['detail'] ?? $detail);
       }
     }

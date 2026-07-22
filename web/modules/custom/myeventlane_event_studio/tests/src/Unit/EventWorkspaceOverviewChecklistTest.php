@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Service\EventWorkspaceOverviewBuilder;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 use ReflectionClass;
 
@@ -15,6 +18,47 @@ use ReflectionClass;
  * @group myeventlane_event_studio
  */
 final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
+
+  public function testPublishedReadyStripeAttentionDoesNotSayAlmostReady(): void {
+    $card = $this->buildEventReadyCard(
+      EventReadinessResult::create([], [], ['Event title added.']),
+      TRUE,
+      'Live',
+      'live',
+      [
+        'tone' => 'attention',
+        'detail' => 'Connect Stripe to accept payments.',
+        'url' => '/vendor/payouts',
+      ],
+      ['event_type' => 'paid'],
+    );
+
+    $this->assertSame('attention', $card['tone']);
+    $this->assertSame('Live', $card['status_label']);
+    $this->assertSame('live', $card['status_key']);
+    $this->assertSame('Live — payments need attention', $card['headline']);
+    $this->assertStringContainsString('Connect Stripe', $card['detail']);
+    $this->assertStringNotContainsString('Almost ready', $card['headline']);
+  }
+
+  public function testDraftReadyStripeAttentionKeepsAlmostReady(): void {
+    $card = $this->buildEventReadyCard(
+      EventReadinessResult::create([], [], ['Event title added.']),
+      FALSE,
+      'Draft',
+      'draft',
+      [
+        'tone' => 'attention',
+        'detail' => 'Connect Stripe to accept payments.',
+        'url' => '/vendor/payouts',
+      ],
+      ['event_type' => 'paid'],
+    );
+
+    $this->assertSame('attention', $card['tone']);
+    $this->assertSame('Almost ready', $card['headline']);
+    $this->assertSame('Draft', $card['status_label']);
+  }
 
   public function testWarningsAreNotPresentedAsBlockingAttentionRows(): void {
     $translator = $this->createMock(TranslationInterface::class);
@@ -97,6 +141,55 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertStringNotContainsString("\$this->t('bookings')", $salesBlock);
     $this->assertStringContainsString("\$this->t('sold')", $analyticsBlock);
     $this->assertStringNotContainsString("\$this->t('bookings')", $analyticsBlock);
+  }
+
+  /**
+   * @param array<string, mixed> $stripe
+   * @param array<string, mixed> $eventMeta
+   *
+   * @return array<string, mixed>
+   */
+  private function buildEventReadyCard(
+    EventReadinessResult $readiness,
+    bool $published,
+    string $statusLabel,
+    string $statusKey,
+    array $stripe,
+    array $eventMeta,
+  ): array {
+    $translator = $this->createMock(TranslationInterface::class);
+    $translator->method('translateString')->willReturnCallback(
+      static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
+    );
+
+    $dateFormatter = $this->createMock(DateFormatterInterface::class);
+    $dateFormatter->method('formatTimeDiffSince')->willReturn('2 hours');
+
+    $event = $this->createMock(NodeInterface::class);
+    $event->method('getChangedTime')->willReturn(1700000000);
+
+    $reflection = new ReflectionClass(EventWorkspaceOverviewBuilder::class);
+    $builder = $reflection->newInstanceWithoutConstructor();
+    $reflection->getProperty('stringTranslation')->setValue($builder, $translator);
+    $reflection->getProperty('dateFormatter')->setValue($builder, $dateFormatter);
+
+    $method = $reflection->getMethod('buildEventReady');
+
+    /** @var array<string, mixed> $card */
+    $card = $method->invoke(
+      $builder,
+      $readiness,
+      $published,
+      $statusLabel,
+      $statusKey,
+      5,
+      5,
+      0,
+      $event,
+      $stripe,
+      $eventMeta,
+    );
+    return $card;
   }
 
 }
