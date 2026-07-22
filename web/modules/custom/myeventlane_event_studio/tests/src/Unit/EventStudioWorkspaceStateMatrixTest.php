@@ -50,7 +50,9 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $summary = $this->presentation->buildReadinessSummary($bundle, $node);
 
     $this->assertTrue($summary['show_publish_strip']);
-    $this->assertSame('Needs attention', $summary['strip_title']);
+    $this->assertSame("You're almost there…", $summary['strip_title']);
+    $this->assertStringContainsString('One more thing before publishing', $summary['strip_explanation']);
+    $this->assertNotEmpty($summary['checklist']);
   }
 
   public function testPublishedReadyHidesPublishStripWithoutBlockers(): void {

@@ -63,11 +63,11 @@ final class EventReadinessService {
       $errors[] = (string) $this->t('Add an event title.');
     }
     else {
-      $completed[] = (string) $this->t('Event title added.');
+      $completed[] = (string) $this->t('Event title');
     }
 
     if ($this->validateDates($event, $errors)) {
-      $completed[] = (string) $this->t('Event dates complete.');
+      $completed[] = (string) $this->t('Schedule');
     }
 
     $event_type = $this->eventType($event);
@@ -75,7 +75,7 @@ final class EventReadinessService {
       $errors[] = (string) $this->t('Choose how attendees will join this event.');
     }
     else {
-      $completed[] = (string) $this->t('Booking mode selected.');
+      $completed[] = (string) $this->t('Tickets ready');
     }
 
     if ($event_type === 'external') {
@@ -83,20 +83,20 @@ final class EventReadinessService {
         $errors[] = (string) $this->t('Add the external booking URL.');
       }
       else {
-        $completed[] = (string) $this->t('External booking URL added.');
+        $completed[] = (string) $this->t('External booking link');
       }
     }
 
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
       if ($this->validatePaidTickets($event, $errors, $warnings)) {
-        $completed[] = (string) $this->t('Ticketing configured.');
+        $completed[] = (string) $this->t('Tickets ready');
       }
       $stripe = $this->validateStripePublish($account, (int) $event->id(), $warnings);
       if ($stripe !== NULL) {
         $errors[] = $stripe;
       }
       else {
-        $completed[] = (string) $this->t('Payment onboarding complete.');
+        $completed[] = (string) $this->t('Payments connected');
       }
     }
 
@@ -105,18 +105,18 @@ final class EventReadinessService {
       $errors[] = $reason;
     }
     if ($denials === []) {
-      $completed[] = (string) $this->t('Vendor publish requirements complete.');
+      $completed[] = (string) $this->t('Organiser profile ready');
     }
 
     if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
-      $recommendations[] = (string) $this->t('Add a banner image for stronger event conversion.');
+      $recommendations[] = (string) $this->t('Add a cover image so your event looks inviting.');
     }
     else {
-      $completed[] = (string) $this->t('Branding image added.');
+      $completed[] = (string) $this->t('Cover image');
     }
 
     if ($this->validateCapacities($event, $errors, $warnings)) {
-      $completed[] = (string) $this->t('Capacity settings valid.');
+      $completed[] = (string) $this->t('Capacity');
     }
 
     $this->addOptionalRecommendations($event, $recommendations);

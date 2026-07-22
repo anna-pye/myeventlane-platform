@@ -59,6 +59,8 @@ final class EventStudioWorkspacePresentation {
       'published' => $published,
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
+      'strip_explanation' => $this->readinessStripExplanation($result),
+      'checklist' => $this->buildHumanChecklist($result),
     ];
   }
 
@@ -151,6 +153,8 @@ final class EventStudioWorkspacePresentation {
       'published' => $published,
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
+      'strip_explanation' => $this->readinessStripExplanation($result),
+      'checklist' => $this->buildHumanChecklist($result),
       'show_homepage_readiness' => $this->shouldShowHomepageReadinessCard(
         (bool) ($readiness_bundle['promotion_ready'] ?? FALSE),
         $published,
@@ -167,12 +171,64 @@ final class EventStudioWorkspacePresentation {
 
   public function readinessStripTitle(EventReadinessResult $result, bool $published): string {
     if (!$result->ready) {
-      return (string) $this->t('Needs attention');
+      if (count($result->errors) === 1) {
+        return (string) $this->t("You're almost there…");
+      }
+      return (string) $this->t('A few things left before publishing');
     }
     if ($published) {
       return (string) $this->t('Published and ready');
     }
     return (string) $this->t('Ready to publish');
+  }
+
+  public function readinessStripExplanation(EventReadinessResult $result): string {
+    if ($result->ready) {
+      return (string) $this->t('Everything needed to go live looks good.');
+    }
+    if (count($result->errors) === 1) {
+      return (string) $this->t('One more thing before publishing: @reason', [
+        '@reason' => $result->errors[0],
+      ]);
+    }
+    if ($result->errors !== []) {
+      return (string) $this->t('Finish the items below so guests can find and book your event.');
+    }
+    return (string) $this->t('Review the suggestions below to make your event page stronger.');
+  }
+
+  /**
+   * @return list<array{label: string, complete: bool}>
+   */
+  private function buildHumanChecklist(EventReadinessResult $result): array {
+    $items = [];
+    foreach ($result->completed as $label) {
+      $items[] = [
+        'label' => $this->humanChecklistLabel((string) $label),
+        'complete' => TRUE,
+      ];
+    }
+    foreach ($result->errors as $label) {
+      $items[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+      ];
+    }
+    return array_slice($items, 0, 8);
+  }
+
+  private function humanChecklistLabel(string $label): string {
+    return match ($label) {
+      'Event title added.', 'Event title' => (string) $this->t('Event title'),
+      'Event dates complete.', 'Schedule' => (string) $this->t('Schedule'),
+      'Booking mode selected.', 'Ticketing configured.', 'Tickets ready' => (string) $this->t('Tickets ready'),
+      'Payment onboarding complete.', 'Payments connected' => (string) $this->t('Payments connected'),
+      'Vendor publish requirements complete.', 'Organiser profile ready' => (string) $this->t('Organiser profile ready'),
+      'Branding image added.', 'Cover image' => (string) $this->t('Cover image'),
+      'Capacity settings valid.', 'Capacity' => (string) $this->t('Capacity'),
+      'External booking URL added.', 'External booking link' => (string) $this->t('External booking link'),
+      default => rtrim($label, '.'),
+    };
   }
 
   public function shouldShowPublishStrip(EventReadinessResult $result, bool $published): bool {
