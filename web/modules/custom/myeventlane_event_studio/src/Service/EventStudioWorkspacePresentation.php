@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event\EventCard\EventCardViewModel;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
@@ -145,27 +146,226 @@ final class EventStudioWorkspacePresentation {
   public function buildAjaxReadinessPayloadFromBundle(array $readiness_bundle, NodeInterface $node): array {
     $result = $readiness_bundle['publish'];
     $published = $node->isPublished();
+    $recommendations = is_array($readiness_bundle['recommended'] ?? NULL)
+      ? $readiness_bundle['recommended']
+      : [];
 
     return [
       'ready' => $result->ready,
       'errors' => $result->errors,
       'warnings' => $result->warnings,
       'completed' => $result->completed,
-      'recommendations' => $readiness_bundle['recommended'] ?? [],
+      'recommendations' => $recommendations,
       'state' => $this->operationalState($result),
       'published' => $published,
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
       'strip_explanation' => $this->readinessStripExplanation($result),
-      'checklist' => $this->buildHumanChecklist(
-        $result,
-        is_array($readiness_bundle['recommended'] ?? NULL) ? $readiness_bundle['recommended'] : [],
-      ),
+      'checklist' => $this->buildHumanChecklist($result, $recommendations),
       'show_homepage_readiness' => $this->shouldShowHomepageReadinessCard(
         (bool) ($readiness_bundle['promotion_ready'] ?? FALSE),
         $published,
       ),
+      // Home dashboard (no readiness strip) — applied client-side after publish AJAX.
+      'home' => $this->buildHomeAjaxSnapshot($result, $recommendations, $node, $published),
     ];
+  }
+
+  /**
+   * Home Event Ready + expandable checklist + next action for AJAX refresh.
+   *
+   * Copy aligns with EventWorkspaceOverviewBuilder Home cards (without Stripe
+   * nuance — Connect state does not change on publish).
+   *
+   * @param list<string> $recommendations
+   *
+   * @return array<string, mixed>
+   */
+  public function buildHomeAjaxSnapshot(
+    EventReadinessResult $result,
+    array $recommendations,
+    NodeInterface $node,
+    bool $published,
+  ): array {
+    $remaining_errors = count($result->errors);
+    $completed_count = count($result->completed);
+    $total_checklist = max(
+      1,
+      $completed_count + $remaining_errors + count($result->warnings) + count($recommendations),
+    );
+
+    $tone = 'success';
+    $headline = (string) $this->t('Ready to publish');
+    $detail = (string) $this->t('Everything looks good.');
+    if ($published && $result->ready) {
+      $headline = (string) $this->t('Live and healthy');
+      $detail = (string) $this->t('Your event is published and ready for guests.');
+    }
+    elseif (!$result->ready) {
+      $tone = 'attention';
+      $headline = $remaining_errors === 1
+        ? (string) $this->t('Almost ready')
+        : (string) $this->t('Needs a few things');
+      $detail = $remaining_errors === 1
+        ? (string) $this->t('One thing left before publishing.')
+        : (string) $this->t('@count items left before publishing.', ['@count' => $remaining_errors]);
+    }
+
+    $changed = (int) $node->getChangedTime();
+    $updated = '';
+    if ($changed > 0) {
+      try {
+        $updated = $this->dateFormatter->formatTimeDiffSince($changed, ['granularity' => 1]);
+      }
+      catch (\Throwable) {
+        $updated = '';
+      }
+    }
+
+    $nid = (int) $node->id();
+    $next = $this->buildHomeNextAction($result, $published, $nid);
+
+    return [
+      'event_ready' => [
+        'headline' => $headline,
+        'detail' => $detail,
+        'tone' => $tone,
+        'status_label' => $published ? (string) $this->t('Live') : (string) $this->t('Draft'),
+        'status_key' => $published ? 'live' : 'draft',
+        'complete_count' => $completed_count,
+        'total_count' => $total_checklist,
+        'updated_label' => $updated !== ''
+          ? (string) $this->t('Updated @when ago', ['@when' => $updated])
+          : '',
+        'complete_label' => (string) $this->t('@done of @total complete', [
+          '@done' => $completed_count,
+          '@total' => $total_checklist,
+        ]),
+      ],
+      'readiness' => [
+        'headline' => $this->homeReadinessHeadline($result->ready, $published, $remaining_errors),
+        'explanation' => $this->homeReadinessExplanation($result),
+        'complete_count' => $completed_count,
+        'total_count' => $total_checklist,
+        'complete_label' => (string) $this->t('@done of @total complete', [
+          '@done' => $completed_count,
+          '@total' => $total_checklist,
+        ]),
+        // Full Home checklist (no strip soft-cap) so AJAX matches server Home.
+        'items' => $this->buildHomeHumanChecklist($result, $recommendations),
+      ],
+      'next_action' => $next,
+    ];
+  }
+
+  /**
+   * @return array{title: string, message: string, action_label: ?string, url: ?string}
+   */
+  private function buildHomeNextAction(EventReadinessResult $result, bool $published, int $nid): array {
+    if (!$result->ready) {
+      return [
+        'title' => (string) $this->t('Continue setup'),
+        'message' => isset($result->errors[0])
+          ? $this->humanChecklistLabel((string) $result->errors[0])
+          : (string) $this->t('Finish the readiness checklist so you can publish.'),
+        'action_label' => (string) $this->t('Review publishing'),
+        'url' => $this->safeWorkspaceUrl('myeventlane_event_studio.workspace_publishing', $nid),
+      ];
+    }
+    if (!$published) {
+      return [
+        'title' => (string) $this->t('Ready when you are'),
+        'message' => (string) $this->t('Your event looks ready. Publish when you want guests to find it.'),
+        'action_label' => (string) $this->t('Go to publishing'),
+        'url' => $this->safeWorkspaceUrl('myeventlane_event_studio.workspace_publishing', $nid),
+      ];
+    }
+    return [
+      'title' => (string) $this->t('Share your event'),
+      'message' => (string) $this->t('Your event is live. Share the page or message your attendees.'),
+      'action_label' => (string) $this->t('Promote'),
+      'url' => $this->safeWorkspaceUrl('myeventlane_event_studio.workspace_marketing', $nid),
+    ];
+  }
+
+  private function homeReadinessHeadline(bool $ready, bool $published, int $remaining): string {
+    if ($published && $ready) {
+      return (string) $this->t('Your event is live');
+    }
+    if ($ready) {
+      return (string) $this->t('Ready to publish');
+    }
+    if ($remaining === 1) {
+      return (string) $this->t('Almost ready');
+    }
+    return (string) $this->t('A few things left before publishing');
+  }
+
+  private function homeReadinessExplanation(EventReadinessResult $result): string {
+    if ($result->ready) {
+      if ($result->warnings !== []) {
+        return (string) $this->t('You can publish now. Optional improvements are in the checklist.');
+      }
+      return (string) $this->t('Everything needed to go live looks good.');
+    }
+    if (count($result->errors) === 1) {
+      return (string) $this->t('One more thing before publishing: @reason', [
+        '@reason' => $this->humanChecklistLabel($result->errors[0]),
+      ]);
+    }
+    if ($result->errors !== []) {
+      return (string) $this->t('Finish the checklist so guests can find and book your event.');
+    }
+    return (string) $this->t('Review the suggestions to make your event page stronger.');
+  }
+
+  /**
+   * Full Home checklist — completed + blockers + warnings + ideas (no soft-cap).
+   *
+   * @param list<string> $recommendations
+   *
+   * @return list<array{label: string, complete: bool, tone: string}>
+   */
+  private function buildHomeHumanChecklist(EventReadinessResult $result, array $recommendations = []): array {
+    $items = [];
+    foreach ($result->completed as $label) {
+      $items[] = [
+        'label' => $this->humanChecklistLabel((string) $label),
+        'complete' => TRUE,
+        'tone' => 'success',
+      ];
+    }
+    foreach ($result->errors as $label) {
+      $items[] = [
+        'label' => $this->humanChecklistLabel((string) $label),
+        'complete' => FALSE,
+        'tone' => 'attention',
+      ];
+    }
+    foreach ($result->warnings as $label) {
+      $items[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'warning',
+      ];
+    }
+    foreach ($recommendations as $label) {
+      $items[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'idea',
+      ];
+    }
+    return $items;
+  }
+
+  private function safeWorkspaceUrl(string $route, int $nid): ?string {
+    try {
+      return Url::fromRoute($route, ['node' => $nid])->toString();
+    }
+    catch (\Throwable) {
+      return NULL;
+    }
   }
 
   public function operationalState(EventReadinessResult $result): string {

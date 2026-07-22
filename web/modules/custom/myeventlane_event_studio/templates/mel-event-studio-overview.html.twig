@@ -5,73 +5,76 @@
  *
  * Compositional redesign (not spacing polish). Answers five questions:
  * where am I, is it healthy, what next, how is business, what happened.
+ *
+ * data-mel-* hooks let shell AJAX apply readiness after topbar publish without
+ * inventing the readiness strip on Home.
  */
 #}
-<section class="mel-event-workspace-home" aria-label="{{ 'Event home'|t }}">
+<section class="mel-event-workspace-home" aria-label="{{ 'Event home'|t }}" data-mel-home-dashboard>
 
   {# ROW 1 — Event Ready | Next Action (mobile: Next first via CSS order) #}
   <div class="mel-event-workspace-home__row mel-event-workspace-home__row--guide">
-    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--ready mel-event-workspace-home__card--{{ event_ready.tone|default('success')|clean_class }}" aria-labelledby="mel-home-ready-heading">
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--ready mel-event-workspace-home__card--{{ event_ready.tone|default('success')|clean_class }}" aria-labelledby="mel-home-ready-heading" data-mel-home-event-ready data-mel-home-tone="{{ event_ready.tone|default('success')|e('html_attr') }}">
       <p class="mel-event-workspace-home__eyebrow">{{ 'Event Ready'|t }}</p>
       <h2 id="mel-home-ready-heading" class="mel-event-workspace-home__card-title">
-        <span class="mel-event-workspace-home__ready-mark" aria-hidden="true">{{ event_ready.tone|default('') == 'attention' ? '⚠' : '✔' }}</span>
-        {{ event_ready.headline }}
+        <span class="mel-event-workspace-home__ready-mark" aria-hidden="true" data-mel-home-ready-mark>{{ event_ready.tone|default('') == 'attention' ? '⚠' : '✔' }}</span>
+        <span data-mel-home-ready-headline>{{ event_ready.headline }}</span>
       </h2>
-      <p class="mel-event-workspace-home__card-detail">{{ event_ready.detail }}</p>
+      <p class="mel-event-workspace-home__card-detail" data-mel-home-ready-detail>{{ event_ready.detail }}</p>
       <ul class="mel-event-workspace-home__meta">
-        <li><span class="mel-event-workspace-home__pill mel-event-workspace-home__pill--{{ event_ready.status_key|default('draft')|clean_class }}">{{ event_ready.status_label }}</span></li>
+        <li><span class="mel-event-workspace-home__pill mel-event-workspace-home__pill--{{ event_ready.status_key|default('draft')|clean_class }}" data-mel-home-status-pill data-mel-home-status-key="{{ event_ready.status_key|default('draft')|e('html_attr') }}">{{ event_ready.status_label }}</span></li>
         {% if event_ready.updated_label %}
-          <li>{{ event_ready.updated_label }}</li>
+          <li data-mel-home-updated>{{ event_ready.updated_label }}</li>
+        {% else %}
+          <li data-mel-home-updated hidden></li>
         {% endif %}
-        <li>{{ '@done of @total complete'|t({'@done': event_ready.complete_count, '@total': event_ready.total_count}) }}</li>
+        <li data-mel-home-ready-complete>{{ '@done of @total complete'|t({'@done': event_ready.complete_count, '@total': event_ready.total_count}) }}</li>
       </ul>
       <a class="mel-event-workspace-home__text-link" href="#mel-home-readiness">{{ event_ready.checklist_label }}</a>
     </section>
 
-    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--next mel-event-workspace-home__card--guide" aria-labelledby="mel-home-next-heading">
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--next mel-event-workspace-home__card--guide" aria-labelledby="mel-home-next-heading" data-mel-home-next-action>
       <p class="mel-event-workspace-home__eyebrow">{{ 'Next recommended action'|t }}</p>
-      <h2 id="mel-home-next-heading" class="mel-event-workspace-home__card-title">{{ next_action.title }}</h2>
-      {% if next_action.message %}
-        <p class="mel-event-workspace-home__card-detail">{{ next_action.message }}</p>
-      {% endif %}
+      <h2 id="mel-home-next-heading" class="mel-event-workspace-home__card-title" data-mel-home-next-title>{{ next_action.title }}</h2>
+      <p class="mel-event-workspace-home__card-detail" data-mel-home-next-message{% if not next_action.message %} hidden{% endif %}>{{ next_action.message }}</p>
       {% if next_action.url and next_action.action_label %}
-        <a class="mel-btn mel-btn--primary" href="{{ next_action.url }}">{{ next_action.action_label }}</a>
+        <a class="mel-btn mel-btn--primary" href="{{ next_action.url }}" data-mel-home-next-cta>{{ next_action.action_label }}</a>
+      {% else %}
+        <a class="mel-btn mel-btn--primary" href="#" data-mel-home-next-cta hidden></a>
       {% endif %}
     </section>
   </div>
 
   {# Compact readiness — expandable #}
-  <details class="mel-event-workspace-home__readiness" id="mel-home-readiness">
+  <details class="mel-event-workspace-home__readiness" id="mel-home-readiness" data-mel-home-readiness>
     <summary class="mel-event-workspace-home__readiness-summary">
       <span class="mel-event-workspace-home__readiness-summary-main">
-        <strong>{{ readiness.headline }}</strong>
-        <span class="mel-event-workspace-home__readiness-count">{{ '@done of @total complete'|t({'@done': readiness.complete_count, '@total': readiness.total_count}) }}</span>
+        <strong data-mel-home-readiness-headline>{{ readiness.headline }}</strong>
+        <span class="mel-event-workspace-home__readiness-count" data-mel-home-readiness-count>{{ '@done of @total complete'|t({'@done': readiness.complete_count, '@total': readiness.total_count}) }}</span>
       </span>
       <span class="mel-event-workspace-home__readiness-hint">{{ 'View checklist'|t }}</span>
     </summary>
     <div class="mel-event-workspace-home__readiness-body">
-      <p class="mel-event-workspace-home__card-detail">{{ readiness.explanation }}</p>
-      {% if readiness.items %}
-        <ul class="mel-event-workspace-home__checklist">
-          {% for item in readiness.items %}
-            <li class="mel-event-workspace-home__check mel-event-workspace-home__check--{{ item.tone|clean_class }}">
-              <span class="mel-event-workspace-home__check-mark" aria-hidden="true">{{ item.complete ? '✔' : (item.tone == 'warning' or item.tone == 'idea' ? '◇' : '○') }}</span>
-              <span class="visually-hidden">
-                {% if item.complete %}
-                  {{ 'Complete:'|t }}
-                {% elseif item.tone == 'warning' %}
-                  {{ 'Suggested review:'|t }}
-                {% elseif item.tone == 'idea' %}
-                  {{ 'Idea:'|t }}
-                {% else %}
-                  {{ 'Required before publishing:'|t }}
-                {% endif %}
-              </span>
-              {{ item.label }}
-            </li>
-          {% endfor %}
-        </ul>
-      {% endif %}
+      <p class="mel-event-workspace-home__card-detail" data-mel-home-readiness-explain>{{ readiness.explanation }}</p>
+      <ul class="mel-event-workspace-home__checklist" data-mel-home-readiness-checklist{% if not readiness.items %} hidden{% endif %}>
+        {% for item in readiness.items %}
+          <li class="mel-event-workspace-home__check mel-event-workspace-home__check--{{ item.tone|clean_class }}">
+            <span class="mel-event-workspace-home__check-mark" aria-hidden="true">{{ item.complete ? '✔' : (item.tone == 'warning' or item.tone == 'idea' ? '◇' : '○') }}</span>
+            <span class="visually-hidden">
+              {% if item.complete %}
+                {{ 'Complete:'|t }}
+              {% elseif item.tone == 'warning' %}
+                {{ 'Suggested review:'|t }}
+              {% elseif item.tone == 'idea' %}
+                {{ 'Idea:'|t }}
+              {% else %}
+                {{ 'Required before publishing:'|t }}
+              {% endif %}
+            </span>
+            {{ item.label }}
+          </li>
+        {% endfor %}
+      </ul>
     </div>
   </details>
 

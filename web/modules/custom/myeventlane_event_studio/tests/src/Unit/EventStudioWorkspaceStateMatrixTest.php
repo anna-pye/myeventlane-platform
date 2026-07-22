@@ -24,6 +24,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     parent::setUp();
     $dateFormatter = $this->createMock(DateFormatterInterface::class);
     $dateFormatter->method('format')->willReturn('10 Jun 2026 - 16:46');
+    $dateFormatter->method('formatTimeDiffSince')->willReturn('1 min');
     $translator = $this->createMock(\Drupal\Core\StringTranslation\TranslationInterface::class);
     $translator->method('translateString')->willReturnCallback(
       static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
@@ -115,6 +116,25 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertCount(1, $ideaRows);
     $this->assertSame('Add banner image', $ideaRows[0]['label']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
+    $this->assertArrayHasKey('home', $payload);
+    $this->assertArrayHasKey('event_ready', $payload['home']);
+    $this->assertArrayHasKey('readiness', $payload['home']);
+    $this->assertArrayHasKey('next_action', $payload['home']);
+    $this->assertSame('Ready to publish', $payload['home']['event_ready']['headline']);
+    $this->assertSame('draft', $payload['home']['event_ready']['status_key']);
+  }
+
+  public function testPublishAjaxHomeSnapshotReflectsLiveState(): void {
+    $node = $this->node(TRUE, 109);
+    $bundle = $this->bundle(ready: TRUE, promotion_ready: TRUE);
+    $payload = $this->presentation->buildAjaxReadinessPayloadFromBundle($bundle, $node);
+
+    $this->assertSame('Live and healthy', $payload['home']['event_ready']['headline']);
+    $this->assertSame('live', $payload['home']['event_ready']['status_key']);
+    $this->assertSame('Live', $payload['home']['event_ready']['status_label']);
+    $this->assertSame('Your event is live', $payload['home']['readiness']['headline']);
+    $this->assertSame('Share your event', $payload['home']['next_action']['title']);
+    $this->assertNotEmpty($payload['home']['readiness']['items']);
   }
 
   public function testStripChecklistIncludesRecommendationIdeas(): void {
@@ -239,6 +259,9 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString('isHomeShell', $js);
     $this->assertStringContainsString('mel-event-studio--home', $js);
     $this->assertStringContainsString('updateHomepageReadiness', $js);
+    $this->assertStringContainsString('updateHomeDashboard', $js);
+    $this->assertStringContainsString('data-mel-home-dashboard', $js);
+    $this->assertStringContainsString('readiness.home', $js);
     $this->assertStringContainsString('updateReadinessChecklist', $js);
     $this->assertStringContainsString('strip_explanation', $js);
     $this->assertStringContainsString('data-mel-readiness-explain', $js);
@@ -248,6 +271,11 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringNotContainsString('blocker(s)', $js);
     $this->assertStringContainsString("tone === 'idea'", $js);
     $this->assertStringContainsString("Drupal.t('Idea')", $js);
+    $twig = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-overview.html.twig');
+    $this->assertIsString($twig);
+    $this->assertStringContainsString('data-mel-home-dashboard', $twig);
+    $this->assertStringContainsString('data-mel-home-event-ready', $twig);
+    $this->assertStringContainsString('data-mel-home-readiness-checklist', $twig);
   }
 
   /**

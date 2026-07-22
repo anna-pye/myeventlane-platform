@@ -383,8 +383,141 @@
     return wrapper;
   }
 
+  function updateHomeChecklist(list, items) {
+    const rows = Array.isArray(items) ? items : [];
+    list.replaceChildren();
+    if (rows.length === 0) {
+      list.hidden = true;
+      return;
+    }
+    list.hidden = false;
+    rows.forEach((item) => {
+      if (!item || typeof item.label !== 'string') {
+        return;
+      }
+      const complete = !!item.complete;
+      const tone = typeof item.tone === 'string' ? item.tone : '';
+      const li = document.createElement('li');
+      li.className = 'mel-event-workspace-home__check'
+        + (tone ? ` mel-event-workspace-home__check--${tone}` : '');
+      const mark = document.createElement('span');
+      mark.className = 'mel-event-workspace-home__check-mark';
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = complete ? '✔' : ((tone === 'warning' || tone === 'idea') ? '◇' : '○');
+      const sr = document.createElement('span');
+      sr.className = 'visually-hidden';
+      if (complete) {
+        sr.textContent = Drupal.t('Complete:');
+      }
+      else if (tone === 'warning') {
+        sr.textContent = Drupal.t('Suggested review:');
+      }
+      else if (tone === 'idea') {
+        sr.textContent = Drupal.t('Idea:');
+      }
+      else {
+        sr.textContent = Drupal.t('Required before publishing:');
+      }
+      li.appendChild(mark);
+      li.appendChild(sr);
+      li.appendChild(document.createTextNode(' ' + item.label));
+      list.appendChild(li);
+    });
+  }
+
+  /**
+   * Applies AJAX readiness.home to Event Ready / checklist / next action.
+   * Home chrome has no readiness strip — this is the in-place dashboard updater.
+   */
+  function updateHomeDashboard(shell, readiness) {
+    if (!readiness || !readiness.home) {
+      return;
+    }
+    const home = readiness.home;
+    const dashboard = shell.querySelector('[data-mel-home-dashboard]');
+    if (!dashboard) {
+      return;
+    }
+
+    const readyCard = dashboard.querySelector('[data-mel-home-event-ready]');
+    const eventReady = home.event_ready || {};
+    if (readyCard && eventReady) {
+      const tone = typeof eventReady.tone === 'string' ? eventReady.tone : 'success';
+      readyCard.classList.remove(
+        'mel-event-workspace-home__card--attention',
+        'mel-event-workspace-home__card--success',
+      );
+      readyCard.classList.add(`mel-event-workspace-home__card--${tone}`);
+      readyCard.setAttribute('data-mel-home-tone', tone);
+      const mark = readyCard.querySelector('[data-mel-home-ready-mark]');
+      if (mark) {
+        mark.textContent = tone === 'attention' ? '⚠' : '✔';
+      }
+      setText(readyCard, '[data-mel-home-ready-headline]', eventReady.headline || '');
+      setText(readyCard, '[data-mel-home-ready-detail]', eventReady.detail || '');
+      setText(readyCard, '[data-mel-home-ready-complete]', eventReady.complete_label || '');
+
+      const pill = readyCard.querySelector('[data-mel-home-status-pill]');
+      if (pill) {
+        const statusKey = typeof eventReady.status_key === 'string' ? eventReady.status_key : 'draft';
+        pill.className = `mel-event-workspace-home__pill mel-event-workspace-home__pill--${statusKey}`;
+        pill.setAttribute('data-mel-home-status-key', statusKey);
+        pill.textContent = eventReady.status_label || '';
+      }
+
+      const updated = readyCard.querySelector('[data-mel-home-updated]');
+      if (updated) {
+        const label = typeof eventReady.updated_label === 'string' ? eventReady.updated_label : '';
+        updated.textContent = label;
+        updated.hidden = label === '';
+      }
+    }
+
+    const readinessBlock = dashboard.querySelector('[data-mel-home-readiness]');
+    const homeReadiness = home.readiness || {};
+    if (readinessBlock && homeReadiness) {
+      setText(readinessBlock, '[data-mel-home-readiness-headline]', homeReadiness.headline || '');
+      setText(readinessBlock, '[data-mel-home-readiness-count]', homeReadiness.complete_label || '');
+      setText(readinessBlock, '[data-mel-home-readiness-explain]', homeReadiness.explanation || '');
+      const list = readinessBlock.querySelector('[data-mel-home-readiness-checklist]');
+      if (list && homeReadiness.items !== undefined) {
+        updateHomeChecklist(list, homeReadiness.items);
+      }
+    }
+
+    const nextCard = dashboard.querySelector('[data-mel-home-next-action]');
+    const next = home.next_action || {};
+    if (nextCard && next) {
+      setText(nextCard, '[data-mel-home-next-title]', next.title || '');
+      const message = nextCard.querySelector('[data-mel-home-next-message]');
+      if (message) {
+        const text = typeof next.message === 'string' ? next.message : '';
+        message.textContent = text;
+        message.hidden = text === '';
+      }
+      const cta = nextCard.querySelector('[data-mel-home-next-cta]');
+      if (cta) {
+        const label = typeof next.action_label === 'string' ? next.action_label : '';
+        const url = typeof next.url === 'string' ? next.url : '';
+        if (label && url) {
+          cta.textContent = label;
+          cta.setAttribute('href', url);
+          cta.hidden = false;
+        }
+        else {
+          cta.hidden = true;
+        }
+      }
+    }
+  }
+
   function updateReadiness(shell, readiness) {
-    if (!readiness || isHomeShell(shell)) {
+    if (!readiness) {
+      return;
+    }
+    // Home: apply inline Event Ready / checklist — never invent the strip.
+    if (isHomeShell(shell)) {
+      updateHomeDashboard(shell, readiness);
       return;
     }
     const published = shell.dataset.melPublished === '1' || !!studioSettings().published;

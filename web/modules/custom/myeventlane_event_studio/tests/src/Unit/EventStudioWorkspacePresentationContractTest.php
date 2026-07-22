@@ -24,6 +24,7 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     parent::setUp();
     $dateFormatter = $this->createMock(DateFormatterInterface::class);
     $dateFormatter->method('format')->willReturn('10 Jun 2026 - 16:46');
+    $dateFormatter->method('formatTimeDiffSince')->willReturn('1 min');
     $translator = $this->createMock(\Drupal\Core\StringTranslation\TranslationInterface::class);
     $translator->method('translateString')->willReturnCallback(
       static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
@@ -146,6 +147,24 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('updateHomepageReadiness', $js);
     $this->assertStringContainsString('homepage_readiness_html', $js);
     $this->assertStringContainsString('show_homepage_readiness', $js);
+  }
+
+  public function testAjaxPayloadIncludesHomeDashboardSnapshot(): void {
+    $node = $this->node(TRUE, 207);
+    $bundle = $this->bundle(ready: TRUE, promotion_ready: TRUE);
+    $ajax = $this->presentation->buildAjaxReadinessPayloadFromBundle($bundle, $node);
+
+    $this->assertArrayHasKey('home', $ajax);
+    $this->assertSame('Live and healthy', $ajax['home']['event_ready']['headline']);
+    $this->assertSame('Share your event', $ajax['home']['next_action']['title']);
+  }
+
+  public function testShellJsAppliesHomeDashboardAfterPublish(): void {
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
+    $this->assertIsString($js);
+    $this->assertStringContainsString('function updateHomeDashboard', $js);
+    $this->assertStringContainsString('updateHomeDashboard(shell, readiness)', $js);
+    $this->assertStringContainsString('readiness.home', $js);
   }
 
   /**
