@@ -169,7 +169,7 @@ final class VendorProductisationStudioBuilder {
     if ((int) ($commerce['product_id'] ?? 0) < 1) {
       return ['label' => (string) $this->t('Draft only'), 'tone' => 'muted'];
     }
-    return ['label' => (string) $this->t('Tickets connected'), 'tone' => 'success'];
+    return ['label' => (string) $this->t('Ready to sell'), 'tone' => 'success'];
   }
 
   private function typeLabel(string $type): string {

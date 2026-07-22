@@ -284,7 +284,7 @@ final class EventModeManager {
     if (!$product) {
       return [
         'available' => FALSE,
-        'reason' => (string) $this->t('No ticket product configured.'),
+        'reason' => (string) $this->t('No ticket set up yet.'),
         'product' => NULL,
       ];
     }
@@ -461,7 +461,7 @@ final class EventModeManager {
         'product' => $this->getLinkedProduct($event),
         'message' => $hasProduct
           ? (string) $this->t('Ticket linked.')
-          : (string) $this->t('No ticket product linked yet.'),
+          : (string) $this->t('No ticket linked yet.'),
       ],
       'external' => [
         'enabled' => $eventType === 'external',
