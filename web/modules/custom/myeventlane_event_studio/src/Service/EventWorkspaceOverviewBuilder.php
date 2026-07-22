@@ -10,6 +10,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
@@ -35,6 +36,7 @@ final class EventWorkspaceOverviewBuilder {
     private readonly TicketSalesService $ticketSalesService,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly OrderItemClassifier $orderItemClassifier,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
     private readonly ?BoostStatusService $boostStatusService = NULL,
@@ -111,6 +113,7 @@ final class EventWorkspaceOverviewBuilder {
         $remainingErrors,
         $event,
         $stripe,
+        $eventMeta,
       ),
       '#next_action' => $nextRecommended,
       '#readiness' => [
@@ -151,6 +154,9 @@ final class EventWorkspaceOverviewBuilder {
   /**
    * Event Ready card — Q2 health (not “Event Status”).
    *
+   * @param array<string, mixed> $eventMeta
+   *   Workspace event metadata (same source as Stripe health booking type).
+   *
    * @return array<string, mixed>
    */
   private function buildEventReady(
@@ -163,6 +169,7 @@ final class EventWorkspaceOverviewBuilder {
     int $remainingErrors,
     NodeInterface $event,
     array $stripe,
+    array $eventMeta = [],
   ): array {
     $tone = 'success';
     $headline = (string) $this->t('Ready to publish');
@@ -181,7 +188,7 @@ final class EventWorkspaceOverviewBuilder {
         : (string) $this->t('@count items left before publishing.', ['@count' => $remainingErrors]);
     }
 
-    if (($stripe['tone'] ?? '') === 'attention' && in_array($this->resolveEventBookingType($event, []), ['paid', 'both'], TRUE)) {
+    if (($stripe['tone'] ?? '') === 'attention' && in_array($this->resolveEventBookingType($event, $eventMeta), ['paid', 'both'], TRUE)) {
       $tone = 'attention';
       if ($readiness->ready) {
         $headline = (string) $this->t('Almost ready');
@@ -515,23 +522,28 @@ final class EventWorkspaceOverviewBuilder {
         return $this->emptyActivity();
       }
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-      $ids = $orderItemStorage->getQuery()
+      // Distinct recent *orders*, not a fixed line-item window: multi-line carts
+      // must not crowd out newer single-line bookings.
+      $query = $orderItemStorage->getQuery()
         ->accessCheck(FALSE)
-        ->condition('field_target_event', $eventId)
-        ->sort('order_id', 'DESC')
-        ->range(0, 40)
-        ->execute();
+        ->condition('field_target_event', $eventId);
+      $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+      if ($excludedTypes !== []) {
+        $query->condition('type', $excludedTypes, 'NOT IN');
+      }
+      $ids = $query->execute();
       if ($ids === []) {
         return $this->emptyActivity();
       }
       /** @var \Drupal\commerce_order\Entity\OrderItemInterface[] $orderItems */
       $orderItems = $orderItemStorage->loadMultiple($ids);
-      // Aggregate per order first so multi-line event orders show full ticket qty
-      // and only completed orders appear (aligned with TicketSalesService).
-      // Amount is event line-item subtotal — never order getTotalPrice() (Boost /
-      // donations / other events inflate the whole-order total).
+      // Aggregate per completed order using vendor-revenue-eligible lines only
+      // (same rules as TicketSalesService — exclude Boost / donations).
       $orderAgg = [];
       foreach ($orderItems as $item) {
+        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
+          continue;
+        }
         $order = $item->getOrder();
         if ($order === NULL) {
           continue;
