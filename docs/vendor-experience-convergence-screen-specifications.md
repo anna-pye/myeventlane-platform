@@ -144,6 +144,7 @@ Format: Purpose · Primary action · Content · States · Notes
 | **Primary action** | Continue setup **or** Share / Door Mode |
 | **Content** | Readiness; KPIs; attention; quick links to Tickets / Attendees / Messages |
 | **Notes** | Single home — replaces dual Manager/Studio overview |
+| **Sprint 2** | Live in Event Workspace Overview (`EventWorkspaceOverviewBuilder`) — status, human readiness, today’s tasks, sales, Stripe, marketing, analytics snapshot, next action |
 
 ### B2. Details
 

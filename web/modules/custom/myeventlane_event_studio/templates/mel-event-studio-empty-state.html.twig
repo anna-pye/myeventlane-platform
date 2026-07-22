@@ -24,5 +24,11 @@
         {% endfor %}
       </ul>
     {% endif %}
+
+    {% if actions %}
+      <div class="mel-event-studio-empty-state__actions">
+        {{ actions }}
+      </div>
+    {% endif %}
   </div>
 </div>

@@ -40,6 +40,27 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-wizard-nav',
     ],
+    'mel_event_studio_overview' => [
+      'variables' => [
+        'status' => [],
+        'readiness' => [],
+        'todays_tasks' => [],
+        'sales' => [],
+        'ticket_summary' => '',
+        'attendee_summary' => '',
+        'stripe' => [],
+        'marketing' => [],
+        'analytics' => [],
+        'next_action' => [],
+        'quick_links' => [],
+        'celebration' => [
+          'show' => FALSE,
+          'title' => '',
+          'message' => '',
+        ],
+      ],
+      'template' => 'mel-event-studio-overview',
+    ],
     'mel_event_studio_workspace' => [
       'variables' => [
         'node' => NULL,
@@ -88,6 +109,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'guidance' => [],
         'icon' => 'spark',
         'state' => 'default',
+        'actions' => [],
       ],
       'template' => 'mel-event-studio-empty-state',
     ],

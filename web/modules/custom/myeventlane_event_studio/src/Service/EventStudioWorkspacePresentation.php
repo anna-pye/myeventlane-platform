@@ -59,6 +59,11 @@ final class EventStudioWorkspacePresentation {
       'published' => $published,
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
+      'strip_explanation' => $this->readinessStripExplanation($result),
+      'checklist' => $this->buildHumanChecklist(
+        $result,
+        is_array($readiness_bundle['recommended'] ?? NULL) ? $readiness_bundle['recommended'] : [],
+      ),
     ];
   }
 
@@ -151,6 +156,11 @@ final class EventStudioWorkspacePresentation {
       'published' => $published,
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
+      'strip_explanation' => $this->readinessStripExplanation($result),
+      'checklist' => $this->buildHumanChecklist(
+        $result,
+        is_array($readiness_bundle['recommended'] ?? NULL) ? $readiness_bundle['recommended'] : [],
+      ),
       'show_homepage_readiness' => $this->shouldShowHomepageReadinessCard(
         (bool) ($readiness_bundle['promotion_ready'] ?? FALSE),
         $published,
@@ -167,12 +177,100 @@ final class EventStudioWorkspacePresentation {
 
   public function readinessStripTitle(EventReadinessResult $result, bool $published): string {
     if (!$result->ready) {
-      return (string) $this->t('Needs attention');
+      if (count($result->errors) === 1) {
+        return (string) $this->t("You're almost there…");
+      }
+      return (string) $this->t('A few things left before publishing');
     }
     if ($published) {
       return (string) $this->t('Published and ready');
     }
     return (string) $this->t('Ready to publish');
+  }
+
+  public function readinessStripExplanation(EventReadinessResult $result): string {
+    if ($result->ready) {
+      if ($result->warnings !== []) {
+        return (string) $this->t('You can publish now. Optional suggestions are still worth a quick look.');
+      }
+      return (string) $this->t('Everything needed to go live looks good.');
+    }
+    if (count($result->errors) === 1) {
+      return (string) $this->t('One more thing before publishing: @reason', [
+        '@reason' => $result->errors[0],
+      ]);
+    }
+    if ($result->errors !== []) {
+      return (string) $this->t('Finish the items below so guests can find and book your event.');
+    }
+    return (string) $this->t('Review the suggestions below to make your event page stronger.');
+  }
+
+  /**
+   * Builds the strip checklist, always including blockers, warnings, and ideas.
+   *
+   * Completed rows fill remaining slots up to eight total. Blocking errors,
+   * warnings, and optional recommendations are never truncated — checklist
+   * mode replaces the count row, so idea counts must remain visible too.
+   *
+   * @param list<string> $recommendations
+   *   Idea labels from the readiness facade bundle (publish + promotion).
+   *
+   * @return list<array{label: string, complete: bool, tone: string}>
+   */
+  private function buildHumanChecklist(EventReadinessResult $result, array $recommendations = []): array {
+    $completed = [];
+    foreach ($result->completed as $label) {
+      $completed[] = [
+        'label' => $this->humanChecklistLabel((string) $label),
+        'complete' => TRUE,
+        'tone' => 'success',
+      ];
+    }
+    $errors = [];
+    foreach ($result->errors as $label) {
+      $errors[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'attention',
+      ];
+    }
+    $warnings = [];
+    foreach ($result->warnings as $label) {
+      $warnings[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'warning',
+      ];
+    }
+    // Facade-merged recommendations so checklist matches count-mode ideas.
+    $ideas = [];
+    foreach ($recommendations as $label) {
+      $ideas[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'idea',
+      ];
+    }
+    // Reserve space for all blockers + warnings + ideas; soft-cap completed.
+    $outstanding = array_merge($errors, $warnings, $ideas);
+    $completed_room = max(0, 8 - count($outstanding));
+    return array_merge(array_slice($completed, 0, $completed_room), $outstanding);
+  }
+
+  private function humanChecklistLabel(string $label): string {
+    return match ($label) {
+      'Event title added.', 'Event title' => (string) $this->t('Event title'),
+      'Event dates complete.', 'Schedule' => (string) $this->t('Schedule'),
+      'Booking mode selected.', 'Booking mode selected' => (string) $this->t('Booking mode'),
+      'Ticketing configured.', 'Tickets ready' => (string) $this->t('Tickets ready'),
+      'Payment onboarding complete.', 'Payments connected' => (string) $this->t('Payments connected'),
+      'Vendor publish requirements complete.', 'Organiser profile ready' => (string) $this->t('Organiser profile ready'),
+      'Branding image added.', 'Cover image' => (string) $this->t('Cover image'),
+      'Capacity settings valid.', 'Capacity' => (string) $this->t('Capacity'),
+      'External booking URL added.', 'External booking link' => (string) $this->t('External booking link'),
+      default => rtrim($label, '.'),
+    };
   }
 
   public function shouldShowPublishStrip(EventReadinessResult $result, bool $published): bool {

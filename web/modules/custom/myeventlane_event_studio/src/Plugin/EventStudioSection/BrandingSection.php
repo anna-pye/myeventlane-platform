@@ -7,16 +7,17 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Branding section metadata.
+ * Images section metadata (hero / cover photo).
  */
 #[EventStudioSection(
   id: 'branding',
-  title: 'Branding',
-  group: 'Event',
+  title: 'Images',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_branding',
   section_state: 'active',
-  weight: 20,
+  weight: 40,
   icon: 'branding',
+  routeFragment: 'images',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventBrandingForm',
   writable: TRUE,
   readiness_participant: TRUE,

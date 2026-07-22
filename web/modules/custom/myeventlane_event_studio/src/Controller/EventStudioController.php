@@ -380,7 +380,7 @@ final class EventStudioController extends ControllerBase {
     if ($node->bundle() !== 'event') {
       throw new NotFoundHttpException();
     }
-    return (string) $this->t('@title Studio', ['@title' => $node->label()]);
+    return (string) $this->t('@title — Event Workspace', ['@title' => $node->label()]);
   }
 
   public function editTitle(NodeInterface $node): string {
@@ -403,7 +403,7 @@ final class EventStudioController extends ControllerBase {
     return [
       'title' => $node->label(),
       'location' => $this->workspacePresentation->buildTopbarLocation($node),
-      'status' => $node->isPublished() ? $this->t('Published') : $this->t('Draft'),
+      'status' => $node->isPublished() ? $this->t('Live') : $this->t('Draft'),
       'state' => $state,
       'show_last_saved' => FALSE,
       'restore_draft' => $this->autosaveService->hasDraft($node, $section),
@@ -421,6 +421,7 @@ final class EventStudioController extends ControllerBase {
       'manage_event_url' => $isStaff
         ? Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $node->id()])->toString()
         : '',
+      'events_url' => Url::fromRoute('myeventlane_vendor.console.events')->toString(),
       'changed' => $node->getChangedTime(),
       'revision_id' => (int) $node->getRevisionId(),
     ];

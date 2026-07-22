@@ -7,15 +7,15 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Capacity section metadata.
+ * Capacity — advanced ticket tooling (not primary Workspace nav).
  */
 #[EventStudioSection(
   id: 'capacity',
   title: 'Capacity',
-  group: 'Tickets & sales',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_capacity',
   section_state: 'active',
-  weight: 120,
+  weight: 56,
   icon: 'capacity',
   renderTarget: 'capacity_summary',
   writable: FALSE,
@@ -23,5 +23,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 80,
   operationalArea: 'ticket',
+  navigationVisible: FALSE,
 )]
 final class CapacitySection extends EventStudioSectionBase {}

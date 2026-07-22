@@ -2,7 +2,7 @@
 
 **Status:** Prioritised product roadmap  
 **Date:** 2026-07-22  
-**Runtime:** VX2-00 Sprint 1 in progress / shipped on `feature/vx2-trust-language-navigation`  
+**Runtime:** VX2 Sprint 2 on `feature/vx2-event-workspace`; Sprint 1 merged (PR #701)  
 **Related:** [`vendor-experience-convergence.md`](vendor-experience-convergence.md), [`vendor-experience-convergence-priority-matrix.md`](vendor-experience-convergence-priority-matrix.md), [`vendor-experience-convergence-implementation-plan.md`](vendor-experience-convergence-implementation-plan.md)
 
 ---

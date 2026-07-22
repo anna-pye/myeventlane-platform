@@ -104,6 +104,8 @@ abstract class EventStudioSectionBase extends PluginBase implements EventStudioS
    */
   public function groupWeight(): int {
     return match ((string) $this->pluginDefinition['group']) {
+      'Workspace' => 0,
+      // Legacy group labels kept for any deferred plugins not yet migrated.
       'Event' => 0,
       'Tickets & sales' => 100,
       'Operations' => 200,

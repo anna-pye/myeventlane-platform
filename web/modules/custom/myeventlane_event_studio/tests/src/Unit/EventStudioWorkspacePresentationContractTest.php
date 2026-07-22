@@ -135,6 +135,9 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('buildEventHealth($readiness_bundle', $publish);
     $this->assertStringContainsString('homepage_readiness_html', $publish);
     $this->assertStringNotContainsString('buildAjaxReadinessPayload(', $publish);
+    // Topbar badge must match Sprint 2 full-page copy after in-place publish.
+    $this->assertStringContainsString("\$this->t('Live')", $publish);
+    $this->assertStringNotContainsString("'status' => \$node->isPublished() ? (string) \$this->t('Published')", $publish);
   }
 
   public function testShellJsSyncsHomepageReadinessVisibility(): void {

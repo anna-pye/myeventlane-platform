@@ -1,15 +1,17 @@
 {#
 /**
  * @file
- * Canonical Event Studio sidebar navigation.
+ * Event Workspace sidebar navigation.
  */
 #}
-<aside class="mel-event-studio-sidebar" id="mel-event-studio-sidebar" aria-label="{{ 'Event Studio sections'|t }}">
+<aside class="mel-event-studio-sidebar" id="mel-event-studio-sidebar" aria-label="{{ 'Event workspace'|t }}">
   <div class="mel-event-studio-sidebar__inner">
     {% for group, items in sections %}
-      <nav class="mel-event-studio-sidebar__group" aria-labelledby="mel-studio-nav-{{ loop.index }}">
-        <h2 class="mel-event-studio-sidebar__heading" id="mel-studio-nav-{{ loop.index }}">{{ group }}</h2>
-        <ul class="mel-event-studio-sidebar__list">
+      <nav class="mel-event-studio-sidebar__group" aria-label="{{ 'Event workspace sections'|t }}">
+        {% if group and group != 'Workspace' %}
+          <h2 class="mel-event-studio-sidebar__heading" id="mel-studio-nav-{{ loop.index }}">{{ group }}</h2>
+        {% endif %}
+        <ul class="mel-event-studio-sidebar__list"{% if group and group != 'Workspace' %} aria-labelledby="mel-studio-nav-{{ loop.index }}"{% endif %}>
           {% for item in items %}
             <li
               class="mel-event-studio-sidebar__item mel-event-studio-sidebar__item--{{ item.section_state|default('active')|clean_class }}"
@@ -26,8 +28,8 @@
                 {% if item.active %}aria-current="page"{% endif %}
               >
                 <span class="mel-event-studio-sidebar__label">{{ item.label }}</span>
-                {% if item.section_state is defined and item.section_state != 'active' %}
-                  <span class="mel-event-studio-sidebar__state">{{ item.section_state == 'readonly' ? 'Readonly'|t : (item.section_state == 'deferred' ? 'Planned'|t : 'Coming soon'|t) }}</span>
+                {% if item.section_state is defined and item.section_state != 'active' and item.section_state != 'readonly' %}
+                  <span class="mel-event-studio-sidebar__state">{{ item.section_state == 'deferred' ? 'Planned'|t : 'Coming soon'|t }}</span>
                 {% endif %}
               </a>
             </li>

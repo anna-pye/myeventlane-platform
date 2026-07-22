@@ -3,7 +3,7 @@
 **Product Blueprint & Migration Plan**  
 **Status:** Complete — ready to drive the next generation of MyEventLane development  
 **Date:** 2026-07-22  
-**Runtime:** VX2 Sprint 1 (VX2-00 Trust, Language & Navigation) shipped on branch `feature/vx2-trust-language-navigation` (2026-07-22)  
+**Runtime:** VX2 Sprint 2 (One Event Workspace / VX2-03) on branch `feature/vx2-event-workspace` (2026-07-22); Sprint 1 merged via PR #701  
 **Method:** Repository review + synthesis of VX2 product docs and prior audits  
 **Language standard:** Organiser (human) · `vendor` (machine / URLs)
 
@@ -78,7 +78,7 @@ Permanent principles remain in [`vendor-experience-v2-design-principles.md`](ven
 2. Event Studio remains the builder / publish authority; Event Manager and Studio converge into **one Event Workspace**.
 3. `mel_ticket_type` remains the ticket abstraction; Commerce stays hidden.
 4. Workspace ownership (ADR-0008) remains the access contract.
-5. ~~This pack does **not** change runtime behaviour.~~ **Update (Sprint 1):** organiser-visible language, shell navigation, Create Event gateway alignment, and placeholder redirects are live in code.
+5. ~~This pack does **not** change runtime behaviour.~~ **Update (Sprint 1):** organiser-visible language, shell navigation, Create Event gateway alignment, and placeholder redirects are live in code. **Update (Sprint 2):** One Event Workspace shell/nav, Overview home, human readiness, Marketing/Publishing sections, and Manager tab convergence are live in code.
 6. Prior VX2 findings are treated as authoritative unless contradicted by the 2026-07-22 inventory.
 
 ---
@@ -409,8 +409,21 @@ Full definitions: [`vendor-experience-convergence-success-metrics.md`](vendor-ex
 | Create Event → gateway / draft-choice | **Done** — shell CTA + account menu |
 | Placeholder manage routes | **Done** — redirect (not “coming soon”) |
 | Payments / Orders hubs | **Deferred** — labels point at existing payouts / event-scoped orders |
-| Full Event Workspace merge | **Deferred** — VX2-03 |
 | Door Mode check-in merge | **Deferred** — VX2-05 (removed from shell only) |
+
+## Sprint 2 runtime status (VX2-03 One Event Workspace)
+
+| Area | Status |
+| --- | --- |
+| One Workspace shell language | **Done** — Event Workspace topbar/sidebar; Events breadcrumb; View page + Publish |
+| Convergence secondary nav | **Done** — Overview → Details → Schedule → Venue → Images → Tickets → Attendees → Messages → Marketing → Orders → Analytics → Publishing → Settings |
+| Advanced sections off primary nav | **Done** — Content, Guest questions, Capacity, Merch & add-ons, Collection hidden |
+| Overview as organiser home | **Done** — readiness, next action, sales, Stripe, marketing, analytics snapshot |
+| Human publishing readiness | **Done** — checklist nouns + “You’re almost there…” explanations |
+| Empty states / celebration | **Done** — AU warm empty copy; publish celebration without emoji gimmick |
+| Manager dual chrome | **Converged** — tabs/preprocess point at Workspace routes; staff mission-control retained |
+| Dedicated Schedule/Venue field forms | **Partial** — nav sections share Event information form (field split deferred) |
+| Full Attendees / Door / Tickets depth | **Deferred** — VX2-04 / VX2-05 |
 
 ---
 
@@ -420,4 +433,4 @@ Full definitions: [`vendor-experience-convergence-success-metrics.md`](vendor-ex
 
 **Biggest revenue opportunities:** Faster first publish; higher Stripe completion; free Analytics pulse that earns Pro; clearer Boost / Marketing; fewer support dead ends that abandon paid flows.
 
-**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivers Trust, Language & Navigation; remaining epics follow the roadmap.
+**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; remaining epics follow the roadmap.

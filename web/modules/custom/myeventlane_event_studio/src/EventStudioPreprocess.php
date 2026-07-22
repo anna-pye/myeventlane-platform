@@ -239,7 +239,7 @@ final class EventStudioPreprocess {
     }
 
     return [
-      'title' => (string) $this->t('🎉 Your event is now live'),
+      'title' => (string) $this->t('Your event is now live'),
       'message' => (string) $this->t('Published successfully'),
       'boost_url' => $boost_url,
       'view_url' => $canonical_absolute,

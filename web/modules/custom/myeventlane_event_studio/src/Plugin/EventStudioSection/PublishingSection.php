@@ -7,21 +7,21 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Settings section metadata.
+ * Publishing section — visibility and readiness before going live.
  */
 #[EventStudioSection(
-  id: 'settings',
-  title: 'Settings',
+  id: 'publishing',
+  title: 'Publishing',
   group: 'Workspace',
-  routeName: 'myeventlane_event_studio.workspace_settings',
+  routeName: 'myeventlane_event_studio.workspace_publishing',
   section_state: 'active',
-  weight: 120,
-  icon: 'settings',
-  renderTarget: 'settings_with_readiness',
+  weight: 110,
+  icon: 'publishing',
+  renderTarget: 'publishing_hub',
   writable: TRUE,
   readiness_participant: TRUE,
   empty_state_type: 'none',
-  mobile_priority: 100,
+  mobile_priority: 45,
   operationalArea: 'event',
 )]
-final class SettingsSection extends EventStudioSectionBase {}
+final class PublishingSection extends EventStudioSectionBase {}

@@ -23,12 +23,18 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $contents);
   }
 
-  public function testStudioOverviewDoesNotRenderTicketSalesPanel(): void {
+  public function testStudioOverviewUsesWorkspaceOverviewBuilder(): void {
     $contents = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
     $this->assertIsString($contents);
+    $this->assertStringContainsString('EventWorkspaceOverviewBuilder', $contents);
+    $this->assertStringContainsString('buildOverviewSection', $contents);
     $this->assertStringNotContainsString('buildTicketSalesPanelRenderArray', $contents);
     $this->assertStringNotContainsString("build['ticket_sales']", $contents);
     $this->assertStringNotContainsString('EventStudioCommerceSalesSummaryBuilder', $contents);
+  }
+
+  public function testStudioOverviewDoesNotRenderTicketSalesPanel(): void {
+    $this->testStudioOverviewUsesWorkspaceOverviewBuilder();
   }
 
   public function testVendorEventWorkspaceRendersTicketSalesPanel(): void {
@@ -54,7 +60,11 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertIsString($tabs);
     $this->assertIsString($tasks);
     $this->assertStringContainsString('Overview', $tabs);
-    $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $tabs);
+    $this->assertStringContainsString('myeventlane_event_studio.workspace', $tabs);
+    $this->assertStringContainsString('workspace_publishing', $tabs);
+    $this->assertStringContainsString('workspace_marketing', $tabs);
+    $this->assertStringContainsString("'key' => 'refund_requests'", $tabs);
+    $this->assertStringContainsString("'key' => 'boost'", $tabs);
     $this->assertStringContainsString("title: 'Overview'", $tasks);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $tasks);
   }

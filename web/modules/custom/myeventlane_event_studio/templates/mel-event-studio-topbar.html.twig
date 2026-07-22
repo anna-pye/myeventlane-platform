@@ -1,12 +1,17 @@
 {#
 /**
  * @file
- * Canonical Event Studio top bar.
+ * Event Workspace top bar.
  */
 #}
 <header class="mel-event-studio-topbar" role="banner">
   <div class="mel-event-studio-topbar__primary">
-    <p class="mel-event-studio-topbar__eyebrow">{{ 'Event Studio'|t }}</p>
+    <nav class="mel-event-studio-topbar__breadcrumb" aria-label="{{ 'Event breadcrumb'|t }}">
+      <a class="mel-event-studio-topbar__breadcrumb-link" href="{{ topbar.events_url|default('/vendor/events') }}">{{ 'Events'|t }}</a>
+      <span class="mel-event-studio-topbar__breadcrumb-sep" aria-hidden="true">/</span>
+      <span class="mel-event-studio-topbar__breadcrumb-current">{{ topbar.title }}</span>
+    </nav>
+    <p class="mel-event-studio-topbar__eyebrow">{{ 'Event Workspace'|t }}</p>
     <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
     {% set location = topbar.location|default({}) %}
     <div class="mel-event-studio-topbar__location" data-mel-topbar-location role="status" aria-live="polite">
@@ -46,9 +51,9 @@
   </div>
   <div class="mel-event-studio-topbar__actions">
     {% if topbar.show_manage_event_link %}
-      <a class="mel-btn mel-btn--secondary mel-event-studio-topbar__manage-event" href="{{ topbar.manage_event_url }}">{{ 'Overview'|t }}</a>
+      <a class="mel-btn mel-btn--secondary mel-event-studio-topbar__manage-event" href="{{ topbar.manage_event_url }}">{{ 'Staff Overview'|t }}</a>
     {% endif %}
-    <a class="mel-btn mel-btn--ghost" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'Preview'|t }}</a>
+    <a class="mel-btn mel-btn--ghost" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
     <button
       class="mel-btn{% if topbar.published %} mel-btn--ghost mel-event-studio-topbar__status-action{% else %} mel-btn--primary{% endif %}"
       type="button"

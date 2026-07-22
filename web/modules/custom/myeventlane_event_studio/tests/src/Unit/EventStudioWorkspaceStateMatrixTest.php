@@ -50,7 +50,9 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $summary = $this->presentation->buildReadinessSummary($bundle, $node);
 
     $this->assertTrue($summary['show_publish_strip']);
-    $this->assertSame('Needs attention', $summary['strip_title']);
+    $this->assertSame("You're almost there…", $summary['strip_title']);
+    $this->assertStringContainsString('One more thing before publishing', $summary['strip_explanation']);
+    $this->assertNotEmpty($summary['checklist']);
   }
 
   public function testPublishedReadyHidesPublishStripWithoutBlockers(): void {
@@ -97,8 +99,120 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
 
     $this->assertTrue($payload['show_publish_strip']);
     $this->assertArrayHasKey('strip_title', $payload);
+    $this->assertArrayHasKey('strip_explanation', $payload);
+    $this->assertArrayHasKey('checklist', $payload);
+    $warningRows = array_values(array_filter(
+      $payload['checklist'],
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'warning',
+    ));
+    $this->assertNotEmpty($warningRows);
+    $this->assertSame('Review capacity', $warningRows[0]['label']);
     $this->assertSame(['Add banner image'], $payload['recommendations']);
+    $ideaRows = array_values(array_filter(
+      $payload['checklist'],
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'idea',
+    ));
+    $this->assertCount(1, $ideaRows);
+    $this->assertSame('Add banner image', $ideaRows[0]['label']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
+  }
+
+  public function testStripChecklistIncludesRecommendationIdeas(): void {
+    $node = $this->node(FALSE, 108);
+    $bundle = [
+      'publish' => EventReadinessResult::create(
+        ['Add an event title.'],
+        [],
+        ['Payment onboarding complete.'],
+        ['Add a short event summary so attendees understand the experience quickly.'],
+      ),
+      'promotion' => [
+        'ready' => FALSE,
+        'status_label' => 'Needs attention before homepage promotion',
+        'short_status_label' => 'Needs attention',
+      ],
+      'recommended' => [
+        'Add a short event summary so attendees understand the experience quickly.',
+        'Add banner image',
+      ],
+      'promotion_ready' => FALSE,
+    ];
+    $summary = $this->presentation->buildReadinessSummary($bundle, $node);
+    $ideaRows = array_values(array_filter(
+      $summary['checklist'],
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'idea',
+    ));
+    $this->assertCount(2, $ideaRows);
+    $this->assertSame(
+      [
+        'Add a short event summary so attendees understand the experience quickly',
+        'Add banner image',
+      ],
+      array_column($ideaRows, 'label'),
+    );
+  }
+
+  public function testInformationFormStaysOnScheduleOrVenueAfterSave(): void {
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventInformationForm.php');
+    $this->assertIsString($form);
+    $this->assertStringContainsString('resolveStayRouteName', $form);
+    $this->assertStringContainsString('workspace_schedule', $form);
+    $this->assertStringContainsString('workspace_venue', $form);
+    $this->assertStringContainsString('setRedirect($this->resolveStayRouteName()', $form);
+  }
+
+  public function testStripChecklistNeverOmitsBlockingErrorsPastSoftCap(): void {
+    $node = $this->node(FALSE, 107);
+    $errors = [
+      'Add an event title.',
+      'Add event dates.',
+      'Select a booking mode.',
+      'Configure ticketing.',
+    ];
+    $warnings = [
+      'Cover image could be sharper.',
+      'Add a short summary.',
+    ];
+    $completed = [
+      'Payment onboarding complete.',
+      'Vendor publish requirements complete.',
+      'Branding image added.',
+      'Capacity settings valid.',
+      'External booking URL added.',
+    ];
+    $bundle = [
+      'publish' => EventReadinessResult::create($errors, $warnings, $completed),
+      'promotion' => [
+        'ready' => FALSE,
+        'status_label' => 'Needs attention before homepage promotion',
+        'short_status_label' => 'Needs attention',
+      ],
+      'recommended' => [],
+      'promotion_ready' => FALSE,
+    ];
+    $summary = $this->presentation->buildReadinessSummary($bundle, $node);
+    $incomplete = array_values(array_filter(
+      $summary['checklist'],
+      static fn(array $item): bool => empty($item['complete']),
+    ));
+    $errorRows = array_values(array_filter(
+      $incomplete,
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'attention',
+    ));
+    $warningRows = array_values(array_filter(
+      $incomplete,
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'warning',
+    ));
+
+    $this->assertCount(4, $errorRows);
+    $this->assertCount(2, $warningRows);
+    $this->assertLessThanOrEqual(8, count($summary['checklist']));
+    foreach ($errors as $error) {
+      $this->assertContains(rtrim($error, '.'), array_column($errorRows, 'label'));
+    }
+    foreach ($warnings as $warning) {
+      $this->assertContains(rtrim($warning, '.'), array_column($warningRows, 'label'));
+    }
   }
 
   public function testWorkspaceTemplateIncludesEventHealthBeforePublishStrip(): void {
@@ -123,6 +237,15 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString('result.event_health', $js);
     $this->assertStringContainsString('ensureReadinessStrip', $js);
     $this->assertStringContainsString('updateHomepageReadiness', $js);
+    $this->assertStringContainsString('updateReadinessChecklist', $js);
+    $this->assertStringContainsString('strip_explanation', $js);
+    $this->assertStringContainsString('data-mel-readiness-explain', $js);
+    // Count-mode copy must match mel-event-studio-workspace.html.twig.
+    $this->assertStringContainsString("@count to finish", $js);
+    $this->assertStringContainsString("@count to review", $js);
+    $this->assertStringNotContainsString('blocker(s)', $js);
+    $this->assertStringContainsString("tone === 'idea'", $js);
+    $this->assertStringContainsString("Drupal.t('Idea')", $js);
   }
 
   /**
