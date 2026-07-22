@@ -43,16 +43,16 @@ final class EventStudioTicketsAppContractTest extends TestCase {
   public function testDuplicateAppliesSameRequestEditsBeforeCopy(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);
-    $duplicatePos = strpos($form, "if (!empty(\$row['duplicate']))");
-    $updatePos = strpos($form, 'updateTicketType($ticket, $event, $values)');
+    $this->assertStringContainsString('applyTicketValuesWithoutSave', $form);
+    $this->assertStringContainsString('buildDuplicateTicketTitle', $form);
+    $applyPos = strpos($form, 'applyTicketValuesWithoutSave($ticket, $values)');
+    $duplicatePos = strpos($form, 'duplicateTicketOnEvent($event, $ticket, $this->currentUser)');
+    $persistPos = strpos($form, 'updateTicketType($ticket, $event, [])');
+    $this->assertNotFalse($applyPos);
     $this->assertNotFalse($duplicatePos);
-    $this->assertNotFalse($updatePos);
-    $this->assertLessThan(
-      $duplicatePos,
-      $updatePos,
-      'Duplicate must run after updateTicketType so same-request card edits are persisted first.',
-    );
-    $this->assertStringContainsString('Apply same-request card edits before optional duplicate', $form);
+    $this->assertNotFalse($persistPos);
+    $this->assertLessThan($duplicatePos, $applyPos, 'In-memory edits must apply before duplicate.');
+    $this->assertLessThan($persistPos, $duplicatePos, 'Source must persist only after duplicate succeeds.');
   }
 
   public function testBookingModeHidesCommerceProductForOrganisers(): void {
@@ -73,13 +73,12 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $lifecycle = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierLifecycleService.php');
     $this->assertNotFalse($lifecycle);
     $this->assertStringContainsString('function duplicateTicketOnEvent', $lifecycle);
+    $this->assertStringContainsString('function buildDuplicateTicketTitle', $lifecycle);
+    $this->assertStringContainsString('function applyTicketValuesWithoutSave', $lifecycle);
     $this->assertStringContainsString("'waitlist_enabled'", $lifecycle);
     $this->assertStringContainsString("'hidden_label'", $lifecycle);
     $this->assertStringContainsString("'group_sale_mode'", $lifecycle);
-    $this->assertStringNotContainsString(
-      'buildTicketValuesFromInput($event, $account, $input)',
-      $lifecycle,
-    );
+    $this->assertStringContainsString('too long to duplicate', $lifecycle);
   }
 
   public function testTicketsAppAssetsExist(): void {

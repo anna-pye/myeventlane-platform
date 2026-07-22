@@ -33,6 +33,10 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
 
   private const SHORT_DESCRIPTION_MAX_LENGTH = 320;
 
+  private const TICKET_TITLE_MAX_LENGTH = 255;
+
+  private const DUPLICATE_TITLE_SUFFIX = ' (copy)';
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketTypeManager $ticketTypeManager,
@@ -334,7 +338,7 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
     }
 
     $values = [
-      'title' => trim($source->getTitle()) . ' (copy)',
+      'title' => $this->buildDuplicateTicketTitle($source->getTitle()),
       'ticket_kind' => $kind,
       'vendor_id' => ['target_id' => (int) $account->id()],
       'is_reusable' => FALSE,
@@ -430,6 +434,41 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
     }
 
     return $this->createAttachAndSync($event, $values);
+  }
+
+  /**
+   * Builds the duplicate ticket title or rejects names that cannot fit.
+   *
+   * @throws \InvalidArgumentException
+   *   When appending the duplicate suffix would exceed the title max length.
+   */
+  public function buildDuplicateTicketTitle(string $sourceTitle): string {
+    $base = trim($sourceTitle);
+    if ($base === '') {
+      throw new InvalidArgumentException('Ticket title is required.');
+    }
+    $title = $base . self::DUPLICATE_TITLE_SUFFIX;
+    if (mb_strlen($title) > self::TICKET_TITLE_MAX_LENGTH) {
+      throw new InvalidArgumentException(
+        'This ticket name is too long to duplicate. Shorten the name, then try again.',
+      );
+    }
+    return $title;
+  }
+
+  /**
+   * Applies ticket field values in memory without saving.
+   *
+   * Used so duplicate can read same-request edits before the source is
+   * persisted. Callers must still persist via {@see updateTicketType()}.
+   *
+   * @param array<string, mixed> $values
+   */
+  public function applyTicketValuesWithoutSave(TicketTypeInterface $ticket, array $values): void {
+    if ($values === []) {
+      return;
+    }
+    $this->applyValuesToTicket($ticket, $values);
   }
 
   /**

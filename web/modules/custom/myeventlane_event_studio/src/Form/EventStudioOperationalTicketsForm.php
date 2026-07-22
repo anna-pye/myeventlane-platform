@@ -391,10 +391,16 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $row = $this->normalizeExistingTicketRowInput($ticket, $row);
       try {
         $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
+        if (!empty($row['duplicate'])) {
+          // Fail before submit so a long name cannot save the source without a copy.
+          $this->ticketTierLifecycle->buildDuplicateTicketTitle((string) ($row['title'] ?? $ticket->getTitle()));
+        }
       }
       catch (\InvalidArgumentException $e) {
         $form_state->setErrorByName(
-          $this->ticketValidationErrorElement((int) $ticket_id, $e),
+          !empty($row['duplicate']) && str_contains($e->getMessage(), 'duplicate')
+            ? 'tickets][' . $ticket_id . '][actions][duplicate]'
+            : $this->ticketValidationErrorElement((int) $ticket_id, $e),
           $this->mapTicketInputExceptionMessage($e),
         );
       }
@@ -436,22 +442,30 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           continue;
         }
 
-        // Apply same-request card edits before optional duplicate so the copy
-        // reflects what the organiser just entered, not only last-saved state.
+        // Apply same-request card edits in memory first. When duplicating, create
+        // the copy from that in-memory state before persisting the source so a
+        // failed duplicate cannot leave a saved source without a copy.
         $row = $this->normalizeExistingTicketRowInput($ticket, $row);
         $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
-        $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
-        $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
-          'source' => 'workspace_tickets_save',
-        ]);
 
         if (!empty($row['duplicate'])) {
+          $this->ticketTierLifecycle->applyTicketValuesWithoutSave($ticket, $values);
           $copy = $this->ticketTierLifecycle->duplicateTicketOnEvent($event, $ticket, $this->currentUser);
+          $this->ticketTierLifecycle->updateTicketType($ticket, $event, []);
+          $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
+            'source' => 'workspace_tickets_save',
+          ]);
           $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $copy->id(), [
             'source' => 'duplicate',
             'source_ticket_id' => (int) $ticket->id(),
           ]);
+          continue;
         }
+
+        $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
+        $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
+          'source' => 'workspace_tickets_save',
+        ]);
       }
 
       $new = $form_state->getValue('new_ticket');
@@ -851,6 +865,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     if ($message === 'Ticket title is required.') {
       return (string) $this->t('Ticket name is required.');
     }
+    if ($message === 'This ticket name is too long to duplicate. Shorten the name, then try again.') {
+      return (string) $this->t('This ticket name is too long to duplicate. Shorten the name, then try again.');
+    }
     return $message !== '' ? $message : (string) $this->t('Ticket row could not be validated.');
   }
 
@@ -858,6 +875,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $message = trim($exception->getMessage());
     if (str_contains($message, 'Best value')) {
       return 'tickets][' . $ticket_id . '][status][best_value';
+    }
+    if (str_contains($message, 'duplicate')) {
+      return 'tickets][' . $ticket_id . '][actions][duplicate]';
     }
     return 'tickets][' . $ticket_id . '][title';
   }
