@@ -23,7 +23,7 @@
   display: grid;
   gap: $spacing-4;
   align-items: center;
-  max-width: 72rem;
+  max-width: $mel-layout-dashboard;
   margin: 0 auto;
   padding: $spacing-5 $spacing-5 $spacing-6;
   border-radius: $radius-card;

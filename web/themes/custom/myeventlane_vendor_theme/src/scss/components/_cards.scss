@@ -199,3 +199,60 @@ a.mel-card,
   margin-top: $spacing-2;
 }
 
+// ============================================================================
+// CARD HIERARCHY (VX2-02A)
+// Cards earn their size. Status / readiness stay readable; grids may split.
+// ============================================================================
+
+.mel-card--status,
+.mel-card--readiness,
+.mel-card--next {
+  max-width: $mel-layout-reading;
+  width: 100%;
+}
+
+.mel-card--primary {
+  border-color: rgba($primary, 0.28);
+  box-shadow: $shadow-card;
+}
+
+.mel-card-stack {
+  display: flex;
+  flex-direction: column;
+  gap: $card-gap;
+  min-width: 0;
+}
+
+.mel-card-stack--tight {
+  gap: $spacing-4;
+}
+
+.mel-card-grid {
+  display: grid;
+  gap: $card-gap;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-card-grid--3 {
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  a.mel-card,
+  .mel-card--clickable {
+    transition: none;
+
+    &:hover {
+      transform: none;
+    }
+  }
+}
+

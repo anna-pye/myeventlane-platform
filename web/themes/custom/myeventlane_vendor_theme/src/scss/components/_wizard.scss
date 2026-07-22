@@ -41,11 +41,11 @@
 
   @include respond-to(md) {
     gap: $spacing-6;
-    max-width: $layout-content-max-width;
+    max-width: $mel-layout-form;
     margin-left: auto;
     margin-right: auto;
-    padding-left: $spacing-4;
-    padding-right: $spacing-4;
+    padding-left: $mel-page-gutter-mobile;
+    padding-right: $mel-page-gutter-mobile;
   }
 }
 

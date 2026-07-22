@@ -3,6 +3,8 @@
  * Spacing tokens for MyEventLane Vendor Theme.
  *
  * Consistent spacing scale with layout-specific values.
+ * VX2-02A: organiser content widths are intent-based (form / reading /
+ * workspace / dashboard / wide). Shell stays full width; only content centres.
  */
 
 // ============================================================================
@@ -30,11 +32,42 @@ $spacing-20: 5rem;                // 80px
 $spacing-24: 6rem;                // 96px
 
 // ============================================================================
-// LAYOUT DIMENSIONS
+// ORGANISER LAYOUT WIDTHS (VX2-02A)
+// Shell remains full width. Content uses one of these intents.
 // ============================================================================
 
-// Main content max-width: 1080px
-$layout-content-max-width: 67.5rem;  // 1080px
+/// Forms — settings, Stripe connect, messaging brand, ticket edit (760–800px).
+$mel-layout-form: 50rem;          // 800px
+
+/// Reading — support, help, long prose.
+$mel-layout-reading: 50rem;       // 800px
+
+/// Workspace — event workspace tab bodies, builder, events list.
+$mel-layout-workspace: 75rem;     // 1200px
+
+/// Dashboard — organiser home, global hubs (attendees / analytics / payments).
+$mel-layout-dashboard: 80rem;     // 1280px
+
+/// Marketing / wide grids — Boost hubs, placement grids.
+$mel-layout-wide: 87.5rem;        // 1400px
+
+/// Alias for marketing surfaces (same as wide).
+$mel-layout-marketing: $mel-layout-wide;
+
+// ============================================================================
+// PAGE GUTTERS (VX2-02A)
+// ============================================================================
+
+$mel-page-gutter-mobile: $spacing-4;    // 16px
+$mel-page-gutter-tablet: $spacing-6;    // 24px
+$mel-page-gutter-desktop: $spacing-8;   // 32px
+
+// ============================================================================
+// LEGACY LAYOUT DIMENSIONS (aliased / retained for gradual migration)
+// ============================================================================
+
+/// @deprecated Prefer $mel-layout-workspace for operational content.
+$layout-content-max-width: $mel-layout-workspace;
 
 // Right-hand sidebar max-width: 300px
 $layout-sidebar-help-width: 18.75rem; // 300px
@@ -43,11 +76,11 @@ $layout-sidebar-help-width: 18.75rem; // 300px
 $layout-sidebar-nav-width: 16.25rem;  // 260px
 $layout-sidebar-nav-width-lg: 17.5rem; // 280px
 
-// Gutters: 32px
-$layout-gutter: $spacing-8;           // 32px
+// Gutters: 32px (desktop page gutter)
+$layout-gutter: $mel-page-gutter-desktop;
 
-// Container max width
-$layout-container-max: 90rem;         // 1440px
+// Outer shell / marketing ceiling — content should use intent tokens instead.
+$layout-container-max: $mel-layout-wide;
 
 // ============================================================================
 // FORM FIELD SPACING
@@ -86,4 +119,3 @@ $mel-spacing-md: $spacing-3;            // 12px
 $mel-spacing-lg: $spacing-4;             // 16px
 $mel-spacing-xl: $spacing-6;            // 24px
 $mel-spacing-2xl: $spacing-10;          // 40px
-

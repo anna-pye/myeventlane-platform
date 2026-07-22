@@ -47,6 +47,7 @@ P4 Advanced
 | **VX2-00** | Trust & integrity | P0 | Organisers never hit known dead ends or Commerce jargon on critical paths — **Sprint 1 implemented** |
 | **VX2-01** | Onboarding | P1 | Guided, celebratory setup; Stripe as “get paid” |
 | **VX2-02** | Dashboard | P1 | Action queue first; business KPIs |
+| **VX2-02A** | Workspace layout | P1 | Centred content containers; hierarchy & whitespace (shipped 2026-07-22) |
 | **VX2-03** | Workspace | P1 | One Event Workspace replaces Studio vs Manager duality |
 | **VX2-04** | Tickets | P2 | One ticket application; advanced collapsed |
 | **VX2-05** | Attendees | P2 | One guest workspace + Door Mode |

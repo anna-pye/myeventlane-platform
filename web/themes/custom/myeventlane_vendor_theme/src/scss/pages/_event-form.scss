@@ -14,14 +14,16 @@
 
 // ============================================================================
 // EVENT WIZARD PAGE (Basics, When & Where, Tickets, etc.)
-// Standardized width: max-w-4xl (67.5rem / 1080px) for all wizard steps.
+// VX2-02A: form intent (800px) for editable steps — not full workspace width.
 // ============================================================================
 
 .page--vendor-event-wizard {
   .mel-event-wizard .mel-event-wizard__main,
   .mel-event-wizard .mel-wizard-frame,
   .mel-event-wizard .mel-wizard-step-card {
-    max-width: 67.5rem;
+    max-width: $mel-layout-form;
+    width: 100%;
+    margin-inline: auto;
   }
 }
 
@@ -163,7 +165,9 @@
 }
 
 .mel-event-form__main {
-  max-width: $layout-content-max-width;
+  max-width: $mel-layout-form;
+  width: 100%;
+  min-width: 0;
 }
 
 .mel-event-form__sidebar {

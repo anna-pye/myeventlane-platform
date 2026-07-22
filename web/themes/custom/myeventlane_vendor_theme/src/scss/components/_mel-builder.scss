@@ -23,14 +23,15 @@ $mel-builder-muted: $text-secondary;
 .mel-event-studio .mel-builder {
   display: grid;
   grid-template-columns: 1fr 280px;
-  gap: 32px;
-  padding: 32px;
-  max-width: 1200px;
+  gap: $mel-page-gutter-desktop;
+  padding: $mel-page-gutter-desktop;
+  max-width: $mel-layout-workspace;
   margin-inline: auto;
   background: $mel-builder-bg-page;
   border-radius: $mel-radius-md;
   box-sizing: border-box;
   width: 100%;
+  min-width: 0;
 }
 
 @media (min-width: 1200px) {

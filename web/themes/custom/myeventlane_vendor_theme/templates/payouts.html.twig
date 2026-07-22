@@ -1,9 +1,10 @@
 {#
   Payouts view.
   Variables: summary, history.
+  VX2-02A: side-by-side status cards; history keeps workspace width via console.
 #}
-<div class="mel-grid mel-grid--2">
-  <div class="mel-card">
+<div class="mel-layout__split mel-layout__split--status-primary">
+  <div class="mel-card mel-card--status">
     <div class="mel-card__header">
       <div class="mel-card__title">{{ 'Stripe account'|t }}</div>
     </div>
@@ -19,7 +20,7 @@
     </div>
   </div>
 
-  <div class="mel-card">
+  <div class="mel-card mel-card--next">
     <div class="mel-card__header">
       <div class="mel-card__title">{{ 'Actions'|t }}</div>
     </div>

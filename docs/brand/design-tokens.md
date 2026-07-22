@@ -89,6 +89,36 @@ Based on a **4px base unit**. Use consistent steps across components.
 
 ---
 
+## Organiser layout widths (VX2-02A)
+
+Vendor console (`myeventlane_vendor_theme`) centres **content** inside a full-width shell. Do not hardcode max-widths in Twig — use layout classes / Sass tokens.
+
+| Token | Value | Intent | Typical surfaces |
+|-------|-------|--------|------------------|
+| `$mel-layout-form` / `--mel-layout-form` | 800px | Editable forms | Settings, Stripe connect, messaging brand, wizard steps |
+| `$mel-layout-reading` / `--mel-layout-reading` | 800px | Prose & status | Support, help, next-action banners, status cards |
+| `$mel-layout-workspace` / `--mel-layout-workspace` | 1200px | Event operations | Event Workspace, tickets/attendees/analytics tabs, builder, events list |
+| `$mel-layout-dashboard` / `--mel-layout-dashboard` | 1280px | Organiser home / hubs | Dashboard, global analytics/payments hubs |
+| `$mel-layout-wide` / `$mel-layout-marketing` | 1400px | Marketing grids | Boost hubs, placement grids |
+
+### Page gutters
+
+| Token | Value |
+|-------|-------|
+| `$mel-page-gutter-mobile` | 16px |
+| `$mel-page-gutter-tablet` | 24px |
+| `$mel-page-gutter-desktop` | 32px |
+
+### Layout classes
+
+- `.mel-layout--form` · `.mel-layout--reading` · `.mel-layout--workspace` · `.mel-layout--dashboard` · `.mel-layout--wide` / `--marketing`
+- Hierarchy helpers: `.mel-layout__status` · `.mel-layout__readiness` · `.mel-layout__next` · `.mel-layout__split`
+
+Runtime: `web/themes/custom/myeventlane_vendor_theme/src/scss/tokens/_spacing.scss` and `layout/_container.scss`.  
+Authority detail: [`docs/implementation/vx2-02a-workspace-layout-convergence.md`](../implementation/vx2-02a-workspace-layout-convergence.md).
+
+---
+
 ## Radius scale
 
 | Token | Value | Use |

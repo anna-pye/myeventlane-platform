@@ -2,8 +2,10 @@
 @use '../tokens/spacing' as *;
 
 .mel-form {
-  max-width: 960px;
-  margin: 0 auto;
+  max-width: $mel-layout-form;
+  margin-inline: auto;
+  width: 100%;
+  min-width: 0;
 
   &--vendor-settings {
     padding: $spacing-8;

@@ -537,8 +537,19 @@ fieldset {
 // ============================================================================
 
 // TASK 10 — organiser profile hub (module ships .mel-vendor-settings-v2 rules).
+// VX2-02A: settings fields use form intent; shell tabs stay full of content column.
 .mel-vendor-console .mel-vendor-settings-v2 {
   width: 100%;
+  max-width: $mel-layout-form;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+.mel-console-page__main.mel-panel-card {
+  max-width: $mel-layout-form;
+  width: 100%;
+  margin-inline: auto;
+  min-width: 0;
 }
 
 .mel-vendor-brand-v2__title {
