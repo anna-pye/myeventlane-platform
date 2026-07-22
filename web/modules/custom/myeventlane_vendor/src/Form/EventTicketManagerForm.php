@@ -130,10 +130,10 @@ final class EventTicketManagerForm extends FormBase {
     ];
 
     $workspace_url = Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()]);
-    $studio_url = Url::fromRoute('myeventlane_event_studio.edit', ['node' => $event->id()]);
+    $tickets_workspace_url = Url::fromRoute('myeventlane_event_studio.workspace_tickets', ['node' => $event->id()]);
     $show_workspace = $workspace_url->access();
-    $show_studio = $studio_url->access();
-    if ($show_workspace || $show_studio) {
+    $show_tickets_workspace = $tickets_workspace_url->access();
+    if ($show_workspace || $show_tickets_workspace) {
       $form['back_nav'] = [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-ticket-manager-back-nav']],
@@ -146,11 +146,11 @@ final class EventTicketManagerForm extends FormBase {
           '#attributes' => ['class' => ['mel-ticket-manager-back-nav__link']],
         ];
       }
-      if ($show_studio) {
+      if ($show_tickets_workspace) {
         $form['back_nav']['studio'] = [
           '#type' => 'link',
-          '#title' => $this->t('Event Studio'),
-          '#url' => $studio_url,
+          '#title' => $this->t('Tickets in Workspace'),
+          '#url' => $tickets_workspace_url,
           '#attributes' => ['class' => ['mel-ticket-manager-back-nav__link']],
         ];
       }
@@ -167,7 +167,7 @@ final class EventTicketManagerForm extends FormBase {
         '#type' => 'container',
         '#attributes' => ['class' => ['messages', 'messages--error']],
         'message' => [
-          '#markup' => '<p>' . $this->t('This event does not have a linked Commerce ticket product. Link a ticket product before managing tickets.') . '</p>',
+          '#markup' => '<p>' . $this->t('This event is not ready for ticket inventory tools yet. Add a paid ticket in Event Workspace → Tickets first.') . '</p>',
         ],
       ];
       return $form;
@@ -178,7 +178,20 @@ final class EventTicketManagerForm extends FormBase {
         '#type' => 'container',
         '#attributes' => ['class' => ['messages', 'messages--status']],
         'message' => [
-          '#markup' => '<p>' . $this->t('Add a ticket row below. The ticket product will be created when you save and sync tickets.') . '</p>',
+          '#markup' => '<p>' . $this->t('Add a ticket row below. Tickets will be set up automatically when you save and sync.') . '</p>',
+        ],
+      ];
+    }
+
+    $tickets_url = Url::fromRoute('myeventlane_event_studio.workspace_tickets', ['node' => $event->id()]);
+    if ($tickets_url->access()) {
+      $form['workspace_notice'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['messages', 'messages--status', 'mel-ticket-manager-workspace-notice']],
+        'message' => [
+          '#markup' => '<p>' . $this->t('Most organisers manage tickets in <a href=":url">Event Workspace → Tickets</a>. Use this page only for inventory sync and deeper controls.', [
+            ':url' => $tickets_url->toString(),
+          ]) . '</p>',
         ],
       ];
     }
