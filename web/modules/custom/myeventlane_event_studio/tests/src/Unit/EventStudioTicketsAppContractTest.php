@@ -40,6 +40,21 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringNotContainsString('SKU', $form);
   }
 
+  public function testDuplicateAppliesSameRequestEditsBeforeCopy(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $this->assertNotFalse($form);
+    $duplicatePos = strpos($form, "if (!empty(\$row['duplicate']))");
+    $updatePos = strpos($form, 'updateTicketType($ticket, $event, $values)');
+    $this->assertNotFalse($duplicatePos);
+    $this->assertNotFalse($updatePos);
+    $this->assertLessThan(
+      $duplicatePos,
+      $updatePos,
+      'Duplicate must run after updateTicketType so same-request card edits are persisted first.',
+    );
+    $this->assertStringContainsString('Apply same-request card edits before optional duplicate', $form);
+  }
+
   public function testBookingModeHidesCommerceProductForOrganisers(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioTicketsForm.php');
     $this->assertNotFalse($form);

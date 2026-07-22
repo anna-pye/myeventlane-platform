@@ -378,7 +378,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
-      if (!empty($row['archive']) || !empty($row['duplicate'])) {
+      if (!empty($row['archive'])) {
         continue;
       }
       $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
@@ -386,6 +386,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $form_state->setErrorByName('tickets][' . $ticket_id, $this->t('Ticket data could not be matched to this event. Reload and try again.'));
         continue;
       }
+      // Duplicate still applies the same-request inline edits to the source first.
       $row = $this->normalizeExistingTicketRowInput($ticket, $row);
       try {
         $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
@@ -428,26 +429,28 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         if (!$ticket instanceof TicketTypeInterface) {
           continue;
         }
+        if (!empty($row['archive'])) {
+          $this->ticketTierLifecycle->archiveTicketOnEvent($event, $ticket);
+          $this->recordTicketAnalyticsEvent('ticket_archived', $event, (int) $ticket->id());
+          continue;
+        }
+
+        // Apply same-request card edits before optional duplicate so the copy
+        // reflects what the organiser just entered, not only last-saved state.
+        $row = $this->normalizeExistingTicketRowInput($ticket, $row);
+        $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
+        $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
+        $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
+          'source' => 'workspace_tickets_save',
+        ]);
+
         if (!empty($row['duplicate'])) {
           $copy = $this->ticketTierLifecycle->duplicateTicketOnEvent($event, $ticket, $this->currentUser);
           $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $copy->id(), [
             'source' => 'duplicate',
             'source_ticket_id' => (int) $ticket->id(),
           ]);
-          continue;
         }
-        if (!empty($row['archive'])) {
-          $this->ticketTierLifecycle->archiveTicketOnEvent($event, $ticket);
-          $this->recordTicketAnalyticsEvent('ticket_archived', $event, (int) $ticket->id());
-          continue;
-        }
-        $row = $this->normalizeExistingTicketRowInput($ticket, $row);
-        $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
-        $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
-        // Instrumentation hook reserved for material field diffs / single-ticket APIs.
-        $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
-          'source' => 'workspace_tickets_save',
-        ]);
       }
 
       $new = $form_state->getValue('new_ticket');
