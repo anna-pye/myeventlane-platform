@@ -184,6 +184,9 @@ final class EventStudioWorkspacePresentation {
 
   public function readinessStripExplanation(EventReadinessResult $result): string {
     if ($result->ready) {
+      if ($result->warnings !== []) {
+        return (string) $this->t('You can publish now. Optional suggestions are still worth a quick look.');
+      }
       return (string) $this->t('Everything needed to go live looks good.');
     }
     if (count($result->errors) === 1) {
@@ -198,23 +201,31 @@ final class EventStudioWorkspacePresentation {
   }
 
   /**
+   * Builds the strip checklist, always including every blocking error.
+   *
+   * Completed rows fill remaining slots up to eight total. Blocking errors are
+   * never truncated — publish can remain blocked by items that must stay visible.
+   *
    * @return list<array{label: string, complete: bool}>
    */
   private function buildHumanChecklist(EventReadinessResult $result): array {
-    $items = [];
+    $completed = [];
     foreach ($result->completed as $label) {
-      $items[] = [
+      $completed[] = [
         'label' => $this->humanChecklistLabel((string) $label),
         'complete' => TRUE,
       ];
     }
+    $errors = [];
     foreach ($result->errors as $label) {
-      $items[] = [
+      $errors[] = [
         'label' => rtrim((string) $label, '.'),
         'complete' => FALSE,
       ];
     }
-    return array_slice($items, 0, 8);
+    // Reserve space for all blockers; only soft-cap completed rows.
+    $completed_room = max(0, 8 - count($errors));
+    return array_merge(array_slice($completed, 0, $completed_room), $errors);
   }
 
   private function humanChecklistLabel(string $label): string {

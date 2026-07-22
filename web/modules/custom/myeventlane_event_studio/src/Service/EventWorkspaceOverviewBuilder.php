@@ -99,6 +99,10 @@ final class EventWorkspaceOverviewBuilder {
   /**
    * Builds a human checklist from readiness strings.
    *
+   * Blocking errors use tone "attention". Warnings are non-blocking
+   * (EventReadinessResult::ready can still be TRUE) and use tone "warning"
+   * so they are not presented as publish blockers.
+   *
    * @param list<string> $completed
    *   Completed readiness labels.
    * @param list<string> $errors
@@ -120,11 +124,18 @@ final class EventWorkspaceOverviewBuilder {
         'tone' => 'success',
       ];
     }
-    foreach (array_merge($errors, $warnings) as $label) {
+    foreach ($errors as $label) {
       $items[] = [
         'label' => $this->humaniseChecklistLabel((string) $label),
         'complete' => FALSE,
         'tone' => 'attention',
+      ];
+    }
+    foreach ($warnings as $label) {
+      $items[] = [
+        'label' => $this->humaniseChecklistLabel((string) $label),
+        'complete' => FALSE,
+        'tone' => 'warning',
       ];
     }
     foreach ($recommendations as $label) {
@@ -177,6 +188,9 @@ final class EventWorkspaceOverviewBuilder {
    */
   private function readinessExplanation(EventReadinessResult $readiness): string {
     if ($readiness->ready) {
+      if ($readiness->warnings !== []) {
+        return (string) $this->t('You can publish now. The items marked for review are optional improvements.');
+      }
       return (string) $this->t('Everything needed to go live looks good.');
     }
     if (count($readiness->errors) === 1) {

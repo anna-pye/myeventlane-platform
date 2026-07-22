@@ -99,8 +99,48 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
 
     $this->assertTrue($payload['show_publish_strip']);
     $this->assertArrayHasKey('strip_title', $payload);
+    $this->assertArrayHasKey('strip_explanation', $payload);
+    $this->assertArrayHasKey('checklist', $payload);
     $this->assertSame(['Add banner image'], $payload['recommendations']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
+  }
+
+  public function testStripChecklistNeverOmitsBlockingErrorsPastSoftCap(): void {
+    $node = $this->node(FALSE, 107);
+    $errors = [
+      'Add an event title.',
+      'Add event dates.',
+      'Select a booking mode.',
+      'Configure ticketing.',
+    ];
+    $completed = [
+      'Payment onboarding complete.',
+      'Vendor publish requirements complete.',
+      'Branding image added.',
+      'Capacity settings valid.',
+      'External booking URL added.',
+    ];
+    $bundle = [
+      'publish' => EventReadinessResult::create($errors, [], $completed),
+      'promotion' => [
+        'ready' => FALSE,
+        'status_label' => 'Needs attention before homepage promotion',
+        'short_status_label' => 'Needs attention',
+      ],
+      'recommended' => [],
+      'promotion_ready' => FALSE,
+    ];
+    $summary = $this->presentation->buildReadinessSummary($bundle, $node);
+    $incomplete = array_values(array_filter(
+      $summary['checklist'],
+      static fn(array $item): bool => empty($item['complete']),
+    ));
+
+    $this->assertCount(4, $incomplete);
+    $this->assertLessThanOrEqual(8, count($summary['checklist']));
+    foreach ($errors as $error) {
+      $this->assertContains(rtrim($error, '.'), array_column($incomplete, 'label'));
+    }
   }
 
   public function testWorkspaceTemplateIncludesEventHealthBeforePublishStrip(): void {
@@ -125,6 +165,9 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString('result.event_health', $js);
     $this->assertStringContainsString('ensureReadinessStrip', $js);
     $this->assertStringContainsString('updateHomepageReadiness', $js);
+    $this->assertStringContainsString('updateReadinessChecklist', $js);
+    $this->assertStringContainsString('strip_explanation', $js);
+    $this->assertStringContainsString('data-mel-readiness-explain', $js);
   }
 
   /**

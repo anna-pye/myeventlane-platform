@@ -5547,6 +5547,15 @@
   padding: 0.35rem 0;
 }
 
+.mel-event-workspace-overview__check--warning,
+.mel-event-workspace-overview__check--idea {
+  color: var(--mel-text-muted, #4a5568);
+}
+
+.mel-event-workspace-overview__check--attention {
+  color: var(--mel-text, #1a202c);
+}
+
 .mel-event-workspace-overview__grid {
   display: grid;
   gap: 1rem;

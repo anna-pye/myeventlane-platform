@@ -37,8 +37,18 @@
       <ul class="mel-event-workspace-overview__checklist">
         {% for item in readiness.items %}
           <li class="mel-event-workspace-overview__check mel-event-workspace-overview__check--{{ item.tone|clean_class }}">
-            <span class="mel-event-workspace-overview__check-mark" aria-hidden="true">{{ item.complete ? '✔' : '○' }}</span>
-            <span class="visually-hidden">{{ item.complete ? 'Complete:'|t : 'Outstanding:'|t }}</span>
+            <span class="mel-event-workspace-overview__check-mark" aria-hidden="true">{{ item.complete ? '✔' : (item.tone == 'warning' or item.tone == 'idea' ? '◇' : '○') }}</span>
+            <span class="visually-hidden">
+              {% if item.complete %}
+                {{ 'Complete:'|t }}
+              {% elseif item.tone == 'warning' %}
+                {{ 'Suggested review:'|t }}
+              {% elseif item.tone == 'idea' %}
+                {{ 'Idea:'|t }}
+              {% else %}
+                {{ 'Required before publishing:'|t }}
+              {% endif %}
+            </span>
             {{ item.label }}
           </li>
         {% endfor %}

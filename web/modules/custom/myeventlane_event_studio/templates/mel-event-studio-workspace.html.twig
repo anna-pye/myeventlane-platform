@@ -41,7 +41,7 @@
         {% endfor %}
       </ul>
     {% else %}
-      <div class="mel-event-studio-readiness-strip__counts">
+      <div class="mel-event-studio-readiness-strip__counts" data-mel-readiness-counts>
         <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'to finish'|t }}</span>
         <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'to review'|t }}</span>
         <span data-mel-readiness-recommendations-count>{{ readiness.recommendations|default([])|length }} {{ 'idea(s)'|t }}</span>

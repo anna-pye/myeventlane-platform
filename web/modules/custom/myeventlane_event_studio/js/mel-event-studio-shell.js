@@ -211,8 +211,10 @@
       '<div class="mel-event-studio-readiness-strip__summary">',
       '<strong data-mel-readiness-title></strong>',
       '<span data-mel-readiness-state></span>',
+      '<p class="mel-event-studio-readiness-strip__explain" data-mel-readiness-explain hidden></p>',
       '</div>',
-      '<div class="mel-event-studio-readiness-strip__counts">',
+      '<ul class="mel-event-studio-readiness-strip__checklist" data-mel-readiness-checklist hidden></ul>',
+      '<div class="mel-event-studio-readiness-strip__counts" data-mel-readiness-counts>',
       '<span data-mel-readiness-errors-count></span>',
       '<span data-mel-readiness-warnings-count></span>',
       '<span data-mel-readiness-recommendations-count></span>',
@@ -227,6 +229,92 @@
       shell.prepend(strip);
     }
     return strip;
+  }
+
+  function ensureReadinessExplain(strip) {
+    let explain = strip.querySelector('[data-mel-readiness-explain]');
+    if (explain) {
+      return explain;
+    }
+    const summary = strip.querySelector('.mel-event-studio-readiness-strip__summary');
+    if (!summary) {
+      return null;
+    }
+    explain = document.createElement('p');
+    explain.className = 'mel-event-studio-readiness-strip__explain';
+    explain.setAttribute('data-mel-readiness-explain', '');
+    summary.appendChild(explain);
+    return explain;
+  }
+
+  function ensureReadinessChecklist(strip) {
+    let list = strip.querySelector('[data-mel-readiness-checklist]');
+    if (list) {
+      return list;
+    }
+    list = document.createElement('ul');
+    list.className = 'mel-event-studio-readiness-strip__checklist';
+    list.setAttribute('data-mel-readiness-checklist', '');
+    const counts = strip.querySelector('[data-mel-readiness-counts], .mel-event-studio-readiness-strip__counts');
+    if (counts) {
+      counts.insertAdjacentElement('beforebegin', list);
+    }
+    else {
+      strip.appendChild(list);
+    }
+    return list;
+  }
+
+  function ensureReadinessCounts(strip) {
+    let counts = strip.querySelector('[data-mel-readiness-counts], .mel-event-studio-readiness-strip__counts');
+    if (counts) {
+      return counts;
+    }
+    counts = document.createElement('div');
+    counts.className = 'mel-event-studio-readiness-strip__counts';
+    counts.setAttribute('data-mel-readiness-counts', '');
+    counts.innerHTML = [
+      '<span data-mel-readiness-errors-count></span>',
+      '<span data-mel-readiness-warnings-count></span>',
+      '<span data-mel-readiness-recommendations-count></span>',
+      '<span data-mel-readiness-completed-count></span>',
+    ].join('');
+    strip.appendChild(counts);
+    return counts;
+  }
+
+  function updateReadinessChecklist(strip, checklist) {
+    const list = ensureReadinessChecklist(strip);
+    const counts = ensureReadinessCounts(strip);
+    const items = Array.isArray(checklist) ? checklist : [];
+    if (items.length === 0) {
+      list.hidden = true;
+      list.replaceChildren();
+      counts.hidden = false;
+      return;
+    }
+    counts.hidden = true;
+    list.hidden = false;
+    list.replaceChildren();
+    items.forEach((item) => {
+      if (!item || typeof item.label !== 'string') {
+        return;
+      }
+      const complete = !!item.complete;
+      const li = document.createElement('li');
+      li.className = 'mel-event-studio-readiness-strip__check' + (complete ? ' is-complete' : '');
+      const mark = document.createElement('span');
+      mark.setAttribute('aria-hidden', 'true');
+      mark.textContent = complete ? '✔' : '○';
+      const sr = document.createElement('span');
+      sr.className = 'visually-hidden';
+      sr.textContent = complete ? Drupal.t('Complete') : Drupal.t('Outstanding');
+      const label = document.createTextNode(' ' + item.label);
+      li.appendChild(mark);
+      li.appendChild(sr);
+      li.appendChild(label);
+      list.appendChild(li);
+    });
   }
 
   function ensureHomepageReadinessWrapper(shell) {
@@ -269,6 +357,20 @@
         : Drupal.t('Needs attention'));
     setText(strip, '[data-mel-readiness-title]', title);
     setText(strip, '[data-mel-readiness-state]', readiness.state || '');
+
+    const explain = ensureReadinessExplain(strip);
+    if (explain) {
+      const explanation = typeof readiness.strip_explanation === 'string'
+        ? readiness.strip_explanation
+        : '';
+      explain.textContent = explanation;
+      explain.hidden = explanation === '';
+    }
+
+    if (readiness.checklist !== undefined) {
+      updateReadinessChecklist(strip, readiness.checklist);
+    }
+
     setText(strip, '[data-mel-readiness-errors-count]', Drupal.formatPlural((readiness.errors || []).length, '1 blocker', '@count blocker(s)'));
     setText(strip, '[data-mel-readiness-warnings-count]', Drupal.formatPlural((readiness.warnings || []).length, '1 warning', '@count warning(s)'));
     setText(strip, '[data-mel-readiness-recommendations-count]', Drupal.formatPlural((readiness.recommendations || []).length, '1 idea', '@count idea(s)'));
