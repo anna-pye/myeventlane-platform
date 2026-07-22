@@ -3,6 +3,7 @@
  * Two-column layout for MyEventLane Vendor Theme.
  *
  * mel-layout--two-column: Main content area with optional right-hand sidebar.
+ * VX2-02A: page shells use intent containers from layout/_container.scss.
  */
 
 @use '../tokens/colors' as *;
@@ -18,46 +19,69 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: $layout-gutter;
-  max-width: $layout-container-max;
-  
+  max-width: $mel-layout-workspace;
+  width: 100%;
+  margin-inline: auto;
+  min-width: 0;
+
   @include respond-to(xl) {
     grid-template-columns: 1fr $layout-sidebar-help-width;
   }
 }
 
-// Main content area - max 1080px
+// Main content area — defaults to form/reading comfort width inside two-column.
 .mel-layout__main {
-  max-width: $layout-content-max-width;
+  max-width: $mel-layout-form;
   width: 100%;
+  min-width: 0;
+}
+
+.mel-layout__main--workspace {
+  max-width: none;
 }
 
 // Right-hand sidebar for help/blog content
 .mel-layout__sidebar-help {
   display: none;
-  
+
   @include respond-to(xl) {
     display: block;
   }
 }
 
 // ============================================================================
-// FULL-WIDTH LAYOUT VARIANT
+// FULL-WIDTH WITHIN INTENT (true bleed — no artificial 1080 cap)
 // ============================================================================
 
 .mel-layout--full {
-  max-width: $layout-content-max-width;
-  margin: 0 auto;
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
 }
 
 // ============================================================================
 // PAGE CONTAINER
+// Hierarchy: title → primary action → status → next → supporting.
+// Width comes from parent .mel-layout--* or shell consumer — do not hardcode here.
 // ============================================================================
 
 .mel-page {
-  padding: $spacing-6;
-  
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  padding: $mel-page-gutter-tablet 0;
+  display: flex;
+  flex-direction: column;
+  gap: $mel-spacing-xl;
+
   @include respond-to(md) {
-    padding: $spacing-8;
+    padding: $mel-page-gutter-desktop 0;
+    gap: $section-gap;
+  }
+
+  @media (max-width: 479px) {
+    padding: $mel-page-gutter-mobile 0;
+    gap: $mel-spacing-lg;
   }
 }
 
@@ -65,8 +89,8 @@
   display: flex;
   flex-direction: column;
   gap: $spacing-2;
-  margin-bottom: $spacing-8;
-  
+  margin-bottom: 0;
+
   @include respond-to(md) {
     flex-direction: row;
     align-items: flex-start;
@@ -84,6 +108,20 @@
   color: $text-secondary;
   font-size: $font-size-body;
   margin: 0;
+  max-width: $mel-layout-reading;
+}
+
+.mel-page__next {
+  margin: 0;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+  max-width: $mel-layout-reading;
+  line-height: $line-height-relaxed;
+
+  strong {
+    color: $text-primary;
+    font-weight: $font-weight-semibold;
+  }
 }
 
 .mel-page__meta {
@@ -100,6 +138,7 @@
   align-items: center;
   gap: $spacing-3;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 // ============================================================================
@@ -128,26 +167,12 @@
 }
 
 // ============================================================================
-// CONTENT WRAPPER (constrains main content)
+// CONTENT WRAPPER (defaults to workspace intent)
 // ============================================================================
 
 .mel-content-wrapper {
-  max-width: $layout-content-max-width;
+  max-width: $mel-layout-workspace;
+  width: 100%;
+  margin-inline: auto;
+  min-width: 0;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

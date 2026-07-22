@@ -1,41 +1,115 @@
 /**
  * @file
  * Container styles for MyEventLane Vendor Theme.
+ *
+ * VX2-02A: intent-based content containers. Shell stays full width;
+ * only workspace content becomes centred via these modifiers.
+ *
+ * Prefer classes over hardcoded max-widths in templates.
  */
 
 @use '../tokens/spacing' as *;
 @use '../tokens/breakpoints' as *;
 
 // ============================================================================
-// BASE CONTAINER
+// SHARED MIXIN
+// ============================================================================
+
+@mixin mel-layout-centered($max-width) {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: $max-width;
+  margin-inline: auto;
+  min-width: 0;
+}
+
+// ============================================================================
+// BASE CONTAINER (legacy utility)
 // ============================================================================
 
 .container {
-  width: 100%;
-  max-width: $layout-container-max;
-  margin-left: auto;
-  margin-right: auto;
-  padding-left: $spacing-4;
-  padding-right: $spacing-4;
-  
+  @include mel-layout-centered($layout-container-max);
+  padding-left: $mel-page-gutter-mobile;
+  padding-right: $mel-page-gutter-mobile;
+
   @include respond-to(md) {
-    padding-left: $spacing-6;
-    padding-right: $spacing-6;
+    padding-left: $mel-page-gutter-tablet;
+    padding-right: $mel-page-gutter-tablet;
   }
-  
+
   @include respond-to(lg) {
-    padding-left: $spacing-8;
-    padding-right: $spacing-8;
+    padding-left: $mel-page-gutter-desktop;
+    padding-right: $mel-page-gutter-desktop;
   }
 }
 
-// Narrow container for forms
+// Narrow container for forms (legacy alias → form intent)
 .container--narrow {
-  max-width: $layout-content-max-width;
+  max-width: $mel-layout-form;
 }
 
-// Full-width container
+// Full-width container (shell / bleed regions only)
 .container--full {
   max-width: none;
 }
 
+// ============================================================================
+// INTENT LAYOUTS (VX2-02A)
+// ============================================================================
+
+.mel-layout--form {
+  @include mel-layout-centered($mel-layout-form);
+}
+
+.mel-layout--reading {
+  @include mel-layout-centered($mel-layout-reading);
+}
+
+.mel-layout--workspace {
+  @include mel-layout-centered($mel-layout-workspace);
+}
+
+.mel-layout--dashboard {
+  @include mel-layout-centered($mel-layout-dashboard);
+}
+
+.mel-layout--wide,
+.mel-layout--marketing {
+  @include mel-layout-centered($mel-layout-wide);
+}
+
+/// True full bleed inside the shell content column (tables rarely need this).
+.mel-layout--bleed {
+  max-width: none;
+  width: 100%;
+  margin-inline: 0;
+}
+
+// ============================================================================
+// HIERARCHY HELPERS
+// Status / readiness / next-action panels earn constrained width.
+// ============================================================================
+
+.mel-layout__status,
+.mel-layout__readiness,
+.mel-layout__next {
+  @include mel-layout-centered($mel-layout-reading);
+}
+
+.mel-layout__split {
+  display: grid;
+  gap: $card-gap;
+  width: 100%;
+  min-width: 0;
+
+  @include respond-to(lg) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.mel-layout__split--status-primary {
+  @include respond-to(lg) {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+}
