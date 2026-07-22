@@ -4,6 +4,10 @@ Operational scripts for local development, audits, deployment, and governance. R
 
 **Dangerous scripts** live in [`dangerous/`](dangerous/). Read the header comment in each file before running. Never run `dangerous/` scripts on staging or production.
 
+### Developer Toolkit (workflow)
+
+Day-to-day Git / worktree / DDEV workflow automation lives in [`dev/`](dev/). See [`dev/README.md`](dev/README.md) and [`docs/DEVELOPMENT_WORKFLOW.md`](../docs/DEVELOPMENT_WORKFLOW.md). These scripts compose the validators below; they do not replace release or deploy gates.
+
 ---
 
 ## Root scripts (moved from repository root)
