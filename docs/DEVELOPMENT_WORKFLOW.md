@@ -37,9 +37,9 @@ What it does:
 2. Requires a **clean** working tree (never discards work)
 3. Requires branch **`main`**
 4. `git fetch` + fast-forward `pull` of `origin/main`
-5. Composer validate
-6. Config safety + webroot safety (existing scripts)
-7. Ensures DDEV is running
+5. Ensures DDEV is running
+6. Composer validate
+7. Config safety + webroot safety (existing scripts)
 8. `drush cr`
 9. Prints an integration-ready summary
 

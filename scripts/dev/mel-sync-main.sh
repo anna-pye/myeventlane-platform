@@ -26,8 +26,8 @@ Synchronise ~/myeventlane to origin/main.
 
 Steps:
   verify repo → clean tree → on main → fetch → pull
-  composer validate → config safety → webroot safety
-  ensure DDEV → drush cr → optional PHPUnit smoke
+  ensure DDEV → composer validate → config safety → webroot safety
+  drush cr → optional PHPUnit smoke
 
 Never discards local work. Never force-resets.
 EOF
@@ -73,6 +73,14 @@ BRANCH="$(mel_current_branch "${ROOT}")"
 COMMIT="$(mel_current_commit "${ROOT}")"
 COMMIT_MSG="$(mel_git "${ROOT}" log -1 --pretty=format:'%s')"
 
+# Start DDEV before composer validate (prefers ddev exec/composer when .ddev exists).
+# Matches mel-finish-feature.sh — a stopped project must not fail validation prematurely.
+mel_section "DDEV"
+if [[ -d "${ROOT}/.ddev" ]] && mel_ddev_available; then
+  mel_ensure_ddev_running "${ROOT}"
+fi
+DDEV_STATUS="$(mel_ddev_status "${ROOT}" 2>/dev/null || echo "unknown")"
+
 VALIDATION="ok"
 mel_section "Validation"
 if ! mel_run_step "Composer validate" mel_composer_validate "${ROOT}"; then
@@ -89,10 +97,6 @@ if [[ "${VALIDATION}" != "ok" ]]; then
   mel_error "Validation failed. Fix issues before UX review."
   exit 1
 fi
-
-mel_section "DDEV"
-mel_ensure_ddev_running "${ROOT}"
-DDEV_STATUS="$(mel_ddev_status "${ROOT}" 2>/dev/null || echo "unknown")"
 
 mel_step "drush cr…"
 if ! mel_drush_cr "${ROOT}"; then
