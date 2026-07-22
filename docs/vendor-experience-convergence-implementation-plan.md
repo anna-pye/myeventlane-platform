@@ -8,7 +8,7 @@ This plan tells engineering **what to build in what order**. It does not prescri
 
 ### Sprint 1 (2026-07-22) — VX2-00 shipped slice
 
-**Branch:** `feature/vx2-trust-language-navigation`
+**Branch:** `feature/vx2-trust-language-navigation` (merged PR #701)
 
 **Implemented**
 
@@ -22,24 +22,42 @@ This plan tells engineering **what to build in what order**. It does not prescri
 | — | Placeholder manage routes redirect (promote/comms/payments/advanced) |
 | — | Onboarding reduced shell: Dashboard · Events · Support |
 
+### Sprint 2 (2026-07-22) — VX2-03 One Event Workspace
+
+**Branch:** `feature/vx2-event-workspace`
+
+**Implemented**
+
+| ID | Item |
+| --- | --- |
+| C-09 | One Event Workspace nav chrome (Overview → Settings Convergence map) |
+| — | Shell rebrand: Event Workspace (not Studio/Manager product names) |
+| — | Overview organiser home (next action, readiness, sales, Stripe, marketing, analytics) |
+| — | Human readiness checklist + explanatory strip |
+| — | Marketing + Publishing workspace sections |
+| — | Schedule / Venue / Images / Messages aliases + section plugins |
+| — | Empty states + subtle publish celebration |
+| — | Manager tabs / preprocess aligned to Workspace routes |
+
 **Deferred (later epics)**
 
 | ID | Item | Epic |
 | --- | --- | --- |
 | C-01 / C-02 | Check-in / ticket permission drift | VX2-00 follow-up / VX2-05 |
 | C-04 | Broader singular path 301 sweep | VX2-00 follow-up |
-| C-09 | One Event Workspace nav chrome | VX2-03 |
 | C-15 | Payments hub page | VX2-07 |
 | C-16 / C-17 | Messages send unification / Orders hub | VX2-06 / later |
 | C-12 | Check-in stacks → Door Mode | VX2-05 |
+| — | Schedule/Venue dedicated field forms (currently shared information form) | VX2-03 follow-up |
+| C-14 | Tickets app (advanced collapsed UX depth) | VX2-04 |
 
-**Screens / surfaces touched**
+**Screens / surfaces touched (Sprint 2)**
 
-- Organiser shell sidebar + header Create CTA + account menu  
-- Event Studio section groups and ticket/capability microcopy  
-- Event Manager/workspace labels, attendees, analytics, dashboard Twig  
-- Help titles; field label Ticket → Ticket (config)  
-- Manage-event placeholder controller (redirect)
+- Event Workspace sidebar + topbar + readiness strip + Overview template  
+- Event Studio section plugins / routes (Convergence IA; advanced hidden)  
+- `EventWorkspaceOverviewBuilder`, readiness, empty states, publish handoff  
+- Vendor event tabs + console preprocess tabs  
+- Convergence docs (this pack)
 
 ---
 
@@ -169,6 +187,10 @@ VX2-00 redirects; nav IA from Convergence navigation doc.
 ### Exit criteria
 
 Organiser never chooses between “Studio” and “Manager” for the same job.
+
+### Sprint 2 shipped note (2026-07-22)
+
+Organiser chrome is **Event Workspace** with Convergence secondary nav. Studio remains the implementation shell (not redesigned/replaced). Staff may still open mission-control Overview. Schedule/Venue share the information form until a dedicated field split ships.
 
 ---
 
