@@ -1,6 +1,9 @@
 /**
  * @file
  * Shared vertical rhythm for vendor workspace sub-pages (live-ops alignment).
+ *
+ * VX2-02A: avoid double horizontal inset — shell + .mel-workspace already pad.
+ * Event landing keeps vertical rhythm only.
  */
 
 @use '../tokens/spacing' as *;
@@ -35,7 +38,7 @@
   }
 }
 
-// Event workspace TASK-8 landing (hero + readiness + shortcuts) — same rhythm as dashboard/ops.
+// Event workspace landing (hero + readiness + shortcuts) — vertical rhythm only.
 .mel-live-operations.mel-live-operations--event-landing {
   box-sizing: border-box;
   width: 100%;
@@ -44,16 +47,14 @@
   flex-direction: column;
   gap: $mel-spacing-lg;
   padding-block: $mel-spacing-md;
-  padding-inline: $mel-spacing-sm;
+  padding-inline: 0;
 
   @media (min-width: 768px) {
-    padding: $mel-spacing-lg;
+    padding-block: $mel-spacing-lg;
     gap: $mel-spacing-xl;
   }
 
   @media (max-width: 479px) {
-    padding-inline: $mel-spacing-sm;
     gap: $mel-spacing-md;
   }
 }
-
