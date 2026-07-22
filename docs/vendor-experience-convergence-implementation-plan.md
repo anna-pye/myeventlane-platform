@@ -6,6 +6,23 @@
 
 This plan tells engineering **what to build in what order**. It does not prescribe Drupal APIs beyond naming surfaces already confirmed in-repo.
 
+### VX2-02A (2026-07-22) — Workspace Layout Convergence
+
+**Branch:** `feature/vx2-workspace-layout-convergence`  
+**Authority:** [`implementation/vx2-02a-workspace-layout-convergence.md`](implementation/vx2-02a-workspace-layout-convergence.md)
+
+**Implemented**
+
+| Item | Detail |
+| --- | --- |
+| Layout tokens | `$mel-layout-form|reading|workspace|dashboard|wide` + page gutters |
+| Containers | `.mel-layout--*` + status/split helpers (no Twig hardcoding) |
+| Screen convergence | Dashboard 1280 · Workspace 1200 · Forms/Support 800 · Marketing 1400 |
+| Hierarchy | Constrained next/status; calmer dashboard header; payouts split |
+| Cards | Status/primary/stack/grid utilities on existing `.mel-card` tokens |
+
+---
+
 ### Sprint 1 (2026-07-22) — VX2-00 shipped slice
 
 **Branch:** `feature/vx2-trust-language-navigation` (merged PR #701)

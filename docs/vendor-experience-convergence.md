@@ -3,7 +3,7 @@
 **Product Blueprint & Migration Plan**  
 **Status:** Complete — ready to drive the next generation of MyEventLane development  
 **Date:** 2026-07-22  
-**Runtime:** VX2 Sprint 4 (One Attendee Workspace / VX2-05) on branch `feature/vx2-attendee-workspace` (2026-07-22); Sprint 3 merged via PR #704; Sprint 2 merged via PR #702; Sprint 1 merged via PR #701  
+**Runtime:** VX2-02A Workspace Layout Convergence on branch `feature/vx2-workspace-layout-convergence` (2026-07-22); Sprint 4 merged via PR #705; Sprint 3 merged via PR #704; Sprint 2 merged via PR #702; Sprint 1 merged via PR #701  
 **Method:** Repository review + synthesis of VX2 product docs and prior audits  
 **Language standard:** Organiser (human) · `vendor` (machine / URLs)
 
@@ -78,7 +78,7 @@ Permanent principles remain in [`vendor-experience-v2-design-principles.md`](ven
 2. Event Studio remains the builder / publish authority; Event Manager and Studio converge into **one Event Workspace**.
 3. `mel_ticket_type` remains the ticket abstraction; Commerce stays hidden.
 4. Workspace ownership (ADR-0008) remains the access contract.
-5. ~~This pack does **not** change runtime behaviour.~~ **Update (Sprint 1):** organiser-visible language, shell navigation, Create Event gateway alignment, and placeholder redirects are live in code. **Update (Sprint 2):** One Event Workspace shell/nav, Overview home, human readiness, Marketing/Publishing sections, and Manager tab convergence are live in code. **Update (Sprint 3):** One Tickets app in Event Workspace with card UX, empty states, duplicate/archive, progressive Advanced Ticket Tools, and Commerce terminology removed from organiser ticket surfaces. **Update (Sprint 4):** One Attendee Workspace with search/filters/cards, Door Mode as Attendees mode, legacy check-in redirects, and Message/Export/Refund entry points.
+5. ~~This pack does **not** change runtime behaviour.~~ **Update (Sprint 1):** organiser-visible language, shell navigation, Create Event gateway alignment, and placeholder redirects are live in code. **Update (Sprint 2):** One Event Workspace shell/nav, Overview home, human readiness, Marketing/Publishing sections, and Manager tab convergence are live in code. **Update (Sprint 3):** One Tickets app in Event Workspace with card UX, empty states, duplicate/archive, progressive Advanced Ticket Tools, and Commerce terminology removed from organiser ticket surfaces. **Update (Sprint 4):** One Attendee Workspace with search/filters/cards, Door Mode as Attendees mode, legacy check-in redirects, and Message/Export/Refund entry points. **Update (VX2-02A):** organiser layout tokens and centred content containers (form / reading / workspace / dashboard / marketing); hierarchy and whitespace convergence — see [`implementation/vx2-02a-workspace-layout-convergence.md`](implementation/vx2-02a-workspace-layout-convergence.md).
 6. Prior VX2 findings are treated as authoritative unless contradicted by the 2026-07-22 inventory.
 
 ---
