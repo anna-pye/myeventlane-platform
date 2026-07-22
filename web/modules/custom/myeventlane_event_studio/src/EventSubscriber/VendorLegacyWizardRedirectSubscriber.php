@@ -165,8 +165,8 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       return NULL;
     }
 
-    $to_route = $this->sectionRouteForLegacyRoute($route);
-    $url = Url::fromRoute($to_route, ['node' => $node->id()])->toString();
+    [$to_route, $params] = $this->destinationForLegacyRoute($route, $node);
+    $url = Url::fromRoute($to_route, $params)->toString();
     $this->logger->notice('Vendor legacy wizard redirect: from_route=@from to_route=@to event_id=@eid studio_selected=1 uid=@uid', [
       '@from' => $route,
       '@to' => $to_route,
@@ -175,6 +175,22 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     ]);
 
     return new RedirectResponse($url, 302);
+  }
+
+  /**
+   * Maps a legacy organiser route to a Convergence destination.
+   *
+   * @return array{0: string, 1: array<string, int|string>}
+   *   Destination route name and parameters.
+   */
+  private function destinationForLegacyRoute(string $route, NodeInterface $node): array {
+    $nid = (int) $node->id();
+    $to_route = $this->sectionRouteForLegacyRoute($route);
+    // Global Payments hub has no event parameter.
+    if ($to_route === 'myeventlane_vendor.console.payouts') {
+      return [$to_route, []];
+    }
+    return [$to_route, ['node' => $nid]];
   }
 
   private function sectionRouteForLegacyRoute(string $route): string {
@@ -217,9 +233,10 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_vendor.console.event_orders',
       'myeventlane_vendor.console.event_order_view' => 'myeventlane_event_studio.workspace_orders',
       'myeventlane_vendor.console.event_analytics' => 'myeventlane_event_studio.workspace_analytics',
+      // Align with ManageEventPlaceholderController: Payments → Payouts hub.
+      'myeventlane_vendor.manage_event.payments' => 'myeventlane_vendor.console.payouts',
       'myeventlane_event.wizard.publish',
       'myeventlane_event.wizard.success',
-      'myeventlane_vendor.manage_event.payments',
       'myeventlane_vendor.manage_event.advanced',
       'myeventlane_vendor.console.event_settings',
       'myeventlane_vendor.console.event_unpublish',
