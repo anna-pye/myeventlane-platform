@@ -106,7 +106,6 @@ final class VendorEventTabsService {
    */
   private function buildTabRows(NodeInterface $event): array {
     $id = (int) $event->id();
-    $isRsvp = $this->eventModeManager->isRsvpEnabled($event);
     $isTickets = $this->eventModeManager->isTicketsEnabled($event);
     $t = $this->stringTranslation;
 
@@ -222,7 +221,7 @@ final class VendorEventTabsService {
     $rows[] = [
       'key' => 'operations',
       'label' => (string) $t->translate('Door Mode'),
-      'route' => 'myeventlane_event_attendees.vendor_operations',
+      'route' => 'myeventlane_event_attendees.vendor_operations_door',
       'params' => ['node' => $id],
       'disabled' => FALSE,
       'disabled_reason' => '',
@@ -241,16 +240,7 @@ final class VendorEventTabsService {
       ];
     }
 
-    if ($isRsvp && $this->routeExists('myeventlane_vendor.console.event_rsvps')) {
-      $rows[] = [
-        'key' => 'rsvps',
-        'label' => (string) $t->translate('RSVPs'),
-        'route' => 'myeventlane_vendor.console.event_rsvps',
-        'params' => ['event' => $id],
-        'disabled' => FALSE,
-        'disabled_reason' => '',
-      ];
-    }
+    // VX2-05: RSVPs are a filter inside Attendees — not a separate application.
 
     // Legacy Manager pages still call getTabs(..., 'refund_requests'|'boost').
     // Keep these keys so refund/Boost screens retain an active tab and entry point.

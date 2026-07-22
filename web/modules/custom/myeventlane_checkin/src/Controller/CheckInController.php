@@ -39,30 +39,15 @@ final class CheckInController extends ControllerBase {
   }
 
   /**
-   * Main check-in page.
+   * Main check-in page — VX2-05 converges on Door Mode.
    */
-  public function page(NodeInterface $node): array {
+  public function page(NodeInterface $node): RedirectResponse {
     $this->assertEventAccess($node);
 
-    $attendees = $this->checkInStorage->getAttendees($node);
-    $checkedInCount = count(array_filter($attendees, fn($a) => $a['checked_in']));
-    $totalCount = count($attendees);
-
-    $build = [
-      '#theme' => 'myeventlane_checkin_page',
-      '#event' => $node,
-      '#attendees' => $attendees,
-      '#stats' => [
-        'total' => $totalCount,
-        'checked_in' => $checkedInCount,
-        'remaining' => $totalCount - $checkedInCount,
-      ],
-      '#attached' => [
-        'library' => ['myeventlane_checkin/checkin'],
-      ],
-    ];
-
-    return $build;
+    return new RedirectResponse(
+      Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
+      302,
+    );
   }
 
   /**
@@ -78,23 +63,15 @@ final class CheckInController extends ControllerBase {
   }
 
   /**
-   * Attendee list page.
+   * Attendee list page — VX2-05 converges on Door Mode.
    */
-  public function list(NodeInterface $node): array {
+  public function list(NodeInterface $node): RedirectResponse {
     $this->assertEventAccess($node);
 
-    $attendees = $this->checkInStorage->getAttendees($node);
-
-    $build = [
-      '#theme' => 'myeventlane_checkin_list',
-      '#event' => $node,
-      '#attendees' => $attendees,
-      '#attached' => [
-        'library' => ['myeventlane_checkin/checkin'],
-      ],
-    ];
-
-    return $build;
+    return new RedirectResponse(
+      Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
+      302,
+    );
   }
 
   /**
