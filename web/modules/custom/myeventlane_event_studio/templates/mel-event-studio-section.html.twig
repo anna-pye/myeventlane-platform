@@ -4,10 +4,12 @@
  * Canonical Event Studio section wrapper.
  */
 #}
-<section class="mel-event-studio-section mel-es-card" aria-labelledby="mel-event-studio-section-title">
-  <header class="mel-event-studio-section__header">
-    <h2 class="mel-event-studio-section__title" id="mel-event-studio-section-title">{{ label }}</h2>
-  </header>
+<section class="mel-event-studio-section mel-es-card{% if not show_header|default(true) %} mel-event-studio-section--flush{% endif %}"{% if show_header|default(true) %} aria-labelledby="mel-event-studio-section-title"{% endif %}>
+  {% if show_header|default(true) %}
+    <header class="mel-event-studio-section__header">
+      <h2 class="mel-event-studio-section__title" id="mel-event-studio-section-title">{{ label }}</h2>
+    </header>
+  {% endif %}
   <div class="mel-event-studio-section__body">
     {{ content }}
   </div>

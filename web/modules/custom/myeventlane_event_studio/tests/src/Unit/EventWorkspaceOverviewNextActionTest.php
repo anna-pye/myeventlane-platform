@@ -65,7 +65,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     );
 
     $this->assertSame('Share your event', $action['title']);
-    $this->assertSame('Open marketing', $action['action_label']);
+    $this->assertSame('Promote', $action['action_label']);
   }
 
   public function testLiveBookingActivityKeepsMissionControlAction(): void {

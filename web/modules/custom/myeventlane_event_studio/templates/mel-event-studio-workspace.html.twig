@@ -2,10 +2,14 @@
 /**
  * @file
  * Canonical Event Studio operational workspace shell.
+ *
+ * Home (overview) composition (VX2): topbar + active Boost only.
+ * Event Health, readiness strip, and homepage readiness are suppressed on Home.
  */
 #}
+{% set is_home = current_section == 'overview' %}
 <div
-  class="mel-event-studio mel-event-studio--workspace"
+  class="mel-event-studio mel-event-studio--workspace{% if is_home %} mel-event-studio--home{% endif %}"
   data-mel-studio-shell="1"
   data-mel-published="{{ topbar.published|default(false) ? '1' : '0' }}"
   data-current-section-id="{{ current_section_metadata.id|default(current_section) }}"
@@ -18,58 +22,61 @@
     topbar: topbar
   }, with_context = false) }}
 
-  {{ include('@myeventlane_event_studio/mel-event-studio-event-health.html.twig', {
-    event_health: event_health
-  }, with_context = false) }}
+  {% if not is_home %}
+    {{ include('@myeventlane_event_studio/mel-event-studio-event-health.html.twig', {
+      event_health: event_health
+    }, with_context = false) }}
 
-  <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip{% if not readiness.show_publish_strip|default(true) %} hidden{% endif %}>
-    <div class="mel-event-studio-readiness-strip__summary">
-      <strong data-mel-readiness-title>{{ readiness.strip_title|default(readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t) }}</strong>
-      <span data-mel-readiness-state>{{ readiness.state }}</span>
-      {% if readiness.strip_explanation|default('') %}
-        <p class="mel-event-studio-readiness-strip__explain" data-mel-readiness-explain>{{ readiness.strip_explanation }}</p>
+    <section class="mel-event-studio-readiness-strip{% if readiness.ready %} is-ready{% else %} needs-attention{% endif %}" aria-label="{{ 'Publish readiness'|t }}" data-mel-readiness-strip{% if not readiness.show_publish_strip|default(true) %} hidden{% endif %}>
+      <div class="mel-event-studio-readiness-strip__summary">
+        <strong data-mel-readiness-title>{{ readiness.strip_title|default(readiness.ready ? 'Ready to publish'|t : 'Needs attention'|t) }}</strong>
+        <span data-mel-readiness-state>{{ readiness.state }}</span>
+        {% if readiness.strip_explanation|default('') %}
+          <p class="mel-event-studio-readiness-strip__explain" data-mel-readiness-explain>{{ readiness.strip_explanation }}</p>
+        {% endif %}
+      </div>
+      {% if readiness.checklist|default([]) %}
+        <ul class="mel-event-studio-readiness-strip__checklist" data-mel-readiness-checklist>
+          {% for item in readiness.checklist %}
+            <li class="mel-event-studio-readiness-strip__check{% if item.complete %} is-complete{% endif %}{% if item.tone|default('') %} mel-event-studio-readiness-strip__check--{{ item.tone|clean_class }}{% endif %}">
+              <span aria-hidden="true">{{ item.complete ? '✔' : (item.tone|default('') in ['warning', 'idea'] ? '◇' : '○') }}</span>
+              <span class="visually-hidden">
+                {% if item.complete %}
+                  {{ 'Complete'|t }}
+                {% elseif item.tone|default('') == 'warning' %}
+                  {{ 'Suggested review'|t }}
+                {% elseif item.tone|default('') == 'idea' %}
+                  {{ 'Idea'|t }}
+                {% else %}
+                  {{ 'Outstanding'|t }}
+                {% endif %}
+              </span>
+              {{ item.label }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="mel-event-studio-readiness-strip__counts" data-mel-readiness-counts>
+          <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'to finish'|t }}</span>
+          <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'to review'|t }}</span>
+          <span data-mel-readiness-recommendations-count>{{ readiness.recommendations|default([])|length }} {{ 'idea(s)'|t }}</span>
+          <span data-mel-readiness-completed-count>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
+        </div>
+      {% endif %}
+    </section>
+
+    <div class="mel-event-studio-homepage-readiness"{% if not homepage_readiness %} hidden{% endif %}>
+      {% if homepage_readiness %}
+        {{ homepage_readiness }}
       {% endif %}
     </div>
-    {% if readiness.checklist|default([]) %}
-      <ul class="mel-event-studio-readiness-strip__checklist" data-mel-readiness-checklist>
-        {% for item in readiness.checklist %}
-          <li class="mel-event-studio-readiness-strip__check{% if item.complete %} is-complete{% endif %}{% if item.tone|default('') %} mel-event-studio-readiness-strip__check--{{ item.tone|clean_class }}{% endif %}">
-            <span aria-hidden="true">{{ item.complete ? '✔' : (item.tone|default('') in ['warning', 'idea'] ? '◇' : '○') }}</span>
-            <span class="visually-hidden">
-              {% if item.complete %}
-                {{ 'Complete'|t }}
-              {% elseif item.tone|default('') == 'warning' %}
-                {{ 'Suggested review'|t }}
-              {% elseif item.tone|default('') == 'idea' %}
-                {{ 'Idea'|t }}
-              {% else %}
-                {{ 'Outstanding'|t }}
-              {% endif %}
-            </span>
-            {{ item.label }}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <div class="mel-event-studio-readiness-strip__counts" data-mel-readiness-counts>
-        <span data-mel-readiness-errors-count>{{ readiness.errors|length }} {{ 'to finish'|t }}</span>
-        <span data-mel-readiness-warnings-count>{{ readiness.warnings|length }} {{ 'to review'|t }}</span>
-        <span data-mel-readiness-recommendations-count>{{ readiness.recommendations|default([])|length }} {{ 'idea(s)'|t }}</span>
-        <span data-mel-readiness-completed-count>{{ readiness.completed|length }} {{ 'complete'|t }}</span>
-      </div>
-    {% endif %}
-  </section>
+  {% endif %}
 
-  <div class="mel-event-studio-homepage-readiness"{% if not homepage_readiness %} hidden{% endif %}>
-    {% if homepage_readiness %}
-      {{ homepage_readiness }}
-    {% endif %}
-  </div>
-
+  {# Home: active Boost only. Other sections keep recommendation banner too. #}
   {% if boost is not null and boost.active %}
     <section class="mel-boost-active-banner" aria-labelledby="mel-boost-active-title">
       <div class="mel-boost-active-banner__content">
-        <h2 id="mel-boost-active-title" class="mel-boost-active-banner__title">{{ '🚀 Boost Active'|t }}</h2>
+        <h2 id="mel-boost-active-title" class="mel-boost-active-banner__title">{{ 'Boost Active'|t }}</h2>
         <p class="mel-boost-active-banner__subtitle">{{ 'Featured across MyEventLane'|t }}</p>
         {% if boost.days_remaining is not null %}
           <p class="mel-boost-active-banner__remaining">
@@ -93,7 +100,7 @@
         } only %}
       {% endif %}
     </section>
-  {% elseif boost_extension_recommendation %}
+  {% elseif not is_home and boost_extension_recommendation %}
     <section class="mel-boost-active-banner mel-boost-active-banner--recommendation-only" aria-labelledby="mel-boost-extension-studio-title">
       {% include '@myeventlane_vendor_theme/components/mel-boost-extension-card.html.twig' with {
         recommendation: boost_extension_recommendation,
@@ -167,7 +174,8 @@
     >
       {{ include('@myeventlane_event_studio/mel-event-studio-section.html.twig', {
         label: current_section_label,
-        content: section_content
+        content: section_content,
+        show_header: not is_home
       }, with_context = false) }}
     </main>
   </div>

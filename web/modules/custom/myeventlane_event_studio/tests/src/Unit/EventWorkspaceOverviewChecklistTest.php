@@ -69,9 +69,9 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertStringContainsString('$this->readinessFacade->evaluate', $builder);
     $this->assertStringContainsString('$recommended', $builder);
     $this->assertStringContainsString("'@myeventlane_event_studio.readiness_facade'", $services);
-    $this->assertStringContainsString("'show' => FALSE", $builder);
-    $this->assertStringContainsString('celebration is iterable', $twig);
-    $this->assertStringContainsString("'show' => FALSE", $module);
+    $this->assertStringContainsString('mel-event-workspace-home', $twig);
+    $this->assertStringContainsString('event_ready', $module);
+    $this->assertStringContainsString('View checklist', $twig);
   }
 
 }

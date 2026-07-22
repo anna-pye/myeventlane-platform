@@ -19,7 +19,7 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
   public function testPrimarySectionsMatchConvergenceOrder(): void {
     $dir = dirname(__DIR__, 3) . '/src/Plugin/EventStudioSection';
     $expected = [
-      'overview' => ['Overview', 0, TRUE],
+      'overview' => ['Home', 0, TRUE],
       'information' => ['Details', 10, TRUE],
       'schedule' => ['Schedule', 20, TRUE],
       'venue' => ['Venue', 30, TRUE],

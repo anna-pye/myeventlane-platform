@@ -7,11 +7,11 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Overview section metadata — organiser event home.
+ * Home section metadata — organiser event home (machine id remains overview).
  */
 #[EventStudioSection(
   id: 'overview',
-  title: 'Overview',
+  title: 'Home',
   group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace',
   section_state: 'active',
