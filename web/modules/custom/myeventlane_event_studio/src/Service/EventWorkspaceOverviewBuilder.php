@@ -338,6 +338,10 @@ final class EventWorkspaceOverviewBuilder {
   /**
    * Resolves the primary next action for Overview.
    *
+   * Prefers Workspace readiness/publishing CTAs over generic mission-control
+   * placeholders such as "Finish and publish your event" or "Event looks ready".
+   * Concrete operational actions (unknown event type, manage bookings) still win.
+   *
    * @param array<string, mixed> $next
    *   Workspace next-action payload.
    * @param \Drupal\myeventlane_event_studio\DTO\EventReadinessResult $readiness
@@ -351,9 +355,13 @@ final class EventWorkspaceOverviewBuilder {
    *   Next-action card payload.
    */
   private function resolveNextRecommendedAction(array $next, EventReadinessResult $readiness, bool $published, int $nid): array {
-    if (!empty($next['title'])) {
+    $title = trim((string) ($next['title'] ?? ''));
+    $severity = (string) ($next['severity'] ?? '');
+
+    // Keep hard blockers and live booking activity from mission-control.
+    if ($title !== '' && ($severity === 'error' || ($published && $severity === 'info'))) {
       return [
-        'title' => (string) $next['title'],
+        'title' => $title,
         'message' => (string) ($next['message'] ?? ''),
         'action_label' => isset($next['action_label']) ? (string) $next['action_label'] : NULL,
         'url' => isset($next['url']) && $next['url'] instanceof Url
@@ -361,6 +369,7 @@ final class EventWorkspaceOverviewBuilder {
           : (isset($next['url']) ? (string) $next['url'] : NULL),
       ];
     }
+
     if (!$readiness->ready) {
       return [
         'title' => (string) $this->t('Continue setup'),
