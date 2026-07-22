@@ -5794,3 +5794,240 @@
     min-height: 44px;
   }
 }
+
+/* ==========================================================================
+   VX2-05 One Attendee Workspace
+   ========================================================================== */
+
+.mel-event-studio-attendees-app {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.mel-attendees-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.mel-attendees-workspace__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.mel-attendees-workspace__title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.mel-attendees-workspace__lede {
+  margin: 0.35rem 0 0;
+  color: var(--mel-text-muted, #5b6472);
+  max-width: 40rem;
+}
+
+.mel-attendees-workspace__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-attendees-workspace__actions .mel-btn {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1rem;
+  text-decoration: none;
+}
+
+.mel-attendees-workspace__metric-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  margin: 0;
+  padding: 0.85rem 1rem;
+  list-style: none;
+  border-radius: 0.85rem;
+  background: var(--mel-surface-soft, #f6f4f8);
+}
+
+.mel-attendees-workspace__metric-label {
+  display: block;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mel-text-muted, #5b6472);
+}
+
+.mel-attendees-workspace__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mel-attendees-workspace__search {
+  flex: 1 1 16rem;
+}
+
+.mel-attendees-workspace__search-input,
+.mel-attendees-workspace__ticket-filter .mel-input {
+  width: 100%;
+  min-height: 44px;
+}
+
+.mel-attendees-workspace__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-attendees-workspace__filter {
+  min-height: 40px;
+  padding: 0.4rem 0.85rem;
+  border: 1px solid var(--mel-border, #d9d3e0);
+  border-radius: 999px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+}
+
+.mel-attendees-workspace__filter.is-active,
+.mel-attendees-workspace__filter[aria-pressed='true'] {
+  border-color: var(--mel-accent, #6b4f8a);
+  background: var(--mel-accent-soft, #f0e8f8);
+  font-weight: 600;
+}
+
+.mel-attendees-workspace__list {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.mel-attendees-workspace__list--cards {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 48rem) {
+  .mel-attendees-workspace__list--cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-attendees-workspace__list--dense {
+  gap: 0.4rem;
+}
+
+.mel-attendees-workspace__list--dense .mel-attendee-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  align-items: center;
+  padding: 0.65rem 0.85rem;
+}
+
+.mel-attendee-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem;
+  border: 1px solid var(--mel-border, #e4dde9);
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.mel-attendee-card__identity {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.mel-attendee-card__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 999px;
+  background: var(--mel-accent-soft, #f0e8f8);
+  font-weight: 700;
+}
+
+.mel-attendee-card__name {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.mel-attendee-card__email {
+  display: inline-block;
+  margin-top: 0.15rem;
+  font-size: 0.9rem;
+}
+
+.mel-attendee-card__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.65rem 1rem;
+  margin: 0.85rem 0 0;
+}
+
+.mel-attendee-card__meta dt {
+  margin: 0;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mel-text-muted, #5b6472);
+}
+
+.mel-attendee-card__meta dd {
+  margin: 0.15rem 0 0;
+}
+
+.mel-attendee-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mel-attendee-card__action,
+.mel-attendee-card__checkin .mel-btn {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.85rem;
+  text-decoration: none;
+}
+
+.mel-attendee-card__checkin {
+  display: inline;
+  margin: 0;
+}
+
+.mel-attendees-workspace__empty,
+.mel-attendees-workspace__empty-filter {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+@media (max-width: 47.99rem) {
+  .mel-attendees-workspace__list--dense .mel-attendee-card,
+  .mel-attendees-workspace__list--cards .mel-attendee-card {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mel-attendees-workspace__actions {
+    width: 100%;
+  }
+
+  .mel-attendees-workspace__actions .mel-btn {
+    flex: 1 1 auto;
+  }
+}

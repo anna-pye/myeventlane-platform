@@ -1,0 +1,195 @@
+{#
+/**
+ * @file
+ * VX2 One Attendee Workspace (Event Workspace · Attendees).
+ *
+ * Variables: event, summary, attendees, filters, ticket_types, initial_filter,
+ * layout, dense_threshold, actions, checkin_csrf, public_event_url, empty.
+ */
+#}
+{% set layout_mode = layout|default('cards') %}
+<div class="mel-attendees-workspace"
+     data-mel-attendees-workspace
+     data-mel-layout="{{ layout_mode|e('html_attr') }}"
+     data-mel-initial-filter="{{ initial_filter|default('all')|e('html_attr') }}"
+     data-mel-checkin-token="{{ checkin_csrf|default('')|e('html_attr') }}">
+
+  <header class="mel-attendees-workspace__header">
+    <div class="mel-attendees-workspace__intro">
+      <h2 class="mel-attendees-workspace__title">{{ 'Attendees'|t }}</h2>
+      <p class="mel-attendees-workspace__lede">{{ 'One guest list for tickets, RSVPs, and waitlist — including Door Mode on the day.'|t }}</p>
+    </div>
+    {% if actions %}
+      <div class="mel-attendees-workspace__actions" role="group" aria-label="{{ 'Attendee actions'|t }}">
+        {% for action in actions %}
+          <a class="mel-btn {{ action.class|default('mel-btn--secondary') }}"
+             href="{{ action.url }}"
+             data-mel-attendee-analytics="{{ action.analytics|default('')|e('html_attr') }}">
+            {{ action.label }}
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </header>
+
+  {% set cap_note = (summary.remaining is not null and summary.capacity is not same as('Unlimited')) ? ('@left spots left'|t({'@left': summary.remaining})) : null %}
+  {% set cap_display = summary.capacity is same as('Unlimited')
+    ? summary.capacity|default('—')
+    : (summary.total|default(0) ~ '/' ~ summary.capacity) %}
+
+  <div class="mel-attendees-workspace__metrics" role="region" aria-labelledby="mel-attendees-metrics-heading">
+    <h3 id="mel-attendees-metrics-heading" class="visually-hidden">{{ 'Attendance summary'|t }}</h3>
+    <ul class="mel-attendees-workspace__metric-list">
+      <li><span class="mel-attendees-workspace__metric-label">{{ 'Total'|t }}</span> <strong>{{ summary.total|default(0) }}</strong></li>
+      <li><span class="mel-attendees-workspace__metric-label">{{ 'Checked in'|t }}</span> <strong>{{ summary.checked_in|default(0) }}</strong></li>
+      <li><span class="mel-attendees-workspace__metric-label">{{ 'Tickets'|t }}</span> <strong>{{ summary.ticket|default(0) }}</strong></li>
+      <li><span class="mel-attendees-workspace__metric-label">{{ 'RSVPs'|t }}</span> <strong>{{ summary.rsvp|default(0) }}</strong></li>
+      {% if summary.waitlist|default(0) > 0 %}
+        <li><span class="mel-attendees-workspace__metric-label">{{ 'Waitlist'|t }}</span> <strong>{{ summary.waitlist }}</strong></li>
+      {% endif %}
+      <li><span class="mel-attendees-workspace__metric-label">{{ 'Capacity'|t }}</span> <strong>{{ cap_display }}</strong>{% if cap_note %} <span class="mel-attendees-workspace__metric-note">{{ cap_note }}</span>{% endif %}</li>
+    </ul>
+  </div>
+
+  {% if attendees|length > 0 %}
+    <div class="mel-attendees-workspace__toolbar">
+      <div class="mel-attendees-workspace__search">
+        <label class="visually-hidden" for="mel-attendee-search">{{ 'Search attendees by name or email'|t }}</label>
+        <input type="search"
+               id="mel-attendee-search"
+               class="mel-input mel-attendees-workspace__search-input"
+               placeholder="{{ 'Search name or email…'|t }}"
+               autocomplete="off"
+               data-mel-attendee-search
+               aria-controls="mel-attendee-guest-list">
+      </div>
+
+      {% if ticket_types|length > 0 %}
+        <div class="mel-attendees-workspace__ticket-filter">
+          <label class="visually-hidden" for="mel-attendee-ticket-type">{{ 'Filter by ticket type'|t }}</label>
+          <select id="mel-attendee-ticket-type" class="mel-input" data-mel-attendee-ticket-type>
+            <option value="">{{ 'All ticket types'|t }}</option>
+            {% for type in ticket_types %}
+              <option value="{{ type|e('html_attr') }}">{{ type }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="mel-attendees-workspace__filters" role="toolbar" aria-label="{{ 'Filter attendees'|t }}">
+      {% for chip in filters %}
+        <button type="button"
+                class="mel-attendees-workspace__filter{{ initial_filter == chip.id ? ' is-active' : '' }}"
+                data-mel-attendee-filter="{{ chip.id|e('html_attr') }}"
+                aria-pressed="{{ initial_filter == chip.id ? 'true' : 'false' }}">
+          {{ chip.label }}
+        </button>
+      {% endfor %}
+    </div>
+
+    <p class="mel-attendees-workspace__result-status visually-hidden" data-mel-attendee-status role="status" aria-live="polite"></p>
+
+    <div id="mel-attendee-guest-list"
+         class="mel-attendees-workspace__list mel-attendees-workspace__list--{{ layout_mode|e('html_attr') }}"
+         data-mel-attendee-list
+         role="list">
+      {% for attendee in attendees %}
+        <article class="mel-attendee-card"
+                 role="listitem"
+                 data-mel-attendee-card
+                 data-name="{{ attendee.name|lower|e('html_attr') }}"
+                 data-email="{{ attendee.email|lower|e('html_attr') }}"
+                 data-ticket-type="{{ attendee.ticket_type|lower|e('html_attr') }}"
+                 data-filters="{{ attendee.filter_keys|join(' ')|e('html_attr') }}">
+          <div class="mel-attendee-card__main">
+            <div class="mel-attendee-card__identity">
+              <span class="mel-attendee-card__avatar" aria-hidden="true">{{ (attendee.name|default('?')|trim|slice(0, 1))|upper }}</span>
+              <div>
+                <h3 class="mel-attendee-card__name">{{ attendee.name|default('—') }}</h3>
+                {% if attendee.email %}
+                  <a class="mel-attendee-card__email" href="mailto:{{ attendee.email }}">{{ attendee.email }}</a>
+                {% endif %}
+              </div>
+            </div>
+            <dl class="mel-attendee-card__meta">
+              <div>
+                <dt>{{ 'Ticket / RSVP'|t }}</dt>
+                <dd>
+                  <span class="mel-badge mel-badge--{{ attendee.source|e('html_attr') }}">{{ attendee.source_label }}</span>
+                  {{ attendee.ticket_type }}
+                </dd>
+              </div>
+              <div>
+                <dt>{{ 'Booking status'|t }}</dt>
+                <dd><span class="mel-badge mel-badge--{{ attendee.booking_state|e('html_attr') }}">{{ attendee.booking_status }}</span></dd>
+              </div>
+              <div>
+                <dt>{{ 'Check-in'|t }}</dt>
+                <dd>
+                  {% if attendee.checked_in %}
+                    <span class="mel-badge mel-badge--success">{{ attendee.check_in_label }}</span>
+                  {% else %}
+                    <span class="mel-badge mel-badge--neutral">{{ attendee.check_in_label }}</span>
+                  {% endif %}
+                </dd>
+              </div>
+              {% if attendee.order_reference %}
+                <div>
+                  <dt>{{ 'Order'|t }}</dt>
+                  <dd>
+                    {% if attendee.order_link %}
+                      <a class="mel-link" href="{{ attendee.order_link.url }}">{{ attendee.order_reference }}</a>
+                    {% else %}
+                      {{ attendee.order_reference }}
+                    {% endif %}
+                  </dd>
+                </div>
+              {% endif %}
+            </dl>
+          </div>
+          <div class="mel-attendee-card__actions" role="group" aria-label="{{ 'Quick actions for @name'|t({'@name': attendee.name}) }}">
+            {% if attendee.actions.view_url %}
+              <a class="mel-btn mel-btn--ghost mel-attendee-card__action" href="{{ attendee.actions.view_url }}">{{ 'View'|t }}</a>
+            {% endif %}
+            {% if attendee.actions.message_url %}
+              <a class="mel-btn mel-btn--ghost mel-attendee-card__action"
+                 href="{{ attendee.actions.message_url }}"
+                 data-mel-attendee-analytics="message_attendees_clicked">{{ 'Message'|t }}</a>
+            {% endif %}
+            {% if attendee.actions.refund_url %}
+              <a class="mel-btn mel-btn--ghost mel-attendee-card__action" href="{{ attendee.actions.refund_url }}">{{ 'Refund'|t }}</a>
+            {% endif %}
+            {% if attendee.actions.checkin_url %}
+              <form class="mel-attendee-card__checkin"
+                    method="post"
+                    action="{{ attendee.actions.checkin_url }}"
+                    data-mel-attendee-checkin>
+                <input type="hidden" name="_token" value="{{ checkin_csrf|e('html_attr') }}">
+                <button type="submit" class="mel-btn mel-btn--primary mel-attendee-card__action">{{ 'Check in'|t }}</button>
+              </form>
+            {% endif %}
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+
+    <div class="mel-attendees-workspace__empty-filter mel-empty-state" hidden data-mel-attendee-empty-filter>
+      <p class="mel-empty-state__title">{{ 'No checked-in guests'|t }}</p>
+      <p class="mel-empty-state__text">{{ 'Door Mode will update this list as guests arrive.'|t }}</p>
+    </div>
+  {% else %}
+    <div class="mel-empty-state mel-attendees-workspace__empty">
+      <p class="mel-empty-state__title">{{ empty.title|default('No attendees yet'|t) }}</p>
+      <p class="mel-empty-state__text">{{ empty.body|default('Publish your event and share it to receive your first booking.'|t) }}</p>
+      {% if empty.prompt %}
+        <p class="mel-empty-state__prompt">{{ empty.prompt }}</p>
+      {% endif %}
+      {% if empty.cta_url %}
+        <div class="mel-action-group">
+          <a class="mel-btn mel-btn--primary" href="{{ empty.cta_url }}" target="_blank" rel="noopener noreferrer">{{ empty.cta_label|default('View event page'|t) }}</a>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>

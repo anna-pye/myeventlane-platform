@@ -113,6 +113,23 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-empty-state',
     ],
+    'mel_event_studio_attendees_workspace' => [
+      'variables' => [
+        'event' => NULL,
+        'summary' => [],
+        'attendees' => [],
+        'filters' => [],
+        'ticket_types' => [],
+        'initial_filter' => 'all',
+        'layout' => 'cards',
+        'dense_threshold' => 100,
+        'actions' => [],
+        'checkin_csrf' => '',
+        'public_event_url' => NULL,
+        'empty' => [],
+      ],
+      'template' => 'mel-event-studio-attendees-workspace',
+    ],
     'mel_event_studio_ai_assist' => [
       'variables' => [
         'target' => '',

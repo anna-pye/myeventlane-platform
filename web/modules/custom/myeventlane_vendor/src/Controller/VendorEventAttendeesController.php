@@ -118,12 +118,12 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
       'tabs' => $tabs,
       'actions' => [
         [
-          'label' => $this->t('Check-in'),
+          'label' => $this->t('Door Mode'),
           'url' => $checkin_url,
           'class' => 'mel-btn--primary',
         ],
         [
-          'label' => $this->t('Export CSV'),
+          'label' => $this->t('Export attendees'),
           'url' => Url::fromRoute('myeventlane_event_attendees.vendor_export', ['node' => $node->id()])->toString(),
           'class' => 'mel-btn--secondary',
         ],

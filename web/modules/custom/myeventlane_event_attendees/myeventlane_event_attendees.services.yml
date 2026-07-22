@@ -36,3 +36,18 @@ services:
       - '@date.formatter'
       - '@logger.channel.myeventlane_event_attendees'
       - '@string_translation'
+
+  # VX2-05 One Attendee Workspace view model (Event Workspace · Attendees).
+  myeventlane_event_attendees.attendee_workspace_builder:
+    class: Drupal\myeventlane_event_attendees\Service\EventAttendeeWorkspaceBuilder
+    arguments:
+      - '@myeventlane_event_attendees.manager'
+      - '@myeventlane_event_attendees.vendor_presentation'
+      - '@myeventlane_event_attendees.attendee_export_builder'
+      - '@csrf_token'
+      - '@module_handler'
+      - '@router.route_provider'
+      - '@request_stack'
+      - '@current_user'
+      - '@logger.channel.myeventlane_event_attendees'
+      - '@string_translation'

@@ -11,6 +11,7 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_event_attendees\Service\EventAttendeeWorkspaceBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\DTO\ReadonlySectionProjection;
 use Drupal\myeventlane_event_studio\Form\EventSettingsForm;
@@ -44,6 +45,7 @@ final class EventStudioSectionRenderer {
     private readonly ?AccessCodeManagementBuilder $accessCodeManagementBuilder = NULL,
     private readonly ?EventWorkspaceOverviewBuilder $overviewBuilder = NULL,
     private readonly ?DomainDetector $domainDetector = NULL,
+    private readonly ?EventAttendeeWorkspaceBuilder $attendeeWorkspaceBuilder = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -80,6 +82,7 @@ final class EventStudioSectionRenderer {
     return match ($target) {
       'overview' => $this->buildOverviewSection($event),
       'tickets_stack' => $this->buildTicketsStack($event),
+      'attendees_stack' => $this->buildAttendeesStack($event),
       'settings_with_readiness' => $this->buildSettingsSection($event),
       'capacity_summary' => $this->buildCapacitySection($event, $section),
       'marketing_hub' => $this->buildMarketingHub($event),
@@ -300,6 +303,52 @@ final class EventStudioSectionRenderer {
         '#attributes' => ['class' => ['mel-event-studio-next-steps__list']],
       ],
     ];
+  }
+
+  /**
+   * VX2-05 One Attendee Workspace (paid + RSVP + waitlist + door entry).
+   *
+   * @return array<string, mixed>
+   *   Attendees workspace render stack.
+   */
+  private function buildAttendeesStack(NodeInterface $event): array {
+    if (!$this->attendeeWorkspaceBuilder instanceof EventAttendeeWorkspaceBuilder) {
+      $this->logger->error('Attendee workspace builder unavailable for event @event.', [
+        '@event' => (string) $event->id(),
+      ]);
+      return $this->emptyStateBuilder->unavailableSection((string) $this->t('Attendees'));
+    }
+
+    try {
+      $workspace = $this->attendeeWorkspaceBuilder->build($event);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Attendee workspace failed for event @event: @message', [
+        '@event' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return $this->emptyStateBuilder->unavailableSection((string) $this->t('Attendees'));
+    }
+
+    $build = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => [
+          'mel-event-studio-section__form-stack',
+          'mel-event-studio-attendees-app',
+        ],
+        'data-mel-attendees-app' => '1',
+      ],
+      'workspace' => $workspace,
+    ];
+
+    $support = $this->supportResolver->buildCard($event, 'attendees');
+    if ($support !== NULL) {
+      $build['support'] = $support;
+      $build['support']['#weight'] = 30;
+    }
+
+    return $build;
   }
 
   /**
