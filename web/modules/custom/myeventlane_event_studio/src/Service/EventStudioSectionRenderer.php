@@ -308,7 +308,13 @@ final class EventStudioSectionRenderer {
   private function buildTicketsStack(NodeInterface $event): array {
     $build = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-studio-section__form-stack']],
+      '#attributes' => [
+        'class' => [
+          'mel-event-studio-section__form-stack',
+          'mel-event-studio-tickets-app',
+        ],
+        'data-mel-tickets-app' => '1',
+      ],
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
     ];
 
@@ -323,25 +329,103 @@ final class EventStudioSectionRenderer {
       }
     }
 
-    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
-      ? (string) $event->get('field_event_type')->value
-      : '';
-    if (in_array($event_type, ['paid', 'both'], TRUE)) {
-      if ($this->accessCodeManagementBuilder instanceof AccessCodeManagementBuilder) {
-        $accessCodePanel = $this->accessCodeManagementBuilder->build($event);
-        if ($accessCodePanel !== []) {
-          $build['access_codes'] = $accessCodePanel;
-          $build['access_codes']['#weight'] = 15;
-        }
-      }
+    $build['advanced'] = $this->buildAdvancedTicketTools($event);
+    $build['advanced']['#weight'] = 20;
 
-      $support = $this->supportResolver->buildCard($event, 'tickets');
-      if ($support !== NULL) {
-        $build['support'] = $support;
-      }
+    $support = $this->supportResolver->buildCard($event, 'tickets');
+    if ($support !== NULL) {
+      $build['support'] = $support;
+      $build['support']['#weight'] = 30;
     }
 
     return $build;
+  }
+
+  /**
+   * Progressive disclosure for groups, codes, widgets, and inventory tools.
+   *
+   * @return array<string, mixed>
+   *   Render array for the Advanced Ticket Tools disclosure.
+   */
+  private function buildAdvancedTicketTools(NodeInterface $event): array {
+    $event_id = (int) $event->id();
+    $links = [];
+    $route_map = [
+      'myeventlane_tickets.event_tickets_access_codes' => $this->t('Access codes'),
+      'myeventlane_tickets.event_tickets_groups' => $this->t('Ticket groups'),
+      'myeventlane_tickets.event_tickets_widgets' => $this->t('Ticket widgets'),
+      'myeventlane_tickets.event_tickets_settings' => $this->t('Ticket settings'),
+      'myeventlane_vendor.console.event_tickets' => $this->t('Inventory & sync tools'),
+    ];
+    foreach ($route_map as $route_name => $label) {
+      try {
+        $links[] = [
+          '#type' => 'link',
+          '#title' => $label,
+          '#url' => Url::fromRoute($route_name, ['event' => $event_id]),
+          '#attributes' => [
+            'class' => ['mel-event-studio-advanced-tools__link'],
+          ],
+        ];
+      }
+      catch (\Throwable) {
+        // Route may be unavailable in partial installs; skip quietly.
+      }
+    }
+
+    $advanced = [
+      '#type' => 'details',
+      '#title' => $this->t('Advanced Ticket Tools'),
+      '#open' => FALSE,
+      '#attributes' => [
+        'class' => ['mel-es-card', 'mel-event-studio-advanced-tools'],
+        'data-mel-analytics-event' => 'advanced_tools_opened',
+        'data-mel-event-id' => (string) $event_id,
+      ],
+      '#attached' => [
+        'library' => [
+          'myeventlane_event_studio/mel_event_studio_tickets_app',
+        ],
+      ],
+      'intro' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Most organisers only need ticket types, pricing, capacity, and availability. Open these tools when you need access codes, groups, embeds, or deeper inventory controls.'),
+        '#attributes' => ['class' => ['mel-event-studio-advanced-tools__intro']],
+      ],
+      'links' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-advanced-tools__links'],
+          'role' => 'list',
+        ],
+      ],
+    ];
+
+    foreach ($links as $index => $link) {
+      $advanced['links']['item_' . $index] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-advanced-tools__item'],
+          'role' => 'listitem',
+        ],
+        'link' => $link,
+      ];
+    }
+
+    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+    if (in_array($event_type, ['paid', 'both'], TRUE)
+      && $this->accessCodeManagementBuilder instanceof AccessCodeManagementBuilder) {
+      $accessCodePanel = $this->accessCodeManagementBuilder->build($event);
+      if ($accessCodePanel !== []) {
+        $advanced['access_codes'] = $accessCodePanel;
+        $advanced['access_codes']['#weight'] = 20;
+      }
+    }
+
+    return $advanced;
   }
 
   /**

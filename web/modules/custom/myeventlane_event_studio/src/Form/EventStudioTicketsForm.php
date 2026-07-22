@@ -93,6 +93,8 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_product_target'] ?? NULL,
       '#attributes' => ['class' => ['mel-input']],
+      // VX2-04: organisers never manage Commerce products directly.
+      '#access' => $this->currentUser()->hasPermission('administer commerce_product'),
       '#states' => [
         'visible' => [
           ':input[name="mel[field_event_type]"]' => ['value' => 'paid'],

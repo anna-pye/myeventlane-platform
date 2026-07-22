@@ -96,6 +96,11 @@ final class AccessCodeForm extends ContentEntityForm {
     $event_id = $entity->getEventId();
 
     if ($status === SAVED_NEW) {
+      $this->logger('myeventlane_tickets')->info('MEL ticket analytics hook access_code_created for event @nid.', [
+        '@nid' => (string) $event_id,
+        'mel_analytics_event' => 'access_code_created',
+        'event_id' => (int) $event_id,
+      ]);
       $this->messenger()->addStatus($this->t('Access code created. The code is: %code — copy it now, it will not be shown again in full.', [
         '%code' => $plaintext_code,
       ]));

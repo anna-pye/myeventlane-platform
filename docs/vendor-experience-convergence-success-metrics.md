@@ -92,7 +92,10 @@ Minimum events to log (names illustrative):
 - `organiser_onboard_step_completed`
 - `stripe_connect_started` / `stripe_connect_completed` / `stripe_connect_needs_attention`
 - `event_create_started` / `event_draft_resumed` / `event_draft_started_new`
-- `ticket_type_created`
+- `ticket_type_created` (alias of `ticket_created` — Sprint 3 logger uses `ticket_created`)
+- `ticket_created` / `ticket_updated` / `ticket_archived` / `ticket_deleted` (VX2-04 hooks; delete reserved)
+- `advanced_tools_opened` (Tickets Advanced disclosure)
+- `access_code_created` / `widget_created`
 - `event_publish_succeeded` / `event_publish_blocked` (+ reason codes)
 - `boost_wizard_step` / `boost_purchased`
 - `message_sent` / `message_failed`

@@ -58,6 +58,11 @@ final class PurchaseSurfaceForm extends ContentEntityForm {
     $event_id = $entity->getEventId();
 
     if ($status === SAVED_NEW) {
+      $this->logger('myeventlane_tickets')->info('MEL ticket analytics hook widget_created for event @nid.', [
+        '@nid' => (string) $event_id,
+        'mel_analytics_event' => 'widget_created',
+        'event_id' => (int) $event_id,
+      ]);
       $this->messenger()->addStatus($this->t('Created the %label widget.', [
         '%label' => $entity->getLabel(),
       ]));

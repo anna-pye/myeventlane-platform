@@ -11,9 +11,11 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
+use Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_rsvp\Service\RsvpCapacityService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -56,6 +58,10 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
   protected LoggerInterface $logger;
 
+  protected ?TicketTierAnalyticsService $ticketTierAnalytics = NULL;
+
+  protected ?RsvpCapacityService $rsvpCapacity = NULL;
+
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
@@ -64,6 +70,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     EventStudioAutosaveService $autosave_service,
     EventStudioSaveService $save_service,
     LoggerInterface $logger,
+    ?TicketTierAnalyticsService $ticket_tier_analytics = NULL,
+    ?RsvpCapacityService $rsvp_capacity = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
@@ -72,6 +80,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $this->autosaveService = $autosave_service;
     $this->saveService = $save_service;
     $this->logger = $logger;
+    $this->ticketTierAnalytics = $ticket_tier_analytics;
+    $this->rsvpCapacity = $rsvp_capacity;
   }
 
   public static function create(ContainerInterface $container): static {
@@ -83,6 +93,12 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('myeventlane_event_studio.save'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
+      $container->has('myeventlane_commerce.ticket_tier_analytics')
+        ? $container->get('myeventlane_commerce.ticket_tier_analytics')
+        : NULL,
+      $container->has('myeventlane_rsvp.capacity')
+        ? $container->get('myeventlane_rsvp.capacity')
+        : NULL,
     );
     $form->setRequestStack($container->get('request_stack'));
     return $form;
@@ -103,7 +119,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
    * properties or untracked services can otherwise stay uninitialized.
    */
   private function ensureInjectedServices(): void {
-    if (isset(
+    $container = \Drupal::getContainer();
+    if (!isset(
       $this->entityTypeManager,
       $this->currentUser,
       $this->eventVendorAccessChecker,
@@ -112,29 +129,33 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $this->saveService,
       $this->logger,
     )) {
-      return;
+      if (!isset($this->entityTypeManager)) {
+        $this->entityTypeManager = $container->get('entity_type.manager');
+      }
+      if (!isset($this->currentUser)) {
+        $this->currentUser = $container->get('current_user');
+      }
+      if (!isset($this->eventVendorAccessChecker)) {
+        $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
+      }
+      if (!isset($this->ticketTierLifecycle)) {
+        $this->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
+      }
+      if (!isset($this->autosaveService)) {
+        $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
+      }
+      if (!isset($this->saveService)) {
+        $this->saveService = $container->get('myeventlane_event_studio.save');
+      }
+      if (!isset($this->logger)) {
+        $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+      }
     }
-    $container = \Drupal::getContainer();
-    if (!isset($this->entityTypeManager)) {
-      $this->entityTypeManager = $container->get('entity_type.manager');
+    if (!isset($this->ticketTierAnalytics) && $container->has('myeventlane_commerce.ticket_tier_analytics')) {
+      $this->ticketTierAnalytics = $container->get('myeventlane_commerce.ticket_tier_analytics');
     }
-    if (!isset($this->currentUser)) {
-      $this->currentUser = $container->get('current_user');
-    }
-    if (!isset($this->eventVendorAccessChecker)) {
-      $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
-    }
-    if (!isset($this->ticketTierLifecycle)) {
-      $this->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
-    }
-    if (!isset($this->autosaveService)) {
-      $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
-    }
-    if (!isset($this->saveService)) {
-      $this->saveService = $container->get('myeventlane_event_studio.save');
-    }
-    if (!isset($this->logger)) {
-      $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+    if (!isset($this->rsvpCapacity) && $container->has('myeventlane_rsvp.capacity')) {
+      $this->rsvpCapacity = $container->get('myeventlane_rsvp.capacity');
     }
   }
 
@@ -148,6 +169,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'mel-event-studio-operational-tickets';
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_tickets_app';
     $form['event_id'] = [
       '#type' => 'hidden',
       '#value' => (string) $event->id(),
@@ -167,13 +189,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Create tickets attendees want to book'),
+        '#value' => $this->t('Tickets'),
         '#attributes' => ['class' => ['mel-es-card__title']],
       ],
       'copy' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Each ticket should feel like a clear offer: what guests get, what it costs, and whether it is available. Advanced rules stay tucked away until you need them.'),
+        '#value' => $this->t('Create the ticket types people can book — General Admission, VIP, Early Bird, Donation, and more. Focus on pricing, capacity, and availability. Advanced tools stay tucked away until you need them.'),
         '#attributes' => ['class' => ['mel-es-card__hint']],
       ],
     ];
@@ -196,20 +218,55 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     if ($tickets === []) {
       $form['tickets']['empty'] = [
         '#type' => 'container',
-        '#attributes' => ['class' => ['mel-event-studio-ticket-empty']],
-        'copy' => [
+        '#attributes' => [
+          'class' => [
+            'mel-event-studio-ticket-empty',
+            'mel-event-studio-ticket-empty--guided',
+          ],
+          'role' => 'region',
+          'aria-labelledby' => 'mel-tickets-empty-title',
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Add your first ticket'),
+          '#attributes' => [
+            'id' => 'mel-tickets-empty-title',
+            'class' => ['mel-event-studio-ticket-empty__title'],
+          ],
+        ],
+        'why' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('No tickets yet. Add a row below and save tickets.'),
+          '#value' => $this->t('Tickets tell guests how they can join — and let you start selling straight away.'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-empty__lead']],
+        ],
+        'next' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Next, choose a name, set a price (or keep it free), and decide how many spots you have.'),
+        ],
+        'modes' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Free RSVP collects names without payment. Paid tickets take card payments through MyEventLane. You can mix both later if you need to.'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-empty__modes']],
         ],
       ];
     }
 
     $form['new_ticket'] = [
       '#type' => 'details',
-      '#title' => $this->t('Add a ticket guests can book'),
-      '#open' => FALSE,
-      '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-ticket-add']],
+      '#title' => $this->t('Add Ticket'),
+      '#open' => $tickets === [],
+      '#attributes' => [
+        'class' => [
+          'mel-es-card',
+          'mel-event-studio-ticket-add',
+          'mel-event-studio-ticket-add--primary',
+        ],
+        'id' => 'mel-add-ticket',
+      ],
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
@@ -221,7 +278,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '#title' => $this->t('Type'),
         '#options' => [
           'paid' => $this->t('Paid'),
-          'rsvp' => $this->t('RSVP'),
+          'rsvp' => $this->t('Free RSVP'),
           'external' => $this->t('External'),
         ],
         '#default_value' => 'paid',
@@ -231,14 +288,17 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '#title' => $this->t('Ticket name'),
         '#required' => FALSE,
         '#maxlength' => 255,
-        '#description' => $this->t('Example: General admission, VIP pass, Workshop seat.'),
+        '#attributes' => [
+          'placeholder' => $this->t('General Admission, VIP, Early Bird…'),
+        ],
+        '#description' => $this->t('Example: General Admission, VIP, Early Bird, Donation.'),
       ],
       'price_amount' => [
         '#type' => 'number',
-        '#title' => $this->t('Attendee price'),
+        '#title' => $this->t('Price'),
         '#min' => 0,
         '#step' => 0.01,
-        '#description' => $this->t('Use 0 for a free ticket.'),
+        '#description' => $this->t('Enter the attendee price. Use Free RSVP above for no payment.'),
         '#states' => [
           'visible' => [
             ':input[name="new_ticket[ticket_kind]"]' => ['value' => 'paid'],
@@ -263,10 +323,10 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ],
       'visibility_mode' => [
         '#type' => 'select',
-        '#title' => $this->t('Visibility'),
+        '#title' => $this->t('Availability'),
         '#options' => $this->visibilityOptions(),
         '#default_value' => 'public',
-        '#description' => $this->t('Access code tickets require codes to be created in Ticket Tools before customers can see them.'),
+        '#description' => $this->t('Access code tickets need codes from Advanced Ticket Tools before guests can see them.'),
       ],
       'status' => [
         '#type' => 'checkbox',
@@ -280,12 +340,35 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ],
     ];
 
+    $form['sticky_add'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-studio-ticket-sticky-add'],
+      ],
+      'cta' => [
+        '#type' => 'html_tag',
+        '#tag' => 'a',
+        '#value' => $this->t('Add Ticket'),
+        '#attributes' => [
+          'href' => '#mel-add-ticket',
+          'class' => [
+            'mel-btn',
+            'mel-btn--primary',
+            'mel-event-studio-ticket-sticky-add__button',
+          ],
+        ],
+      ],
+    ];
+
     $form['actions'] = [
       '#type' => 'actions',
       'submit' => [
         '#type' => 'submit',
         '#value' => $this->t('Save tickets'),
         '#button_type' => 'primary',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-save'],
+        ],
       ],
     ];
 
@@ -306,6 +389,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
+      if (!empty($row['archive']) && !empty($row['duplicate'])) {
+        $form_state->setErrorByName(
+          'tickets][' . $ticket_id . '][actions][duplicate]',
+          $this->t('Choose either Duplicate ticket or Archive ticket, not both.'),
+        );
+        continue;
+      }
       if (!empty($row['archive'])) {
         continue;
       }
@@ -314,13 +404,20 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $form_state->setErrorByName('tickets][' . $ticket_id, $this->t('Ticket data could not be matched to this event. Reload and try again.'));
         continue;
       }
+      // Duplicate still applies the same-request inline edits to the source first.
       $row = $this->normalizeExistingTicketRowInput($ticket, $row);
       try {
         $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
+        if (!empty($row['duplicate'])) {
+          // Fail before submit so a long name cannot save the source without a copy.
+          $this->ticketTierLifecycle->buildDuplicateTicketTitle((string) ($row['title'] ?? $ticket->getTitle()));
+        }
       }
       catch (\InvalidArgumentException $e) {
         $form_state->setErrorByName(
-          $this->ticketValidationErrorElement((int) $ticket_id, $e),
+          !empty($row['duplicate']) && str_contains($e->getMessage(), 'duplicate')
+            ? 'tickets][' . $ticket_id . '][actions][duplicate]'
+            : $this->ticketValidationErrorElement((int) $ticket_id, $e),
           $this->mapTicketInputExceptionMessage($e),
         );
       }
@@ -356,19 +453,47 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         if (!$ticket instanceof TicketTypeInterface) {
           continue;
         }
-        if (!empty($row['archive'])) {
+        // Mutual exclusion is enforced in validateForm; never archive when
+        // duplicate was also requested.
+        if (!empty($row['archive']) && empty($row['duplicate'])) {
           $this->ticketTierLifecycle->archiveTicketOnEvent($event, $ticket);
+          $this->recordTicketAnalyticsEvent('ticket_archived', $event, (int) $ticket->id());
           continue;
         }
+
+        // Duplicate path persists source edits + copy in one DB transaction so
+        // neither can commit without the other.
         $row = $this->normalizeExistingTicketRowInput($ticket, $row);
         $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
+
+        if (!empty($row['duplicate'])) {
+          $copy = $this->ticketTierLifecycle->updateAndDuplicateTicketOnEvent(
+            $event,
+            $ticket,
+            $this->currentUser,
+            $values,
+          );
+          $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
+            'source' => 'workspace_tickets_save',
+          ]);
+          $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $copy->id(), [
+            'source' => 'duplicate',
+            'source_ticket_id' => (int) $ticket->id(),
+          ]);
+          continue;
+        }
+
         $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
+        $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
+          'source' => 'workspace_tickets_save',
+        ]);
       }
 
       $new = $form_state->getValue('new_ticket');
       if (is_array($new) && $this->newTicketRowHasIntent($new) && trim((string) ($new['title'] ?? '')) !== '') {
         $values = $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
-        $this->ticketTierLifecycle->createAttachAndSync($event, $values);
+        $created = $this->ticketTierLifecycle->createAttachAndSync($event, $values);
+        $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $created->id());
       }
 
       $this->ticketTierLifecycle->reconcileEventTicketReferences($event);
@@ -410,6 +535,16 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $capacity_summary = $ticket->get('capacity')->isEmpty()
       ? $this->t('No fixed capacity')
       : $this->t('@count available', ['@count' => (string) $ticket->get('capacity')->value]);
+    $sales_summary = $this->buildTicketSalesSummary($ticket);
+    $availability_label = match (TRUE) {
+      $ticket->isArchived() => $this->t('Archived'),
+      !$ticket->isPublished() => $this->t('Hidden from checkout'),
+      default => $this->visibilityOptions()[
+        $ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
+          ? (string) $ticket->get('visibility_mode')->value
+          : 'public'
+      ] ?? $this->t('Public'),
+    };
 
     return [
       '#type' => 'container',
@@ -442,6 +577,24 @@ final class EventStudioOperationalTicketsForm extends FormBase {
               '#value' => $status_summary,
               '#attributes' => ['class' => ['mel-event-studio-ticket-card__summary-status']],
             ],
+            'availability' => [
+              '#type' => 'html_tag',
+              '#tag' => 'p',
+              '#value' => $availability_label,
+              '#attributes' => ['class' => ['mel-event-studio-ticket-card__summary-availability']],
+            ],
+            'capacity' => [
+              '#type' => 'html_tag',
+              '#tag' => 'p',
+              '#value' => $capacity_summary,
+              '#attributes' => ['class' => ['mel-event-studio-ticket-card__summary-capacity']],
+            ],
+            'sales' => [
+              '#type' => 'html_tag',
+              '#tag' => 'p',
+              '#value' => $sales_summary,
+              '#attributes' => ['class' => ['mel-event-studio-ticket-card__summary-sales']],
+            ],
           ],
           'title' => [
             '#type' => 'textfield',
@@ -457,7 +610,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#attributes' => ['class' => ['mel-event-studio-ticket-card__pricing']],
           'price_amount' => [
             '#type' => 'number',
-            '#title' => $this->t('Attendee price'),
+            '#title' => $this->t('Price'),
             '#min' => 0,
             '#step' => 0.01,
             '#default_value' => $price?->getNumber() ?? '',
@@ -484,7 +637,11 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           'kind' => [
             '#type' => 'html_tag',
             '#tag' => 'span',
-            '#value' => ucfirst($kind),
+            '#value' => match ($kind) {
+              'rsvp' => $this->t('Free RSVP'),
+              'external' => $this->t('External'),
+              default => $this->t('Paid'),
+            },
             '#attributes' => ['class' => ['mel-event-studio-card-badge', 'mel-event-studio-card-badge--type']],
           ],
           'status' => [
@@ -548,6 +705,11 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             '#tag' => 'span',
             '#value' => $capacity_summary,
           ],
+          'sales' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $sales_summary,
+          ],
         ],
         'reassurance' => [
           '#type' => 'html_tag',
@@ -589,7 +751,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           'heading' => [
             '#type' => 'html_tag',
             '#tag' => 'h4',
-            '#value' => $this->t('Visibility'),
+            '#value' => $this->t('Availability'),
             '#attributes' => ['class' => ['mel-event-studio-ticket-card__group-title']],
           ],
           'visibility_mode' => [
@@ -600,7 +762,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             '#default_value' => $ticket->hasField('visibility_mode') && !$ticket->get('visibility_mode')->isEmpty()
               ? (string) $ticket->get('visibility_mode')->value
               : 'public',
-            '#description' => $this->t('Access code tickets require codes to be created in Ticket Tools before customers can see them.'),
+            '#description' => $this->t('Access code tickets need codes from Advanced Ticket Tools before guests can see them.'),
             '#parents' => ['tickets', $ticket_id, 'visibility_mode'],
           ],
         ],
@@ -610,7 +772,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           'heading' => [
             '#type' => 'html_tag',
             '#tag' => 'h4',
-            '#value' => $this->t('Availability'),
+            '#value' => $this->t('Status'),
             '#attributes' => ['class' => ['mel-event-studio-ticket-card__group-title']],
           ],
           'published' => [
@@ -632,6 +794,34 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           ],
         ],
       ],
+      'quick_actions' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-card__quick-actions'],
+          'aria-label' => $this->t('Quick actions'),
+        ],
+        'hint' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Quick edit above, then save. Choose duplicate or archive — not both.'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__quick-actions-hint']],
+        ],
+        'duplicate' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Duplicate ticket'),
+          '#disabled' => $ticket->isArchived(),
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox', 'mel-event-studio-ticket-card__action']],
+          '#parents' => ['tickets', $ticket_id, 'actions', 'duplicate'],
+        ],
+        'archive' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Archive ticket'),
+          '#description' => $this->t('Stops new checkout sales. Past orders stay intact.'),
+          '#disabled' => $ticket->isArchived(),
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox', 'mel-event-studio-ticket-card__action']],
+          '#parents' => ['tickets', $ticket_id, 'actions', 'archive'],
+        ],
+      ],
       'advanced' => [
         '#type' => 'container',
         '#attributes' => ['class' => ['mel-event-studio-ticket-card__advanced-content']],
@@ -641,14 +831,6 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#type' => 'hidden',
           '#value' => $kind,
           '#parents' => ['tickets', $ticket_id, 'actions', 'ticket_kind'],
-        ],
-        'archive' => [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Archive this ticket'),
-          '#description' => $this->t('Archived tickets stop showing for new checkout sessions but remain attached to historical orders and reports.'),
-          '#disabled' => $ticket->isArchived(),
-          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
-          '#parents' => ['tickets', $ticket_id, 'actions', 'archive'],
         ],
       ],
     ];
@@ -704,6 +886,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     if ($message === 'Ticket title is required.') {
       return (string) $this->t('Ticket name is required.');
     }
+    if ($message === 'This ticket name is too long to duplicate. Shorten the name, then try again.') {
+      return (string) $this->t('This ticket name is too long to duplicate. Shorten the name, then try again.');
+    }
     return $message !== '' ? $message : (string) $this->t('Ticket row could not be validated.');
   }
 
@@ -711,6 +896,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $message = trim($exception->getMessage());
     if (str_contains($message, 'Best value')) {
       return 'tickets][' . $ticket_id . '][status][best_value';
+    }
+    if (str_contains($message, 'duplicate')) {
+      return 'tickets][' . $ticket_id . '][actions][duplicate]';
     }
     return 'tickets][' . $ticket_id . '][title';
   }
@@ -740,6 +928,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       if (isset($row['actions']) && is_array($row['actions'])) {
         $row['ticket_kind'] = $row['actions']['ticket_kind'] ?? '';
         $row['archive'] = !empty($row['actions']['archive']) ? 1 : 0;
+        $row['duplicate'] = !empty($row['actions']['duplicate']) ? 1 : 0;
       }
       $out[(int) $ticket_id] = $row;
     }
@@ -764,6 +953,62 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       'access_code' => (string) $this->t('Access code'),
       'group_only' => (string) $this->t('Group / partner only'),
     ];
+  }
+
+  private function buildTicketSalesSummary(TicketTypeInterface $ticket): string {
+    try {
+      if ($ticket->getTicketKind() === 'rsvp') {
+        // RSVP submissions are event-scoped (no per-tier FK). Show confirmed
+        // event RSVPs so Free RSVP cards do not falsely report zero uptake.
+        if (!$this->rsvpCapacity instanceof RsvpCapacityService) {
+          return (string) $this->t('RSVPs: —');
+        }
+        $event_id = !$ticket->get('event')->isEmpty()
+          ? (int) $ticket->get('event')->target_id
+          : 0;
+        $count = $event_id > 0 ? $this->rsvpCapacity->countConfirmedRsvps($event_id) : 0;
+        return (string) $this->formatPlural($count, 'RSVPs: 1 received', 'RSVPs: @count received');
+      }
+
+      if (!$this->ticketTierAnalytics instanceof TicketTierAnalyticsService) {
+        return (string) $this->t('Sales: —');
+      }
+      $metrics = $this->ticketTierAnalytics->buildTierMetrics($ticket);
+      $sold = (int) ($metrics['sold'] ?? 0);
+      return (string) $this->formatPlural($sold, 'Sales: 1 sold', 'Sales: @count sold');
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Ticket sales summary failed for ticket @tid: @message', [
+        '@tid' => (string) $ticket->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return (string) ($ticket->getTicketKind() === 'rsvp'
+        ? $this->t('RSVPs: —')
+        : $this->t('Sales: —'));
+    }
+  }
+
+  /**
+   * Records VX2 ticket instrumentation hooks for future analytics wiring.
+   *
+   * @param string $event_name
+   *   Analytics event name (for example ticket_created).
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   * @param int $ticket_id
+   *   Ticket type entity ID.
+   * @param array<string, mixed> $context
+   *   Extra logger context.
+   */
+  private function recordTicketAnalyticsEvent(string $event_name, NodeInterface $event, int $ticket_id, array $context = []): void {
+    $this->logger->info('MEL ticket analytics hook @event for event @nid ticket @tid.', [
+      '@event' => $event_name,
+      '@nid' => (string) $event->id(),
+      '@tid' => (string) $ticket_id,
+      'mel_analytics_event' => $event_name,
+      'event_id' => (int) $event->id(),
+      'ticket_id' => $ticket_id,
+    ] + $context);
   }
 
   private function getRouteEvent(?NodeInterface $node = NULL): NodeInterface {

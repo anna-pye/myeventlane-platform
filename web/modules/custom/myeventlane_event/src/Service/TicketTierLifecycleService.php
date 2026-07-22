@@ -8,6 +8,7 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -33,11 +34,16 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
 
   private const SHORT_DESCRIPTION_MAX_LENGTH = 320;
 
+  private const TICKET_TITLE_MAX_LENGTH = 255;
+
+  private const DUPLICATE_TITLE_SUFFIX = ' (copy)';
+
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TicketTypeManager $ticketTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly Connection $database,
   ) {}
 
   /**
@@ -302,6 +308,204 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
     $this->ticketTypeManager->normalizeDefaultTicketSelection($event);
     $this->ticketTypeManager->normalizeBestValueTicketSelection($event);
     $this->syncPaidTiers($event);
+  }
+
+  /**
+   * Duplicates a ticket type onto the same event as a draft copy.
+   *
+   * Copies the same organiser configuration as
+   * {@see cloneFromReusableTemplate()} (waitlist, hidden checkout label,
+   * group-sale settings, capacity windows, etc.). Commerce variation IDs are
+   * never copied — sync creates a new variation for paid tiers. Best-value /
+   * default flags are reset so organisers choose highlights intentionally.
+   *
+   * @throws \InvalidArgumentException
+   */
+  public function duplicateTicketOnEvent(
+    NodeInterface $event,
+    TicketTypeInterface $source,
+    AccountInterface $account,
+  ): TicketTypeInterface {
+    if ($event->bundle() !== 'event') {
+      throw new InvalidArgumentException('Duplicate target must be an event node.');
+    }
+    $sourceId = (int) $source->id();
+    if ($sourceId < 1 || !$this->ticketBelongsToEvent($event, $sourceId)) {
+      throw new InvalidArgumentException('Ticket does not belong to this event.');
+    }
+
+    $kind = $source->getTicketKind();
+    if (!in_array($kind, ['paid', 'rsvp', 'external'], TRUE)) {
+      throw new InvalidArgumentException('Unsupported ticket kind for duplicate.');
+    }
+
+    $values = [
+      'title' => $this->buildDuplicateTicketTitle($source->getTitle()),
+      'ticket_kind' => $kind,
+      'vendor_id' => ['target_id' => (int) $account->id()],
+      'is_reusable' => FALSE,
+      'event' => ['target_id' => (int) $event->id()],
+      'status' => 0,
+      'lifecycle_status' => TicketTypeInterface::LIFECYCLE_ACTIVE,
+      'field_is_best_value' => 0,
+      'field_is_default_ticket' => 0,
+      'commerce_variation' => NULL,
+    ];
+
+    if (!$source->get('capacity')->isEmpty()) {
+      $values['capacity'] = (int) $source->get('capacity')->value;
+    }
+    if ($source->hasField('rsvp_limit') && !$source->get('rsvp_limit')->isEmpty()) {
+      $values['rsvp_limit'] = (int) $source->get('rsvp_limit')->value;
+    }
+    if (!$source->get('sale_start')->isEmpty()) {
+      $values['sale_start'] = $source->get('sale_start')->getValue();
+    }
+    if (!$source->get('sale_end')->isEmpty()) {
+      $values['sale_end'] = $source->get('sale_end')->getValue();
+    }
+
+    if ($source->hasField('visibility_mode') && !$source->get('visibility_mode')->isEmpty()) {
+      $values['visibility_mode'] = (string) $source->get('visibility_mode')->value;
+    }
+    if ($source->hasField('hidden_label') && !$source->get('hidden_label')->isEmpty()) {
+      $values['hidden_label'] = (string) $source->get('hidden_label')->value;
+    }
+    if ($source->hasField('short_description') && !$source->get('short_description')->isEmpty()) {
+      $values['short_description'] = (string) $source->get('short_description')->value;
+    }
+    if ($source->hasField('waitlist_enabled')) {
+      $values['waitlist_enabled'] = $source->get('waitlist_enabled')->value ? 1 : 0;
+    }
+    if ($source->hasField('waitlist_capacity') && !$source->get('waitlist_capacity')->isEmpty()) {
+      $values['waitlist_capacity'] = (int) $source->get('waitlist_capacity')->value;
+    }
+    if ($source->hasField('auto_promote_waitlist')) {
+      $values['auto_promote_waitlist'] = $source->get('auto_promote_waitlist')->value ? 1 : 0;
+    }
+    if ($source->hasField('group_sale_mode') && !$source->get('group_sale_mode')->isEmpty()) {
+      $values['group_sale_mode'] = (string) $source->get('group_sale_mode')->value;
+    }
+    if ($source->hasField('group_min_size') && !$source->get('group_min_size')->isEmpty()) {
+      $values['group_min_size'] = (int) $source->get('group_min_size')->value;
+    }
+    if ($source->hasField('group_bundle_size') && !$source->get('group_bundle_size')->isEmpty()) {
+      $values['group_bundle_size'] = (int) $source->get('group_bundle_size')->value;
+    }
+
+    if ($source->hasField('field_use_ticket_attendee_questions')) {
+      $values['field_use_ticket_attendee_questions'] = $source->get('field_use_ticket_attendee_questions')->value ? 1 : 0;
+    }
+    if ($source->hasField('field_attendee_questions') && !$source->get('field_attendee_questions')->isEmpty()) {
+      $refs = [];
+      foreach ($source->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if (!$paragraph instanceof \Drupal\paragraphs\ParagraphInterface) {
+          continue;
+        }
+        $dup = $paragraph->createDuplicate();
+        $dup->save();
+        $refs[] = [
+          'target_id' => (int) $dup->id(),
+          'target_revision_id' => (int) $dup->getRevisionId(),
+        ];
+      }
+      if ($refs !== []) {
+        $values['field_attendee_questions'] = $refs;
+      }
+    }
+
+    if ($kind === 'paid') {
+      $price = $source->toPriceValue();
+      if ($price === NULL || (float) $price->getNumber() <= 0) {
+        throw new InvalidArgumentException('Paid tickets require a price greater than zero.');
+      }
+      $values['price'] = [
+        'number' => $price->getNumber(),
+        'currency_code' => $price->getCurrencyCode(),
+      ];
+    }
+    else {
+      $values['price'] = NULL;
+    }
+
+    if ($kind === 'external') {
+      if ($source->get('external_url')->isEmpty()) {
+        throw new InvalidArgumentException('External tickets require a valid https URL.');
+      }
+      $values['external_url'] = $source->get('external_url')->getValue();
+    }
+
+    return $this->createAttachAndSync($event, $values);
+  }
+
+  /**
+   * Builds the duplicate ticket title or rejects names that cannot fit.
+   *
+   * @throws \InvalidArgumentException
+   *   When appending the duplicate suffix would exceed the title max length.
+   */
+  public function buildDuplicateTicketTitle(string $sourceTitle): string {
+    $base = trim($sourceTitle);
+    if ($base === '') {
+      throw new InvalidArgumentException('Ticket title is required.');
+    }
+    $title = $base . self::DUPLICATE_TITLE_SUFFIX;
+    if (mb_strlen($title) > self::TICKET_TITLE_MAX_LENGTH) {
+      throw new InvalidArgumentException(
+        'This ticket name is too long to duplicate. Shorten the name, then try again.',
+      );
+    }
+    return $title;
+  }
+
+  /**
+   * Applies ticket field values in memory without saving.
+   *
+   * Used so duplicate can read same-request edits before the source is
+   * persisted. Callers must still persist via {@see updateTicketType()}.
+   *
+   * @param array<string, mixed> $values
+   */
+  public function applyTicketValuesWithoutSave(TicketTypeInterface $ticket, array $values): void {
+    if ($values === []) {
+      return;
+    }
+    $this->applyValuesToTicket($ticket, $values);
+  }
+
+  /**
+   * Applies source edits and creates a duplicate in one database transaction.
+   *
+   * Prevents partial outcomes where either the source saves without a copy or
+   * the copy is created while same-request source edits are rolled back.
+   *
+   * @param array<string, mixed> $values
+   *
+   * @throws \InvalidArgumentException
+   * @throws \Throwable
+   */
+  public function updateAndDuplicateTicketOnEvent(
+    NodeInterface $event,
+    TicketTypeInterface $ticket,
+    AccountInterface $account,
+    array $values,
+  ): TicketTypeInterface {
+    $this->applyTicketValuesWithoutSave($ticket, $values);
+    $this->validateTicketTypeForPersist($ticket, $event);
+    // Fail before any write when the copy title cannot be formed.
+    $this->buildDuplicateTicketTitle($ticket->getTitle());
+
+    $transaction = $this->database->startTransaction();
+    try {
+      // Persist source first so a duplicate failure rolls the source edits back
+      // with the same transaction as the copy create/attach.
+      $this->updateTicketType($ticket, $event, []);
+      return $this->duplicateTicketOnEvent($event, $ticket, $account);
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
   }
 
   /**

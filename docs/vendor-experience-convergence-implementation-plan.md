@@ -49,7 +49,7 @@ This plan tells engineering **what to build in what order**. It does not prescri
 | C-16 / C-17 | Messages send unification / Orders hub | VX2-06 / later |
 | C-12 | Check-in stacks → Door Mode | VX2-05 |
 | — | Schedule/Venue dedicated field forms (currently shared information form) | VX2-03 follow-up |
-| C-14 | Tickets app (advanced collapsed UX depth) | VX2-04 |
+| C-14 | Tickets app (advanced collapsed UX depth) | VX2-04 | **Sprint 3 shipped** |
 
 **Screens / surfaces touched (Sprint 2)**
 
@@ -215,7 +215,25 @@ Workspace shell (VX2-03); mel_ticket_type remains abstraction.
 
 GA + VIP creatable without Commerce words; advanced optional.
 
----
+### Sprint 3 shipped (2026-07-22)
+
+| Item | Status |
+| --- | --- |
+| Workspace Tickets app shell | Done — `EventStudioSectionRenderer::buildTicketsStack` |
+| Card UX + empty state (AU English) | Done |
+| Add Ticket / Duplicate / Archive | Done |
+| Advanced Ticket Tools disclosure | Done |
+| Commerce language cleanup on organiser ticket surfaces | Done |
+| Instrumentation hooks (logger + JS) | Done (analytics consumer deferred) |
+| Full retirement of `/vendor/events/{id}/tickets` manager | Remaining — demoted, not deleted |
+| Guest questions under Advanced only | Remaining — still independent Workspace section when enabled |
+
+### Remaining after Sprint 3
+
+- Optional redirect of Advanced manager Overview → Workspace Tickets  
+- Deeper per-ticket drawer edit (vs inline cards) if large inventories need tables  
+- Wire `mel:analytics` / logger hooks into the platform analytics pipeline  
+- VX2-05 Attendees / Door Mode
 
 ## VX2-05 — Attendees
 

@@ -136,6 +136,7 @@ services:
       - '@myeventlane_event.ticket_type_manager'
       - '@logger.factory'
       - '@myeventlane_vendor.event_access_checker'
+      - '@database'
 
   myeventlane_event.booking_flow_resolver:
     class: Drupal\myeventlane_event\Service\BookingFlowResolver
