@@ -7,21 +7,21 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Ticketing section metadata.
+ * Tickets section metadata.
  */
 #[EventStudioSection(
   id: 'tickets',
   title: 'Tickets',
-  group: 'Tickets & sales',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_tickets',
   section_state: 'active',
-  weight: 100,
+  weight: 50,
   icon: 'tickets',
   renderTarget: 'tickets_stack',
   writable: TRUE,
   readiness_participant: TRUE,
   empty_state_type: 'none',
-  mobile_priority: 60,
+  mobile_priority: 40,
   operationalArea: 'ticket',
 )]
 final class TicketsSection extends EventStudioSectionBase {}

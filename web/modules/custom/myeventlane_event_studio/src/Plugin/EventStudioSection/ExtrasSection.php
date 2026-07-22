@@ -7,15 +7,15 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Unified merch and add-on product setup (Commerce-backed).
+ * Merch & add-ons — progressive disclosure under Tickets (not primary nav).
  */
 #[EventStudioSection(
   id: 'extras',
   title: 'Merch & add-ons',
-  group: 'Tickets & sales',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_extras',
   section_state: 'active',
-  weight: 125,
+  weight: 57,
   icon: 'extras',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventStudioEventExtrasForm',
   writable: TRUE,
@@ -24,5 +24,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 155,
   operationalArea: 'commerce_product',
+  navigationVisible: FALSE,
 )]
 final class ExtrasSection extends EventStudioSectionBase {}

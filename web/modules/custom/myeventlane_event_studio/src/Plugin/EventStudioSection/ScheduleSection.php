@@ -7,22 +7,21 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Details section metadata (event story, title, summary, category).
+ * Schedule section — date, time, and timezone (shared information form).
  */
 #[EventStudioSection(
-  id: 'information',
-  title: 'Details',
+  id: 'schedule',
+  title: 'Schedule',
   group: 'Workspace',
-  routeName: 'myeventlane_event_studio.workspace_information',
+  routeName: 'myeventlane_event_studio.workspace_schedule',
   section_state: 'active',
-  weight: 10,
-  icon: 'information',
-  routeFragment: 'details',
+  weight: 20,
+  icon: 'schedule',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventInformationForm',
   writable: TRUE,
   readiness_participant: TRUE,
   empty_state_type: 'none',
-  mobile_priority: 10,
+  mobile_priority: 15,
   operationalArea: 'event',
 )]
-final class InformationSection extends EventStudioSectionBase {}
+final class ScheduleSection extends EventStudioSectionBase {}

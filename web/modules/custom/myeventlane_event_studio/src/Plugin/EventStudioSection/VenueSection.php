@@ -7,22 +7,21 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Details section metadata (event story, title, summary, category).
+ * Venue section — place, map, and access notes (shared information form).
  */
 #[EventStudioSection(
-  id: 'information',
-  title: 'Details',
+  id: 'venue',
+  title: 'Venue',
   group: 'Workspace',
-  routeName: 'myeventlane_event_studio.workspace_information',
+  routeName: 'myeventlane_event_studio.workspace_venue',
   section_state: 'active',
-  weight: 10,
-  icon: 'information',
-  routeFragment: 'details',
+  weight: 30,
+  icon: 'venue',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventInformationForm',
   writable: TRUE,
   readiness_participant: TRUE,
   empty_state_type: 'none',
-  mobile_priority: 10,
+  mobile_priority: 18,
   operationalArea: 'event',
 )]
-final class InformationSection extends EventStudioSectionBase {}
+final class VenueSection extends EventStudioSectionBase {}

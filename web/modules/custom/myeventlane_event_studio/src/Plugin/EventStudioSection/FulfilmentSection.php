@@ -7,15 +7,15 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Fulfilment / operational capability authoring section.
+ * Collection / fulfilment — advanced ops (not primary Workspace nav).
  */
 #[EventStudioSection(
   id: 'fulfilment',
   title: 'Collection',
-  group: 'Operations',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_fulfilment',
   section_state: 'active',
-  weight: 210,
+  weight: 130,
   icon: 'fulfilment',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventStudioOperationalCapabilityForm',
   writable: TRUE,
@@ -24,5 +24,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 180,
   operationalArea: 'fulfilment',
+  navigationVisible: FALSE,
 )]
 final class FulfilmentSection extends EventStudioSectionBase {}

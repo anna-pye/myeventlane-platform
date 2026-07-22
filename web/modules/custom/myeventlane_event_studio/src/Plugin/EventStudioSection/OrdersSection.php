@@ -12,16 +12,16 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'orders',
   title: 'Orders',
-  group: 'Operations',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_orders',
   section_state: 'readonly',
-  weight: 220,
+  weight: 90,
   icon: 'orders',
   renderTarget: 'readonly_summary',
   writable: FALSE,
   readiness_participant: FALSE,
   empty_state_type: 'readonly_empty',
-  mobile_priority: 100,
+  mobile_priority: 80,
   operationalArea: 'commerce',
 )]
 final class OrdersSection extends EventStudioSectionBase {}

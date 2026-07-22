@@ -12,16 +12,16 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'attendees',
   title: 'Attendees',
-  group: 'Operations',
+  group: 'Workspace',
   routeName: 'myeventlane_event_studio.workspace_attendees',
   section_state: 'readonly',
-  weight: 200,
+  weight: 60,
   icon: 'attendees',
   renderTarget: 'readonly_summary',
   writable: FALSE,
   readiness_participant: FALSE,
   empty_state_type: 'readonly_empty',
-  mobile_priority: 90,
+  mobile_priority: 50,
   operationalArea: 'operations',
 )]
 final class AttendeesSection extends EventStudioSectionBase {}
