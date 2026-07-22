@@ -148,6 +148,16 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     $this->assertSame('/vendor/payouts', $action['url']);
   }
 
+  public function testAjaxGuideSnapshotReusesStripeAwareBuilders(): void {
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($overview);
+    $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
+    $this->assertStringContainsString('buildGuideCardState', $overview);
+    $this->assertStringContainsString('buildEventReady(', $overview);
+    $this->assertStringContainsString('resolveNextRecommendedAction(', $overview);
+    $this->assertStringContainsString('buildStripeHealth(', $overview);
+  }
+
   /**
    * @param array<string, mixed> $next
    *   Mission-control next_action payload.

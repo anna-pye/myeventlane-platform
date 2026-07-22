@@ -18,6 +18,7 @@ use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
+use Drupal\myeventlane_event_studio\Service\EventWorkspaceOverviewBuilder;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
@@ -39,6 +40,7 @@ final class EventStudioPublishController {
     private readonly EventReadinessService $eventReadiness,
     private readonly EventReadinessFacade $readinessFacade,
     private readonly EventStudioWorkspacePresentation $workspacePresentation,
+    private readonly EventWorkspaceOverviewBuilder $overviewBuilder,
     private readonly BoostStatusService $boostStatusService,
     private readonly EventStudioAutosaveService $autosaveService,
     private readonly EventStudioSectionManager $sectionManager,
@@ -259,6 +261,19 @@ final class EventStudioPublishController {
       $readiness_bundle,
       $node,
     );
+    try {
+      // Same Stripe + mission-control guide cards as full Home render.
+      $ajax_readiness['home'] = $this->overviewBuilder->buildHomeAjaxGuideSnapshot(
+        $node,
+        $this->currentUser,
+      );
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Workspace Home AJAX guide snapshot failed for event @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
     $homepage_card = $this->workspacePresentation->buildHomepageReadinessCard(
       $node,
       $readiness_bundle,

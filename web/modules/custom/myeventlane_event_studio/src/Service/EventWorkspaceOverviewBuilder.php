@@ -54,6 +54,67 @@ final class EventWorkspaceOverviewBuilder {
    *   Themeable render array.
    */
   public function build(NodeInterface $event, AccountInterface $account): array {
+    $guide = $this->buildGuideCardState($event, $account);
+    $workspace = $guide['workspace'];
+    $nid = (int) $event->id();
+    $salesSummary = $this->safeSalesSummary($event);
+
+    return [
+      '#theme' => 'mel_event_studio_overview',
+      '#event_ready' => $guide['event_ready'],
+      '#next_action' => $guide['next_action'],
+      '#readiness' => $guide['readiness'],
+      '#tickets' => $this->buildTicketsCard($event, $account, $nid, $salesSummary, $workspace),
+      '#attendees' => $this->buildAttendeesCard($account, $nid, $workspace, $salesSummary),
+      '#sales' => $this->buildSalesCard($salesSummary, $nid),
+      '#marketing' => $this->buildMarketingCard($event, $account, $nid),
+      '#boost' => $this->buildBoostCard($event, $nid),
+      '#analytics' => $this->buildAnalyticsCard($workspace, $salesSummary, $nid),
+      '#activity' => $this->buildActivityFeed($event, $salesSummary),
+    ];
+  }
+
+  /**
+   * Home Event Ready / readiness / next action for publish AJAX refresh.
+   *
+   * Same Stripe + mission-control rules as full Home render — not a simplified
+   * presentation fallback.
+   *
+   * @return array{
+   *   event_ready: array<string, mixed>,
+   *   readiness: array<string, mixed>,
+   *   next_action: array<string, mixed>
+   * }
+   */
+  public function buildHomeAjaxGuideSnapshot(NodeInterface $event, AccountInterface $account): array {
+    $guide = $this->buildGuideCardState($event, $account);
+    $event_ready = $guide['event_ready'];
+    $readiness = $guide['readiness'];
+    $complete_label = (string) $this->t('@done of @total complete', [
+      '@done' => (int) ($event_ready['complete_count'] ?? 0),
+      '@total' => (int) ($event_ready['total_count'] ?? 1),
+    ]);
+    $event_ready['complete_label'] = $complete_label;
+    $readiness['complete_label'] = $complete_label;
+
+    return [
+      'event_ready' => $event_ready,
+      'readiness' => $readiness,
+      'next_action' => $guide['next_action'],
+    ];
+  }
+
+  /**
+   * Shared guide-row state for full Home and AJAX (Stripe + mission-control).
+   *
+   * @return array{
+   *   workspace: array<string, mixed>,
+   *   event_ready: array<string, mixed>,
+   *   next_action: array<string, mixed>,
+   *   readiness: array<string, mixed>
+   * }
+   */
+  private function buildGuideCardState(NodeInterface $event, AccountInterface $account): array {
     try {
       $workspace = $this->workspaceViewModel->build($event, $account);
     }
@@ -80,7 +141,6 @@ final class EventWorkspaceOverviewBuilder {
       $recommended,
     );
 
-    $salesSummary = $this->safeSalesSummary($event);
     $stripe = $this->buildStripeHealth($account, $event, $eventMeta);
     $remainingErrors = count($readiness->errors);
     $completedCount = count($readiness->completed);
@@ -104,8 +164,8 @@ final class EventWorkspaceOverviewBuilder {
     $statusKey = (string) ($eventMeta['status'] ?? ($published ? 'live' : 'draft'));
 
     return [
-      '#theme' => 'mel_event_studio_overview',
-      '#event_ready' => $this->buildEventReady(
+      'workspace' => $workspace,
+      'event_ready' => $this->buildEventReady(
         $readiness,
         $published,
         $statusLabel,
@@ -117,8 +177,8 @@ final class EventWorkspaceOverviewBuilder {
         $stripe,
         $eventMeta,
       ),
-      '#next_action' => $nextRecommended,
-      '#readiness' => [
+      'next_action' => $nextRecommended,
+      'readiness' => [
         'ready' => $readiness->ready,
         'score' => (int) ($workspace['readiness']['score'] ?? 0),
         'items' => $humanChecklist,
@@ -127,13 +187,6 @@ final class EventWorkspaceOverviewBuilder {
         'headline' => $this->readinessHeadline($readiness->ready, $published, $remainingErrors),
         'explanation' => $this->readinessExplanation($readiness),
       ],
-      '#tickets' => $this->buildTicketsCard($event, $account, $nid, $salesSummary, $workspace),
-      '#attendees' => $this->buildAttendeesCard($account, $nid, $workspace, $salesSummary),
-      '#sales' => $this->buildSalesCard($salesSummary, $nid),
-      '#marketing' => $this->buildMarketingCard($event, $account, $nid),
-      '#boost' => $this->buildBoostCard($event, $nid),
-      '#analytics' => $this->buildAnalyticsCard($workspace, $salesSummary, $nid),
-      '#activity' => $this->buildActivityFeed($event, $salesSummary),
     ];
   }
 

@@ -149,14 +149,25 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('show_homepage_readiness', $js);
   }
 
-  public function testAjaxPayloadIncludesHomeDashboardSnapshot(): void {
-    $node = $this->node(TRUE, 207);
-    $bundle = $this->bundle(ready: TRUE, promotion_ready: TRUE);
-    $ajax = $this->presentation->buildAjaxReadinessPayloadFromBundle($bundle, $node);
-
-    $this->assertArrayHasKey('home', $ajax);
-    $this->assertSame('Live and healthy', $ajax['home']['event_ready']['headline']);
-    $this->assertSame('Share your event', $ajax['home']['next_action']['title']);
+  public function testPublishControllerUsesOverviewBuilderForHomeAjax(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $services = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.services.yml');
+    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($publish);
+    $this->assertIsString($services);
+    $this->assertIsString($presentation);
+    $this->assertIsString($overview);
+    $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
+    $this->assertStringContainsString('overviewBuilder', $publish);
+    $this->assertStringContainsString("ajax_readiness['home']", $publish);
+    $this->assertStringContainsString('@myeventlane_event_studio.overview_builder', $services);
+    $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
+    $this->assertStringContainsString('buildStripeHealth', $overview);
+    $this->assertStringContainsString('resolveNextRecommendedAction', $overview);
+    // Presentation must not own a simplified Home AJAX path that skips Stripe.
+    $this->assertStringNotContainsString('buildHomeAjaxSnapshot', $presentation);
+    $this->assertStringNotContainsString('buildHomeNextAction', $presentation);
   }
 
   public function testShellJsAppliesHomeDashboardAfterPublish(): void {

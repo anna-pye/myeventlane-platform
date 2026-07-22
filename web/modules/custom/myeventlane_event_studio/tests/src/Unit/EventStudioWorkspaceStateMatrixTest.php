@@ -116,25 +116,22 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertCount(1, $ideaRows);
     $this->assertSame('Add banner image', $ideaRows[0]['label']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
-    $this->assertArrayHasKey('home', $payload);
-    $this->assertArrayHasKey('event_ready', $payload['home']);
-    $this->assertArrayHasKey('readiness', $payload['home']);
-    $this->assertArrayHasKey('next_action', $payload['home']);
-    $this->assertSame('Ready to publish', $payload['home']['event_ready']['headline']);
-    $this->assertSame('draft', $payload['home']['event_ready']['status_key']);
+    // Home guide cards come from overview builder in the publish controller.
+    $this->assertArrayNotHasKey('home', $payload);
   }
 
-  public function testPublishAjaxHomeSnapshotReflectsLiveState(): void {
-    $node = $this->node(TRUE, 109);
-    $bundle = $this->bundle(ready: TRUE, promotion_ready: TRUE);
-    $payload = $this->presentation->buildAjaxReadinessPayloadFromBundle($bundle, $node);
-
-    $this->assertSame('Live and healthy', $payload['home']['event_ready']['headline']);
-    $this->assertSame('live', $payload['home']['event_ready']['status_key']);
-    $this->assertSame('Live', $payload['home']['event_ready']['status_label']);
-    $this->assertSame('Your event is live', $payload['home']['readiness']['headline']);
-    $this->assertSame('Share your event', $payload['home']['next_action']['title']);
-    $this->assertNotEmpty($payload['home']['readiness']['items']);
+  public function testPublishControllerAttachesHomeGuideFromOverviewBuilder(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($publish);
+    $this->assertIsString($overview);
+    $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
+    $this->assertStringContainsString("ajax_readiness['home']", $publish);
+    $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
+    $this->assertStringContainsString('function buildGuideCardState', $overview);
+    // AJAX guide must reuse Stripe-aware Event Ready / next-action builders.
+    $this->assertStringContainsString("(\$stripe['tone'] ?? '') === 'attention'", $overview);
+    $this->assertStringContainsString('Connect Stripe', $overview);
   }
 
   public function testStripChecklistIncludesRecommendationIdeas(): void {
@@ -248,6 +245,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertLessThan($stripPos, $healthPos);
     $this->assertStringContainsString("'event_health'", $publish);
     $this->assertStringContainsString('buildAjaxReadinessPayloadFromBundle', $publish);
+    $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
   }
 
   public function testShellJsUpdatesEventHealthAfterPublish(): void {
