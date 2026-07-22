@@ -80,9 +80,10 @@ final class EventWorkspaceOverviewBuilder {
     $stripe = $this->buildStripeHealth($account, $event, $eventMeta);
     $remainingErrors = count($readiness->errors);
     $completedCount = count($readiness->completed);
-    $totalChecklist = $completedCount + $remainingErrors + count($readiness->warnings);
+    // Match expandable checklist length (completed + blockers + warnings + ideas).
+    $totalChecklist = count($humanChecklist);
     if ($totalChecklist < 1) {
-      $totalChecklist = max(1, $completedCount + $remainingErrors);
+      $totalChecklist = 1;
     }
 
     $nextRecommended = $this->resolveNextRecommendedAction($next, $readiness, $published, $nid, $stripe);
@@ -324,10 +325,12 @@ final class EventWorkspaceOverviewBuilder {
       $metrics[] = ['label' => (string) $this->t('waitlist'), 'value' => (string) $waitlist];
     }
 
+    $hasWaitlist = is_int($waitlist) && $waitlist > 0;
+
     return [
       'title' => (string) $this->t('Attendees'),
       'metrics' => $metrics,
-      'empty' => $booked === 0 && $checkins === 0,
+      'empty' => $booked === 0 && $checkins === 0 && !$hasWaitlist,
       'empty_message' => (string) $this->t('Guests will appear here after your first booking.'),
       'action_label' => (string) $this->t('Manage attendees'),
       'url' => $this->safeUrl('myeventlane_event_studio.workspace_attendees', ['node' => $nid]),
@@ -525,6 +528,8 @@ final class EventWorkspaceOverviewBuilder {
       $orderItems = $orderItemStorage->loadMultiple($ids);
       // Aggregate per order first so multi-line event orders show full ticket qty
       // and only completed orders appear (aligned with TicketSalesService).
+      // Amount is event line-item subtotal — never order getTotalPrice() (Boost /
+      // donations / other events inflate the whole-order total).
       $orderAgg = [];
       foreach ($orderItems as $item) {
         $order = $item->getOrder();
@@ -540,16 +545,36 @@ final class EventWorkspaceOverviewBuilder {
             'order' => $order,
             'qty' => 0,
             'placed' => (int) $order->getPlacedTime(),
+            'amount' => 0.0,
+            'currency' => 'AUD',
           ];
         }
         $orderAgg[$oid]['qty'] += (int) round((float) $item->getQuantity());
+        $lineTotal = $item->getTotalPrice();
+        if ($lineTotal) {
+          $orderAgg[$oid]['amount'] += (float) $lineTotal->getNumber();
+          $currency = $lineTotal->getCurrencyCode();
+          if (is_string($currency) && $currency !== '') {
+            $orderAgg[$oid]['currency'] = $currency;
+          }
+        }
       }
 
-      foreach ($orderAgg as $oid => $row) {
+      uasort($orderAgg, static function (array $a, array $b): int {
+        $byPlaced = ((int) $b['placed']) <=> ((int) $a['placed']);
+        if ($byPlaced !== 0) {
+          return $byPlaced;
+        }
+        return ((int) $b['order']->id()) <=> ((int) $a['order']->id());
+      });
+
+      foreach (array_slice($orderAgg, 0, 8, TRUE) as $oid => $row) {
         /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
         $order = $row['order'];
-        $total = $order->getTotalPrice();
-        $amount = $total ? $total->__toString() : '';
+        $amountNumber = (float) $row['amount'];
+        $amount = $amountNumber > 0
+          ? $this->formatActivityMoney($amountNumber, (string) $row['currency'])
+          : '';
         $qty = (int) $row['qty'];
         $placed = (int) $row['placed'];
         $when = $placed > 0
@@ -566,9 +591,6 @@ final class EventWorkspaceOverviewBuilder {
           ]))),
           'type' => 'order',
         ];
-        if (count($items) >= 8) {
-          break;
-        }
       }
     }
     catch (\Throwable $e) {
@@ -611,6 +633,17 @@ final class EventWorkspaceOverviewBuilder {
       'empty' => TRUE,
       'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
     ];
+  }
+
+  /**
+   * Formats event-scoped activity money (aligned with TicketSalesService / vendor orders).
+   */
+  private function formatActivityMoney(float $amount, string $currency): string {
+    $currency = strtoupper($currency !== '' ? $currency : 'AUD');
+    if ($currency === 'AUD') {
+      return '$' . number_format($amount, 2);
+    }
+    return number_format($amount, 2) . ' ' . $currency;
   }
 
   /**
