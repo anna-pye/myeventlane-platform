@@ -60,7 +60,10 @@ final class EventStudioWorkspacePresentation {
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
       'strip_explanation' => $this->readinessStripExplanation($result),
-      'checklist' => $this->buildHumanChecklist($result),
+      'checklist' => $this->buildHumanChecklist(
+        $result,
+        is_array($readiness_bundle['recommended'] ?? NULL) ? $readiness_bundle['recommended'] : [],
+      ),
     ];
   }
 
@@ -154,7 +157,10 @@ final class EventStudioWorkspacePresentation {
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
       'strip_explanation' => $this->readinessStripExplanation($result),
-      'checklist' => $this->buildHumanChecklist($result),
+      'checklist' => $this->buildHumanChecklist(
+        $result,
+        is_array($readiness_bundle['recommended'] ?? NULL) ? $readiness_bundle['recommended'] : [],
+      ),
       'show_homepage_readiness' => $this->shouldShowHomepageReadinessCard(
         (bool) ($readiness_bundle['promotion_ready'] ?? FALSE),
         $published,
@@ -201,15 +207,18 @@ final class EventStudioWorkspacePresentation {
   }
 
   /**
-   * Builds the strip checklist, always including every blocking error and warning.
+   * Builds the strip checklist, always including blockers, warnings, and ideas.
    *
-   * Completed rows fill remaining slots up to eight total. Blocking errors and
-   * warnings are never truncated — checklist mode replaces the count row, so
-   * warnings must remain visible alongside blockers.
+   * Completed rows fill remaining slots up to eight total. Blocking errors,
+   * warnings, and optional recommendations are never truncated — checklist
+   * mode replaces the count row, so idea counts must remain visible too.
+   *
+   * @param list<string> $recommendations
+   *   Idea labels from the readiness facade bundle (publish + promotion).
    *
    * @return list<array{label: string, complete: bool, tone: string}>
    */
-  private function buildHumanChecklist(EventReadinessResult $result): array {
+  private function buildHumanChecklist(EventReadinessResult $result, array $recommendations = []): array {
     $completed = [];
     foreach ($result->completed as $label) {
       $completed[] = [
@@ -234,8 +243,17 @@ final class EventStudioWorkspacePresentation {
         'tone' => 'warning',
       ];
     }
-    // Reserve space for all blockers + warnings; only soft-cap completed rows.
-    $outstanding = array_merge($errors, $warnings);
+    // Facade-merged recommendations so checklist matches count-mode ideas.
+    $ideas = [];
+    foreach ($recommendations as $label) {
+      $ideas[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'idea',
+      ];
+    }
+    // Reserve space for all blockers + warnings + ideas; soft-cap completed.
+    $outstanding = array_merge($errors, $warnings, $ideas);
     $completed_room = max(0, 8 - count($outstanding));
     return array_merge(array_slice($completed, 0, $completed_room), $outstanding);
   }

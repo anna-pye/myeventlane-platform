@@ -5560,7 +5560,8 @@
 
 .mel-event-workspace-overview__check--warning,
 .mel-event-workspace-overview__check--idea,
-.mel-event-studio-readiness-strip__check--warning {
+.mel-event-studio-readiness-strip__check--warning,
+.mel-event-studio-readiness-strip__check--idea {
   color: var(--mel-text-muted, #4a5568);
 }
 

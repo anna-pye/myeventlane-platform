@@ -108,7 +108,57 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertNotEmpty($warningRows);
     $this->assertSame('Review capacity', $warningRows[0]['label']);
     $this->assertSame(['Add banner image'], $payload['recommendations']);
+    $ideaRows = array_values(array_filter(
+      $payload['checklist'],
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'idea',
+    ));
+    $this->assertCount(1, $ideaRows);
+    $this->assertSame('Add banner image', $ideaRows[0]['label']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
+  }
+
+  public function testStripChecklistIncludesRecommendationIdeas(): void {
+    $node = $this->node(FALSE, 108);
+    $bundle = [
+      'publish' => EventReadinessResult::create(
+        ['Add an event title.'],
+        [],
+        ['Payment onboarding complete.'],
+        ['Add a short event summary so attendees understand the experience quickly.'],
+      ),
+      'promotion' => [
+        'ready' => FALSE,
+        'status_label' => 'Needs attention before homepage promotion',
+        'short_status_label' => 'Needs attention',
+      ],
+      'recommended' => [
+        'Add a short event summary so attendees understand the experience quickly.',
+        'Add banner image',
+      ],
+      'promotion_ready' => FALSE,
+    ];
+    $summary = $this->presentation->buildReadinessSummary($bundle, $node);
+    $ideaRows = array_values(array_filter(
+      $summary['checklist'],
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'idea',
+    ));
+    $this->assertCount(2, $ideaRows);
+    $this->assertSame(
+      [
+        'Add a short event summary so attendees understand the experience quickly',
+        'Add banner image',
+      ],
+      array_column($ideaRows, 'label'),
+    );
+  }
+
+  public function testInformationFormStaysOnScheduleOrVenueAfterSave(): void {
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventInformationForm.php');
+    $this->assertIsString($form);
+    $this->assertStringContainsString('resolveStayRouteName', $form);
+    $this->assertStringContainsString('workspace_schedule', $form);
+    $this->assertStringContainsString('workspace_venue', $form);
+    $this->assertStringContainsString('setRedirect($this->resolveStayRouteName()', $form);
   }
 
   public function testStripChecklistNeverOmitsBlockingErrorsPastSoftCap(): void {
@@ -194,6 +244,8 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString("@count to finish", $js);
     $this->assertStringContainsString("@count to review", $js);
     $this->assertStringNotContainsString('blocker(s)', $js);
+    $this->assertStringContainsString("tone === 'idea'", $js);
+    $this->assertStringContainsString("Drupal.t('Idea')", $js);
   }
 
   /**

@@ -308,7 +308,7 @@
         + (tone ? ` mel-event-studio-readiness-strip__check--${tone}` : '');
       const mark = document.createElement('span');
       mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = complete ? '✔' : (tone === 'warning' ? '◇' : '○');
+      mark.textContent = complete ? '✔' : ((tone === 'warning' || tone === 'idea') ? '◇' : '○');
       const sr = document.createElement('span');
       sr.className = 'visually-hidden';
       if (complete) {
@@ -316,6 +316,9 @@
       }
       else if (tone === 'warning') {
         sr.textContent = Drupal.t('Suggested review');
+      }
+      else if (tone === 'idea') {
+        sr.textContent = Drupal.t('Idea');
       }
       else {
         sr.textContent = Drupal.t('Outstanding');

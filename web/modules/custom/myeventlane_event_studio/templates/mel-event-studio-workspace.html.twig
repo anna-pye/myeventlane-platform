@@ -34,12 +34,14 @@
       <ul class="mel-event-studio-readiness-strip__checklist" data-mel-readiness-checklist>
         {% for item in readiness.checklist %}
           <li class="mel-event-studio-readiness-strip__check{% if item.complete %} is-complete{% endif %}{% if item.tone|default('') %} mel-event-studio-readiness-strip__check--{{ item.tone|clean_class }}{% endif %}">
-            <span aria-hidden="true">{{ item.complete ? '✔' : (item.tone|default('') == 'warning' ? '◇' : '○') }}</span>
+            <span aria-hidden="true">{{ item.complete ? '✔' : (item.tone|default('') in ['warning', 'idea'] ? '◇' : '○') }}</span>
             <span class="visually-hidden">
               {% if item.complete %}
                 {{ 'Complete'|t }}
               {% elseif item.tone|default('') == 'warning' %}
                 {{ 'Suggested review'|t }}
+              {% elseif item.tone|default('') == 'idea' %}
+                {{ 'Idea'|t }}
               {% else %}
                 {{ 'Outstanding'|t }}
               {% endif %}

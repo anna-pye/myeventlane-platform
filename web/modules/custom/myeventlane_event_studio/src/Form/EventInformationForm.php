@@ -41,7 +41,7 @@ final class EventInformationForm extends EventStudioBaseForm {
   }
 
   protected function getNextRouteName(): string {
-    return 'myeventlane_event_studio.workspace_information';
+    return $this->resolveStayRouteName();
   }
 
   protected function getPreviousRouteName(): ?string {
@@ -62,7 +62,22 @@ final class EventInformationForm extends EventStudioBaseForm {
     $this->messenger()->addStatus($has_location
       ? $this->t('Event information and venue saved.')
       : $this->t('Event information saved.'));
-    $form_state->setRedirect('myeventlane_event_studio.workspace_information', ['node' => $saved->id()]);
+    // Schedule / Venue / Details share this form — stay on the nav section
+    // the organiser opened instead of always bouncing to Details.
+    $form_state->setRedirect($this->resolveStayRouteName(), ['node' => $saved->id()]);
+  }
+
+  /**
+   * Returns the workspace route for the current Schedule/Venue/Details alias.
+   */
+  private function resolveStayRouteName(): string {
+    $route = (string) ($this->getRouteMatch()->getRouteName() ?? '');
+    return match ($route) {
+      'myeventlane_event_studio.workspace_schedule' => 'myeventlane_event_studio.workspace_schedule',
+      'myeventlane_event_studio.workspace_venue' => 'myeventlane_event_studio.workspace_venue',
+      'myeventlane_event_studio.workspace_details' => 'myeventlane_event_studio.workspace_details',
+      default => 'myeventlane_event_studio.workspace_information',
+    };
   }
 
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
