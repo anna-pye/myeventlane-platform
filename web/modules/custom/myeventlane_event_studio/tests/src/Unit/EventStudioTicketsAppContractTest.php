@@ -73,14 +73,32 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $lifecycle = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierLifecycleService.php');
     $this->assertNotFalse($lifecycle);
     $this->assertStringContainsString('function duplicateTicketOnEvent', $lifecycle);
+    $this->assertStringContainsString("'waitlist_enabled'", $lifecycle);
+    $this->assertStringContainsString("'hidden_label'", $lifecycle);
+    $this->assertStringContainsString("'group_sale_mode'", $lifecycle);
+    $this->assertStringNotContainsString(
+      'buildTicketValuesFromInput($event, $account, $input)',
+      $lifecycle,
+    );
   }
 
   public function testTicketsAppAssetsExist(): void {
     $this->assertFileExists($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+    $js = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+    $this->assertNotFalse($js);
+    $this->assertStringContainsString('mel-tickets-sticky-add', $js);
+    $this->assertStringContainsString('openAddTicketPanel', $js);
+    $this->assertStringContainsString('details.open = true', $js);
     $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
     $this->assertNotFalse($css);
     $this->assertStringContainsString('mel-event-studio-ticket-sticky-add', $css);
     $this->assertStringContainsString('mel-event-studio-advanced-tools', $css);
+  }
+
+  public function testOperationalFormAttachesTicketsAppLibrary(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString("myeventlane_event_studio/mel_event_studio_tickets_app", $form);
   }
 
 }

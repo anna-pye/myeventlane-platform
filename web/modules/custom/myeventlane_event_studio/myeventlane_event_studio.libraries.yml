@@ -18,7 +18,7 @@ mel_event_studio:
     - myeventlane_event_studio/mel_event_studio_highlights
 
 mel_event_studio_tickets_app:
-  version: 1.0
+  version: 1.1
   js:
     js/mel-event-studio-tickets-app.js: {}
   dependencies:

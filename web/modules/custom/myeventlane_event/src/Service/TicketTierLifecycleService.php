@@ -307,8 +307,11 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
   /**
    * Duplicates a ticket type onto the same event as a draft copy.
    *
-   * Commerce sync runs through {@see createAttachAndSync()}. Best-value is not
-   * copied so organisers intentionally choose a highlight.
+   * Copies the same organiser configuration as
+   * {@see cloneFromReusableTemplate()} (waitlist, hidden checkout label,
+   * group-sale settings, capacity windows, etc.). Commerce variation IDs are
+   * never copied — sync creates a new variation for paid tiers. Best-value /
+   * default flags are reset so organisers choose highlights intentionally.
    *
    * @throws \InvalidArgumentException
    */
@@ -326,46 +329,106 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
     }
 
     $kind = $source->getTicketKind();
-    $input = [
+    if (!in_array($kind, ['paid', 'rsvp', 'external'], TRUE)) {
+      throw new InvalidArgumentException('Unsupported ticket kind for duplicate.');
+    }
+
+    $values = [
       'title' => trim($source->getTitle()) . ' (copy)',
       'ticket_kind' => $kind,
+      'vendor_id' => ['target_id' => (int) $account->id()],
+      'is_reusable' => FALSE,
+      'event' => ['target_id' => (int) $event->id()],
       'status' => 0,
+      'lifecycle_status' => TicketTypeInterface::LIFECYCLE_ACTIVE,
       'field_is_best_value' => 0,
       'field_is_default_ticket' => 0,
+      'commerce_variation' => NULL,
     ];
 
-    if ($source->hasField('visibility_mode') && !$source->get('visibility_mode')->isEmpty()) {
-      $input['visibility_mode'] = (string) $source->get('visibility_mode')->value;
-    }
-    if ($source->hasField('short_description') && !$source->get('short_description')->isEmpty()) {
-      $input['short_description'] = (string) $source->get('short_description')->value;
-    }
     if (!$source->get('capacity')->isEmpty()) {
-      $input['capacity'] = (int) $source->get('capacity')->value;
+      $values['capacity'] = (int) $source->get('capacity')->value;
+    }
+    if ($source->hasField('rsvp_limit') && !$source->get('rsvp_limit')->isEmpty()) {
+      $values['rsvp_limit'] = (int) $source->get('rsvp_limit')->value;
     }
     if (!$source->get('sale_start')->isEmpty()) {
-      $input['sale_start'] = (string) $source->get('sale_start')->value;
+      $values['sale_start'] = $source->get('sale_start')->getValue();
     }
     if (!$source->get('sale_end')->isEmpty()) {
-      $input['sale_end'] = (string) $source->get('sale_end')->value;
+      $values['sale_end'] = $source->get('sale_end')->getValue();
+    }
+
+    if ($source->hasField('visibility_mode') && !$source->get('visibility_mode')->isEmpty()) {
+      $values['visibility_mode'] = (string) $source->get('visibility_mode')->value;
+    }
+    if ($source->hasField('hidden_label') && !$source->get('hidden_label')->isEmpty()) {
+      $values['hidden_label'] = (string) $source->get('hidden_label')->value;
+    }
+    if ($source->hasField('short_description') && !$source->get('short_description')->isEmpty()) {
+      $values['short_description'] = (string) $source->get('short_description')->value;
+    }
+    if ($source->hasField('waitlist_enabled')) {
+      $values['waitlist_enabled'] = $source->get('waitlist_enabled')->value ? 1 : 0;
+    }
+    if ($source->hasField('waitlist_capacity') && !$source->get('waitlist_capacity')->isEmpty()) {
+      $values['waitlist_capacity'] = (int) $source->get('waitlist_capacity')->value;
+    }
+    if ($source->hasField('auto_promote_waitlist')) {
+      $values['auto_promote_waitlist'] = $source->get('auto_promote_waitlist')->value ? 1 : 0;
+    }
+    if ($source->hasField('group_sale_mode') && !$source->get('group_sale_mode')->isEmpty()) {
+      $values['group_sale_mode'] = (string) $source->get('group_sale_mode')->value;
+    }
+    if ($source->hasField('group_min_size') && !$source->get('group_min_size')->isEmpty()) {
+      $values['group_min_size'] = (int) $source->get('group_min_size')->value;
+    }
+    if ($source->hasField('group_bundle_size') && !$source->get('group_bundle_size')->isEmpty()) {
+      $values['group_bundle_size'] = (int) $source->get('group_bundle_size')->value;
+    }
+
+    if ($source->hasField('field_use_ticket_attendee_questions')) {
+      $values['field_use_ticket_attendee_questions'] = $source->get('field_use_ticket_attendee_questions')->value ? 1 : 0;
+    }
+    if ($source->hasField('field_attendee_questions') && !$source->get('field_attendee_questions')->isEmpty()) {
+      $refs = [];
+      foreach ($source->get('field_attendee_questions')->referencedEntities() as $paragraph) {
+        if (!$paragraph instanceof \Drupal\paragraphs\ParagraphInterface) {
+          continue;
+        }
+        $dup = $paragraph->createDuplicate();
+        $dup->save();
+        $refs[] = [
+          'target_id' => (int) $dup->id(),
+          'target_revision_id' => (int) $dup->getRevisionId(),
+        ];
+      }
+      if ($refs !== []) {
+        $values['field_attendee_questions'] = $refs;
+      }
     }
 
     if ($kind === 'paid') {
       $price = $source->toPriceValue();
-      if ($price === NULL) {
+      if ($price === NULL || (float) $price->getNumber() <= 0) {
         throw new InvalidArgumentException('Paid tickets require a price greater than zero.');
       }
-      $input['price_amount'] = $price->getNumber();
-      $input['price_currency'] = $price->getCurrencyCode();
+      $values['price'] = [
+        'number' => $price->getNumber(),
+        'currency_code' => $price->getCurrencyCode(),
+      ];
     }
+    else {
+      $values['price'] = NULL;
+    }
+
     if ($kind === 'external') {
       if ($source->get('external_url')->isEmpty()) {
         throw new InvalidArgumentException('External tickets require a valid https URL.');
       }
-      $input['external_uri'] = (string) $source->get('external_url')->uri;
+      $values['external_url'] = $source->get('external_url')->getValue();
     }
 
-    $values = $this->buildTicketValuesFromInput($event, $account, $input);
     return $this->createAttachAndSync($event, $values);
   }
 

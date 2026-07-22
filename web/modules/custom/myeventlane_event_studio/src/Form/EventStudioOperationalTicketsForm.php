@@ -159,6 +159,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
     $form['#tree'] = TRUE;
     $form['#attributes']['class'][] = 'mel-event-studio-operational-tickets';
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_tickets_app';
     $form['event_id'] = [
       '#type' => 'hidden',
       '#value' => (string) $event->id(),
