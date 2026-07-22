@@ -8,7 +8,9 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
+use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\DTO\ReadonlySectionProjection;
 use Drupal\myeventlane_event_studio\Form\EventSettingsForm;
@@ -40,6 +42,8 @@ final class EventStudioSectionRenderer {
     private readonly ?EventMetricsServiceInterface $metricsService = NULL,
     private readonly ?EventTicketPreviewBuilder $eventTicketPreviewBuilder = NULL,
     private readonly ?AccessCodeManagementBuilder $accessCodeManagementBuilder = NULL,
+    private readonly ?EventWorkspaceOverviewBuilder $overviewBuilder = NULL,
+    private readonly ?DomainDetector $domainDetector = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -78,6 +82,8 @@ final class EventStudioSectionRenderer {
       'tickets_stack' => $this->buildTicketsStack($event),
       'settings_with_readiness' => $this->buildSettingsSection($event),
       'capacity_summary' => $this->buildCapacitySection($event, $section),
+      'marketing_hub' => $this->buildMarketingHub($event),
+      'publishing_hub' => $this->buildPublishingHub($event),
       default => $this->buildUnknownTarget($section, $target),
     };
   }
@@ -106,26 +112,169 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildOverviewSection(NodeInterface $event): array {
+    if ($this->overviewBuilder instanceof EventWorkspaceOverviewBuilder) {
+      return $this->overviewBuilder->build($event, $this->currentUser);
+    }
+
+    $this->logger->error('Event Workspace overview builder unavailable for event @event.', [
+      '@event' => (string) $event->id(),
+    ]);
+    return $this->emptyStateBuilder->unavailableSection((string) $this->t('Overview'));
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildMarketingHub(NodeInterface $event): array {
+    $nid = (int) $event->id();
+    $publicPath = Url::fromRoute('entity.node.canonical', ['node' => $nid])->toString();
+    $publicUrl = $this->domainDetector instanceof DomainDetector
+      ? $this->domainDetector->publicUrl($publicPath)
+      : $publicPath;
+    $boostUrl = NULL;
+    try {
+      $boostUrl = Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $nid])->toString();
+    }
+    catch (\Throwable) {
+      $boostUrl = NULL;
+    }
+
+    if (!$event->isPublished()) {
+      return $this->emptyStateBuilder->build(
+        (string) $this->t('Marketing'),
+        (string) $this->t('Publish your event to start sharing and Boosting it.'),
+        (string) $this->t('Once live, you can copy your public link and run Boost from here.'),
+        [
+          (string) $this->t('Finish publishing first.'),
+          (string) $this->t('Then share your page with your community.'),
+        ],
+        'spark',
+        'default',
+      ) + [
+        'actions' => [
+          '#type' => 'link',
+          '#title' => $this->t('Go to publishing'),
+          '#url' => Url::fromRoute('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
+          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+        ],
+      ];
+    }
+
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-studio-overview']],
+      '#attributes' => ['class' => ['mel-event-workspace-marketing']],
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Use the sections below to finish setup. Readiness and boost status stay above so you always know what needs attention next.'),
-        '#attributes' => ['class' => ['mel-event-studio-overview__summary']],
+        '#value' => $this->t('Drive ticket sales for this event. Share your public page or Boost visibility across MyEventLane.'),
       ],
-      'actions' => [
-        '#theme' => 'item_list',
-        '#title' => $this->t('Suggested next steps'),
-        '#items' => [
-          $this->t('Start with Event information for the public details guests see first.'),
-          $this->t('Confirm RSVP or ticket setup before sharing the page.'),
-          $this->t('Review Branding and Content when you are ready to promote the event.'),
+      'share' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-workspace-marketing__share']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Share your event'),
         ],
-        '#attributes' => ['class' => ['mel-event-studio-overview__list']],
+        'url' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $publicUrl,
+        ],
+        'view' => [
+          '#type' => 'link',
+          '#title' => $this->t('View page'),
+          '#url' => Url::fromRoute('entity.node.canonical', ['node' => $nid]),
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--secondary'],
+            'target' => '_blank',
+            'rel' => 'noopener noreferrer',
+          ],
+        ],
       ],
+      'boost' => $boostUrl ? [
+        '#type' => 'container',
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Boost'),
+        ],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Feature your event in discovery so more people find you.'),
+        ],
+        'cta' => [
+          '#type' => 'link',
+          '#title' => $this->t('Start Boost'),
+          '#url' => Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $nid]),
+          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+        ],
+      ] : [],
     ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildPublishingHub(NodeInterface $event): array {
+    $account = $this->currentUser;
+    $readiness = $this->eventReadiness->evaluate($event, $account);
+    $remaining = count($readiness->errors);
+    $headline = $readiness->ready
+      ? ($event->isPublished()
+        ? (string) $this->t('Your event is live')
+        : (string) $this->t('Ready to publish'))
+      : ($remaining === 1
+        ? (string) $this->t("You're almost there…")
+        : (string) $this->t('A few things left before publishing'));
+    $explanation = $readiness->ready
+      ? (string) $this->t('Everything needed to go live looks good.')
+      : ($remaining === 1 && $readiness->errors !== []
+        ? (string) $this->t('One more thing before publishing: @reason', ['@reason' => $readiness->errors[0]])
+        : (string) $this->t('Finish the checklist below. We never block without explaining why.'));
+
+    $checklist = [];
+    foreach ($readiness->completed as $item) {
+      $checklist[] = ['#markup' => '✔ ' . $this->humanChecklistLabel((string) $item)];
+    }
+    foreach ($readiness->errors as $item) {
+      $checklist[] = ['#markup' => '○ ' . (string) $item];
+    }
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-event-workspace-publishing']],
+      'headline' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $headline,
+      ],
+      'explain' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $explanation,
+      ],
+      'checklist' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('Publishing checklist'),
+        '#items' => $checklist,
+      ],
+      'settings' => $this->formBuilder->getForm(EventSettingsForm::class, $event),
+    ];
+  }
+
+  private function humanChecklistLabel(string $label): string {
+    return match ($label) {
+      'Event title added.', 'Event title' => (string) $this->t('Event title'),
+      'Event dates complete.', 'Schedule' => (string) $this->t('Schedule'),
+      'Booking mode selected.', 'Ticketing configured.', 'Tickets ready' => (string) $this->t('Tickets ready'),
+      'Payment onboarding complete.', 'Payments connected' => (string) $this->t('Payments connected'),
+      'Vendor publish requirements complete.', 'Organiser profile ready' => (string) $this->t('Organiser profile ready'),
+      'Branding image added.', 'Cover image' => (string) $this->t('Cover image'),
+      'Capacity settings valid.', 'Capacity' => (string) $this->t('Capacity'),
+      default => rtrim($label, '.'),
+    };
   }
 
   /**
@@ -144,9 +293,9 @@ final class EventStudioSectionRenderer {
       'items' => [
         '#theme' => 'item_list',
         '#items' => [
-          $this->t('Check event information and public copy first.'),
-          $this->t('Confirm RSVP or ticket setup before sharing the page.'),
-          $this->t('Use the readiness strip above when you are ready to publish.'),
+          $this->t('Start with Details so guests know what the event is about.'),
+          $this->t('Confirm tickets or RSVP before sharing the page.'),
+          $this->t('Use Publishing when you are ready to go live.'),
         ],
         '#attributes' => ['class' => ['mel-event-studio-next-steps__list']],
       ],

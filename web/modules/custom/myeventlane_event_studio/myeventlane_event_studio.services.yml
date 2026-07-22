@@ -100,6 +100,15 @@ services:
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
 
+  myeventlane_event_studio.overview_builder:
+    class: Drupal\myeventlane_event_studio\Service\EventWorkspaceOverviewBuilder
+    arguments:
+      - '@myeventlane_vendor.event_workspace_view_model_builder'
+      - '@myeventlane_vendor.paid_publish_stripe_gate'
+      - '@myeventlane_event_studio.readiness'
+      - '@logger.channel.myeventlane_event_studio'
+      - '@string_translation'
+
   myeventlane_event_studio.section_renderer:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer
     arguments:
@@ -114,6 +123,8 @@ services:
       - '@?myeventlane_metrics.service'
       - '@myeventlane_event_studio.event_ticket_preview_builder'
       - '@?myeventlane_tickets.access_code_management_builder'
+      - '@myeventlane_event_studio.overview_builder'
+      - '@myeventlane_core.domain_detector'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper
