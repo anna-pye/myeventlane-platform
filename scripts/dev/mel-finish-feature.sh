@@ -66,6 +66,12 @@ fail() {
 
 mel_section "Validation gates"
 
+# Start DDEV before gates that prefer `ddev exec` (composer, PHPCS, PHPUnit, Drush).
+# Previously this ran only ahead of Drush, so a stopped project failed earlier gates.
+if [[ -d "${ROOT}/.ddev" ]] && mel_ddev_available; then
+  mel_ensure_ddev_running "${ROOT}"
+fi
+
 if ! mel_run_step "Composer validate" mel_composer_validate "${ROOT}"; then
   fail
 fi
@@ -101,7 +107,6 @@ fi
 if [[ "${MEL_SKIP_DRUSH:-0}" == "1" ]]; then
   mel_warn "Skipping Drush gates (MEL_SKIP_DRUSH=1)"
 else
-  mel_ensure_ddev_running "${ROOT}"
   if ! mel_run_step "drush cr" mel_drush_cr "${ROOT}"; then
     fail
   fi
