@@ -201,12 +201,13 @@ final class EventStudioWorkspacePresentation {
   }
 
   /**
-   * Builds the strip checklist, always including every blocking error.
+   * Builds the strip checklist, always including every blocking error and warning.
    *
-   * Completed rows fill remaining slots up to eight total. Blocking errors are
-   * never truncated — publish can remain blocked by items that must stay visible.
+   * Completed rows fill remaining slots up to eight total. Blocking errors and
+   * warnings are never truncated — checklist mode replaces the count row, so
+   * warnings must remain visible alongside blockers.
    *
-   * @return list<array{label: string, complete: bool}>
+   * @return list<array{label: string, complete: bool, tone: string}>
    */
   private function buildHumanChecklist(EventReadinessResult $result): array {
     $completed = [];
@@ -214,6 +215,7 @@ final class EventStudioWorkspacePresentation {
       $completed[] = [
         'label' => $this->humanChecklistLabel((string) $label),
         'complete' => TRUE,
+        'tone' => 'success',
       ];
     }
     $errors = [];
@@ -221,11 +223,21 @@ final class EventStudioWorkspacePresentation {
       $errors[] = [
         'label' => rtrim((string) $label, '.'),
         'complete' => FALSE,
+        'tone' => 'attention',
       ];
     }
-    // Reserve space for all blockers; only soft-cap completed rows.
-    $completed_room = max(0, 8 - count($errors));
-    return array_merge(array_slice($completed, 0, $completed_room), $errors);
+    $warnings = [];
+    foreach ($result->warnings as $label) {
+      $warnings[] = [
+        'label' => rtrim((string) $label, '.'),
+        'complete' => FALSE,
+        'tone' => 'warning',
+      ];
+    }
+    // Reserve space for all blockers + warnings; only soft-cap completed rows.
+    $outstanding = array_merge($errors, $warnings);
+    $completed_room = max(0, 8 - count($outstanding));
+    return array_merge(array_slice($completed, 0, $completed_room), $outstanding);
   }
 
   private function humanChecklistLabel(string $label): string {

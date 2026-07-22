@@ -301,14 +301,25 @@
         return;
       }
       const complete = !!item.complete;
+      const tone = typeof item.tone === 'string' ? item.tone : '';
       const li = document.createElement('li');
-      li.className = 'mel-event-studio-readiness-strip__check' + (complete ? ' is-complete' : '');
+      li.className = 'mel-event-studio-readiness-strip__check'
+        + (complete ? ' is-complete' : '')
+        + (tone ? ` mel-event-studio-readiness-strip__check--${tone}` : '');
       const mark = document.createElement('span');
       mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = complete ? '✔' : '○';
+      mark.textContent = complete ? '✔' : (tone === 'warning' ? '◇' : '○');
       const sr = document.createElement('span');
       sr.className = 'visually-hidden';
-      sr.textContent = complete ? Drupal.t('Complete') : Drupal.t('Outstanding');
+      if (complete) {
+        sr.textContent = Drupal.t('Complete');
+      }
+      else if (tone === 'warning') {
+        sr.textContent = Drupal.t('Suggested review');
+      }
+      else {
+        sr.textContent = Drupal.t('Outstanding');
+      }
       const label = document.createTextNode(' ' + item.label);
       li.appendChild(mark);
       li.appendChild(sr);

@@ -101,6 +101,12 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertArrayHasKey('strip_title', $payload);
     $this->assertArrayHasKey('strip_explanation', $payload);
     $this->assertArrayHasKey('checklist', $payload);
+    $warningRows = array_values(array_filter(
+      $payload['checklist'],
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'warning',
+    ));
+    $this->assertNotEmpty($warningRows);
+    $this->assertSame('Review capacity', $warningRows[0]['label']);
     $this->assertSame(['Add banner image'], $payload['recommendations']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
   }
@@ -113,6 +119,10 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
       'Select a booking mode.',
       'Configure ticketing.',
     ];
+    $warnings = [
+      'Cover image could be sharper.',
+      'Add a short summary.',
+    ];
     $completed = [
       'Payment onboarding complete.',
       'Vendor publish requirements complete.',
@@ -121,7 +131,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
       'External booking URL added.',
     ];
     $bundle = [
-      'publish' => EventReadinessResult::create($errors, [], $completed),
+      'publish' => EventReadinessResult::create($errors, $warnings, $completed),
       'promotion' => [
         'ready' => FALSE,
         'status_label' => 'Needs attention before homepage promotion',
@@ -135,11 +145,23 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
       $summary['checklist'],
       static fn(array $item): bool => empty($item['complete']),
     ));
+    $errorRows = array_values(array_filter(
+      $incomplete,
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'attention',
+    ));
+    $warningRows = array_values(array_filter(
+      $incomplete,
+      static fn(array $item): bool => ($item['tone'] ?? '') === 'warning',
+    ));
 
-    $this->assertCount(4, $incomplete);
+    $this->assertCount(4, $errorRows);
+    $this->assertCount(2, $warningRows);
     $this->assertLessThanOrEqual(8, count($summary['checklist']));
     foreach ($errors as $error) {
-      $this->assertContains(rtrim($error, '.'), array_column($incomplete, 'label'));
+      $this->assertContains(rtrim($error, '.'), array_column($errorRows, 'label'));
+    }
+    foreach ($warnings as $warning) {
+      $this->assertContains(rtrim($warning, '.'), array_column($warningRows, 'label'));
     }
   }
 

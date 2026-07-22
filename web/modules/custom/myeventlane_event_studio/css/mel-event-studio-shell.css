@@ -5548,11 +5548,13 @@
 }
 
 .mel-event-workspace-overview__check--warning,
-.mel-event-workspace-overview__check--idea {
+.mel-event-workspace-overview__check--idea,
+.mel-event-studio-readiness-strip__check--warning {
   color: var(--mel-text-muted, #4a5568);
 }
 
-.mel-event-workspace-overview__check--attention {
+.mel-event-workspace-overview__check--attention,
+.mel-event-studio-readiness-strip__check--attention {
   color: var(--mel-text, #1a202c);
 }
 
