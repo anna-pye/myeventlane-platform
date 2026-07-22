@@ -249,6 +249,7 @@
                   data-mel-ops-attendee-id="{{ row.id }}"
                 >
                   <input type="hidden" name="_token" value="{{ checkin_csrf|e('html_attr') }}">
+                  <input type="hidden" name="destination" value="{{ path('myeventlane_event_attendees.vendor_operations', {'node': event.id()}) }}">
                   <button type="submit" class="mel-btn mel-btn--primary mel-live-ops__check-btn">{{ 'Check in'|t }}</button>
                 </form>
               {% else %}

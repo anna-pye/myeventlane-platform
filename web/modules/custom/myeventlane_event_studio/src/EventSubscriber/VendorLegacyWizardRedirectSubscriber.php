@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -202,6 +203,16 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     }
 
     if (in_array($route, self::DOOR_MODE_REDIRECT_ROUTES, TRUE)) {
+      // Door Mode requires vendor_console access. Check-in-only team accounts
+      // must keep their legacy surfaces (access check-in / check in tickets).
+      if (!VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser)) {
+        $this->logger->notice('Vendor Door Mode redirect skipped (no console trust): from_route=@from event_id=@eid uid=@uid', [
+          '@from' => $route,
+          '@eid' => (string) $node->id(),
+          '@uid' => (string) $this->currentUser->id(),
+        ]);
+        return NULL;
+      }
       $url = Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', [
         'node' => (int) $node->id(),
       ])->toString();

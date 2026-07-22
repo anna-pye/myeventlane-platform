@@ -56,6 +56,8 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
     $this->assertStringContainsString('Door Mode will update this list', $twig);
     $this->assertStringContainsString('data-mel-attendee-search', $twig);
     $this->assertStringContainsString('data-mel-attendee-filter', $twig);
+    $this->assertStringContainsString("name=\"destination\"", $twig);
+    $this->assertStringContainsString('workspace_attendees', $twig);
     $this->assertStringNotContainsString('Ticket holders', $twig);
     $this->assertStringNotContainsString('Check-in module', $twig);
   }
@@ -77,6 +79,9 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
 
   /**
    * Asserts Door Mode and filter redirects are registered.
+   *
+   * Door Mode redirects apply only when the account has vendor console trust;
+   * check-in-only team accounts keep legacy surfaces.
    */
   public function testDoorModeRedirectsAreRegistered(): void {
     $subscriber = file_get_contents($this->moduleRoot() . '/src/EventSubscriber/VendorLegacyWizardRedirectSubscriber.php');
@@ -85,6 +90,8 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
     $this->assertStringContainsString('myeventlane_checkin.page', $subscriber);
     $this->assertStringContainsString('myeventlane_tickets.ticket_checkin', $subscriber);
     $this->assertStringContainsString('myeventlane_rsvp.checkin_list', $subscriber);
+    $this->assertStringContainsString('VendorConsoleTrust', $subscriber);
+    $this->assertStringContainsString('accountIsTrustedForVendorConsole', $subscriber);
     $this->assertStringContainsString("filter'] = 'rsvp'", $subscriber);
     $this->assertStringContainsString("filter'] = 'waitlist'", $subscriber);
   }

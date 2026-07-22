@@ -215,7 +215,9 @@ final class EventAttendeeWorkspaceBuilder {
     };
 
     $checkInUrl = NULL;
-    if (!$attendee->isCheckedIn() && $status !== EventAttendee::STATUS_CANCELLED) {
+    // MelAttendeeCheckinManager only transitions MelAttendeeAttendanceState::Registered
+    // (export STATE_REGISTERED). Do not expose Check in for refunded / waitlist / pending.
+    if ($operational === MelAttendeeExportBuilder::STATE_REGISTERED) {
       try {
         $checkInUrl = Url::fromRoute('myeventlane_event_attendees.vendor_checkin', [
           'event_attendee' => $attendee->id(),

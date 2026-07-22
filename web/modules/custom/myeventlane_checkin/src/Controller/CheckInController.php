@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_checkin\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_checkin\Service\CheckInStorageInterface;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -39,39 +40,94 @@ final class CheckInController extends ControllerBase {
   }
 
   /**
-   * Main check-in page — VX2-05 converges on Door Mode.
+   * Main check-in page — VX2-05 converges on Door Mode for console users.
+   *
+   * Team accounts with check-in-only permission (no vendor console trust) keep
+   * the legacy UI: Door Mode is gated by vendor_console access and would 403.
+   *
+   * @return array<string, mixed>|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   Legacy page build or Door Mode redirect.
    */
-  public function page(NodeInterface $node): RedirectResponse {
+  public function page(NodeInterface $node): array|RedirectResponse {
     $this->assertEventAccess($node);
 
-    return new RedirectResponse(
-      Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
-      302,
-    );
+    if ($this->shouldConvergeToDoorMode()) {
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
+        302,
+      );
+    }
+
+    $attendees = $this->checkInStorage->getAttendees($node);
+    $checkedInCount = count(array_filter($attendees, fn($a) => $a['checked_in']));
+    $totalCount = count($attendees);
+
+    return [
+      '#theme' => 'myeventlane_checkin_page',
+      '#event' => $node,
+      '#attendees' => $attendees,
+      '#stats' => [
+        'total' => $totalCount,
+        'checked_in' => $checkedInCount,
+        'remaining' => $totalCount - $checkedInCount,
+      ],
+      '#attached' => [
+        'library' => ['myeventlane_checkin/checkin'],
+      ],
+    ];
   }
 
   /**
-   * Legacy QR scan route — redirects to canonical Door Mode.
+   * Legacy QR scan route — Door Mode for console users; otherwise scan UI.
+   *
+   * @return array<string, mixed>|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   Legacy scan build or Door Mode redirect.
    */
-  public function scan(NodeInterface $node): RedirectResponse {
+  public function scan(NodeInterface $node): array|RedirectResponse {
     $this->assertEventAccess($node);
 
-    return new RedirectResponse(
-      Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
-      302,
-    );
+    if ($this->shouldConvergeToDoorMode()) {
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
+        302,
+      );
+    }
+
+    return [
+      '#theme' => 'myeventlane_checkin_scan',
+      '#event' => $node,
+      '#attached' => [
+        'library' => ['myeventlane_checkin/checkin'],
+      ],
+    ];
   }
 
   /**
-   * Attendee list page — VX2-05 converges on Door Mode.
+   * Attendee list page — Door Mode for console users; otherwise legacy list.
+   *
+   * @return array<string, mixed>|\Symfony\Component\HttpFoundation\RedirectResponse
+   *   Legacy list build or Door Mode redirect.
    */
-  public function list(NodeInterface $node): RedirectResponse {
+  public function list(NodeInterface $node): array|RedirectResponse {
     $this->assertEventAccess($node);
 
-    return new RedirectResponse(
-      Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
-      302,
-    );
+    if ($this->shouldConvergeToDoorMode()) {
+      return new RedirectResponse(
+        Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', ['node' => $node->id()])->toString(),
+        302,
+      );
+    }
+
+    $attendees = $this->checkInStorage->getAttendees($node);
+
+    return [
+      '#theme' => 'myeventlane_checkin_list',
+      '#event' => $node,
+      '#attendees' => $attendees,
+      '#attached' => [
+        'library' => ['myeventlane_checkin/checkin'],
+      ],
+    ];
   }
 
   /**
@@ -117,6 +173,16 @@ final class CheckInController extends ControllerBase {
     return new JsonResponse([
       'results' => $results,
     ]);
+  }
+
+  /**
+   * Whether this account may use Door Mode (vendor console trust).
+   *
+   * Door Mode routes use vendor_console access; check-in-only team accounts
+   * must not be redirected into a surface they cannot open.
+   */
+  private function shouldConvergeToDoorMode(): bool {
+    return VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser());
   }
 
   /**

@@ -43,6 +43,8 @@ final class CheckinRoutingSafetyTest extends TestCase {
     $raw = (string) file_get_contents($path);
     $this->assertStringContainsString('attendeeBelongsToEvent', $raw);
     $this->assertStringContainsString('AccessDeniedHttpException', $raw);
+    $this->assertStringContainsString('shouldConvergeToDoorMode', $raw);
+    $this->assertStringContainsString('VendorConsoleTrust', $raw);
   }
 
 }

@@ -34,4 +34,18 @@ final class EventAttendeeWorkspaceBuilderContractTest extends TestCase {
     }
   }
 
+  /**
+   * Asserts card Check in is gated to registered operational state only.
+   */
+  public function testCheckInActionRequiresRegisteredOperationalState(): void {
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventAttendeeWorkspaceBuilder.php');
+    $this->assertNotFalse($builder);
+    $this->assertStringContainsString('MelAttendeeExportBuilder::STATE_REGISTERED', $builder);
+    $this->assertStringContainsString('vendor_checkin', $builder);
+    $this->assertStringNotContainsString(
+      '!$attendee->isCheckedIn() && $status !== EventAttendee::STATUS_CANCELLED',
+      $builder,
+    );
+  }
+
 }

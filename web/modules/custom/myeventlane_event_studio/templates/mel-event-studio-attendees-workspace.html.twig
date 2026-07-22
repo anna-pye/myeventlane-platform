@@ -166,6 +166,7 @@
                     action="{{ attendee.actions.checkin_url }}"
                     data-mel-attendee-checkin>
                 <input type="hidden" name="_token" value="{{ checkin_csrf|e('html_attr') }}">
+                <input type="hidden" name="destination" value="{{ path('myeventlane_event_studio.workspace_attendees', {'node': event.id()}) }}">
                 <button type="submit" class="mel-btn mel-btn--primary mel-attendee-card__action">{{ 'Check in'|t }}</button>
               </form>
             {% endif %}
