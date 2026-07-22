@@ -228,8 +228,10 @@ final class EventWorkspaceOverviewBuilder {
 
     $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
     $available = $salesSummary['tickets_available'] ?? NULL;
+    // TicketSalesService returns 0 when capacity is unset/unknown — omit remaining
+    // rather than implying sell-out (metrics policy).
     $remaining = NULL;
-    if (is_int($available) || (is_string($available) && ctype_digit($available))) {
+    if ((is_int($available) || (is_string($available) && ctype_digit($available))) && (int) $available > 0) {
       $remaining = max(0, (int) $available - $sold);
     }
 
@@ -521,25 +523,35 @@ final class EventWorkspaceOverviewBuilder {
       }
       /** @var \Drupal\commerce_order\Entity\OrderItemInterface[] $orderItems */
       $orderItems = $orderItemStorage->loadMultiple($ids);
-      $seenOrders = [];
+      // Aggregate per order first so multi-line event orders show full ticket qty
+      // and only completed orders appear (aligned with TicketSalesService).
+      $orderAgg = [];
       foreach ($orderItems as $item) {
         $order = $item->getOrder();
         if ($order === NULL) {
           continue;
         }
+        if ($order->getState()->getId() !== 'completed') {
+          continue;
+        }
         $oid = (int) $order->id();
-        if (isset($seenOrders[$oid])) {
-          continue;
+        if (!isset($orderAgg[$oid])) {
+          $orderAgg[$oid] = [
+            'order' => $order,
+            'qty' => 0,
+            'placed' => (int) $order->getPlacedTime(),
+          ];
         }
-        $state = $order->getState()->getId();
-        if (!in_array($state, ['completed', 'fulfillment', 'placed'], TRUE)) {
-          continue;
-        }
-        $seenOrders[$oid] = TRUE;
-        $placed = (int) $order->getPlacedTime();
+        $orderAgg[$oid]['qty'] += (int) round((float) $item->getQuantity());
+      }
+
+      foreach ($orderAgg as $oid => $row) {
+        /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+        $order = $row['order'];
         $total = $order->getTotalPrice();
         $amount = $total ? $total->__toString() : '';
-        $qty = (int) round((float) $item->getQuantity());
+        $qty = (int) $row['qty'];
+        $placed = (int) $row['placed'];
         $when = $placed > 0
           ? $this->dateFormatter->formatTimeDiffSince($placed, ['granularity' => 1])
           : '';
@@ -780,15 +792,8 @@ final class EventWorkspaceOverviewBuilder {
       ];
     }
 
-    if (($stripe['tone'] ?? '') === 'attention' && ($stripe['url'] ?? NULL)) {
-      return [
-        'title' => (string) $this->t('Connect Stripe'),
-        'message' => (string) ($stripe['detail'] ?? $this->t('Connect payments so you can get paid.')),
-        'action_label' => (string) $this->t('Connect Stripe'),
-        'url' => (string) $stripe['url'],
-      ];
-    }
-
+    // Publish blockers win over Stripe Connect — never push payouts while
+    // checklist items (tickets, schedule, etc.) remain unresolved.
     if (!$readiness->ready) {
       return [
         'title' => (string) $this->t('Continue setup'),
@@ -799,6 +804,16 @@ final class EventWorkspaceOverviewBuilder {
         'url' => $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
       ];
     }
+
+    if (($stripe['tone'] ?? '') === 'attention' && ($stripe['url'] ?? NULL)) {
+      return [
+        'title' => (string) $this->t('Connect Stripe'),
+        'message' => (string) ($stripe['detail'] ?? $this->t('Connect payments so you can get paid.')),
+        'action_label' => (string) $this->t('Connect Stripe'),
+        'url' => (string) $stripe['url'],
+      ];
+    }
+
     if (!$published) {
       return [
         'title' => (string) $this->t('Ready when you are'),
