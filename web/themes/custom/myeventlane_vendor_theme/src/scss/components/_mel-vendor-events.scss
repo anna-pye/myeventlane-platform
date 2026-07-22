@@ -42,8 +42,11 @@
 // -----------------------------------------------------------------------------
 
 .mel-events-wrapper {
-  max-width: 1200px;
-  padding: 24px;
+  max-width: sp.$mel-layout-workspace;
+  width: 100%;
+  margin-inline: auto;
+  min-width: 0;
+  padding: sp.$mel-page-gutter-tablet;
 }
 
 .mel-events-wrapper[data-view='grid'] .mel-events-bulk-list {
@@ -360,7 +363,8 @@
   border-radius: 16px;
   background: #fafafa;
   border: 1px dashed rgba(0, 0, 0, 0.08);
-  max-width: 1200px;
+  max-width: sp.$mel-layout-workspace;
+  margin-inline: auto;
 }
 
 .mel-empty--events-inner,

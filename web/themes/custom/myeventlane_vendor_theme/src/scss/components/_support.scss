@@ -16,9 +16,11 @@
 // ============================================================================
 
 .mel-support-page {
-  max-width: 56rem;
-  margin: 0 auto;
+  max-width: $mel-layout-reading;
+  width: 100%;
+  margin-inline: auto;
   padding: $spacing-6 0;
+  min-width: 0;
 }
 
 .mel-support-header {

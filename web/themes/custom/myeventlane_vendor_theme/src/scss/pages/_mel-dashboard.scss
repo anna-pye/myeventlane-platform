@@ -11,13 +11,16 @@
 @use '../tokens/breakpoints' as *;
 
 // -----------------------------------------------------------------------------
-// Page shell — max width, vertical rhythm (aligned with mel-live-ops panels)
+// Page shell — width from parent .mel-layout--* / .mel-workspace (VX2-02A).
+// Do not re-assert a competing max-width here.
 // -----------------------------------------------------------------------------
 
-.mel-page {
+.mel-workspace-page.mel-page,
+.mel-analytics.mel-page {
   box-sizing: border-box;
-  max-width: $layout-content-max-width;
-  margin: 0 auto;
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
   padding-inline: 0;
   display: flex;
   flex-direction: column;
@@ -38,7 +41,7 @@
   margin: 0;
   font-size: $font-size-sm;
   color: $text-secondary;
-  max-width: 42rem;
+  max-width: $mel-layout-reading;
   line-height: $line-height-relaxed;
 
   strong {
@@ -48,19 +51,20 @@
 }
 
 // -----------------------------------------------------------------------------
-// Cards
+// Cards — align to MEL card tokens (padding / radius / shadow); no parallel system.
 // -----------------------------------------------------------------------------
 
-.mel-card {
+.mel-workspace-page .mel-card,
+.mel-analytics .mel-card {
   box-sizing: border-box;
   background: $bg-primary;
-  border-radius: $radius-2xl;
+  border-radius: $radius-workspace-card;
   border: 1px solid $border-color-light;
-  padding: $spacing-6;
+  padding: $card-padding;
   box-shadow: $shadow-card;
 
   @media (max-width: 479px) {
-    padding: $spacing-5;
+    padding: $card-padding-sm;
   }
 
   &--soft {
@@ -69,12 +73,15 @@
   }
 }
 
-.mel-card__header {
+.mel-workspace-page .mel-card__header,
+.mel-analytics .mel-card__header {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: $spacing-1;
   margin-bottom: $spacing-5;
+  padding: 0;
+  border-bottom: none;
 
   @include respond-to(md) {
     flex-direction: row;
@@ -84,7 +91,8 @@
   }
 }
 
-.mel-card__title {
+.mel-workspace-page .mel-card__title,
+.mel-analytics .mel-card__title {
   margin: 0;
   font-size: $font-size-xl;
   font-weight: $font-weight-semibold;
@@ -92,13 +100,15 @@
   line-height: $line-height-tight;
 }
 
-.mel-card__subtitle {
+.mel-workspace-page .mel-card__subtitle,
+.mel-analytics .mel-card__subtitle {
   margin: 0;
   font-size: $font-size-sm;
   color: $text-secondary;
 }
 
-.mel-card__body {
+.mel-workspace-page .mel-card__body,
+.mel-analytics .mel-card__body {
   padding: 0;
 }
 

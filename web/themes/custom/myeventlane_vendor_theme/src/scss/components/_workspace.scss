@@ -19,7 +19,7 @@
 .mel-workspace {
   box-sizing: border-box;
   width: 100%;
-  max-width: $layout-container-max;
+  max-width: $mel-layout-workspace;
   margin-inline: auto;
   display: flex;
   flex-direction: column;
@@ -29,8 +29,8 @@
 
   @media (max-width: 479px) {
     padding-block: $mel-spacing-md;
-    padding-inline-start: max(#{$spacing-3}, env(safe-area-inset-left));
-    padding-inline-end: max(#{$spacing-3}, env(safe-area-inset-right));
+    padding-inline-start: max(#{$mel-page-gutter-mobile}, env(safe-area-inset-left));
+    padding-inline-end: max(#{$mel-page-gutter-mobile}, env(safe-area-inset-right));
   }
 
   @include respond-to(md) {
@@ -441,7 +441,8 @@
   font-size: $font-size-sm;
   color: rgba($mel-ws-navy, 0.85);
   line-height: 1.55;
-  max-width: none;
+  max-width: $mel-layout-reading;
+  width: 100%;
   background: rgba(110, 126, 242, 0.08);
   border: 1px solid $mel-ws-purple-border;
   border-radius: $radius-lg;

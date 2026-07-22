@@ -29,19 +29,44 @@
 .mel-console--workspace-body {
   gap: $spacing-6;
   width: 100%;
+  max-width: $mel-layout-workspace;
+  margin-inline: auto;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.mel-console--dashboard {
+  max-width: $mel-layout-dashboard;
+}
+
+.mel-console--marketing,
+.mel-console--wide {
+  max-width: $mel-layout-wide;
+}
+
+.mel-console--form {
+  max-width: $mel-layout-form;
+}
+
+.mel-console--reading {
+  max-width: $mel-layout-reading;
 }
 
 .mel-console__header {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: $spacing-4;
+  margin-bottom: $spacing-2;
 }
 
 .mel-console__header-main {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
 }
 
 .mel-console__title {
@@ -50,16 +75,18 @@
 }
 
 .mel-console__meta {
-  margin: $spacing-1 0 0 0;
+  margin: 0;
   font-size: $font-size-sm;
   color: $text-secondary;
   line-height: 1.4;
+  max-width: $mel-layout-reading;
 }
 
 .mel-console__actions {
   display: flex;
   align-items: center;
   gap: $spacing-3;
+  flex-shrink: 0;
 }
 
 .mel-console__tabs {
@@ -122,6 +149,8 @@
 
 .mel-console__body {
   // Main content area; spacing from grid/cards handles gap.
+  min-width: 0;
+  width: 100%;
 }
 
 // ============================================================================
@@ -137,6 +166,7 @@
   font-size: $font-size-body;
   color: $text-secondary;
   margin: $spacing-1 0 0 0;
+  max-width: $mel-layout-reading;
 }
 
 // ============================================================================
