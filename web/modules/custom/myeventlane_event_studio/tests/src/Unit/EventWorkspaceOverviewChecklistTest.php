@@ -81,4 +81,22 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertStringNotContainsString("orderBy('order_id', 'DESC')", $builder);
   }
 
+  public function testSalesAndAnalyticsDoNotShareBookingsLabelForDifferentMetrics(): void {
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($builder);
+    $salesPos = strpos($builder, 'function buildSalesCard');
+    $analyticsPos = strpos($builder, 'function buildAnalyticsCard');
+    $activityPos = strpos($builder, 'function buildActivityFeed');
+    $this->assertNotFalse($salesPos);
+    $this->assertNotFalse($analyticsPos);
+    $this->assertNotFalse($activityPos);
+    $salesBlock = substr($builder, $salesPos, $analyticsPos - $salesPos);
+    $analyticsBlock = substr($builder, $analyticsPos, $activityPos - $analyticsPos);
+    // Sales: orders_count → "orders". Analytics: tickets_sold → "sold".
+    $this->assertStringContainsString("\$this->t('orders')", $salesBlock);
+    $this->assertStringNotContainsString("\$this->t('bookings')", $salesBlock);
+    $this->assertStringContainsString("\$this->t('sold')", $analyticsBlock);
+    $this->assertStringNotContainsString("\$this->t('bookings')", $analyticsBlock);
+  }
+
 }

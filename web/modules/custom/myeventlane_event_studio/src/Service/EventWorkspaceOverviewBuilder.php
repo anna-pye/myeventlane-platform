@@ -412,7 +412,7 @@ final class EventWorkspaceOverviewBuilder {
       $metrics[] = ['label' => (string) $this->t('gross'), 'value' => $gross, 'primary' => TRUE];
     }
     $metrics[] = [
-      'label' => (string) $this->t('bookings'),
+      'label' => (string) $this->t('orders'),
       'value' => (string) $orders,
     ];
 
@@ -528,7 +528,9 @@ final class EventWorkspaceOverviewBuilder {
     $orders = (int) ($salesSummary['orders_count'] ?? 0);
     $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
     if ($sold > 0) {
-      $metrics[] = ['label' => (string) $this->t('bookings'), 'value' => (string) $sold];
+      // Same tickets_sold metric as Tickets card — never label as "bookings"
+      // (Sales uses orders_count for order volume).
+      $metrics[] = ['label' => (string) $this->t('sold'), 'value' => (string) $sold];
     }
     elseif ($orders > 0) {
       $metrics[] = ['label' => (string) $this->t('orders'), 'value' => (string) $orders];
