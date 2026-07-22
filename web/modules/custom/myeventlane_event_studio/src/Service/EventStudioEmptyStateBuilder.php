@@ -123,8 +123,8 @@ final class EventStudioEmptyStateBuilder {
   public function readonlyEmptySection(string $section_label, string $body = ''): array {
     $defaults = [
       'Attendees' => [
-        (string) $this->t('Guests will appear here after your first booking.'),
-        (string) $this->t('Share your event page to start collecting attendees.'),
+        (string) $this->t('Publish your event and share it to receive your first booking.'),
+        (string) $this->t('Guests who buy a ticket or RSVP appear here in one guest list.'),
       ],
       'Orders' => [
         (string) $this->t('Orders will appear here after your first sale.'),
@@ -140,14 +140,21 @@ final class EventStudioEmptyStateBuilder {
       (string) $this->t('Check back after your first booking or publish.'),
     ];
 
+    $guidance = $section_label === 'Attendees'
+      ? [
+        (string) $this->t('Use Door Mode on the day to check guests in.'),
+        (string) $this->t('Message and export stay with this guest list.'),
+      ]
+      : [
+        (string) $this->t('This view is event-scoped and read-only.'),
+        (string) $this->t('Use Tickets, Messages, or Publishing to make changes.'),
+      ];
+
     return $this->build(
       $section_label,
       $pair[0],
       $pair[1],
-      [
-        (string) $this->t('This view is event-scoped and read-only.'),
-        (string) $this->t('Use Tickets, Messages, or Publishing to make changes.'),
-      ],
+      $guidance,
       'reporting',
       'readonly',
     );

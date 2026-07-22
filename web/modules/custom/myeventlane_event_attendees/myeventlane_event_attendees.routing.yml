@@ -60,7 +60,7 @@ myeventlane_event_attendees.vendor_operations_door:
   path: '/vendor/events/{node}/operations/door'
   defaults:
     _controller: 'myeventlane_checkout_flow.controller.vendor_event_operations:doorPage'
-    _title: 'Door check-in'
+    _title: 'Door Mode'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
     node: '\d+'
@@ -92,7 +92,7 @@ myeventlane_event_attendees.vendor_export:
   path: '/vendor/events/{node}/attendees/export'
   defaults:
     _controller: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::export'
-    _title: 'Export Attendees'
+    _title: 'Export attendees'
   requirements:
     _custom_access: '\Drupal\myeventlane_event_attendees\Controller\VendorAttendeeController::access'
     node: '\d+'

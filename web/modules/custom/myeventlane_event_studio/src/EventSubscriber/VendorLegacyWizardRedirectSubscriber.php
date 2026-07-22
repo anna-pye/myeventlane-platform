@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Http\MelKernelAuthRouteSilencer;
+use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -20,11 +21,13 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\KernelEvents;
 
 /**
- * Sends vendors off legacy step-wizard URLs to Event Studio; staff may keep wizard.
+ * Redirects vendors from legacy wizard and ops URLs to Event Workspace.
  */
 final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInterface {
 
   /**
+   * Legacy event wizard step routes.
+   *
    * @var list<string>
    */
   private const WIZARD_STEP_ROUTES = [
@@ -59,6 +62,7 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     'myeventlane_vendor.console.event_order_view',
     'myeventlane_vendor.console.event_tickets',
     'myeventlane_vendor.console.event_rsvps',
+    'myeventlane_rsvp.vendor_event_rsvps',
     'myeventlane_vendor.console.event_analytics',
     'myeventlane_vendor.console.event_settings',
     'myeventlane_vendor.console.event_unpublish',
@@ -83,12 +87,29 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     'myeventlane_tickets.event_ticket_type_edit',
   ];
 
+  /**
+   * Legacy check-in stacks that converge on Door Mode (VX2-05).
+   *
+   * @var list<string>
+   */
+  private const DOOR_MODE_REDIRECT_ROUTES = [
+    'myeventlane_checkin.page',
+    'myeventlane_checkin.list',
+    'myeventlane_checkin.scan',
+    'myeventlane_tickets.ticket_checkin',
+    'myeventlane_rsvp.checkin_list',
+    'myeventlane_rsvp.checkin_scan',
+  ];
+
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerInterface $logger,
   ) {}
 
+  /**
+   * {@inheritdoc}
+   */
   public static function getSubscribedEvents(): array {
     return [
       KernelEvents::REQUEST => ['onKernelRequest', 31],
@@ -97,6 +118,9 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     ];
   }
 
+  /**
+   * Redirects legacy organiser routes on request.
+   */
   public function onKernelRequest(RequestEvent $event): void {
     if (!$event->isMainRequest()) {
       return;
@@ -112,6 +136,9 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     }
   }
 
+  /**
+   * Redirects legacy organiser routes on access-denied exceptions.
+   */
   public function onKernelException(ExceptionEvent $event): void {
     if (!$event->isMainRequest() || !$event->getThrowable() instanceof AccessDeniedHttpException) {
       return;
@@ -127,6 +154,9 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     }
   }
 
+  /**
+   * Redirects legacy organiser routes on 403 responses.
+   */
   public function onKernelResponse(ResponseEvent $event): void {
     if (!$event->isMainRequest() || $event->getResponse()->getStatusCode() !== 403) {
       return;
@@ -142,9 +172,16 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     }
   }
 
+  /**
+   * Builds a redirect response for a legacy organiser request, if applicable.
+   */
   private function redirectResponseForLegacyRequest(Request $request): ?RedirectResponse {
     $route = (string) ($request->attributes->get('_route') ?? '');
-    $redirect_routes = array_merge(self::WIZARD_STEP_ROUTES, self::VENDOR_LEGACY_OPERATION_ROUTES);
+    $redirect_routes = array_merge(
+      self::WIZARD_STEP_ROUTES,
+      self::VENDOR_LEGACY_OPERATION_ROUTES,
+      self::DOOR_MODE_REDIRECT_ROUTES,
+    );
     if (!in_array($route, $redirect_routes, TRUE)) {
       return NULL;
     }
@@ -165,8 +202,30 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       return NULL;
     }
 
-    [$to_route, $params] = $this->destinationForLegacyRoute($route, $node);
-    $url = Url::fromRoute($to_route, $params)->toString();
+    if (in_array($route, self::DOOR_MODE_REDIRECT_ROUTES, TRUE)) {
+      // Door Mode requires vendor_console access. Check-in-only team accounts
+      // must keep their legacy surfaces (access check-in / check in tickets).
+      if (!VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser)) {
+        $this->logger->notice('Vendor Door Mode redirect skipped (no console trust): from_route=@from event_id=@eid uid=@uid', [
+          '@from' => $route,
+          '@eid' => (string) $node->id(),
+          '@uid' => (string) $this->currentUser->id(),
+        ]);
+        return NULL;
+      }
+      $url = Url::fromRoute('myeventlane_event_attendees.vendor_operations_door', [
+        'node' => (int) $node->id(),
+      ])->toString();
+      $this->logger->notice('Vendor Door Mode redirect: from_route=@from event_id=@eid uid=@uid', [
+        '@from' => $route,
+        '@eid' => (string) $node->id(),
+        '@uid' => (string) $this->currentUser->id(),
+      ]);
+      return new RedirectResponse($url, 302);
+    }
+
+    [$to_route, $params, $query] = $this->destinationForLegacyRoute($route, $node);
+    $url = Url::fromRoute($to_route, $params, ['query' => $query])->toString();
     $this->logger->notice('Vendor legacy wizard redirect: from_route=@from to_route=@to event_id=@eid studio_selected=1 uid=@uid', [
       '@from' => $route,
       '@to' => $to_route,
@@ -180,19 +239,32 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
   /**
    * Maps a legacy organiser route to a Convergence destination.
    *
-   * @return array{0: string, 1: array<string, int|string>}
-   *   Destination route name and parameters.
+   * @return array{0: string, 1: array<string, int|string>, 2: array<string, string>}
+   *   Destination route name, parameters, and query arguments.
    */
   private function destinationForLegacyRoute(string $route, NodeInterface $node): array {
     $nid = (int) $node->id();
     $to_route = $this->sectionRouteForLegacyRoute($route);
     // Global Payments hub has no event parameter.
     if ($to_route === 'myeventlane_vendor.console.payouts') {
-      return [$to_route, []];
+      return [$to_route, [], []];
     }
-    return [$to_route, ['node' => $nid]];
+    $query = [];
+    if (in_array($route, [
+      'myeventlane_vendor.console.event_rsvps',
+      'myeventlane_rsvp.vendor_event_rsvps',
+    ], TRUE)) {
+      $query['filter'] = 'rsvp';
+    }
+    if ($route === 'myeventlane_event_attendees.waitlist_manage') {
+      $query['filter'] = 'waitlist';
+    }
+    return [$to_route, ['node' => $nid], $query];
   }
 
+  /**
+   * Maps a legacy route name to the Convergence destination route.
+   */
   private function sectionRouteForLegacyRoute(string $route): string {
     return match ($route) {
       'myeventlane_event.wizard.basics',
@@ -226,7 +298,8 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_event_attendees.vendor_list',
       'myeventlane_event_attendees.legacy_vendor_event_attendees_path',
       'myeventlane_event_attendees.waitlist_manage',
-      'myeventlane_vendor.console.event_rsvps' => 'myeventlane_event_studio.workspace_attendees',
+      'myeventlane_vendor.console.event_rsvps',
+      'myeventlane_rsvp.vendor_event_rsvps' => 'myeventlane_event_studio.workspace_attendees',
       'myeventlane_vendor.manage_event.promote' => 'myeventlane_boost.boost_page',
       'myeventlane_vendor.console.event_promotion',
       'myeventlane_vendor.manage_event.comms' => 'myeventlane_event_studio.workspace_messaging',
@@ -246,7 +319,9 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
   }
 
   /**
-   * Resolves an event node from legacy wizard (`event`) or studio step (`node`) parameters.
+   * Resolves an event node from legacy wizard or studio route parameters.
+   *
+   * Accepts either the `event` or `node` request attribute.
    */
   private function resolveEventNode(Request $request): ?NodeInterface {
     foreach (['event', 'node'] as $key) {

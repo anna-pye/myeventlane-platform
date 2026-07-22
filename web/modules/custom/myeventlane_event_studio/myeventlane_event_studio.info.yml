@@ -21,3 +21,4 @@ dependencies:
 
 optional_dependencies:
   - myeventlane_surface:myeventlane_surface
+  - myeventlane_event_attendees:myeventlane_event_attendees

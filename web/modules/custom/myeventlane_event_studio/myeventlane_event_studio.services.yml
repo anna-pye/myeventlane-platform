@@ -125,6 +125,7 @@ services:
       - '@?myeventlane_tickets.access_code_management_builder'
       - '@myeventlane_event_studio.overview_builder'
       - '@myeventlane_core.domain_detector'
+      - '@?myeventlane_event_attendees.attendee_workspace_builder'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper

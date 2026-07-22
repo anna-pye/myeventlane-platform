@@ -25,6 +25,15 @@ mel_event_studio_tickets_app:
     - core/drupal
     - core/once
 
+mel_event_studio_attendees_app:
+  version: 1.0
+  js:
+    js/mel-event-studio-attendees-app.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - core/drupalSettings
+
 mel_event_studio_highlights:
   version: 1.0
   css:

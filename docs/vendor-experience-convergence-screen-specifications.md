@@ -207,6 +207,7 @@ Format: Purpose · Primary action · Content · States · Notes
 | **Content** | Search; filters (ticket type, RSVP, waitlist, checked in); bulk actions; refunds entry; CSV |
 | **Mobile** | Check-in dense list; large targets |
 | **Notes** | Merge paid + RSVP + waitlist UI |
+| **Sprint 4** | Shipped in Event Workspace (`attendees_stack`): cards, immediate search/filters, Door Mode / Message / Export / Refund entry points; dense layout ≥100 guests |
 
 ### B8. Door Mode
 
@@ -216,6 +217,7 @@ Format: Purpose · Primary action · Content · States · Notes
 | **Primary action** | Scan / Search / Toggle check-in |
 | **Content** | Scanner; search; recent activity; capacity remaining |
 | **Notes** | Canonical check-in; retire parallel stacks via redirect |
+| **Sprint 4** | Organiser entry points redirect to `/vendor/events/{id}/operations/door`; Manager tab labelled Door Mode |
 
 ### B9. Messages (event)
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_attendees\Controller;
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Url;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
@@ -431,15 +432,15 @@ final class VendorAttendeeController extends ControllerBase {
    * Dual-mode endpoint that preserves the canonical writer
    * (`MelAttendeeCheckinManager::checkInAttendee`) and the JSON contract
    * for AJAX clients, while giving non-XHR (progressive enhancement /
-   * no-JS) browser submissions a redirect back to the operations page so
-   * the user never sees raw JSON.
+   * no-JS) browser submissions a redirect back to the surface they posted
+   * from so the user never sees raw JSON.
    *
    *  - XHR (`X-Requested-With: XMLHttpRequest`) → JSON Response (unchanged).
-   *  - Non-XHR browser POST → flash message + 303 redirect to
-   *    `myeventlane_event_attendees.vendor_operations` for the attendee's
-   *    event. Falls back to the public check-in page if the event cannot be
-   *    resolved (defensive — should not happen because access already
-   *    requires an event-bound attendee).
+   *  - Non-XHR browser POST → flash message + 303 redirect:
+   *      1. Safe internal `destination` POST/query (Workspace Attendees or
+   *         Live Operations forms supply this).
+   *      2. Else Event Workspace Attendees for the attendee's event (VX2).
+   *      3. Else Live Operations, then front page as last resorts.
    *
    * Security:
    *   - Vendor ownership is enforced server-side via `accessAttendee()` on
@@ -473,7 +474,8 @@ final class VendorAttendeeController extends ControllerBase {
         $event_attendee,
         $isXhr,
         'csrf_invalid',
-        $this->t('Your session has expired. Please refresh the page and try again.')
+        $this->t('Your session has expired. Please refresh the page and try again.'),
+        $request,
       );
     }
 
@@ -503,7 +505,7 @@ final class VendorAttendeeController extends ControllerBase {
       $this->messenger()->addWarning($message);
     }
 
-    return $this->redirectToOperationsForAttendee($event_attendee);
+    return $this->redirectAfterManualCheckin($event_attendee, $request);
   }
 
   /**
@@ -548,6 +550,7 @@ final class VendorAttendeeController extends ControllerBase {
     bool $isXhr,
     string $reason,
     \Stringable|string $message,
+    ?Request $request = NULL,
   ): Response {
     if ($isXhr) {
       return new Response(
@@ -562,7 +565,7 @@ final class VendorAttendeeController extends ControllerBase {
       );
     }
     $this->messenger()->addError($message);
-    return $this->redirectToOperationsForAttendee($event_attendee);
+    return $this->redirectAfterManualCheckin($event_attendee, $request);
   }
 
   /**
@@ -604,21 +607,35 @@ final class VendorAttendeeController extends ControllerBase {
   }
 
   /**
-   * Builds a redirect back to Live Operations for the attendee's event.
+   * Builds a 303 redirect after a non-XHR manual check-in POST.
    *
-   * If the event cannot be resolved (defensive — should not happen because
-   * the route's accessAttendee gate requires an event-bound attendee) we
-   * fall back to the user's referrer or the front page rather than emitting
-   * a JSON page.
+   * Prefers a safe internal `destination` from the form (Workspace Attendees
+   * or Live Operations), then Event Workspace Attendees, then Live Operations.
    */
-  private function redirectToOperationsForAttendee(EventAttendee $event_attendee): RedirectResponse {
+  private function redirectAfterManualCheckin(EventAttendee $event_attendee, ?Request $request = NULL): RedirectResponse {
+    $destination = '';
+    if ($request instanceof Request) {
+      $destination = trim((string) ($request->request->get('destination') ?? $request->query->get('destination') ?? ''));
+    }
+    if ($destination !== '' && $this->isSafeInternalCheckinDestination($destination)) {
+      return new RedirectResponse($destination, 303);
+    }
+
     $event = $event_attendee->getEvent();
     if ($event instanceof NodeInterface) {
-      $url = Url::fromRoute(
+      $eventId = (int) $event->id();
+      foreach ([
+        'myeventlane_event_studio.workspace_attendees',
         'myeventlane_event_attendees.vendor_operations',
-        ['node' => (int) $event->id()],
-      )->toString();
-      return new RedirectResponse($url, 303);
+      ] as $routeName) {
+        try {
+          $url = Url::fromRoute($routeName, ['node' => $eventId])->toString();
+          return new RedirectResponse($url, 303);
+        }
+        catch (\Throwable) {
+          // Try the next fallback route.
+        }
+      }
     }
 
     \Drupal::logger('myeventlane_event_attendees')->warning(
@@ -626,6 +643,23 @@ final class VendorAttendeeController extends ControllerBase {
       ['@id' => (int) $event_attendee->id()]
     );
     return new RedirectResponse(Url::fromRoute('<front>')->toString(), 303);
+  }
+
+  /**
+   * Whether a check-in form destination is a safe same-site relative path.
+   */
+  private function isSafeInternalCheckinDestination(string $destination): bool {
+    if ($destination === '' || UrlHelper::isExternal($destination)) {
+      return FALSE;
+    }
+    if (!str_starts_with($destination, '/')) {
+      return FALSE;
+    }
+    // Reject protocol-relative and scheme-smuggling forms.
+    if (str_starts_with($destination, '//') || str_contains($destination, '://')) {
+      return FALSE;
+    }
+    return TRUE;
   }
 
 }

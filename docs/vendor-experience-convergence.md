@@ -3,7 +3,7 @@
 **Product Blueprint & Migration Plan**  
 **Status:** Complete — ready to drive the next generation of MyEventLane development  
 **Date:** 2026-07-22  
-**Runtime:** VX2 Sprint 3 (The Ticket Experience / VX2-04) on branch `feature/vx2-ticket-experience` (2026-07-22); Sprint 2 merged via PR #702; Sprint 1 merged via PR #701  
+**Runtime:** VX2 Sprint 4 (One Attendee Workspace / VX2-05) on branch `feature/vx2-attendee-workspace` (2026-07-22); Sprint 3 merged via PR #704; Sprint 2 merged via PR #702; Sprint 1 merged via PR #701  
 **Method:** Repository review + synthesis of VX2 product docs and prior audits  
 **Language standard:** Organiser (human) · `vendor` (machine / URLs)
 
@@ -78,7 +78,7 @@ Permanent principles remain in [`vendor-experience-v2-design-principles.md`](ven
 2. Event Studio remains the builder / publish authority; Event Manager and Studio converge into **one Event Workspace**.
 3. `mel_ticket_type` remains the ticket abstraction; Commerce stays hidden.
 4. Workspace ownership (ADR-0008) remains the access contract.
-5. ~~This pack does **not** change runtime behaviour.~~ **Update (Sprint 1):** organiser-visible language, shell navigation, Create Event gateway alignment, and placeholder redirects are live in code. **Update (Sprint 2):** One Event Workspace shell/nav, Overview home, human readiness, Marketing/Publishing sections, and Manager tab convergence are live in code. **Update (Sprint 3):** One Tickets app in Event Workspace with card UX, empty states, duplicate/archive, progressive Advanced Ticket Tools, and Commerce terminology removed from organiser ticket surfaces.
+5. ~~This pack does **not** change runtime behaviour.~~ **Update (Sprint 1):** organiser-visible language, shell navigation, Create Event gateway alignment, and placeholder redirects are live in code. **Update (Sprint 2):** One Event Workspace shell/nav, Overview home, human readiness, Marketing/Publishing sections, and Manager tab convergence are live in code. **Update (Sprint 3):** One Tickets app in Event Workspace with card UX, empty states, duplicate/archive, progressive Advanced Ticket Tools, and Commerce terminology removed from organiser ticket surfaces. **Update (Sprint 4):** One Attendee Workspace with search/filters/cards, Door Mode as Attendees mode, legacy check-in redirects, and Message/Export/Refund entry points.
 6. Prior VX2 findings are treated as authoritative unless contradicted by the 2026-07-22 inventory.
 
 ---
@@ -409,7 +409,7 @@ Full definitions: [`vendor-experience-convergence-success-metrics.md`](vendor-ex
 | Create Event → gateway / draft-choice | **Done** — shell CTA + account menu |
 | Placeholder manage routes | **Done** — redirect (not “coming soon”) |
 | Payments / Orders hubs | **Deferred** — labels point at existing payouts / event-scoped orders |
-| Door Mode check-in merge | **Deferred** — VX2-05 (removed from shell only) |
+| Door Mode check-in merge | **Done** — VX2-05 Sprint 4 (legacy stacks redirect; Door Mode canonical) |
 
 ## Sprint 2 runtime status (VX2-03 One Event Workspace)
 
@@ -423,28 +423,36 @@ Full definitions: [`vendor-experience-convergence-success-metrics.md`](vendor-ex
 | Empty states / celebration | **Done** — AU warm empty copy; publish celebration without emoji gimmick |
 | Manager dual chrome | **Converged** — tabs/preprocess point at Workspace routes; staff mission-control retained |
 | Dedicated Schedule/Venue field forms | **Partial** — nav sections share Event information form (field split deferred) |
-| Full Attendees / Door depth | **Deferred** — VX2-05 |
+| Full Attendees / Door depth | **Done** — VX2-05 Sprint 4 (see Sprint 4) |
 | Tickets app depth | **Done** — VX2-04 (see Sprint 3) |
 
 ## Sprint 3 runtime status (VX2-04 The Ticket Experience)
 
 | Area | Status |
 | --- | --- |
-| One Tickets app in Event Workspace | **Done** — `workspace_tickets` stack: booking mode → ticket cards → preview → Advanced |
-| Ticket cards (name, price, capacity, availability, status, sales) | **Done** — `EventStudioOperationalTicketsForm` |
-| Primary CTA **Add Ticket** | **Done** — empty-state + details + mobile sticky CTA |
-| Duplicate / Archive | **Done** — lifecycle `duplicateTicketOnEvent` + quick actions |
-| Progressive **Advanced Ticket Tools** | **Done** — codes, groups, widgets, settings, inventory/sync nested |
-| Commerce Product / Variation / SKU organiser copy | **Removed** from ticket manager + booking product autocomplete hidden for organisers |
-| Instrumentation hooks | **Partial** — logger + JS hooks for ticket_created/updated/archived, advanced_tools_opened, access_code_created, widget_created; full analytics pipeline deferred |
-| Redirect Advanced manager to Workspace-only | **Partial** — manager demoted with Workspace CTA; deep routes retained under Advanced |
+| One Tickets app in Event Workspace | **Done** — `workspace_tickets` stack |
+| Ticket cards + Add / Duplicate / Archive | **Done** |
+| Advanced Ticket Tools | **Done** |
+| Commerce language cleanup on ticket surfaces | **Done** |
+
+## Sprint 4 runtime status (VX2-05 One Attendee Workspace)
+
+| Area | Status |
+| --- | --- |
+| One Attendees app in Event Workspace | **Done** — `workspace_attendees` stack: search → filters → guest cards → actions |
+| Paid + RSVP + waitlist in one list | **Done** — filters; RSVP tab removed from Manager chrome |
+| Door Mode as Attendees mode | **Done** — ops tab + legacy check-in redirects |
+| Message / Export / Refund entry | **Done** — CTAs only; messaging product deferred to VX2-06 |
+| Empty states (AU English) | **Done** |
+| Instrumentation hooks | **Partial** — logger + JS; analytics pipeline deferred |
+| Bulk message selection | **Deferred** — VX2-06 |
 
 ---
 
 ## Executive verdict
 
-**Biggest organiser friction:** Parallel products for one event (Studio vs Manager vs legacy) plus fragmented Attendees, Messages, Analytics, and Check-in — compounded by Commerce language leaks.
+**Biggest organiser friction:** Parallel products for one event (Studio vs Manager vs legacy) plus fragmented Messages, Analytics, and Payments — Attendees/Door Mode and Tickets are now converged.
 
 **Biggest revenue opportunities:** Faster first publish; higher Stripe completion; free Analytics pulse that earns Pro; clearer Boost / Marketing; fewer support dead ends that abandon paid flows.
 
-**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; Sprint 3 delivered The Ticket Experience; remaining epics follow the roadmap.
+**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; Sprint 3 delivered The Ticket Experience; Sprint 4 delivered One Attendee Workspace; remaining epics follow the roadmap.

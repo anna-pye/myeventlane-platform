@@ -7,7 +7,7 @@
 #}
 <div class="mel-workspace-page mel-page mel-attendees mel-live-operations mel-vendor-console-stack">
   <p class="mel-page__next" role="status">
-    {% trans %}Next: open <strong>Check-in</strong> on the day — search this list quickly at the door.{% endtrans %}
+    {% trans %}Next: open <strong>Door Mode</strong> on the day — search this list quickly as guests arrive.{% endtrans %}
   </p>
 
   {% set cap_note = (summary.remaining is not null and summary.capacity is not same as('Unlimited')) ? ('@left spots left'|t({'@left': summary.remaining})) : null %}
@@ -138,7 +138,7 @@
             <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2M9 11a4 4 0 100-8 4 4 0 000 8zM23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
           </svg>
           <p class="mel-empty-state__title">{{ 'No attendees yet'|t }}</p>
-          <p class="mel-empty-state__text">{{ 'When people RSVP or purchase tickets, they will appear here.'|t }}</p>
+          <p class="mel-empty-state__text">{{ 'Publish your event and share it to receive your first booking.'|t }}</p>
           {% if public_event_url %}
             <div class="mel-action-group">
               <a class="mel-btn mel-btn--cta mel-button mel-button--primary" href="{{ public_event_url }}" target="_blank" rel="noopener noreferrer">{{ 'View event page'|t }}</a>
@@ -150,8 +150,8 @@
   </div>
 
   <div class="mel-support-card">
-    <h3 class="mel-support-card__title">{{ 'Need help with check-in?'|t }}</h3>
-    <p class="mel-support-card__text">{{ 'Use the Check-in tool from the header for door mode and QR flows.'|t }}</p>
+    <h3 class="mel-support-card__title">{{ 'Need help at the door?'|t }}</h3>
+    <p class="mel-support-card__text">{{ 'Door Mode is part of Attendees — use it to search and check guests in on the day.'|t }}</p>
     <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
   </div>
 </div>
