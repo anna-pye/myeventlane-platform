@@ -52,7 +52,7 @@ final class VendorEventPresentationAlertsBuilder {
         $items[] = [
           'key' => 'missing_ticket_product',
           'severity' => 'error',
-          'label' => (string) $this->t('Ticket product missing'),
+          'label' => (string) $this->t('Tickets not set up'),
         ];
       }
 
@@ -119,11 +119,11 @@ final class VendorEventPresentationAlertsBuilder {
       $out[] = [
         'key' => 'missing_ticket_product',
         'severity' => 'error',
-        'title' => (string) $this->t('Ticket product missing'),
-        'message' => (string) $this->t('This paid event cannot sell tickets until its ticket product is created or relinked.'),
+        'title' => (string) $this->t('Tickets not set up'),
+        'message' => (string) $this->t('This paid event cannot sell tickets until tickets are created or relinked.'),
         'action_label' => $editUrl
           ? (string) $this->t('Review ticket setup')
-          : ($advancedTicketsUrl ? (string) $this->t('Open advanced ticket manager') : (string) $this->t('Repair needed by admin')),
+          : ($advancedTicketsUrl ? (string) $this->t('Open advanced ticket tools') : (string) $this->t('Repair needed by admin')),
         'action_url' => $editUrl ?: $advancedTicketsUrl,
       ];
     }

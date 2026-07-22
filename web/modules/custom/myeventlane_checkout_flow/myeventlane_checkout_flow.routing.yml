@@ -40,7 +40,7 @@ myeventlane_checkout_flow.vendor_attendees:
   path: '/vendor/attendees'
   defaults:
     _controller: '\Drupal\myeventlane_checkout_flow\Controller\VendorAttendeesController::dashboard'
-    _title: 'Attendees & Sales'
+    _title: 'Attendees'
   requirements:
     _permission: 'access content'
     _custom_access: '\Drupal\myeventlane_checkout_flow\Controller\VendorAttendeesController::checkAccess'

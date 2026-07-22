@@ -1,9 +1,10 @@
 {#
 /**
  * @file
- * Left navigation sidebar for MyEventLane Vendor Console.
+ * Left navigation sidebar for MyEventLane Organiser Console.
  *
- * Groups VendorNavBuilder items by key (presentation only — IA unchanged in PHP).
+ * Groups VendorNavBuilder items by Convergence IA (presentation only).
+ * Primary: Dashboard → Marketing. Account: Settings · Support.
  */
 #}
 <nav class="mel-sidebar mel-vendor-console__nav" aria-label="{{ 'Organiser navigation'|t }}">
@@ -26,10 +27,7 @@
      Twig's default() treats [] as empty and would replace PHP-built onboarding-safe nav. #}
   {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
   {% set nav_groups = [
-    { id: 'dashboard', label: 'Home'|t, keys: ['dashboard'] },
-    { id: 'events', label: 'Events'|t, keys: ['events'] },
-    { id: 'operations', label: 'Operations'|t, keys: ['orders', 'ticket_holders', 'checkin', 'refund_requests', 'payouts'] },
-    { id: 'growth', label: 'Growth'|t, keys: ['promote', 'messaging', 'analytics'] },
+    { id: 'primary', label: '', keys: ['dashboard', 'events', 'attendees', 'orders', 'messages', 'payments', 'analytics', 'marketing'] },
     { id: 'account', label: 'Account'|t, keys: ['settings', 'support'] },
   ] %}
 
@@ -38,24 +36,16 @@
       {% set visible_items = nav_items|filter(item => item.key|default('') in group.keys) %}
       {% if visible_items|length > 0 %}
         {% set section_label = visible_items|first.nav_section_label|default(group.label) %}
-        <section class="mel-sidebar__group mel-sidebar__group--{{ group.id }}" aria-label="{{ section_label }}">
-          <p class="mel-sidebar__section-label" id="mel-sidebar-group-{{ group.id }}">{{ section_label }}</p>
-          <ul class="mel-sidebar__nav" role="list" aria-labelledby="mel-sidebar-group-{{ group.id }}">
+        <section class="mel-sidebar__group mel-sidebar__group--{{ group.id }}"{% if section_label %} aria-label="{{ section_label }}"{% else %} aria-label="{{ 'Organiser navigation'|t }}"{% endif %}>
+          {% if section_label %}
+            <p class="mel-sidebar__section-label" id="mel-sidebar-group-{{ group.id }}">{{ section_label }}</p>
+          {% endif %}
+          <ul class="mel-sidebar__nav" role="list"{% if section_label %} aria-labelledby="mel-sidebar-group-{{ group.id }}"{% endif %}>
             {% for key in group.keys %}
               {% for item in nav_items %}
                 {% if item.key|default('') == key %}
-                  {% set is_events_group = group.id == 'events' %}
-                  {% set event_editor_item = null %}
-                  {% if is_events_group %}
-                    {% for candidate in nav_items %}
-                      {% if candidate.key|default('') == 'event_editor' %}
-                        {% set event_editor_item = candidate %}
-                      {% endif %}
-                    {% endfor %}
-                  {% endif %}
                   {% set wizard_children = item.children|default([]) %}
-                  {% set nest_event_editor = is_events_group and event_editor_item and wizard_children|length == 0 %}
-                  {% set has_subnav = wizard_children|length > 0 or nest_event_editor %}
+                  {% set has_subnav = wizard_children|length > 0 %}
 
                   <li class="mel-sidebar__item{% if has_subnav %} mel-sidebar__item--with-subnav{% endif %}">
                     {% include '@myeventlane_vendor_theme/includes/sidebar-nav-item.html.twig' with { item: item } only %}
@@ -67,11 +57,6 @@
                             {% include '@myeventlane_vendor_theme/includes/sidebar-nav-subitem.html.twig' with { child: child } only %}
                           </li>
                         {% endfor %}
-                        {% if nest_event_editor %}
-                          <li class="mel-sidebar__subitem mel-sidebar__subitem--nested-top-level">
-                            {% include '@myeventlane_vendor_theme/includes/sidebar-nav-subitem.html.twig' with { child: event_editor_item } only %}
-                          </li>
-                        {% endif %}
                       </ul>
                     {% endif %}
                   </li>

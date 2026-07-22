@@ -45,10 +45,10 @@ final class OperationalCapabilityCommercePreviewBuilder {
 
     $binding = (string) ($link['capability_binding_state'] ?? OperationalCapabilityCommerceLinkManager::BINDING_UNBOUND);
     $binding_label = match ($binding) {
-      OperationalCapabilityCommerceLinkManager::BINDING_BOUND => (string) $this->t('Commerce link: ready'),
-      OperationalCapabilityCommerceLinkManager::BINDING_PARTIAL => (string) $this->t('Commerce link: partial'),
-      OperationalCapabilityCommerceLinkManager::BINDING_INVALID => (string) $this->t('Commerce link: invalid'),
-      default => (string) $this->t('Commerce link: not set'),
+      OperationalCapabilityCommerceLinkManager::BINDING_BOUND => (string) $this->t('Tickets connected'),
+      OperationalCapabilityCommerceLinkManager::BINDING_PARTIAL => (string) $this->t('Tickets need attention'),
+      OperationalCapabilityCommerceLinkManager::BINDING_INVALID => (string) $this->t('Tickets need attention'),
+      default => (string) $this->t('Tickets not set up'),
     };
 
     $readiness = is_array($link['readiness_projection'] ?? NULL) ? $link['readiness_projection'] : [];

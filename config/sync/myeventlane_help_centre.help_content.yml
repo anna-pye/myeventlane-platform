@@ -108,7 +108,7 @@ help_articles:
     topic: 'Getting started'
     article_type: Guide
     keywords: 'vendor dashboard, vendor workspace, stall'
-    cta_label: 'Vendor help'
+    cta_label: 'Help'
     cta_link: /help/vendors
     alias: /help/vendors/vendor-dashboard-overview
     featured: false

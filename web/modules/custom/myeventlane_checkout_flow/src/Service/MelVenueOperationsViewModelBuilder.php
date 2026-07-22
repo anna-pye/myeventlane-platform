@@ -113,7 +113,7 @@ final class MelVenueOperationsViewModelBuilder {
         '@blocked' => (string) ($readiness['blocked'] ?? 0),
       ]),
       'readiness_labels' => $this->readinessHelper->vendorReadinessPresentationLabels(),
-      'live_indicator' => (string) $this->t('Live operations'),
+      'live_indicator' => (string) $this->t('Door Mode'),
       'last_sync_formatted' => $this->dateFormatter->format($syncTs, 'short'),
       'last_sync_iso' => (new \DateTimeImmutable('@' . $syncTs))->format('c'),
       'check_in_rate_percent' => $ratePercent,

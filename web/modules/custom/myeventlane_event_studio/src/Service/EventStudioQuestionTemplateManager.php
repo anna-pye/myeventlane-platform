@@ -145,7 +145,7 @@ final class EventStudioQuestionTemplateManager {
       $findings[] = [
         'severity' => 'warning',
         'code' => 'legacy_ticket_type_questions',
-        'message' => (string) $this->t('This event has ticket-level questions stored on ticket types. They still work at checkout, but new questions should be managed from Checkout questions.'),
+        'message' => (string) $this->t('This event has ticket-level questions stored on ticket types. They still work at checkout, but new questions should be managed from Guest questions.'),
       ];
     }
 
@@ -410,7 +410,7 @@ final class EventStudioQuestionTemplateManager {
         '@nid' => (string) $event->id(),
         '@message' => $e->getMessage(),
       ]);
-      return [(string) $this->t('Checkout questions could not be saved. Check the rows and try again.')];
+      return [(string) $this->t('Guest questions could not be saved. Check the rows and try again.')];
     }
 
     return [];

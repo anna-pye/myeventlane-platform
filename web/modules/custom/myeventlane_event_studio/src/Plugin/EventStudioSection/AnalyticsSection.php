@@ -11,7 +11,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'analytics',
-  title: 'Insights',
+  title: 'Analytics',
   group: 'Operations',
   routeName: 'myeventlane_event_studio.workspace_analytics',
   section_state: 'readonly',

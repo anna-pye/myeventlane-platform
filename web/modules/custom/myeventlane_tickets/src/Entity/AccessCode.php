@@ -122,7 +122,7 @@ final class AccessCode extends ContentEntityBase implements EntityChangedInterfa
 
     // Allowed ticket product references (multiple).
     $fields['allowed_ticket_products'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(new TranslatableMarkup('Allowed Ticket Products'))
+      ->setLabel(new TranslatableMarkup('Allowed tickets'))
       ->setDescription(new TranslatableMarkup('The ticket products this access code can unlock.'))
       ->setRequired(FALSE)
       ->setCardinality(-1)

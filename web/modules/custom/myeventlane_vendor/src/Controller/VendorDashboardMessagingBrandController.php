@@ -98,14 +98,14 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
         'active' => FALSE,
       ],
       [
-        'label' => $this->t('Messaging Brand'),
+        'label' => $this->t('Messages brand'),
         'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
         'active' => TRUE,
       ],
     ];
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $this->t('Messaging brand'),
+      'title' => $this->t('Messages brand'),
       'tabs' => $tabs,
       'body' => $form,
     ]);

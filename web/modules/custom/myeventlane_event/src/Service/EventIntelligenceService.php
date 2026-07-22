@@ -86,16 +86,17 @@ final class EventIntelligenceService {
 
     // --- PRIMARY (max 1): most important next action ---
 
-    // No bookings yet — get first bookings.
+    // No bookings yet — get first bookings via Marketing (Boost), not Attendees.
     if ($attendees === 0) {
-      $url = $ticketsEnabled
-        ? $this->safeRouteUrl('myeventlane_boost.boost_page', ['node' => $nid])
-        : $this->safeRouteUrl('myeventlane_vendor.console.event_rsvps', ['event' => $nid]);
+      $url = $this->safeRouteUrl('myeventlane_boost.boost_page', ['node' => $nid]);
+      if ($url === '') {
+        $url = $this->safeRouteUrl('myeventlane_vendor.console.boost');
+      }
       if ($url !== '') {
         $primary[] = [
           'title' => (string) $this->t('Start getting your first bookings'),
           'description' => (string) $this->t('Share your event or boost visibility.'),
-          'cta' => (string) $this->t('Promote event'),
+          'cta' => (string) $this->t('Marketing'),
           'url' => $url,
         ];
       }

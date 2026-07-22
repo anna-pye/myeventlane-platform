@@ -357,7 +357,7 @@ final class DiagnosticsService implements DiagnosticsServiceInterface {
             'key' => 'tickets_product',
             'status' => 'ok',
             'label' => $this->t('Paid tickets'),
-            'message' => $this->t('Ticket product is linked and published.'),
+            'message' => $this->t('Ticket is linked and published.'),
           ];
         }
         else {
@@ -365,7 +365,7 @@ final class DiagnosticsService implements DiagnosticsServiceInterface {
             'key' => 'tickets_product',
             'status' => 'warn',
             'label' => $this->t('Paid tickets'),
-            'message' => $this->t('Ticket product is linked but not published.'),
+            'message' => $this->t('Ticket is linked but not published.'),
             'fix_route' => 'entity.node.edit_form',
             'fix_params' => ['node' => $event->id()],
             'fix_fragment' => 'tickets',

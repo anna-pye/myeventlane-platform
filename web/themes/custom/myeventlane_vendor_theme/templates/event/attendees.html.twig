@@ -21,7 +21,7 @@
     metric_items: [
       { label: 'Total attendees'|t, value: summary.total|default(0) },
       { label: 'Checked-in'|t, value: summary.checked_in|default(0) },
-      { label: 'Ticket holders'|t, value: summary.ticket|default(0) },
+      { label: 'Attendees'|t, value: summary.ticket|default(0) },
       { label: 'Capacity'|t, value: cap_display, note: cap_note },
     ],
   } only %}
@@ -51,7 +51,7 @@
             <div>{{ 'Phone'|t }}</div>
             <div>{{ 'Source'|t }}</div>
             {% if is_tickets_enabled|default(true) %}
-              <div>{{ 'Product variation'|t }}</div>
+              <div>{{ 'Ticket option'|t }}</div>
               <div>{{ 'Order'|t }}</div>
             {% endif %}
             <div>{{ 'Additional data'|t }}</div>

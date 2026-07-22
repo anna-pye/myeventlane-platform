@@ -15,9 +15,12 @@ use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
- * Builds vendor console shell sidebar navigation (single source of truth).
+ * Builds organiser console shell sidebar navigation (single source of truth).
  *
- * Replaces procedural navigation builders previously in the vendor theme.
+ * VX2 Convergence IA (≤10 primary items):
+ * Dashboard · Events · Attendees · Orders · Messages · Payments · Analytics ·
+ * Marketing · Settings · Support.
+ *
  * Output shape matches templates/includes/sidebar.html.twig expectations.
  */
 final class VendorNavBuilder {
@@ -35,24 +38,21 @@ final class VendorNavBuilder {
   ];
 
   /**
-   * Sidebar IA section keys (HOME, EVENTS, OPERATIONS, GROWTH, ACCOUNT).
+   * Sidebar IA section keys (primary console vs account).
    *
    * @var array<string, string>
    */
   private const NAV_SECTION_BY_KEY = [
-    'dashboard' => 'home',
-    'events' => 'events',
-    'event_editor' => 'events',
-    'orders' => 'operations',
-    'ticket_holders' => 'operations',
-    'checkin' => 'operations',
-    'refund_requests' => 'operations',
-    'payouts' => 'operations',
-    'promote' => 'growth',
-    'messaging' => 'growth',
-    'analytics' => 'growth',
-    'support' => 'account',
+    'dashboard' => 'primary',
+    'events' => 'primary',
+    'attendees' => 'primary',
+    'orders' => 'primary',
+    'messages' => 'primary',
+    'payments' => 'primary',
+    'analytics' => 'primary',
+    'marketing' => 'primary',
     'settings' => 'account',
+    'support' => 'account',
   ];
 
   public function __construct(
@@ -73,34 +73,40 @@ final class VendorNavBuilder {
     $path = $this->requestStack->getCurrentRequest()?->getPathInfo() ?? '';
 
     if ($routeName === 'myeventlane_vendor.console.messaging_brand') {
-      return 'messaging';
+      return 'messages';
     }
     if (str_starts_with($path, '/vendor/settings')) {
       return 'settings';
     }
-    if (str_starts_with($path, '/vendor/analytics')) {
+    if (str_starts_with($path, '/vendor/analytics') || str_starts_with($path, '/vendor/insights')) {
       return 'analytics';
     }
-    if ($path === '/vendor/attendees') {
-      return 'ticket_holders';
+    if ($path === '/vendor/attendees' || str_starts_with($path, '/vendor/attendees/')) {
+      return 'attendees';
     }
-    if (preg_match('#^/event/\d+/tickets/checkin#', $path)) {
-      return 'checkin';
+    if (str_starts_with($path, '/vendor/boost') || str_starts_with($path, '/vendor/audience')) {
+      return 'marketing';
     }
-    if (str_starts_with($path, '/vendor/support')) {
+    if (str_starts_with($path, '/vendor/payouts') || str_contains($path, '/refund')) {
+      return 'payments';
+    }
+    if (str_starts_with($path, '/vendor/support') || str_starts_with($path, '/vendor/help')) {
       return 'support';
     }
-    if (str_starts_with($path, '/vendor/studio')) {
-      return 'event_editor';
+    if (str_starts_with($path, '/vendor/studio') || str_contains($path, '/editor')) {
+      return 'events';
     }
     if (str_starts_with($path, '/vendor/events')) {
       return 'events';
     }
     if (str_contains($path, '/vendor/dashboard/messaging/brand')) {
-      return 'messaging';
+      return 'messages';
     }
     if ($path === '/vendor/dashboard' || str_starts_with($path, '/vendor/dashboard/')) {
       return 'dashboard';
+    }
+    if (preg_match('#^/event/\d+/tickets/checkin#', $path)) {
+      return 'attendees';
     }
 
     if ($routeName === NULL || $routeName === '') {
@@ -115,23 +121,23 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.event_overview' => 'events',
       'myeventlane_vendor.console.event_tickets' => 'events',
       'myeventlane_vendor.console.event_publish' => 'events',
-      'myeventlane_vendor.console.event_promotion' => 'events',
-      'myeventlane_vendor_comms.branding' => 'events',
-      'myeventlane_vendor.console.event_analytics' => 'events',
+      'myeventlane_vendor.console.event_promotion' => 'messages',
+      'myeventlane_vendor_comms.branding' => 'messages',
+      'myeventlane_vendor.console.event_analytics' => 'analytics',
       'myeventlane_vendor.console.event_settings' => 'events',
       'myeventlane_vendor.console.event_orders' => 'orders',
       'myeventlane_vendor.console.event_order_view' => 'orders',
-      'myeventlane_refunds.vendor_refund_requests' => 'refund_requests',
-      'myeventlane_refunds.vendor_refund_request_approve' => 'refund_requests',
-      'myeventlane_refunds.vendor_refund_request_reject' => 'refund_requests',
-      'myeventlane_checkout_flow.vendor_attendees' => 'ticket_holders',
-      'myeventlane_event_attendees.vendor_list' => 'ticket_holders',
-      'myeventlane_vendor.console.event_rsvps' => 'ticket_holders',
-      'myeventlane_tickets.ticket_checkin' => 'checkin',
-      'myeventlane_tickets.ticket_checkin_validate' => 'checkin',
-      'myeventlane_vendor.console.payouts' => 'payouts',
-      'myeventlane_vendor.console.boost' => 'promote',
-      'myeventlane_vendor.console.audience' => 'dashboard',
+      'myeventlane_refunds.vendor_refund_requests' => 'payments',
+      'myeventlane_refunds.vendor_refund_request_approve' => 'payments',
+      'myeventlane_refunds.vendor_refund_request_reject' => 'payments',
+      'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
+      'myeventlane_event_attendees.vendor_list' => 'attendees',
+      'myeventlane_vendor.console.event_rsvps' => 'attendees',
+      'myeventlane_tickets.ticket_checkin' => 'attendees',
+      'myeventlane_tickets.ticket_checkin_validate' => 'attendees',
+      'myeventlane_vendor.console.payouts' => 'payments',
+      'myeventlane_vendor.console.boost' => 'marketing',
+      'myeventlane_vendor.console.audience' => 'marketing',
       'myeventlane_vendor.console.settings' => 'settings',
       'myeventlane_pro.branding' => 'settings',
       'myeventlane_venue.vendor_venues' => 'settings',
@@ -147,11 +153,13 @@ final class VendorNavBuilder {
       'myeventlane_escalations_portal.vendor_resolve' => 'support',
       'myeventlane_escalations_portal.vendor_reopen' => 'support',
       'myeventlane_help_centre.vendor_help' => 'support',
-      'myeventlane_help_centre.home' => 'dashboard',
+      'myeventlane_help_centre.home' => 'support',
       'myeventlane_event_studio.create' => 'events',
-      'myeventlane_event_studio.edit' => 'event_editor',
-      'myeventlane_vendor.console.event_editor' => 'event_editor',
-      'myeventlane_vendor.console.studio' => 'event_editor',
+      'myeventlane_event_studio.edit' => 'events',
+      'myeventlane_vendor.console.event_editor' => 'events',
+      'myeventlane_vendor.console.studio' => 'events',
+      'myeventlane_vendor.create_event_gateway' => 'events',
+      'myeventlane_vendor.create_event_draft_choice' => 'events',
       'myeventlane_event.wizard.basics' => 'events',
       'myeventlane_event.wizard.when_where' => 'events',
       'myeventlane_event.wizard.tickets' => 'events',
@@ -180,17 +188,20 @@ final class VendorNavBuilder {
   }
 
   /**
+   * Reduced shell during onboarding: Dashboard · Events · Support.
+   *
    * @return list<array<string, mixed>>
+   *   Sidebar items for the onboarding shell.
    */
   private function buildOnboardingShellNavItems(string $activeSection): array {
     $routeName = $this->routeMatch->getRouteName();
-    $wizardChildren = $this->buildEventWizardSubmenu(
+    $editChildren = $this->buildEventEditSubmenu(
       is_string($routeName) ? $routeName : NULL,
     );
     $candidates = [
       [
         'key' => 'dashboard',
-        'label' => $this->t('Home'),
+        'label' => $this->t('Dashboard'),
         'icon' => 'dashboard',
         'route' => 'myeventlane_vendor.console.dashboard',
       ],
@@ -199,19 +210,7 @@ final class VendorNavBuilder {
         'label' => $this->t('Events'),
         'icon' => 'events',
         'route' => 'myeventlane_vendor.console.events',
-        'children' => $wizardChildren,
-      ],
-      [
-        'key' => 'payouts',
-        'label' => $this->t('Payouts'),
-        'icon' => 'payouts',
-        'route' => 'myeventlane_vendor.console.payouts',
-      ],
-      [
-        'key' => 'settings',
-        'label' => $this->t('Organiser settings'),
-        'icon' => 'settings',
-        'route' => 'myeventlane_vendor.console.settings',
+        'children' => $editChildren,
       ],
       [
         'key' => 'support',
@@ -242,16 +241,19 @@ final class VendorNavBuilder {
   }
 
   /**
+   * Full Convergence shell navigation.
+   *
    * @return list<array<string, mixed>>
+   *   Sidebar items for the full organiser shell.
    */
   private function buildFullShellNavItems(string $activeSection, ?string $routeName): array {
-    $wizardChildren = $this->buildEventWizardSubmenu($routeName);
+    $editChildren = $this->buildEventEditSubmenu($routeName);
     $eventId = $this->resolveEventId();
 
     $definitions = [
       [
         'key' => 'dashboard',
-        'label' => $this->t('Home'),
+        'label' => $this->t('Dashboard'),
         'icon' => 'dashboard',
         'route' => 'myeventlane_vendor.console.dashboard',
         'children' => [],
@@ -261,13 +263,13 @@ final class VendorNavBuilder {
         'label' => $this->t('Events'),
         'icon' => 'events',
         'route' => 'myeventlane_vendor.console.events',
-        'children' => $wizardChildren,
+        'children' => $editChildren,
       ],
       [
-        'key' => 'event_editor',
-        'label' => $this->t('Event Editor'),
-        'icon' => 'events',
-        'route' => 'myeventlane_event_studio.create',
+        'key' => 'attendees',
+        'label' => $this->t('Attendees'),
+        'icon' => 'attendees',
+        'route' => 'myeventlane_checkout_flow.vendor_attendees',
         'children' => [],
       ],
       [
@@ -279,56 +281,38 @@ final class VendorNavBuilder {
         'event_route' => 'myeventlane_vendor.console.event_orders',
       ],
       [
-        'key' => 'ticket_holders',
-        'label' => $this->t('Ticket holders'),
-        'icon' => 'attendees',
-        'route' => 'myeventlane_checkout_flow.vendor_attendees',
-        'children' => [],
-      ],
-      [
-        'key' => 'checkin',
-        'label' => $this->t('Check-in'),
-        'icon' => 'attendees',
-        'route' => NULL,
-        'children' => [],
-        'event_route' => 'myeventlane_tickets.ticket_checkin',
-      ],
-      [
-        'key' => 'refund_requests',
-        'label' => $this->t('Refund requests'),
-        'icon' => 'refunds',
-        'route' => NULL,
-        'children' => [],
-        'node_route' => 'myeventlane_refunds.vendor_refund_requests',
-        'requires_module' => 'myeventlane_refunds',
-        'requires_permission' => 'manage_refunds',
-      ],
-      [
-        'key' => 'payouts',
-        'label' => $this->t('Payouts'),
-        'icon' => 'payouts',
-        'route' => 'myeventlane_vendor.console.payouts',
-        'children' => [],
-      ],
-      [
-        'key' => 'promote',
-        'label' => $this->t('Grow event'),
-        'icon' => 'growth',
-        'route' => 'myeventlane_vendor.console.boost',
-        'children' => [],
-      ],
-      [
-        'key' => 'messaging',
-        'label' => $this->t('Messaging'),
+        'key' => 'messages',
+        'label' => $this->t('Messages'),
         'icon' => 'notifications',
         'route' => 'myeventlane_vendor.console.messaging_brand',
         'children' => [],
       ],
       [
+        'key' => 'payments',
+        'label' => $this->t('Payments'),
+        'icon' => 'payouts',
+        'route' => 'myeventlane_vendor.console.payouts',
+        'children' => [],
+      ],
+      [
         'key' => 'analytics',
-        'label' => $this->t('Insights'),
+        'label' => $this->t('Analytics'),
         'icon' => 'analytics',
         'route' => 'myeventlane_analytics.dashboard',
+        'children' => [],
+      ],
+      [
+        'key' => 'marketing',
+        'label' => $this->t('Marketing'),
+        'icon' => 'growth',
+        'route' => 'myeventlane_vendor.console.boost',
+        'children' => [],
+      ],
+      [
+        'key' => 'settings',
+        'label' => $this->t('Settings'),
+        'icon' => 'settings',
+        'route' => 'myeventlane_vendor.console.settings',
         'children' => [],
       ],
       [
@@ -336,13 +320,6 @@ final class VendorNavBuilder {
         'label' => $this->t('Support'),
         'icon' => 'help',
         'route' => 'myeventlane_escalations_portal.vendor_list',
-        'children' => [],
-      ],
-      [
-        'key' => 'settings',
-        'label' => $this->t('Organiser settings'),
-        'icon' => 'settings',
-        'route' => 'myeventlane_vendor.console.settings',
         'children' => [],
       ],
     ];
@@ -430,9 +407,12 @@ final class VendorNavBuilder {
   }
 
   /**
+   * Event Workspace deep-link under Events (not a peer shell item).
+   *
    * @return list<array<string, mixed>>
+   *   Nested Events submenu items when an event is in context.
    */
-  private function buildEventWizardSubmenu(?string $routeName): array {
+  private function buildEventEditSubmenu(?string $routeName): array {
     $eventId = $this->resolveEventId();
     if ($eventId === NULL) {
       return [];
@@ -446,7 +426,7 @@ final class VendorNavBuilder {
 
     return [
       [
-        'label' => $this->t('Event Editor'),
+        'label' => $this->t('Edit event'),
         'url' => $url,
         'is_disabled' => $url === NULL,
         'is_active' => in_array($routeName, $this->eventStudioRoutes(), TRUE),
@@ -455,9 +435,15 @@ final class VendorNavBuilder {
   }
 
   /**
+   * Adds active state, accessibility, and section metadata to a nav item.
+   *
    * @param array<string, mixed> $item
+   *   Raw nav item definition.
+   * @param string $activeSection
+   *   Active top-level section key for the current request.
    *
    * @return array<string, mixed>
+   *   Decorated nav item for Twig.
    */
   private function decorateShellNavItem(array $item, string $activeSection): array {
     $route = $item['route'] ?? NULL;
@@ -477,21 +463,35 @@ final class VendorNavBuilder {
     return $item;
   }
 
+  /**
+   * Returns the human label for a sidebar section key.
+   */
   private function navSectionLabel(string $section): string {
     return match ($section) {
-      'home' => (string) $this->t('Home'),
-      'events' => (string) $this->t('Events'),
-      'operations' => (string) $this->t('Operations'),
-      'growth' => (string) $this->t('Growth'),
+      'primary' => '',
       'account' => (string) $this->t('Account'),
       default => '',
     };
   }
 
+  /**
+   * Whether the current route is an organiser onboarding step.
+   *
+   * @param string|null $routeName
+   *   Current route name, if any.
+   */
   private function isVendorOnboardRoute(?string $routeName): bool {
     return is_string($routeName) && str_starts_with($routeName, 'myeventlane_vendor.onboard');
   }
 
+  /**
+   * Checks named-route access for the current account.
+   *
+   * @param string $routeName
+   *   Named route to check.
+   * @param array<string, mixed> $parameters
+   *   Route parameters.
+   */
   private function namedRouteAccessible(string $routeName, array $parameters): bool {
     try {
       return $this->accessManager
@@ -504,7 +504,12 @@ final class VendorNavBuilder {
   }
 
   /**
+   * Builds a URL string for a named route, or NULL if generation fails.
+   *
+   * @param string $routeName
+   *   Named route to build.
    * @param array<string, mixed> $parameters
+   *   Route parameters.
    */
   private function safeRouteUrl(string $routeName, array $parameters = []): ?string {
     try {
@@ -515,6 +520,9 @@ final class VendorNavBuilder {
     }
   }
 
+  /**
+   * Resolves the event node ID from route match parameters, if present.
+   */
   private function resolveEventId(): ?int {
     $node = $this->routeMatch->getParameter('node');
     if ($node instanceof NodeInterface && $node->bundle() === 'event') {
@@ -536,7 +544,10 @@ final class VendorNavBuilder {
   }
 
   /**
+   * Route names that belong to Event Studio workspace editing.
+   *
    * @return list<string>
+   *   Event Studio route names used for submenu active state.
    */
   private function eventStudioRoutes(): array {
     return [

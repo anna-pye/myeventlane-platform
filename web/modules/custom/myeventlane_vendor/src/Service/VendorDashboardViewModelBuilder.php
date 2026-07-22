@@ -1004,7 +1004,7 @@ final class VendorDashboardViewModelBuilder {
     $this->appendQuickAction($actions, 'checkin', (string) $this->t('Open check-in'), $this->safeUrlFromRouteIfAccessible('myeventlane_event_attendees.vendor_operations_door', ['node' => $nid], $account), 'scan');
     if ($published) {
       $this->appendQuickAction($actions, 'share', (string) $this->t('Share event'), $this->toPublicUrl($this->safeUrlFromRouteIfAccessible('entity.node.canonical', ['node' => $nid], $account)), 'export');
-      $this->appendQuickAction($actions, 'promote', (string) $this->t('Promote event'), $this->promoteUrl($nid, $account), 'search');
+      $this->appendQuickAction($actions, 'promote', (string) $this->t('Marketing'), $this->promoteUrl($nid, $account), 'search');
     }
     $this->appendQuickAction($actions, 'support', (string) $this->t('Open support'), $this->safeUrlFromRouteIfAccessible('myeventlane_help_centre.vendors_index', [], $account), 'search');
 
@@ -1281,7 +1281,7 @@ final class VendorDashboardViewModelBuilder {
       $this->appendOrganiserAction(
         $actions,
         'promote',
-        (string) $this->t('Promote event'),
+        (string) $this->t('Marketing'),
         $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.boost', [], $account),
       );
     }

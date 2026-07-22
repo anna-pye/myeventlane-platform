@@ -451,13 +451,14 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     }
   }
 
+  // Create Event always goes through the gateway so draft-choice can run.
   $variables['page']['shell_primary_action'] = NULL;
   if ($current_user->isAuthenticated()
-    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_event_studio.create', [])) {
-    $create_url = _myeventlane_vendor_theme_safe_route_url('myeventlane_event_studio.create');
+    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_vendor.create_event_gateway', [])) {
+    $create_url = _myeventlane_vendor_theme_safe_route_url('myeventlane_vendor.create_event_gateway');
     if ($create_url !== NULL) {
       $variables['page']['shell_primary_action'] = [
-        'label' => t('Create Event'),
+        'label' => t('Create event'),
         'url' => $create_url,
       ];
     }
@@ -494,9 +495,9 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   if ($current_user->isAuthenticated()) {
     // Vendor console links (mirror account menu YAML; visibility = route access).
     $vendor_console_links = [
-      ['title' => t('Home'), 'route' => 'myeventlane_vendor.console.dashboard'],
-      ['title' => t('My events'), 'route' => 'myeventlane_vendor.console.events'],
-      ['title' => t('Create event'), 'route' => 'myeventlane_event_studio.create'],
+      ['title' => t('Dashboard'), 'route' => 'myeventlane_vendor.console.dashboard'],
+      ['title' => t('Events'), 'route' => 'myeventlane_vendor.console.events'],
+      ['title' => t('Create event'), 'route' => 'myeventlane_vendor.create_event_gateway'],
       ['title' => t('Settings'), 'route' => 'myeventlane_vendor.console.settings'],
     ];
     $user_menu_items = [];
@@ -1604,7 +1605,7 @@ function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variabl
   if (empty($variables['manage_event_back']) && empty($variables['vendor_event_workspace_model'])) {
     $variables['manage_event_back'] = [
       'url' => \Drupal\Core\Url::fromRoute('myeventlane_vendor.console.event_workspace', ['event' => $event->id()])->toString(),
-      'label' => (string) t('Back to Manage event'),
+      'label' => (string) t('Back to Overview'),
     ];
   }
 

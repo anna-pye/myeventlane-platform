@@ -10,7 +10,7 @@ id: node.event.field_product_target
 field_name: field_product_target
 entity_type: node
 bundle: event
-label: 'Ticket Product'
+label: Ticket
 description: 'Link to a Commerce product for paid ticketing. Required when Event Type is "Paid". For RSVP events, this is auto-created.'
 required: false
 translatable: false

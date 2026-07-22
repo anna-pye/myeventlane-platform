@@ -115,7 +115,7 @@ final class EventStudioProductisationForm extends FormBase {
       'hint' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Link existing operational Commerce products or create new ones using the wizard (created only when you press Save). Commerce owns catalog, carts, and checkout — this screen stores event-scoped authoring metadata; stock, shipping, and fulfilment execution are configured later.'),
+        '#value' => $this->t('Link existing operational extras or create new ones using the wizard (created only when you press Save). Tickets and checkout stay in MyEventLane — this screen stores event-scoped authoring metadata; stock, shipping, and fulfilment execution are configured later.'),
         '#attributes' => ['class' => ['mel-es-card__hint']],
       ],
     ];
@@ -425,8 +425,8 @@ final class EventStudioProductisationForm extends FormBase {
       '#type' => 'radios',
       '#title' => $this->t('Catalog path'),
       '#options' => [
-        'link' => $this->t('Link existing product'),
-        'create' => $this->t('Create new operational product'),
+        'link' => $this->t('Link existing item'),
+        'create' => $this->t('Create new operational item'),
       ],
       '#default_value' => $product_id > 0 ? 'link' : 'create',
       '#attributes' => ['class' => ['mel-productisation-wizard-mode']],
@@ -494,7 +494,7 @@ final class EventStudioProductisationForm extends FormBase {
       'commerce_create_currency_display' => [
         '#type' => 'item',
         '#title' => $this->t('Currency'),
-        '#markup' => '<p class="mel-text--muted">' . $this->t('Charges use your event store currency: @code', ['@code' => $default_currency]) . '</p>',
+        '#markup' => '<p class="mel-text--muted">' . $this->t('Charges use your account currency: @code', ['@code' => $default_currency]) . '</p>',
       ],
       'commerce_create_sku' => [
         '#type' => 'textfield',
@@ -527,30 +527,30 @@ final class EventStudioProductisationForm extends FormBase {
       'commerce_heading' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Commerce link (existing product)'),
+        '#value' => $this->t('Link existing item'),
         '#attributes' => ['class' => ['mel-productisation-editor__commerce-title']],
       ],
       'commerce_product' => [
         '#type' => 'entity_autocomplete',
-        '#title' => $this->t('Commerce product'),
+        '#title' => $this->t('Catalog item'),
         '#target_type' => 'commerce_product',
         '#max_length' => 512,
         '#default_value' => $product_id > 0 ? $this->entityTypeManager->getStorage('commerce_product')->load($product_id) : NULL,
       ],
       'commerce_product_id' => [
         '#type' => 'number',
-        '#title' => $this->t('Commerce product ID'),
+        '#title' => $this->t('Item ID'),
         '#min' => 0,
         '#default_value' => $product_id > 0 ? $product_id : NULL,
         '#description' => $this->t('Autocomplete fills this ID for autosave compatibility.'),
       ],
       'commerce_linkage_mode' => [
         '#type' => 'select',
-        '#title' => $this->t('Variation linkage'),
+        '#title' => $this->t('Option linkage'),
         '#options' => [
           OperationalCapabilityCommerceLinkManager::LINKAGE_NONE => $this->t('None'),
-          OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Whole product'),
-          OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Specific variations'),
+          OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Whole item'),
+          OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Specific options'),
         ],
         '#default_value' => in_array($link_mode, [
           OperationalCapabilityCommerceLinkManager::LINKAGE_NONE,
@@ -560,7 +560,7 @@ final class EventStudioProductisationForm extends FormBase {
       ],
       'commerce_variations' => [
         '#type' => 'checkboxes',
-        '#title' => $this->t('Allowed variations'),
+        '#title' => $this->t('Allowed options'),
         '#options' => $this->buildVariationOptionsForProduct($product_id),
         '#default_value' => $var_defaults,
       ],

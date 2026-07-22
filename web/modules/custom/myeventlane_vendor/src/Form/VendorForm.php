@@ -331,7 +331,7 @@ class VendorForm extends ContentEntityForm {
         'Organiser profile save: no linked store after ensureStoreForVendor for vendor @id',
         ['@id' => (string) $vendor->id()]
       );
-      $this->messenger()->addWarning($this->t('Your profile changes could not be linked to a Commerce store yet. Payment and tax settings may be incomplete; contact support if this persists.'));
+      $this->messenger()->addWarning($this->t('Your profile changes could not be linked to your account for payments yet. Payment and tax settings may be incomplete; contact support if this persists.'));
       return;
     }
 

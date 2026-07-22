@@ -11,8 +11,8 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
  */
 #[EventStudioSection(
   id: 'messaging',
-  title: 'Visibility & updates',
-  group: 'Manage Event',
+  title: 'Publishing & updates',
+  group: 'Event',
   routeName: 'myeventlane_event_studio.workspace_messaging',
   section_state: 'active',
   weight: 40,

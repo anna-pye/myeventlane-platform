@@ -3,7 +3,7 @@ myeventlane_vendor.console.settings:
   path: '/vendor/settings'
   defaults:
     _form: '\Drupal\myeventlane_vendor_settings\Form\VendorSettingsForm'
-    _title: 'Vendor settings'
+    _title: 'Organiser settings'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:

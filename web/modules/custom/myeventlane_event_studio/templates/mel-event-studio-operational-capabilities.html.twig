@@ -53,7 +53,7 @@
               </span>
             </div>
             {% if card.commerce.commerce_chips|default([])|length %}
-              <ul class="mel-operational-commerce-chips" aria-label="{{ 'Linked Commerce products'|t }}">
+              <ul class="mel-operational-commerce-chips" aria-label="{{ 'Linked tickets'|t }}">
                 {% for chip in card.commerce.commerce_chips %}
                   <li class="mel-operational-chip mel-operational-chip--{{ chip.tone|default('neutral') }}">{{ chip.label }}</li>
                 {% endfor %}

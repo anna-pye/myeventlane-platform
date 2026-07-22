@@ -3,7 +3,7 @@ myeventlane_reporting.vendor_insights:
   path: '/vendor/insights'
   defaults:
     _controller: 'myeventlane_reporting.vendor_insights:dashboard'
-    _title: 'Insights'
+    _title: 'Analytics'
   requirements:
     _permission: 'view vendor insights'
     _custom_access: '\Drupal\myeventlane_reporting\Access\VendorReportingAccess::access'
@@ -14,7 +14,7 @@ myeventlane_reporting.event_insights.overview:
   path: '/vendor/events/{event}/insights'
   defaults:
     _controller: 'myeventlane_reporting.event_insights:overview'
-    _title: 'Event Insights'
+    _title: 'Event analytics'
   requirements:
     _permission: 'view event insights'
     _custom_access: 'myeventlane_reporting.event_insights:access'
@@ -31,7 +31,7 @@ myeventlane_reporting.event_insights.sales:
   path: '/vendor/events/{event}/insights/sales'
   defaults:
     _controller: 'myeventlane_reporting.event_insights:sales'
-    _title: 'Sales Insights'
+    _title: 'Sales analytics'
   requirements:
     _permission: 'view event insights'
     _custom_access: 'myeventlane_reporting.event_insights:access'
@@ -48,7 +48,7 @@ myeventlane_reporting.event_insights.attendees:
   path: '/vendor/events/{event}/insights/attendees'
   defaults:
     _controller: 'myeventlane_reporting.event_insights:attendees'
-    _title: 'Attendee Insights'
+    _title: 'Attendee analytics'
   requirements:
     _permission: 'view event insights'
     _custom_access: 'myeventlane_reporting.event_insights:access'
@@ -65,7 +65,7 @@ myeventlane_reporting.event_insights.checkins:
   path: '/vendor/events/{event}/insights/checkins'
   defaults:
     _controller: 'myeventlane_reporting.event_insights:checkins'
-    _title: 'Check-in Insights'
+    _title: 'Check-in analytics'
   requirements:
     _permission: 'view event insights'
     _custom_access: 'myeventlane_reporting.event_insights:access'
@@ -82,7 +82,7 @@ myeventlane_reporting.event_insights.traffic:
   path: '/vendor/events/{event}/insights/traffic'
   defaults:
     _controller: 'myeventlane_reporting.event_insights:traffic'
-    _title: 'Traffic Insights'
+    _title: 'Traffic analytics'
   requirements:
     _permission: 'view event insights'
     _custom_access: 'myeventlane_reporting.event_insights:access'

@@ -50,7 +50,7 @@ final class ManageEventNavigation {
       ],
       'checkout_questions' => [
         'route' => 'myeventlane_vendor.manage_event.checkout_questions',
-        'label' => 'Checkout questions',
+        'label' => 'Guest questions',
         'icon' => 'question',
       ],
       'series' => [
@@ -59,30 +59,8 @@ final class ManageEventNavigation {
         'icon' => 'calendar',
         'series_only' => TRUE,
       ],
-      'promote' => [
-        'route' => 'myeventlane_vendor.manage_event.promote',
-        'label' => 'Promote',
-        'icon' => 'megaphone',
-        'coming_soon' => TRUE,
-      ],
-      'payments' => [
-        'route' => 'myeventlane_vendor.manage_event.payments',
-        'label' => 'Payments & fees',
-        'icon' => 'payment',
-        'coming_soon' => TRUE,
-      ],
-      'comms' => [
-        'route' => 'myeventlane_vendor.manage_event.comms',
-        'label' => 'Comms',
-        'icon' => 'email',
-        'coming_soon' => TRUE,
-      ],
-      'advanced' => [
-        'route' => 'myeventlane_vendor.manage_event.advanced',
-        'label' => 'Advanced',
-        'icon' => 'settings',
-        'coming_soon' => TRUE,
-      ],
+      // Promote / payments / comms / advanced placeholders retired (VX2-00):
+      // ManageEventPlaceholderController redirects to Workspace / Payments.
     ];
 
     foreach ($step_definitions as $key => $def) {

@@ -38,9 +38,9 @@
             {% endif %}
           </dl>
           {% if row.event_id|default(0) %}
-            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ path('myeventlane_event_studio.workspace_analytics', {'node': row.event_id}) }}">{{ 'View insights'|t }} →</a>
+            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ path('myeventlane_event_studio.workspace_analytics', {'node': row.event_id}) }}">{{ 'View analytics'|t }} →</a>
           {% elseif row.url %}
-            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ row.url }}">{{ 'View insights'|t }} →</a>
+            <a class="mel-live-ops__readiness-link mel-vendor-dashboard__analytics-top-event-action" href="{{ row.url }}">{{ 'View analytics'|t }} →</a>
           {% endif %}
         </article>
       {% endfor %}

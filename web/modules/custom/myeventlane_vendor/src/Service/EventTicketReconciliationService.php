@@ -106,7 +106,7 @@ final class EventTicketReconciliationService {
     $remainder = count($blocking_issues) - count($codes);
     $suffix = $remainder > 0 ? ' (+' . (string) $remainder . ')' : '';
 
-    return (string) $this->t('Tickets saved and synced. Ticket setup audit: @codes@suffix. Open Advanced ticket manager to fix mapping, or run drush mel:tickets:audit for detail.', [
+    return (string) $this->t('Tickets saved and synced. Ticket setup audit: @codes@suffix. Open Advanced ticket tools to fix mapping.', [
       '@codes' => implode(', ', $codes),
       '@suffix' => $suffix,
     ]);

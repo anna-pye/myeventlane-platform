@@ -527,7 +527,7 @@ final class EventStudioMelDefaultsProvider {
         'copy' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Checkout questions are managed in the Checkout questions workspace. Use that table for status, ticket targeting, and archiving.'),
+          '#value' => $this->t('Guest questions are managed in the Guest questions workspace. Use that table for status, ticket targeting, and archiving.'),
         ],
         'copy_secondary' => [
           '#type' => 'html_tag',
