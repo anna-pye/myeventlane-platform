@@ -38,15 +38,77 @@ final class VendorNavBuilderTest extends UnitTestCase {
 
     $items = $builder->buildShellNavItems('dashboard');
     $keys = array_column($items, 'key');
-    $onboardingKeys = ['dashboard', 'events', 'payouts', 'settings', 'support'];
+    $onboardingKeys = ['dashboard', 'events', 'support'];
 
     foreach ($keys as $key) {
       $this->assertContains($key, $onboardingKeys);
     }
     $this->assertNotContains('analytics', $keys);
-    $this->assertNotContains('promote', $keys);
+    $this->assertNotContains('marketing', $keys);
+    $this->assertNotContains('payments', $keys);
     $this->assertNotContains('event_editor', $keys);
     $this->assertNotContains('checkin', $keys);
+    $this->assertNotContains('payouts', $keys);
+  }
+
+  /**
+   * Convergence shell excludes Event Editor, Check-in, and Refund requests.
+   *
+   * @covers ::buildShellNavItems
+   */
+  public function testFullShellMatchesConvergenceIa(): void {
+    $builder = $this->createBuilder(
+      routeName: 'myeventlane_vendor.console.dashboard',
+      path: '/vendor/dashboard',
+      allowedRoutes: [
+        'myeventlane_vendor.console.dashboard',
+        'myeventlane_vendor.console.events',
+        'myeventlane_checkout_flow.vendor_attendees',
+        'myeventlane_vendor.console.payouts',
+        'myeventlane_vendor.console.boost',
+        'myeventlane_vendor.console.messaging_brand',
+        'myeventlane_analytics.dashboard',
+        'myeventlane_escalations_portal.vendor_list',
+        'myeventlane_vendor.console.settings',
+      ],
+    );
+
+    $items = $builder->buildShellNavItems('dashboard');
+    $keys = array_column($items, 'key');
+
+    $this->assertSame(
+      [
+        'dashboard',
+        'events',
+        'attendees',
+        'orders',
+        'messages',
+        'payments',
+        'analytics',
+        'marketing',
+        'settings',
+        'support',
+      ],
+      $keys,
+    );
+
+    $labels = [];
+    foreach ($items as $item) {
+      $labels[$item['key']] = (string) $item['label'];
+    }
+    $this->assertSame('Dashboard', $labels['dashboard']);
+    $this->assertSame('Attendees', $labels['attendees']);
+    $this->assertSame('Messages', $labels['messages']);
+    $this->assertSame('Payments', $labels['payments']);
+    $this->assertSame('Analytics', $labels['analytics']);
+    $this->assertSame('Marketing', $labels['marketing']);
+    $this->assertSame('Settings', $labels['settings']);
+
+    $this->assertNotContains('event_editor', $keys);
+    $this->assertNotContains('checkin', $keys);
+    $this->assertNotContains('refund_requests', $keys);
+    $this->assertNotContains('ticket_holders', $keys);
+    $this->assertNotContains('promote', $keys);
   }
 
   /**
@@ -61,7 +123,6 @@ final class VendorNavBuilderTest extends UnitTestCase {
       allowedRoutes: [
         'myeventlane_vendor.console.dashboard',
         'myeventlane_vendor.console.events',
-        'myeventlane_event_studio.create',
         'myeventlane_checkout_flow.vendor_attendees',
         'myeventlane_vendor.console.payouts',
         'myeventlane_vendor.console.boost',
@@ -77,13 +138,18 @@ final class VendorNavBuilderTest extends UnitTestCase {
     $this->assertNotNull($orders);
     $this->assertTrue($orders['is_disabled']);
     $this->assertNull($orders['url']);
-    $this->assertSame('operations', $orders['nav_section']);
-    $this->assertSame('Operations', $orders['nav_section_label']);
+    $this->assertSame('primary', $orders['nav_section']);
+    $this->assertSame('', $orders['nav_section_label']);
 
     $dashboard = $this->findItemByKey($items, 'dashboard');
     $this->assertNotNull($dashboard);
-    $this->assertSame('home', $dashboard['nav_section']);
-    $this->assertSame('Home', $dashboard['nav_section_label']);
+    $this->assertSame('primary', $dashboard['nav_section']);
+    $this->assertSame('Dashboard', (string) $dashboard['label']);
+
+    $settings = $this->findItemByKey($items, 'settings');
+    $this->assertNotNull($settings);
+    $this->assertSame('account', $settings['nav_section']);
+    $this->assertSame('Account', $settings['nav_section_label']);
   }
 
   /**
@@ -101,6 +167,20 @@ final class VendorNavBuilderTest extends UnitTestCase {
   }
 
   /**
+   * Attendees path maps to attendees section (not legacy ticket_holders).
+   *
+   * @covers ::resolveActiveSection
+   */
+  public function testResolveActiveSectionFromAttendeesPath(): void {
+    $builder = $this->createBuilder(
+      routeName: 'myeventlane_checkout_flow.vendor_attendees',
+      path: '/vendor/attendees',
+    );
+
+    $this->assertSame('attendees', $builder->resolveActiveSection('myeventlane_checkout_flow.vendor_attendees'));
+  }
+
+  /**
    * Shell nav cache contexts include permissions and route.
    */
   public function testShellNavCacheContexts(): void {
@@ -111,7 +191,14 @@ final class VendorNavBuilderTest extends UnitTestCase {
   }
 
   /**
+   * Builds a VendorNavBuilder with mocked route access.
+   *
+   * @param string $routeName
+   *   Current route name.
+   * @param string $path
+   *   Current request path.
    * @param list<string> $allowedRoutes
+   *   Named routes that checkNamedRoute should allow (empty = allow all).
    */
   private function createBuilder(
     string $routeName,
@@ -149,7 +236,11 @@ final class VendorNavBuilderTest extends UnitTestCase {
       static fn (string $string, array $args = [], array $options = []): string => $string,
     );
     $translation->method('translateString')->willReturnCallback(
-      static fn ($string) => (string) $string,
+      static function ($markup): string {
+        return method_exists($markup, 'getUntranslatedString')
+          ? $markup->getUntranslatedString()
+          : (string) $markup;
+      },
     );
 
     $container = new ContainerBuilder();
@@ -167,9 +258,15 @@ final class VendorNavBuilderTest extends UnitTestCase {
   }
 
   /**
+   * Finds a shell nav item by key.
+   *
    * @param list<array<string, mixed>> $items
+   *   Built shell nav items.
+   * @param string $key
+   *   Item key to find.
    *
    * @return array<string, mixed>|null
+   *   Matching item or NULL.
    */
   private function findItemByKey(array $items, string $key): ?array {
     foreach ($items as $item) {
