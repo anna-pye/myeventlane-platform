@@ -104,7 +104,18 @@ final class VendorConsolePagePreprocess {
     ];
 
     $current_route_name = (string) $this->routeMatch->getRouteName();
+    // Overview tab links to Event Workspace studio overview, but staff mission
+    // control lives on myeventlane_vendor.console.event_workspace — treat both
+    // as the Overview active state.
+    $overview_active_routes = [
+      'myeventlane_event_studio.workspace',
+      'myeventlane_vendor.console.event_workspace',
+    ];
     foreach ($workspace_tabs as &$tab) {
+      if (($tab['key'] ?? '') === 'overview') {
+        $tab['active'] = in_array($current_route_name, $overview_active_routes, TRUE);
+        continue;
+      }
       $tab['active'] = ($tab['route'] === $current_route_name);
     }
     unset($tab);

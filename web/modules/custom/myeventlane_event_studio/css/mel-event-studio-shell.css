@@ -2802,6 +2802,17 @@
   color: #5b21b6;
 }
 
+.mel-event-studio-empty-state__actions {
+  margin-block-start: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.mel-event-studio-empty-state__actions .mel-btn {
+  min-height: 44px;
+}
+
 .mel-event-studio-publish-feedback {
   padding: 16px 18px;
   border: 1px solid rgba(244, 63, 94, 0.28);

@@ -23,10 +23,12 @@ final class EventStudioEmptyStateBuilder {
    *
    * @param list<string> $guidance
    *   Optional guidance items shown below the main copy.
+   * @param array<string, mixed> $actions
+   *   Optional primary CTA render array (e.g. link) rendered inside the theme.
    *
    * @return array<string, mixed>
    */
-  public function build(string $title, string $body, string $prompt = '', array $guidance = [], string $icon = 'spark', string $state = 'default'): array {
+  public function build(string $title, string $body, string $prompt = '', array $guidance = [], string $icon = 'spark', string $state = 'default', array $actions = []): array {
     return [
       '#theme' => 'mel_event_studio_empty_state',
       '#title' => $title,
@@ -35,6 +37,7 @@ final class EventStudioEmptyStateBuilder {
       '#guidance' => $guidance,
       '#icon' => $icon,
       '#state' => $state,
+      '#actions' => $actions,
     ];
   }
 

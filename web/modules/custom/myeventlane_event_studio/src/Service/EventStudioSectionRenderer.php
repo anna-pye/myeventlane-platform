@@ -150,14 +150,13 @@ final class EventStudioSectionRenderer {
         ],
         'spark',
         'default',
-      ) + [
-        'actions' => [
+        [
           '#type' => 'link',
           '#title' => $this->t('Go to publishing'),
           '#url' => Url::fromRoute('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
         ],
-      ];
+      );
     }
 
     return [

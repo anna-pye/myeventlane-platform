@@ -105,6 +105,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'guidance' => [],
         'icon' => 'spark',
         'state' => 'default',
+        'actions' => [],
       ],
       'template' => 'mel-event-studio-empty-state',
     ],
