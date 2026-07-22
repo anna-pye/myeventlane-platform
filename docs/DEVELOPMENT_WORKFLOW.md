@@ -243,7 +243,7 @@ After merging the toolkit to `main`, sync integration so those paths stay curren
 | `MEL_WORKTREE_PARENT` | Parent dir for worktrees (default `$HOME`) |
 | `MEL_BRANCH_PREFIX` | Default `feature/mel-` |
 | `MEL_SKIP_PHPUNIT` / `MEL_SKIP_PHPCS` / `MEL_SKIP_DRUSH` | Skip finish gates |
-| `MEL_PHPUNIT_TARGET` | Override PHPUnit path for finish |
+| `MEL_PHPUNIT_TARGET` | Override PHPUnit suite path(s) for finish (space-separated) |
 | `NO_COLOR=1` | Disable colour |
 
 ---

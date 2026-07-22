@@ -581,10 +581,15 @@ EOF
 }
 
 mel_phpunit_smoke() {
+  # Usage: mel_phpunit_smoke <repo_dir> [suite_path ...]
+  # Multiple suite paths are passed through to mel-phpunit / PHPUnit.
   local dir="${1:-.}"
-  local target="${2:-web/modules/custom/myeventlane_api/tests/src/Unit}"
+  shift || true
+  if [[ "$#" -eq 0 ]]; then
+    set -- "web/modules/custom/myeventlane_api/tests/src/Unit"
+  fi
   mel_require_ddev "${dir}"
-  mel_ddev_in_dir "${dir}" exec bash scripts/mel-phpunit "${target}"
+  mel_ddev_in_dir "${dir}" exec bash scripts/mel-phpunit "$@"
 }
 
 mel_php_version() {

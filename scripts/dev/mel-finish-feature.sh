@@ -88,18 +88,26 @@ fi
 if [[ "${MEL_SKIP_PHPUNIT:-0}" == "1" ]]; then
   mel_warn "Skipping PHPUnit (MEL_SKIP_PHPUNIT=1)"
 else
+  # Auto-select every unique tests/src/<Suite> dir touched on the branch.
+  # Previously only the first changed file's suite ran, so other modules'
+  # failing tests could be skipped while finish-feature reported green.
   PHPUNIT_TARGET="${MEL_PHPUNIT_TARGET:-}"
   if [[ -z "${PHPUNIT_TARGET}" ]]; then
-    CHANGED_TESTS="$(mel_git "${ROOT}" diff --name-only --diff-filter=ACMR origin/main...HEAD -- 'web/modules/custom/*/tests/**/*.php' 2>/dev/null | head -20 || true)"
-    if [[ -n "${CHANGED_TESTS}" ]]; then
-      FIRST="$(printf '%s\n' "${CHANGED_TESTS}" | head -1)"
-      PHPUNIT_TARGET="$(printf '%s' "${FIRST}" | sed -E 's#(web/modules/custom/[^/]+/tests/src/[^/]+).*#\1#')"
-    else
+    PHPUNIT_TARGET="$(
+      mel_git "${ROOT}" diff --name-only --diff-filter=ACMR origin/main...HEAD -- 'web/modules/custom/*/tests/**/*.php' 2>/dev/null \
+        | sed -nE 's#(web/modules/custom/[^/]+/tests/src/[^/]+).*#\1#p' \
+        | sort -u \
+        | tr '\n' ' '
+    )"
+    PHPUNIT_TARGET="$(printf '%s' "${PHPUNIT_TARGET}" | sed -E 's/^[[:space:]]+//;s/[[:space:]]+$//')"
+    if [[ -z "${PHPUNIT_TARGET}" ]]; then
       PHPUNIT_TARGET="web/modules/custom/myeventlane_api/tests/src/Unit"
     fi
   fi
-  mel_info "PHPUnit target: ${PHPUNIT_TARGET}"
-  if ! mel_run_step "PHPUnit" mel_phpunit_smoke "${ROOT}" "${PHPUNIT_TARGET}"; then
+  mel_info "PHPUnit target(s): ${PHPUNIT_TARGET}"
+  # Intentional word-split: suite paths are space-separated, no spaces in paths.
+  # shellcheck disable=SC2086
+  if ! mel_run_step "PHPUnit" mel_phpunit_smoke "${ROOT}" ${PHPUNIT_TARGET}; then
     fail
   fi
 fi
