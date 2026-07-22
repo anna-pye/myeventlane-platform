@@ -10,10 +10,10 @@
     <p class="mel-event-workspace-overview__lede">{{ "Here's where you are with this event — and what to do next."|t }}</p>
   </header>
 
-  {% if celebration.show|default(false) %}
+  {% if celebration is iterable and celebration.show|default(false) %}
     <div class="mel-event-workspace-overview__celebrate" role="status">
-      <p class="mel-event-workspace-overview__celebrate-title">{{ celebration.title }}</p>
-      <p class="mel-event-workspace-overview__celebrate-message">{{ celebration.message }}</p>
+      <p class="mel-event-workspace-overview__celebrate-title">{{ celebration.title|default('') }}</p>
+      <p class="mel-event-workspace-overview__celebrate-message">{{ celebration.message|default('') }}</p>
     </div>
   {% endif %}
 

@@ -105,7 +105,7 @@ services:
     arguments:
       - '@myeventlane_vendor.event_workspace_view_model_builder'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
-      - '@myeventlane_event_studio.readiness'
+      - '@myeventlane_event_studio.readiness_facade'
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
 

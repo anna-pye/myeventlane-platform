@@ -55,4 +55,23 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertCount(1, $byTone['idea']);
   }
 
+  public function testOverviewUsesReadinessFacadeForMergedIdeas(): void {
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $services = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.services.yml');
+    $twig = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-overview.html.twig');
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.module');
+    $this->assertIsString($builder);
+    $this->assertIsString($services);
+    $this->assertIsString($twig);
+    $this->assertIsString($module);
+
+    $this->assertStringContainsString('EventReadinessFacade $readinessFacade', $builder);
+    $this->assertStringContainsString('$this->readinessFacade->evaluate', $builder);
+    $this->assertStringContainsString('$recommended', $builder);
+    $this->assertStringContainsString("'@myeventlane_event_studio.readiness_facade'", $services);
+    $this->assertStringContainsString("'show' => FALSE", $builder);
+    $this->assertStringContainsString('celebration is iterable', $twig);
+    $this->assertStringContainsString("'show' => FALSE", $module);
+  }
+
 }

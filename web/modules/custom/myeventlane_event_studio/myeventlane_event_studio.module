@@ -53,7 +53,11 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'analytics' => [],
         'next_action' => [],
         'quick_links' => [],
-        'celebration' => NULL,
+        'celebration' => [
+          'show' => FALSE,
+          'title' => '',
+          'message' => '',
+        ],
       ],
       'template' => 'mel-event-studio-overview',
     ],

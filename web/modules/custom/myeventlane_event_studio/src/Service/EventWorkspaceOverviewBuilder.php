@@ -26,7 +26,7 @@ final class EventWorkspaceOverviewBuilder {
   public function __construct(
     private readonly VendorEventWorkspaceViewModelBuilder $workspaceViewModel,
     private readonly PaidPublishStripeGate $stripeGate,
-    private readonly EventReadinessService $eventReadiness,
+    private readonly EventReadinessFacade $readinessFacade,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
   ) {
@@ -51,7 +51,10 @@ final class EventWorkspaceOverviewBuilder {
       $workspace = [];
     }
 
-    $readiness = $this->eventReadiness->evaluate($event, $account);
+    // Same facade bundle as the workspace readiness strip so idea rows match.
+    $bundle = $this->readinessFacade->evaluate($event, $account);
+    $readiness = $bundle['publish'];
+    $recommended = is_array($bundle['recommended'] ?? NULL) ? $bundle['recommended'] : [];
     $nid = (int) $event->id();
     $published = $event->isPublished();
 
@@ -63,7 +66,7 @@ final class EventWorkspaceOverviewBuilder {
       $readiness->completed,
       $readiness->errors,
       $readiness->warnings,
-      $readiness->recommendations,
+      $recommended,
     );
 
     $stripe = $this->buildStripeHealth($account, $event, $eventMeta);
@@ -421,10 +424,10 @@ final class EventWorkspaceOverviewBuilder {
   /**
    * Optional subtle celebration for early draft progress.
    *
-   * @return array{show: bool, title: string, message: string}|null
-   *   Celebration payload, or NULL when not shown.
+   * @return array{show: bool, title: string, message: string}
+   *   Celebration payload. show is FALSE when nothing should render.
    */
-  private function buildCelebrationHint(NodeInterface $event, EventReadinessResult $readiness, bool $published): ?array {
+  private function buildCelebrationHint(NodeInterface $event, EventReadinessResult $readiness, bool $published): array {
     $title = trim($event->label());
     if ($title !== '' && strcasecmp($title, 'Untitled event') !== 0 && !$published && $readiness->completed !== []) {
       if (count($readiness->completed) === 1) {
@@ -435,7 +438,11 @@ final class EventWorkspaceOverviewBuilder {
         ];
       }
     }
-    return NULL;
+    return [
+      'show' => FALSE,
+      'title' => '',
+      'message' => '',
+    ];
   }
 
   /**
