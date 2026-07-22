@@ -60,12 +60,12 @@
 
     const emptyFilter = root.querySelector('[data-mel-attendee-empty-filter]');
     if (emptyFilter) {
-      const showEmpty =
-        visible === 0 &&
-        (activeFilter === 'checked_in' ||
-          activeFilter === 'not_checked_in' ||
-          search ||
-          ticketType);
+      // Any narrowing (chip, search, or ticket type) with zero matches needs
+      // guidance — including waitlist/rsvp/ticket/refunded/cancelled chips and
+      // ?filter= from legacy redirects. "all" with no search keeps the list.
+      const hasNarrowing =
+        activeFilter !== 'all' || Boolean(search) || Boolean(ticketType);
+      const showEmpty = visible === 0 && hasNarrowing;
       emptyFilter.hidden = !showEmpty;
       if (showEmpty && activeFilter === 'checked_in' && !search && !ticketType) {
         emptyFilter.querySelector('.mel-empty-state__title').textContent =

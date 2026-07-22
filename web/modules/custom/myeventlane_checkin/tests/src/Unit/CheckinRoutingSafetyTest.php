@@ -45,6 +45,7 @@ final class CheckinRoutingSafetyTest extends TestCase {
     $this->assertStringContainsString('AccessDeniedHttpException', $raw);
     $this->assertStringContainsString('shouldConvergeToDoorMode', $raw);
     $this->assertStringContainsString('VendorConsoleTrust', $raw);
+    $this->assertStringContainsString('administer nodes', $raw);
   }
 
 }

@@ -75,6 +75,8 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
     $this->assertStringContainsString('attendee_filtered', $js);
     $this->assertStringContainsString('attendee_checked_in', $js);
     $this->assertStringContainsString('data-mel-attendee-search', $js);
+    $this->assertStringContainsString('hasNarrowing', $js);
+    $this->assertStringContainsString("activeFilter !== 'all'", $js);
   }
 
   /**

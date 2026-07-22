@@ -176,13 +176,18 @@ final class CheckInController extends ControllerBase {
   }
 
   /**
-   * Whether this account may use Door Mode (vendor console trust).
+   * Whether this account should be redirected from legacy check-in to Door Mode.
    *
-   * Door Mode routes use vendor_console access; check-in-only team accounts
-   * must not be redirected into a surface they cannot open.
+   * Aligns with VendorLegacyWizardRedirectSubscriber: staff (administer nodes /
+   * uid 1) keep the parallel legacy UI. Check-in-only team accounts without
+   * vendor console trust also keep legacy surfaces (Door Mode is console-gated).
    */
   private function shouldConvergeToDoorMode(): bool {
-    return VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser());
+    $account = $this->currentUser();
+    if ($account->hasPermission('administer nodes') || (int) $account->id() === 1) {
+      return FALSE;
+    }
+    return VendorConsoleTrust::accountIsTrustedForVendorConsole($account);
   }
 
   /**
