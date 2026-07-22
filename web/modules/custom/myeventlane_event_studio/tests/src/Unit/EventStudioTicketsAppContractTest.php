@@ -102,6 +102,23 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('mel-event-studio-advanced-tools', $css);
   }
 
+  public function testRsvpSalesSummaryUsesEventRsvpCount(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString('RsvpCapacityService', $form);
+    $this->assertStringContainsString('countConfirmedRsvps', $form);
+    $this->assertStringContainsString("RSVPs: 1 received", $form);
+    $this->assertStringContainsString("getTicketKind() === 'rsvp'", $form);
+  }
+
+  public function testDuplicateAndArchiveAreMutuallyExclusive(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString('Choose either Duplicate ticket or Archive ticket, not both.', $form);
+    $this->assertStringContainsString("!empty(\$row['archive']) && !empty(\$row['duplicate'])", $form);
+    $this->assertStringContainsString("!empty(\$row['archive']) && empty(\$row['duplicate'])", $form);
+  }
+
   public function testOperationalFormAttachesTicketsAppLibrary(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);

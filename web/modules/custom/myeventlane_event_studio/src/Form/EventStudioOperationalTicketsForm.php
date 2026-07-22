@@ -15,6 +15,7 @@ use Drupal\myeventlane_commerce\Service\TicketTierAnalyticsService;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_rsvp\Service\RsvpCapacityService;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -59,6 +60,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
 
   protected ?TicketTierAnalyticsService $ticketTierAnalytics = NULL;
 
+  protected ?RsvpCapacityService $rsvpCapacity = NULL;
+
   public function __construct(
     EntityTypeManagerInterface $entity_type_manager,
     AccountProxyInterface $current_user,
@@ -68,6 +71,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     EventStudioSaveService $save_service,
     LoggerInterface $logger,
     ?TicketTierAnalyticsService $ticket_tier_analytics = NULL,
+    ?RsvpCapacityService $rsvp_capacity = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
@@ -77,6 +81,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $this->saveService = $save_service;
     $this->logger = $logger;
     $this->ticketTierAnalytics = $ticket_tier_analytics;
+    $this->rsvpCapacity = $rsvp_capacity;
   }
 
   public static function create(ContainerInterface $container): static {
@@ -90,6 +95,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $container->get('logger.factory')->get('myeventlane_event_studio'),
       $container->has('myeventlane_commerce.ticket_tier_analytics')
         ? $container->get('myeventlane_commerce.ticket_tier_analytics')
+        : NULL,
+      $container->has('myeventlane_rsvp.capacity')
+        ? $container->get('myeventlane_rsvp.capacity')
         : NULL,
     );
     $form->setRequestStack($container->get('request_stack'));
@@ -111,7 +119,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
    * properties or untracked services can otherwise stay uninitialized.
    */
   private function ensureInjectedServices(): void {
-    if (isset(
+    $container = \Drupal::getContainer();
+    if (!isset(
       $this->entityTypeManager,
       $this->currentUser,
       $this->eventVendorAccessChecker,
@@ -120,32 +129,33 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       $this->saveService,
       $this->logger,
     )) {
-      return;
-    }
-    $container = \Drupal::getContainer();
-    if (!isset($this->entityTypeManager)) {
-      $this->entityTypeManager = $container->get('entity_type.manager');
-    }
-    if (!isset($this->currentUser)) {
-      $this->currentUser = $container->get('current_user');
-    }
-    if (!isset($this->eventVendorAccessChecker)) {
-      $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
-    }
-    if (!isset($this->ticketTierLifecycle)) {
-      $this->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
-    }
-    if (!isset($this->autosaveService)) {
-      $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
-    }
-    if (!isset($this->saveService)) {
-      $this->saveService = $container->get('myeventlane_event_studio.save');
-    }
-    if (!isset($this->logger)) {
-      $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+      if (!isset($this->entityTypeManager)) {
+        $this->entityTypeManager = $container->get('entity_type.manager');
+      }
+      if (!isset($this->currentUser)) {
+        $this->currentUser = $container->get('current_user');
+      }
+      if (!isset($this->eventVendorAccessChecker)) {
+        $this->eventVendorAccessChecker = $container->get('myeventlane_vendor.event_access_checker');
+      }
+      if (!isset($this->ticketTierLifecycle)) {
+        $this->ticketTierLifecycle = $container->get('myeventlane_event.ticket_tier_lifecycle');
+      }
+      if (!isset($this->autosaveService)) {
+        $this->autosaveService = $container->get('myeventlane_event_studio.autosave');
+      }
+      if (!isset($this->saveService)) {
+        $this->saveService = $container->get('myeventlane_event_studio.save');
+      }
+      if (!isset($this->logger)) {
+        $this->logger = $container->get('logger.factory')->get('myeventlane_event_studio');
+      }
     }
     if (!isset($this->ticketTierAnalytics) && $container->has('myeventlane_commerce.ticket_tier_analytics')) {
       $this->ticketTierAnalytics = $container->get('myeventlane_commerce.ticket_tier_analytics');
+    }
+    if (!isset($this->rsvpCapacity) && $container->has('myeventlane_rsvp.capacity')) {
+      $this->rsvpCapacity = $container->get('myeventlane_rsvp.capacity');
     }
   }
 
@@ -379,6 +389,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
+      if (!empty($row['archive']) && !empty($row['duplicate'])) {
+        $form_state->setErrorByName(
+          'tickets][' . $ticket_id . '][actions][duplicate]',
+          $this->t('Choose either Duplicate ticket or Archive ticket, not both.'),
+        );
+        continue;
+      }
       if (!empty($row['archive'])) {
         continue;
       }
@@ -436,7 +453,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         if (!$ticket instanceof TicketTypeInterface) {
           continue;
         }
-        if (!empty($row['archive'])) {
+        // Mutual exclusion is enforced in validateForm; never archive when
+        // duplicate was also requested.
+        if (!empty($row['archive']) && empty($row['duplicate'])) {
           $this->ticketTierLifecycle->archiveTicketOnEvent($event, $ticket);
           $this->recordTicketAnalyticsEvent('ticket_archived', $event, (int) $ticket->id());
           continue;
@@ -784,7 +803,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         'hint' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Quick edit above, then save. Use duplicate or archive when you need a copy or to stop new sales.'),
+          '#value' => $this->t('Quick edit above, then save. Choose duplicate or archive — not both.'),
           '#attributes' => ['class' => ['mel-event-studio-ticket-card__quick-actions-hint']],
         ],
         'duplicate' => [
@@ -937,10 +956,23 @@ final class EventStudioOperationalTicketsForm extends FormBase {
   }
 
   private function buildTicketSalesSummary(TicketTypeInterface $ticket): string {
-    if (!$this->ticketTierAnalytics instanceof TicketTierAnalyticsService) {
-      return (string) $this->t('Sales: —');
-    }
     try {
+      if ($ticket->getTicketKind() === 'rsvp') {
+        // RSVP submissions are event-scoped (no per-tier FK). Show confirmed
+        // event RSVPs so Free RSVP cards do not falsely report zero uptake.
+        if (!$this->rsvpCapacity instanceof RsvpCapacityService) {
+          return (string) $this->t('RSVPs: —');
+        }
+        $event_id = !$ticket->get('event')->isEmpty()
+          ? (int) $ticket->get('event')->target_id
+          : 0;
+        $count = $event_id > 0 ? $this->rsvpCapacity->countConfirmedRsvps($event_id) : 0;
+        return (string) $this->formatPlural($count, 'RSVPs: 1 received', 'RSVPs: @count received');
+      }
+
+      if (!$this->ticketTierAnalytics instanceof TicketTierAnalyticsService) {
+        return (string) $this->t('Sales: —');
+      }
       $metrics = $this->ticketTierAnalytics->buildTierMetrics($ticket);
       $sold = (int) ($metrics['sold'] ?? 0);
       return (string) $this->formatPlural($sold, 'Sales: 1 sold', 'Sales: @count sold');
@@ -950,7 +982,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '@tid' => (string) $ticket->id(),
         '@message' => $e->getMessage(),
       ]);
-      return (string) $this->t('Sales: —');
+      return (string) ($ticket->getTicketKind() === 'rsvp'
+        ? $this->t('RSVPs: —')
+        : $this->t('Sales: —'));
     }
   }
 
