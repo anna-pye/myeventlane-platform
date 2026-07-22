@@ -278,7 +278,8 @@ final class EventStudioPublishController {
       'messages' => $messages,
       'published' => $node->isPublished(),
       'topbar' => [
-        'status' => $node->isPublished() ? (string) $this->t('Published') : (string) $this->t('Draft'),
+        // Match EventStudioController::buildTopbar Sprint 2 organiser copy.
+        'status' => $node->isPublished() ? (string) $this->t('Live') : (string) $this->t('Draft'),
         'state' => ($node->isPublished() && $publish_result->ready)
           ? ''
           : $this->workspacePresentation->operationalState($publish_result),
