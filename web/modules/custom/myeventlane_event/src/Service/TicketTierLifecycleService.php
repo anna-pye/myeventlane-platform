@@ -305,6 +305,71 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
   }
 
   /**
+   * Duplicates a ticket type onto the same event as a draft copy.
+   *
+   * Commerce sync runs through {@see createAttachAndSync()}. Best-value is not
+   * copied so organisers intentionally choose a highlight.
+   *
+   * @throws \InvalidArgumentException
+   */
+  public function duplicateTicketOnEvent(
+    NodeInterface $event,
+    TicketTypeInterface $source,
+    AccountInterface $account,
+  ): TicketTypeInterface {
+    if ($event->bundle() !== 'event') {
+      throw new InvalidArgumentException('Duplicate target must be an event node.');
+    }
+    $sourceId = (int) $source->id();
+    if ($sourceId < 1 || !$this->ticketBelongsToEvent($event, $sourceId)) {
+      throw new InvalidArgumentException('Ticket does not belong to this event.');
+    }
+
+    $kind = $source->getTicketKind();
+    $input = [
+      'title' => trim($source->getTitle()) . ' (copy)',
+      'ticket_kind' => $kind,
+      'status' => 0,
+      'field_is_best_value' => 0,
+      'field_is_default_ticket' => 0,
+    ];
+
+    if ($source->hasField('visibility_mode') && !$source->get('visibility_mode')->isEmpty()) {
+      $input['visibility_mode'] = (string) $source->get('visibility_mode')->value;
+    }
+    if ($source->hasField('short_description') && !$source->get('short_description')->isEmpty()) {
+      $input['short_description'] = (string) $source->get('short_description')->value;
+    }
+    if (!$source->get('capacity')->isEmpty()) {
+      $input['capacity'] = (int) $source->get('capacity')->value;
+    }
+    if (!$source->get('sale_start')->isEmpty()) {
+      $input['sale_start'] = (string) $source->get('sale_start')->value;
+    }
+    if (!$source->get('sale_end')->isEmpty()) {
+      $input['sale_end'] = (string) $source->get('sale_end')->value;
+    }
+
+    if ($kind === 'paid') {
+      $price = $source->toPriceValue();
+      if ($price === NULL) {
+        throw new InvalidArgumentException('Paid tickets require a price greater than zero.');
+      }
+      $input['price_amount'] = $price->getNumber();
+      $input['price_currency'] = $price->getCurrencyCode();
+    }
+    if ($kind === 'external') {
+      if ($source->get('external_url')->isEmpty()) {
+        throw new InvalidArgumentException('External tickets require a valid https URL.');
+      }
+      $input['external_uri'] = (string) $source->get('external_url')->uri;
+    }
+
+    $values = $this->buildTicketValuesFromInput($event, $account, $input);
+    return $this->createAttachAndSync($event, $values);
+  }
+
+  /**
    * Unpublishes the tier, detaches it from the event, and syncs Commerce.
    */
   public function archiveTicketOnEvent(NodeInterface $event, TicketTypeInterface $ticket): void {
