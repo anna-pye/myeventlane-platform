@@ -75,7 +75,12 @@ final class EventReadinessService {
       $errors[] = (string) $this->t('Choose how attendees will join this event.');
     }
     else {
-      $completed[] = (string) $this->t('Tickets ready');
+      // Mode alone is not "Tickets ready" for paid/external — those need
+      // tickets/URL checks below. RSVP is ready once the mode is selected.
+      $completed[] = (string) $this->t('Booking mode selected');
+      if ($event_type === 'rsvp') {
+        $completed[] = (string) $this->t('Tickets ready');
+      }
     }
 
     if ($event_type === 'external') {
@@ -84,6 +89,7 @@ final class EventReadinessService {
       }
       else {
         $completed[] = (string) $this->t('External booking link');
+        $completed[] = (string) $this->t('Tickets ready');
       }
     }
 

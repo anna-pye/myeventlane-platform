@@ -221,7 +221,8 @@ final class EventStudioWorkspacePresentation {
     return match ($label) {
       'Event title added.', 'Event title' => (string) $this->t('Event title'),
       'Event dates complete.', 'Schedule' => (string) $this->t('Schedule'),
-      'Booking mode selected.', 'Ticketing configured.', 'Tickets ready' => (string) $this->t('Tickets ready'),
+      'Booking mode selected.', 'Booking mode selected' => (string) $this->t('Booking mode'),
+      'Ticketing configured.', 'Tickets ready' => (string) $this->t('Tickets ready'),
       'Payment onboarding complete.', 'Payments connected' => (string) $this->t('Payments connected'),
       'Vendor publish requirements complete.', 'Organiser profile ready' => (string) $this->t('Organiser profile ready'),
       'Branding image added.', 'Cover image' => (string) $this->t('Cover image'),

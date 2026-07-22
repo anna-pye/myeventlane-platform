@@ -63,6 +63,8 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('myeventlane_event_studio.workspace', $tabs);
     $this->assertStringContainsString('workspace_publishing', $tabs);
     $this->assertStringContainsString('workspace_marketing', $tabs);
+    $this->assertStringContainsString("'key' => 'refund_requests'", $tabs);
+    $this->assertStringContainsString("'key' => 'boost'", $tabs);
     $this->assertStringContainsString("title: 'Overview'", $tasks);
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $tasks);
   }

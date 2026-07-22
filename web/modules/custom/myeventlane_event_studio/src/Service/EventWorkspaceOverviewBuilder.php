@@ -66,7 +66,7 @@ final class EventWorkspaceOverviewBuilder {
       $readiness->recommendations,
     );
 
-    $stripe = $this->buildStripeHealth($account, $nid);
+    $stripe = $this->buildStripeHealth($account, $event, $eventMeta);
     $remaining = count($readiness->errors);
     $nextRecommended = $this->resolveNextRecommendedAction($next, $readiness, $published, $nid);
 
@@ -145,7 +145,7 @@ final class EventWorkspaceOverviewBuilder {
     $map = [
       'Event title added' => (string) $this->t('Event title'),
       'Event dates complete' => (string) $this->t('Schedule'),
-      'Booking mode selected' => (string) $this->t('Tickets ready'),
+      'Booking mode selected' => (string) $this->t('Booking mode'),
       'Ticketing configured' => (string) $this->t('Tickets ready'),
       'Payment onboarding complete' => (string) $this->t('Payments connected'),
       'Vendor publish requirements complete' => (string) $this->t('Organiser profile ready'),
@@ -193,10 +193,26 @@ final class EventWorkspaceOverviewBuilder {
   /**
    * Builds Stripe / payments health for Overview.
    *
+   * Paid-ticket Stripe checks only run for paid / hybrid events.
+   *
+   * @param array<string, mixed> $eventMeta
+   *   Workspace event metadata (may include event_type).
+   *
    * @return array{label: string, tone: string, detail: string, url: ?string}
    *   Payments status card payload.
    */
-  private function buildStripeHealth(AccountInterface $account, int $eventId): array {
+  private function buildStripeHealth(AccountInterface $account, NodeInterface $event, array $eventMeta): array {
+    $eventId = (int) $event->id();
+    $eventType = $this->resolveEventBookingType($event, $eventMeta);
+    if (!in_array($eventType, ['paid', 'both'], TRUE)) {
+      return [
+        'label' => (string) $this->t('Payments'),
+        'tone' => 'muted',
+        'detail' => (string) $this->t('Payments apply when you sell paid tickets for this event.'),
+        'url' => $this->safeUrl('myeventlane_vendor.payouts'),
+      ];
+    }
+
     try {
       $denial = $this->stripeGate->validatePaidPublishAllowed($account, $eventId);
     }
@@ -228,6 +244,23 @@ final class EventWorkspaceOverviewBuilder {
       'detail' => $denial,
       'url' => $this->safeUrl('myeventlane_vendor.payouts'),
     ];
+  }
+
+  /**
+   * Resolves booking mode for Overview payments gating.
+   *
+   * @param array<string, mixed> $eventMeta
+   *   Workspace event metadata.
+   */
+  private function resolveEventBookingType(NodeInterface $event, array $eventMeta): string {
+    $fromMeta = trim((string) ($eventMeta['event_type'] ?? ''));
+    if (in_array($fromMeta, ['paid', 'rsvp', 'both', 'external', 'unknown'], TRUE)) {
+      return $fromMeta === 'unknown' ? '' : $fromMeta;
+    }
+    if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
+      return (string) $event->get('field_event_type')->value;
+    }
+    return '';
   }
 
   /**

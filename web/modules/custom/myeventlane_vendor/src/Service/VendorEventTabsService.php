@@ -252,6 +252,30 @@ final class VendorEventTabsService {
       ];
     }
 
+    // Legacy Manager pages still call getTabs(..., 'refund_requests'|'boost').
+    // Keep these keys so refund/Boost screens retain an active tab and entry point.
+    if ($this->moduleHandler->moduleExists('myeventlane_refunds')) {
+      $rows[] = [
+        'key' => 'refund_requests',
+        'label' => (string) $t->translate('Refunds'),
+        'route' => 'myeventlane_refunds.vendor_refund_requests',
+        'params' => ['node' => $id],
+        'disabled' => !$isTickets,
+        'disabled_reason' => (string) $t->translate('Refunds apply to ticketed events.'),
+      ];
+    }
+
+    if ($this->routeExists('myeventlane_boost.vendor_event_boost')) {
+      $rows[] = [
+        'key' => 'boost',
+        'label' => (string) $t->translate('Boost'),
+        'route' => 'myeventlane_boost.vendor_event_boost',
+        'params' => ['event' => $id],
+        'disabled' => !$isTickets,
+        'disabled_reason' => (string) $t->translate('Turn on paid tickets for this event to use this section.'),
+      ];
+    }
+
     return $rows;
   }
 
