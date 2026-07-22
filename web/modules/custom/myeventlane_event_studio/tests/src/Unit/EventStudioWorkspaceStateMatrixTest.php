@@ -236,6 +236,8 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString('function updateEventHealth', $js);
     $this->assertStringContainsString('result.event_health', $js);
     $this->assertStringContainsString('ensureReadinessStrip', $js);
+    $this->assertStringContainsString('isHomeShell', $js);
+    $this->assertStringContainsString('mel-event-studio--home', $js);
     $this->assertStringContainsString('updateHomepageReadiness', $js);
     $this->assertStringContainsString('updateReadinessChecklist', $js);
     $this->assertStringContainsString('strip_explanation', $js);

@@ -110,6 +110,7 @@ services:
       - '@entity_type.manager'
       - '@date.formatter'
       - '@myeventlane_commerce.order_item_classifier'
+      - '@database'
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
       - '@?myeventlane_vendor.service.boost_status'

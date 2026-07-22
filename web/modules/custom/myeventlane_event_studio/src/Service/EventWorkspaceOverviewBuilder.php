@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -37,6 +38,7 @@ final class EventWorkspaceOverviewBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly Connection $database,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
     private readonly ?BoostStatusService $boostStatusService = NULL,
@@ -519,90 +521,89 @@ final class EventWorkspaceOverviewBuilder {
     $eventId = (int) $event->id();
     try {
       if (!$this->entityTypeManager->hasDefinition('commerce_order_item')) {
-        return $this->emptyActivity();
+        return $this->activityFromSalesFallback($salesSummary);
       }
       $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-      // Distinct recent *orders*, not a fixed line-item window: multi-line carts
-      // must not crowd out newer single-line bookings.
-      $query = $orderItemStorage->getQuery()
-        ->accessCheck(FALSE)
-        ->condition('field_target_event', $eventId);
-      $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
-      if ($excludedTypes !== []) {
-        $query->condition('type', $excludedTypes, 'NOT IN');
-      }
-      $ids = $query->execute();
-      if ($ids === []) {
-        return $this->emptyActivity();
-      }
-      /** @var \Drupal\commerce_order\Entity\OrderItemInterface[] $orderItems */
-      $orderItems = $orderItemStorage->loadMultiple($ids);
-      // Aggregate per completed order using vendor-revenue-eligible lines only
-      // (same rules as TicketSalesService — exclude Boost / donations).
-      $orderAgg = [];
-      foreach ($orderItems as $item) {
-        if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
-          continue;
+      // Bound to the 8 most recent completed orders (not every historical line).
+      $recentOrderIds = $this->loadRecentCompletedOrderIdsForEvent($eventId, 8);
+      if ($recentOrderIds !== []) {
+        $itemQuery = $orderItemStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('field_target_event', $eventId)
+          ->condition('order_id', $recentOrderIds, 'IN');
+        $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+        if ($excludedTypes !== []) {
+          $itemQuery->condition('type', $excludedTypes, 'NOT IN');
         }
-        $order = $item->getOrder();
-        if ($order === NULL) {
-          continue;
-        }
-        if ($order->getState()->getId() !== 'completed') {
-          continue;
-        }
-        $oid = (int) $order->id();
-        if (!isset($orderAgg[$oid])) {
-          $orderAgg[$oid] = [
-            'order' => $order,
-            'qty' => 0,
-            'placed' => (int) $order->getPlacedTime(),
-            'amount' => 0.0,
-            'currency' => 'AUD',
-          ];
-        }
-        $orderAgg[$oid]['qty'] += (int) round((float) $item->getQuantity());
-        $lineTotal = $item->getTotalPrice();
-        if ($lineTotal) {
-          $orderAgg[$oid]['amount'] += (float) $lineTotal->getNumber();
-          $currency = $lineTotal->getCurrencyCode();
-          if (is_string($currency) && $currency !== '') {
-            $orderAgg[$oid]['currency'] = $currency;
+        $ids = $itemQuery->execute();
+        if ($ids !== []) {
+          /** @var \Drupal\commerce_order\Entity\OrderItemInterface[] $orderItems */
+          $orderItems = $orderItemStorage->loadMultiple($ids);
+          // Aggregate per completed order using vendor-revenue-eligible lines only
+          // (same rules as TicketSalesService — exclude Boost / donations).
+          $orderAgg = [];
+          foreach ($orderItems as $item) {
+            if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
+              continue;
+            }
+            $order = $item->getOrder();
+            if ($order === NULL) {
+              continue;
+            }
+            if ($order->getState()->getId() !== 'completed') {
+              continue;
+            }
+            $oid = (int) $order->id();
+            if (!isset($orderAgg[$oid])) {
+              $orderAgg[$oid] = [
+                'order' => $order,
+                'qty' => 0,
+                'placed' => (int) $order->getPlacedTime(),
+                'amount' => 0.0,
+                'currency' => 'AUD',
+              ];
+            }
+            $orderAgg[$oid]['qty'] += (int) round((float) $item->getQuantity());
+            $lineTotal = $item->getTotalPrice();
+            if ($lineTotal) {
+              $orderAgg[$oid]['amount'] += (float) $lineTotal->getNumber();
+              $currency = $lineTotal->getCurrencyCode();
+              if (is_string($currency) && $currency !== '') {
+                $orderAgg[$oid]['currency'] = $currency;
+              }
+            }
+          }
+
+          // Preserve recent-order ranking from the bounded ID query.
+          foreach ($recentOrderIds as $oid) {
+            if (!isset($orderAgg[$oid])) {
+              continue;
+            }
+            $row = $orderAgg[$oid];
+            /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+            $order = $row['order'];
+            $amountNumber = (float) $row['amount'];
+            $amount = $amountNumber > 0
+              ? $this->formatActivityMoney($amountNumber, (string) $row['currency'])
+              : '';
+            $qty = (int) $row['qty'];
+            $placed = (int) $row['placed'];
+            $when = $placed > 0
+              ? $this->dateFormatter->formatTimeDiffSince($placed, ['granularity' => 1])
+              : '';
+            $items[] = [
+              'title' => (string) $this->t('Order @number', [
+                '@number' => $order->getOrderNumber() ?: (string) $oid,
+              ]),
+              'detail' => trim(implode(' · ', array_filter([
+                $qty > 0 ? (string) $this->formatPlural($qty, '1 ticket', '@count tickets') : '',
+                $amount,
+                $when !== '' ? (string) $this->t('@when ago', ['@when' => $when]) : '',
+              ]))),
+              'type' => 'order',
+            ];
           }
         }
-      }
-
-      uasort($orderAgg, static function (array $a, array $b): int {
-        $byPlaced = ((int) $b['placed']) <=> ((int) $a['placed']);
-        if ($byPlaced !== 0) {
-          return $byPlaced;
-        }
-        return ((int) $b['order']->id()) <=> ((int) $a['order']->id());
-      });
-
-      foreach (array_slice($orderAgg, 0, 8, TRUE) as $oid => $row) {
-        /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
-        $order = $row['order'];
-        $amountNumber = (float) $row['amount'];
-        $amount = $amountNumber > 0
-          ? $this->formatActivityMoney($amountNumber, (string) $row['currency'])
-          : '';
-        $qty = (int) $row['qty'];
-        $placed = (int) $row['placed'];
-        $when = $placed > 0
-          ? $this->dateFormatter->formatTimeDiffSince($placed, ['granularity' => 1])
-          : '';
-        $items[] = [
-          'title' => (string) $this->t('Order @number', [
-            '@number' => $order->getOrderNumber() ?: (string) $oid,
-          ]),
-          'detail' => trim(implode(' · ', array_filter([
-            $qty > 0 ? (string) $this->formatPlural($qty, '1 ticket', '@count tickets') : '',
-            $amount,
-            $when !== '' ? (string) $this->t('@when ago', ['@when' => $when]) : '',
-          ]))),
-          'type' => 'order',
-        ];
       }
     }
     catch (\Throwable $e) {
@@ -610,30 +611,73 @@ final class EventWorkspaceOverviewBuilder {
         '@nid' => (string) $eventId,
         '@message' => $e->getMessage(),
       ]);
-      return $this->emptyActivity();
+      return $this->activityFromSalesFallback($salesSummary);
     }
 
     if ($items === []) {
-      // Confirmed aggregate fallback when item query is empty but sales exist.
-      $orders = (int) ($salesSummary['orders_count'] ?? 0);
-      $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
-      if ($orders > 0 || $sold > 0) {
-        $items[] = [
+      return $this->activityFromSalesFallback($salesSummary);
+    }
+
+    return [
+      'items' => $items,
+      'empty' => FALSE,
+      'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
+    ];
+  }
+
+  /**
+   * Most recent completed order IDs with vendor-revenue-eligible lines for an event.
+   *
+   * @return list<int>
+   */
+  private function loadRecentCompletedOrderIdsForEvent(int $eventId, int $limit): array {
+    if ($eventId <= 0 || $limit < 1) {
+      return [];
+    }
+    $query = $this->database->select('commerce_order', 'o');
+    $query->join('commerce_order_item', 'oi', 'oi.order_id = o.order_id');
+    $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $query->addField('o', 'order_id');
+    $query->addExpression('MAX(o.placed)', 'placed_ts');
+    $query->condition('o.state', 'completed');
+    $query->condition('lnk.field_target_event_target_id', $eventId);
+    $query->condition('lnk.deleted', 0);
+    $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+    if ($excludedTypes !== []) {
+      $query->condition('oi.type', $excludedTypes, 'NOT IN');
+    }
+    $query->groupBy('o.order_id');
+    $query->orderBy('placed_ts', 'DESC');
+    $query->orderBy('order_id', 'DESC');
+    $query->range(0, $limit);
+    return array_map('intval', $query->execute()->fetchCol());
+  }
+
+  /**
+   * Confirmed aggregate fallback when per-order activity rows are unavailable.
+   *
+   * @param array<string, mixed> $salesSummary
+   *
+   * @return array{items: list<array<string, mixed>>, empty: bool, empty_message: string}
+   */
+  private function activityFromSalesFallback(array $salesSummary): array {
+    $orders = (int) ($salesSummary['orders_count'] ?? 0);
+    $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
+    if ($orders > 0 || $sold > 0) {
+      return [
+        'items' => [[
           'title' => (string) $this->t('Sales activity'),
           'detail' => (string) $this->t('@orders bookings · @sold tickets sold', [
             '@orders' => $orders,
             '@sold' => $sold,
           ]),
           'type' => 'sales',
-        ];
-      }
+        ]],
+        'empty' => FALSE,
+        'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
+      ];
     }
-
-    return [
-      'items' => $items,
-      'empty' => $items === [],
-      'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
-    ];
+    return $this->emptyActivity();
   }
 
   /**

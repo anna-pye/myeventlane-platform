@@ -198,10 +198,24 @@
     }
   }
 
+  /**
+   * Home (overview) chrome is topbar + active Boost only — no readiness strip.
+   */
+  function isHomeShell(shell) {
+    return !!(shell && (
+      shell.classList.contains('mel-event-studio--home')
+      || shell.dataset.currentSectionId === 'overview'
+    ));
+  }
+
   function ensureReadinessStrip(shell) {
     let strip = shell.querySelector('[data-mel-readiness-strip]');
     if (strip) {
       return strip;
+    }
+    // Do not invent a strip on Home — prepend would land above the topbar.
+    if (isHomeShell(shell)) {
+      return null;
     }
     strip = document.createElement('section');
     strip.className = 'mel-event-studio-readiness-strip needs-attention';
@@ -226,7 +240,13 @@
       health.insertAdjacentElement('afterend', strip);
     }
     else {
-      shell.prepend(strip);
+      const topbar = shell.querySelector('.mel-event-studio-topbar, [data-mel-studio-topbar]');
+      if (topbar) {
+        topbar.insertAdjacentElement('afterend', strip);
+      }
+      else {
+        shell.prepend(strip);
+      }
     }
     return strip;
   }
@@ -336,6 +356,9 @@
     if (wrapper) {
       return wrapper;
     }
+    if (isHomeShell(shell)) {
+      return null;
+    }
     wrapper = document.createElement('div');
     wrapper.className = 'mel-event-studio-homepage-readiness';
     const strip = shell.querySelector('[data-mel-readiness-strip]');
@@ -344,13 +367,24 @@
     }
     else {
       const health = shell.querySelector('[data-mel-event-health]');
-      (health || shell).insertAdjacentElement('afterend', wrapper);
+      if (health) {
+        health.insertAdjacentElement('afterend', wrapper);
+      }
+      else {
+        const topbar = shell.querySelector('.mel-event-studio-topbar, [data-mel-studio-topbar]');
+        if (topbar) {
+          topbar.insertAdjacentElement('afterend', wrapper);
+        }
+        else {
+          shell.appendChild(wrapper);
+        }
+      }
     }
     return wrapper;
   }
 
   function updateReadiness(shell, readiness) {
-    if (!readiness) {
+    if (!readiness || isHomeShell(shell)) {
       return;
     }
     const published = shell.dataset.melPublished === '1' || !!studioSettings().published;
@@ -359,6 +393,9 @@
       ? !!readiness.show_publish_strip
       : (!published || !readiness.ready || hasBlockers);
     const strip = ensureReadinessStrip(shell);
+    if (!strip) {
+      return;
+    }
     strip.hidden = !showStrip;
     if (!showStrip) {
       return;
@@ -393,10 +430,13 @@
   }
 
   function updateHomepageReadiness(shell, readiness) {
-    if (!readiness || readiness.show_homepage_readiness === undefined) {
+    if (!readiness || readiness.show_homepage_readiness === undefined || isHomeShell(shell)) {
       return;
     }
     const wrapper = ensureHomepageReadinessWrapper(shell);
+    if (!wrapper) {
+      return;
+    }
     if (readiness.homepage_readiness_html !== undefined) {
       wrapper.innerHTML = readiness.homepage_readiness_html;
     }
