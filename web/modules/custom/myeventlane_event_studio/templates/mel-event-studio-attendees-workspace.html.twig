@@ -4,14 +4,18 @@
  * VX2 One Attendee Workspace (Event Workspace · Attendees).
  *
  * Variables: event, summary, attendees, filters, ticket_types, initial_filter,
- * layout, dense_threshold, actions, checkin_csrf, public_event_url, empty.
+ * initial_match_count, empty_filter, layout, dense_threshold, actions,
+ * checkin_csrf, public_event_url, empty.
  */
 #}
 {% set layout_mode = layout|default('cards') %}
+{% set initial_filter_id = initial_filter|default('all') %}
+{% set match_count = initial_match_count|default(attendees|length) %}
+{% set show_empty_filter = empty_filter.show|default(false) %}
 <div class="mel-attendees-workspace"
      data-mel-attendees-workspace
      data-mel-layout="{{ layout_mode|e('html_attr') }}"
-     data-mel-initial-filter="{{ initial_filter|default('all')|e('html_attr') }}"
+     data-mel-initial-filter="{{ initial_filter_id|e('html_attr') }}"
      data-mel-checkin-token="{{ checkin_csrf|default('')|e('html_attr') }}">
 
   <header class="mel-attendees-workspace__header">
@@ -80,20 +84,26 @@
     <div class="mel-attendees-workspace__filters" role="toolbar" aria-label="{{ 'Filter attendees'|t }}">
       {% for chip in filters %}
         <button type="button"
-                class="mel-attendees-workspace__filter{{ initial_filter == chip.id ? ' is-active' : '' }}"
+                class="mel-attendees-workspace__filter{{ initial_filter_id == chip.id ? ' is-active' : '' }}"
                 data-mel-attendee-filter="{{ chip.id|e('html_attr') }}"
-                aria-pressed="{{ initial_filter == chip.id ? 'true' : 'false' }}">
+                aria-pressed="{{ initial_filter_id == chip.id ? 'true' : 'false' }}">
           {{ chip.label }}
         </button>
       {% endfor %}
     </div>
 
-    <p class="mel-attendees-workspace__result-status visually-hidden" data-mel-attendee-status role="status" aria-live="polite"></p>
+    <p class="mel-attendees-workspace__result-status visually-hidden" data-mel-attendee-status role="status" aria-live="polite">
+      {% if match_count == 1 %}
+        {{ 'Showing 1 attendee'|t }}
+      {% else %}
+        {{ 'Showing @count attendees'|t({'@count': match_count}) }}
+      {% endif %}
+    </p>
 
     <div id="mel-attendee-guest-list"
          class="mel-attendees-workspace__list mel-attendees-workspace__list--{{ layout_mode|e('html_attr') }}"
          data-mel-attendee-list
-         role="list">
+         role="list"{% if show_empty_filter %} hidden{% endif %}>
       {% for attendee in attendees %}
         <article class="mel-attendee-card"
                  role="listitem"
@@ -101,7 +111,8 @@
                  data-name="{{ attendee.name|lower|e('html_attr') }}"
                  data-email="{{ attendee.email|lower|e('html_attr') }}"
                  data-ticket-type="{{ attendee.ticket_type|lower|e('html_attr') }}"
-                 data-filters="{{ attendee.filter_keys|join(' ')|e('html_attr') }}">
+                 data-filters="{{ attendee.filter_keys|join(' ')|e('html_attr') }}"
+                 {% if not attendee.matches_initial_filter|default(true) %}hidden{% endif %}>
           <div class="mel-attendee-card__main">
             <div class="mel-attendee-card__identity">
               <span class="mel-attendee-card__avatar" aria-hidden="true">{{ (attendee.name|default('?')|trim|slice(0, 1))|upper }}</span>
@@ -175,9 +186,11 @@
       {% endfor %}
     </div>
 
-    <div class="mel-attendees-workspace__empty-filter mel-empty-state" hidden data-mel-attendee-empty-filter>
-      <p class="mel-empty-state__title">{{ 'No checked-in guests'|t }}</p>
-      <p class="mel-empty-state__text">{{ 'Door Mode will update this list as guests arrive.'|t }}</p>
+    <div class="mel-attendees-workspace__empty-filter mel-empty-state"
+         data-mel-attendee-empty-filter
+         {% if not show_empty_filter %}hidden{% endif %}>
+      <p class="mel-empty-state__title">{{ empty_filter.title|default('No matching attendees'|t) }}</p>
+      <p class="mel-empty-state__text">{{ empty_filter.body|default('Try another search or clear your filters.'|t) }}</p>
     </div>
   {% else %}
     <div class="mel-empty-state mel-attendees-workspace__empty">

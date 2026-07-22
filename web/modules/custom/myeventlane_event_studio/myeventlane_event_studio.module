@@ -121,6 +121,8 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'filters' => [],
         'ticket_types' => [],
         'initial_filter' => 'all',
+        'initial_match_count' => 0,
+        'empty_filter' => [],
         'layout' => 'cards',
         'dense_threshold' => 100,
         'actions' => [],

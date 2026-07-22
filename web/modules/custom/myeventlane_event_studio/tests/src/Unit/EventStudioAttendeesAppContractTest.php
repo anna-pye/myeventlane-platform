@@ -58,6 +58,8 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
     $this->assertStringContainsString('data-mel-attendee-filter', $twig);
     $this->assertStringContainsString("name=\"destination\"", $twig);
     $this->assertStringContainsString('workspace_attendees', $twig);
+    $this->assertStringContainsString('matches_initial_filter', $twig);
+    $this->assertStringContainsString('empty_filter', $twig);
     $this->assertStringNotContainsString('Ticket holders', $twig);
     $this->assertStringNotContainsString('Check-in module', $twig);
   }

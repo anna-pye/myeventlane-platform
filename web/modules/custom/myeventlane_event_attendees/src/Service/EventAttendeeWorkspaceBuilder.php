@@ -108,10 +108,22 @@ final class EventAttendeeWorkspaceBuilder {
     $total = count($rows);
     $layout = $total >= self::DENSE_TABLE_THRESHOLD ? 'dense' : 'cards';
 
+    $initialMatchCount = 0;
+    foreach ($rows as &$row) {
+      $keys = $row['filter_keys'] ?? [];
+      $matches = $initialFilter === 'all' || in_array($initialFilter, $keys, TRUE);
+      $row['matches_initial_filter'] = $matches;
+      if ($matches) {
+        $initialMatchCount++;
+      }
+    }
+    unset($row);
+
     $this->recordAnalyticsHook('attendee_viewed', $event, [
       'attendee_count' => $total,
       'layout' => $layout,
       'filter' => $initialFilter,
+      'filter_match_count' => $initialMatchCount,
     ]);
 
     $capacity = $availability['capacity'] ?? 0;
@@ -136,6 +148,8 @@ final class EventAttendeeWorkspaceBuilder {
       '#filters' => $this->buildFilterChips(),
       '#ticket_types' => array_values($ticketTypes),
       '#initial_filter' => $initialFilter,
+      '#initial_match_count' => $initialMatchCount,
+      '#empty_filter' => $this->buildEmptyFilterState($initialFilter, $initialMatchCount),
       '#layout' => $layout,
       '#dense_threshold' => self::DENSE_TABLE_THRESHOLD,
       '#actions' => $this->buildWorkspaceActions($event),
@@ -369,6 +383,31 @@ final class EventAttendeeWorkspaceBuilder {
       'prompt' => (string) $this->t('Guests who buy a ticket or RSVP will appear here in one guest list.'),
       'cta_label' => (string) $this->t('View event page'),
       'cta_url' => $publicUrl,
+    ];
+  }
+
+  /**
+   * Builds empty-filter copy for an initial ?filter= that matches zero guests.
+   *
+   * Server-rendered so legacy redirects and no-JS see guidance without waiting
+   * for the Attendees app behaviour.
+   *
+   * @return array{show: bool, title: string, body: string}
+   *   Empty-filter panel payload for Twig.
+   */
+  private function buildEmptyFilterState(string $initialFilter, int $initialMatchCount): array {
+    $show = $initialFilter !== 'all' && $initialMatchCount === 0;
+    if ($initialFilter === 'checked_in') {
+      return [
+        'show' => $show,
+        'title' => (string) $this->t('No checked-in guests'),
+        'body' => (string) $this->t('Door Mode will update this list as guests arrive.'),
+      ];
+    }
+    return [
+      'show' => $show,
+      'title' => (string) $this->t('No matching attendees'),
+      'body' => (string) $this->t('Try another search or clear your filters.'),
     ];
   }
 

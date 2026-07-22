@@ -48,4 +48,15 @@ final class EventAttendeeWorkspaceBuilderContractTest extends TestCase {
     );
   }
 
+  /**
+   * Asserts ?filter= is applied server-side for first paint / no-JS.
+   */
+  public function testInitialFilterMarksRowsServerSide(): void {
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventAttendeeWorkspaceBuilder.php');
+    $this->assertNotFalse($builder);
+    $this->assertStringContainsString('matches_initial_filter', $builder);
+    $this->assertStringContainsString('initial_match_count', $builder);
+    $this->assertStringContainsString('buildEmptyFilterState', $builder);
+  }
+
 }
