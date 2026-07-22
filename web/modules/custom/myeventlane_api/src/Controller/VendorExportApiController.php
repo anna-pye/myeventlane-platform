@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_api\Service\ApiAuthenticationService;
 use Drupal\myeventlane_api\Service\ApiResponseFormatter;
 use Drupal\myeventlane_api\Service\RateLimiterService;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -25,10 +26,16 @@ final class VendorExportApiController extends VendorApiBaseController {
     ApiAuthenticationService $authenticationService,
     ApiResponseFormatter $responseFormatter,
     RateLimiterService $rateLimiter,
+    EventVendorAccessCheckerInterface $eventVendorAccessChecker,
     EntityTypeManagerInterface $entityTypeManager,
   ) {
-    parent::__construct($authenticationService, $responseFormatter, $rateLimiter);
-    $this->entityTypeManager = $entityTypeManager;
+    parent::__construct(
+      $authenticationService,
+      $responseFormatter,
+      $rateLimiter,
+      $eventVendorAccessChecker,
+      $entityTypeManager,
+    );
   }
 
   /**
@@ -39,6 +46,7 @@ final class VendorExportApiController extends VendorApiBaseController {
       $container->get('myeventlane_api.authentication'),
       $container->get('myeventlane_api.response_formatter'),
       $container->get('myeventlane_api.rate_limiter'),
+      $container->get('myeventlane_vendor.event_access_checker'),
       $container->get('entity_type.manager'),
     );
   }

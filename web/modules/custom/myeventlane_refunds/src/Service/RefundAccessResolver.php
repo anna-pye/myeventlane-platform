@@ -5,35 +5,45 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_refunds\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Access\AccessResult;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
-use Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 
 /**
  * Resolves access control for refund operations.
+ *
+ * Organiser financial access requires:
+ * - operation-specific permission (caller / vendorCanRefundOrderForEvent)
+ * - workspace parity (EventVendorAccessChecker)
+ * - valid store ↔ event relationship (StoreEventOwnershipInterface)
+ * - for refunds: order contains items for the event, order store is valid, refundable state.
+ *
+ * Store ownership alone must not bypass workspace parity.
+ *
+ * @see docs/adr/ADR-0008-canonical-event-ownership.md
  */
 final class RefundAccessResolver {
 
   /**
    * Constructs RefundAccessResolver.
    *
-   * @param \Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver $vendorOwnershipResolver
-   *   The vendor ownership resolver.
-   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
-   *   The entity type manager.
-   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
-   *   The order inspector.
+   * @param \Drupal\myeventlane_refunds\Service\StoreEventOwnershipInterface $storeEventOwnership
+   *   Store ↔ event ownership gateway.
+   * @param \Drupal\myeventlane_refunds\Service\RefundOrderItemsInterface $orderInspector
+   *   Order item extraction for event binding.
+   * @param \Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface $eventVendorAccessChecker
+   *   Canonical workspace parity checker.
    */
   public function __construct(
-    private readonly VendorOwnershipResolver $vendorOwnershipResolver,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly RefundOrderInspector $orderInspector,
+    private readonly StoreEventOwnershipInterface $storeEventOwnership,
+    private readonly RefundOrderItemsInterface $orderInspector,
+    private readonly EventVendorAccessCheckerInterface $eventVendorAccessChecker,
   ) {}
 
   /**
-   * Checks if a vendor can manage an event.
+   * Checks if a vendor can manage an event for financial surfaces.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -44,23 +54,20 @@ final class RefundAccessResolver {
    *   TRUE if the vendor can manage the event, FALSE otherwise.
    */
   public function vendorCanManageEvent(NodeInterface $event, AccountInterface $account): bool {
-    // Admin override.
+    // Documented staff bypass — unchanged.
     if ($account->hasPermission('administer commerce_order')) {
       return TRUE;
     }
 
-    // Check if user owns the event.
-    if ((int) $event->getOwnerId() === (int) $account->id()) {
-      return TRUE;
+    if ($event->bundle() !== 'event') {
+      return FALSE;
     }
 
-    // Check via vendor store ownership.
-    $store = $this->vendorOwnershipResolver->getStoreForUser($account);
-    if ($store) {
-      return $this->vendorOwnershipResolver->vendorOwnsEvent($store, $event);
+    if (!$this->eventVendorAccessChecker->accountHasWorkspaceParityForEvent($event, $account)) {
+      return FALSE;
     }
 
-    return FALSE;
+    return $this->accountHasValidStoreRelationshipForEvent($event, $account);
   }
 
   /**
@@ -81,7 +88,7 @@ final class RefundAccessResolver {
       return FALSE;
     }
 
-    // Must be able to manage the event.
+    // Must be able to manage the event (parity AND store).
     if (!$this->vendorCanManageEvent($event, $account)) {
       return FALSE;
     }
@@ -89,6 +96,14 @@ final class RefundAccessResolver {
     // Order must contain ticket items for this event.
     $eventItems = $this->orderInspector->extractItemsForEvent($order, (int) $event->id());
     if (empty($eventItems)) {
+      return FALSE;
+    }
+
+    // Order store must belong to the same financial context as the event.
+    // Staff with administer commerce_order retain the pre-existing bypass of
+    // organiser store binding (they still need event items + refundable state).
+    if (!$account->hasPermission('administer commerce_order')
+      && !$this->orderHasValidStoreRelationshipForEvent($order, $event)) {
       return FALSE;
     }
 
@@ -145,6 +160,32 @@ final class RefundAccessResolver {
       ->cachePerUser()
       ->addCacheableDependency($order)
       ->addCacheableDependency($event);
+  }
+
+  /**
+   * Proves the account's resolvable store is valid for the event.
+   */
+  private function accountHasValidStoreRelationshipForEvent(NodeInterface $event, AccountInterface $account): bool {
+    $store = $this->storeEventOwnership->getStoreForUser($account);
+    if (!$store instanceof StoreInterface) {
+      return FALSE;
+    }
+
+    return $this->storeEventOwnership->vendorOwnsEvent($store, $event);
+  }
+
+  /**
+   * Proves the order's store (when present) is valid for the event.
+   *
+   * Missing store fails closed for refund mutations.
+   */
+  private function orderHasValidStoreRelationshipForEvent(OrderInterface $order, NodeInterface $event): bool {
+    $store = $order->getStore();
+    if (!$store instanceof StoreInterface) {
+      return FALSE;
+    }
+
+    return $this->storeEventOwnership->vendorOwnsEvent($store, $event);
   }
 
 }

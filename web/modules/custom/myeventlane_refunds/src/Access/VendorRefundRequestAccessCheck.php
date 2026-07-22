@@ -10,6 +10,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_event\Service\EventModeManager;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
+use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 use Drupal\node\NodeInterface;
 
 /**
@@ -17,7 +18,8 @@ use Drupal\node\NodeInterface;
  *
  * Enforces:
  * - Event parameter present and bundle = event
- * - Vendor can manage event (owner + vendor team)
+ * - Vendor can manage event (workspace parity AND valid store)
+ * - When a refund_request route param is present, it must belong to the route event
  * - Event has paid tickets enabled (refund requests apply only to ticketed events)
  */
 final class VendorRefundRequestAccessCheck {
@@ -25,6 +27,7 @@ final class VendorRefundRequestAccessCheck {
   public function __construct(
     private readonly RefundAccessResolver $accessResolver,
     private readonly EventModeManager $eventModeManager,
+    private readonly RefundRequestStorage $refundRequestStorage,
   ) {}
 
   /**
@@ -39,6 +42,23 @@ final class VendorRefundRequestAccessCheck {
     $eventAccess = $this->accessResolver->accessManageEvent($node, $account);
     if (!$eventAccess->isAllowed()) {
       return $eventAccess;
+    }
+
+    $refundRequestParam = $route_match->getParameter('refund_request');
+    if ($refundRequestParam !== NULL && $refundRequestParam !== '') {
+      $reqId = (int) $refundRequestParam;
+      if ($reqId <= 0) {
+        return AccessResult::forbidden('Refund request not found.')
+          ->cachePerUser()
+          ->addCacheableDependency($node);
+      }
+      $req = $this->refundRequestStorage->load($reqId);
+      if (!RefundRequestRouteBinder::requestBelongsToEvent($req, (int) $node->id())) {
+        // Fail closed without revealing whether a foreign request exists.
+        return AccessResult::forbidden('Refund request not found.')
+          ->cachePerUser()
+          ->addCacheableDependency($node);
+      }
     }
 
     if (!$this->eventModeManager->isTicketsEnabled($node)) {

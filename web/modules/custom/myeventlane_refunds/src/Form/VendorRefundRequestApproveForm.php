@@ -99,16 +99,13 @@ final class VendorRefundRequestApproveForm extends FormBase {
 
     $event = $this->getEventFromRequest($req);
     $order = $this->loadOrder((int) $req['order_id']);
+    // Route-event / refund-request / order binding failures: hard deny.
     if (!$event instanceof NodeInterface || !$order instanceof OrderInterface) {
-      $form['error'] = [
-        '#type' => 'markup',
-        '#markup' => '<p>' . $this->t('Refund details could not be loaded. Please refresh and try again.') . '</p>',
-      ];
-      return $form;
+      throw new AccessDeniedHttpException();
     }
 
     if (!$this->accessResolver->vendorCanManageEvent($event, $this->currentUser())) {
-      throw new AccessDeniedHttpException('You cannot approve refunds for this event.');
+      throw new AccessDeniedHttpException();
     }
 
     $form_state->set('refund_request', $req);
