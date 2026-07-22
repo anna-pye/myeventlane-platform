@@ -701,7 +701,8 @@ final class EventWorkspaceOverviewBuilder {
     }
     $query->groupBy('o.order_id');
     $query->orderBy('placed_ts', 'DESC');
-    $query->orderBy('order_id', 'DESC');
+    // Qualify order_id — both commerce_order and commerce_order_item expose it.
+    $query->orderBy('o.order_id', 'DESC');
     $query->range(0, $limit);
     return array_map('intval', $query->execute()->fetchCol());
   }

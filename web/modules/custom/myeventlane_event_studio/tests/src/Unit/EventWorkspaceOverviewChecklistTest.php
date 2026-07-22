@@ -74,4 +74,11 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertStringContainsString('View checklist', $twig);
   }
 
+  public function testActivityOrderIdSortIsTableQualified(): void {
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($builder);
+    $this->assertStringContainsString("orderBy('o.order_id', 'DESC')", $builder);
+    $this->assertStringNotContainsString("orderBy('order_id', 'DESC')", $builder);
+  }
+
 }
