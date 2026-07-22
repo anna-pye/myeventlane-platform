@@ -43,16 +43,13 @@ final class EventStudioTicketsAppContractTest extends TestCase {
   public function testDuplicateAppliesSameRequestEditsBeforeCopy(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);
-    $this->assertStringContainsString('applyTicketValuesWithoutSave', $form);
+    $this->assertStringContainsString('updateAndDuplicateTicketOnEvent', $form);
     $this->assertStringContainsString('buildDuplicateTicketTitle', $form);
-    $applyPos = strpos($form, 'applyTicketValuesWithoutSave($ticket, $values)');
-    $duplicatePos = strpos($form, 'duplicateTicketOnEvent($event, $ticket, $this->currentUser)');
-    $persistPos = strpos($form, 'updateTicketType($ticket, $event, [])');
-    $this->assertNotFalse($applyPos);
-    $this->assertNotFalse($duplicatePos);
-    $this->assertNotFalse($persistPos);
-    $this->assertLessThan($duplicatePos, $applyPos, 'In-memory edits must apply before duplicate.');
-    $this->assertLessThan($persistPos, $duplicatePos, 'Source must persist only after duplicate succeeds.');
+    $this->assertStringNotContainsString(
+      'duplicateTicketOnEvent($event, $ticket, $this->currentUser)',
+      $form,
+      'Form must use the transactional updateAndDuplicate helper, not a bare duplicate call.',
+    );
   }
 
   public function testBookingModeHidesCommerceProductForOrganisers(): void {
@@ -73,12 +70,23 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $lifecycle = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierLifecycleService.php');
     $this->assertNotFalse($lifecycle);
     $this->assertStringContainsString('function duplicateTicketOnEvent', $lifecycle);
+    $this->assertStringContainsString('function updateAndDuplicateTicketOnEvent', $lifecycle);
     $this->assertStringContainsString('function buildDuplicateTicketTitle', $lifecycle);
     $this->assertStringContainsString('function applyTicketValuesWithoutSave', $lifecycle);
+    $this->assertStringContainsString('startTransaction', $lifecycle);
     $this->assertStringContainsString("'waitlist_enabled'", $lifecycle);
     $this->assertStringContainsString("'hidden_label'", $lifecycle);
     $this->assertStringContainsString("'group_sale_mode'", $lifecycle);
     $this->assertStringContainsString('too long to duplicate', $lifecycle);
+    $updatePos = strpos($lifecycle, '$this->updateTicketType($ticket, $event, []);');
+    $duplicatePos = strpos($lifecycle, 'return $this->duplicateTicketOnEvent($event, $ticket, $account);');
+    $this->assertNotFalse($updatePos);
+    $this->assertNotFalse($duplicatePos);
+    $this->assertLessThan(
+      $duplicatePos,
+      $updatePos,
+      'Transactional helper must persist source before creating the copy.',
+    );
   }
 
   public function testTicketsAppAssetsExist(): void {

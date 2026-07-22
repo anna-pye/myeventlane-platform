@@ -442,16 +442,18 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           continue;
         }
 
-        // Apply same-request card edits in memory first. When duplicating, create
-        // the copy from that in-memory state before persisting the source so a
-        // failed duplicate cannot leave a saved source without a copy.
+        // Duplicate path persists source edits + copy in one DB transaction so
+        // neither can commit without the other.
         $row = $this->normalizeExistingTicketRowInput($ticket, $row);
         $values = $this->ticketTierLifecycle->buildTicketUpdateValuesFromInput($event, $ticket, $this->currentUser, $row);
 
         if (!empty($row['duplicate'])) {
-          $this->ticketTierLifecycle->applyTicketValuesWithoutSave($ticket, $values);
-          $copy = $this->ticketTierLifecycle->duplicateTicketOnEvent($event, $ticket, $this->currentUser);
-          $this->ticketTierLifecycle->updateTicketType($ticket, $event, []);
+          $copy = $this->ticketTierLifecycle->updateAndDuplicateTicketOnEvent(
+            $event,
+            $ticket,
+            $this->currentUser,
+            $values,
+          );
           $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
             'source' => 'workspace_tickets_save',
           ]);

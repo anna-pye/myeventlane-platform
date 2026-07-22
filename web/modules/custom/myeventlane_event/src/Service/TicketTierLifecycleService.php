@@ -8,6 +8,7 @@ use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityPublishedInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -42,6 +43,7 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
     private readonly TicketTypeManager $ticketTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
+    private readonly Connection $database,
   ) {}
 
   /**
@@ -469,6 +471,41 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
       return;
     }
     $this->applyValuesToTicket($ticket, $values);
+  }
+
+  /**
+   * Applies source edits and creates a duplicate in one database transaction.
+   *
+   * Prevents partial outcomes where either the source saves without a copy or
+   * the copy is created while same-request source edits are rolled back.
+   *
+   * @param array<string, mixed> $values
+   *
+   * @throws \InvalidArgumentException
+   * @throws \Throwable
+   */
+  public function updateAndDuplicateTicketOnEvent(
+    NodeInterface $event,
+    TicketTypeInterface $ticket,
+    AccountInterface $account,
+    array $values,
+  ): TicketTypeInterface {
+    $this->applyTicketValuesWithoutSave($ticket, $values);
+    $this->validateTicketTypeForPersist($ticket, $event);
+    // Fail before any write when the copy title cannot be formed.
+    $this->buildDuplicateTicketTitle($ticket->getTitle());
+
+    $transaction = $this->database->startTransaction();
+    try {
+      // Persist source first so a duplicate failure rolls the source edits back
+      // with the same transaction as the copy create/attach.
+      $this->updateTicketType($ticket, $event, []);
+      return $this->duplicateTicketOnEvent($event, $ticket, $account);
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
   }
 
   /**
