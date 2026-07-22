@@ -189,6 +189,14 @@ Format: Purpose · Primary action · Content · States · Notes
 | **Content** | List of ticket types (GA, VIP, etc.); price; capacity; availability windows; free/paid; expand Advanced: groups, access codes, widgets, inventory |
 | **States** | No tickets; RSVP-only mode; sold out; Stripe required for paid |
 | **Notes** | One ticket application — hide Product/Variation |
+| **Sprint 3** | Live in Event Workspace Tickets (`EventStudioOperationalTicketsForm` + `buildAdvancedTicketTools`). Cards first; sticky Add Ticket on mobile; Advanced Ticket Tools collapsed; Commerce product autocomplete admin-only |
+
+### Flows (Sprint 3)
+
+1. **Add ticket** — name → price (or Free RSVP) → capacity → availability → save  
+2. **Duplicate / Archive** — quick actions on each card  
+3. **Access codes / Widgets / Groups** — under Advanced Ticket Tools  
+4. **Inventory sync** — Advanced → Inventory & sync tools (demoted manager)
 
 ### B7. Attendees
 
