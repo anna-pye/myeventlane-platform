@@ -5,12 +5,16 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Controller;
 
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_vendor\Service\ManageEventNavigation;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Controller for placeholder steps (Promote, Payments, Comms, Advanced).
+ * Redirects retired manage-event placeholder steps to Convergence destinations.
+ *
+ * Prefer redirects over “coming soon” dead ends (VX2-00 trust).
  */
 final class ManageEventPlaceholderController extends ManageEventControllerBase {
 
@@ -34,75 +38,58 @@ final class ManageEventPlaceholderController extends ManageEventControllerBase {
   }
 
   /**
-   * Renders a placeholder page.
+   * Redirects placeholder routes to Event Workspace / Payments destinations.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
    *
-   * @return array
-   *   Render array.
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect to the Convergence destination.
    */
-  public function placeholder(NodeInterface $event): array {
-    $route = $this->routeMatch->getRouteObject();
-    $step = $this->routeMatch->getRouteName() ?? '';
-    $title = '';
+  public function placeholder(NodeInterface $event): RedirectResponse {
+    $from = (string) ($this->routeMatch->getRouteName() ?? '');
+    [$route, $params] = $this->destinationForPlaceholder($from, $event);
+    return new RedirectResponse(Url::fromRoute($route, $params)->toString(), 302);
+  }
 
-    if ($route) {
-      $defaults = $route->getDefaults();
-      $title = $defaults['title'] ?? '';
-    }
-    $content = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => [
-          'mel-manage-event-content',
-          'mel-placeholder',
-          'mel-coming-soon-inner',
-        ],
+  /**
+   * Maps a retired placeholder route to a Convergence destination.
+   *
+   * @param string $from
+   *   Legacy placeholder route name.
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node in context.
+   *
+   * @return array{0: string, 1: array<string, int|string>}
+   *   Destination route name and parameters.
+   */
+  private function destinationForPlaceholder(string $from, NodeInterface $event): array {
+    $nid = (int) $event->id();
+    return match ($from) {
+      'myeventlane_vendor.manage_event.promote',
+      'myeventlane_vendor.manage_event.comms' => [
+        'myeventlane_event_studio.workspace_messaging',
+        ['node' => $nid],
       ],
-      'message' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['mel-placeholder-message']],
-        'icon' => [
-          '#type' => 'html_tag',
-          '#tag' => 'div',
-          '#attributes' => ['class' => ['mel-placeholder-icon']],
-          '#value' => '🚧',
-        ],
-        'text' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('This feature is coming soon.'),
-        ],
+      'myeventlane_vendor.manage_event.payments' => [
+        'myeventlane_vendor.console.payouts',
+        [],
       ],
-    ];
-
-    $page = $this->buildPage($event, $step, $content, (string) $title);
-    $page['#placeholder_shell'] = TRUE;
-    $page['#attached']['html_head'][] = [
-      [
-        '#tag' => 'meta',
-        '#attributes' => [
-          'name' => 'robots',
-          'content' => 'noindex, nofollow',
-        ],
+      'myeventlane_vendor.manage_event.advanced' => [
+        'myeventlane_event_studio.workspace_settings',
+        ['node' => $nid],
       ],
-      'mel_manage_event_placeholder_robots',
-    ];
-
-    return $page;
+      default => [
+        'myeventlane_event_studio.workspace',
+        ['node' => $nid],
+      ],
+    };
   }
 
   /**
    * {@inheritdoc}
    */
   protected function getPageTitle(NodeInterface $event): string {
-    $route = $this->routeMatch->getRouteObject();
-    if ($route) {
-      $defaults = $route->getDefaults();
-      return (string) ($defaults['title'] ?? '');
-    }
     return '';
   }
 
