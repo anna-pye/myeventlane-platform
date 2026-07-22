@@ -72,11 +72,30 @@ if mel_git "${INTEGRATION}" show-ref --verify --quiet "refs/heads/${BRANCH}"; th
   mel_info "Choose a new slug, or resume: cd ${WORKTREE} 2>/dev/null || git -C ${INTEGRATION} worktree list"
   exit 1
 fi
-if mel_git "${INTEGRATION}" ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1; then
-  mel_error "Remote branch already exists: origin/${BRANCH}"
-  mel_info "Fetch/checkout that branch instead of creating a duplicate."
-  exit 1
-fi
+
+# ls-remote --exit-code: 0 = exists, 2 = absent, anything else = transport/auth failure.
+# Do not treat non-zero as "safe to create" — that races duplicates when origin is unreachable.
+REMOTE_CHECK_EC=0
+set +e
+mel_git "${INTEGRATION}" ls-remote --exit-code --heads origin "${BRANCH}" >/dev/null 2>&1
+REMOTE_CHECK_EC=$?
+set -e
+case "${REMOTE_CHECK_EC}" in
+  0)
+    mel_error "Remote branch already exists: origin/${BRANCH}"
+    mel_info "Fetch/checkout that branch instead of creating a duplicate."
+    exit 1
+    ;;
+  2)
+    mel_success "Remote branch name is free"
+    ;;
+  *)
+    mel_error "Could not verify whether origin/${BRANCH} exists (git ls-remote exit ${REMOTE_CHECK_EC})."
+    mel_info "Fix network/auth to origin, then retry. Refusing to create a possibly duplicate branch."
+    exit 1
+    ;;
+esac
+
 if [[ -e "${WORKTREE}" ]]; then
   mel_error "Worktree path already exists: ${WORKTREE}"
   mel_info "Remove or rename it only after confirming it is safe."
@@ -84,13 +103,23 @@ if [[ -e "${WORKTREE}" ]]; then
 fi
 
 mel_section "Create branch + worktree"
-mel_step "Creating ${BRANCH} from ${BASE_REF}…"
-mel_git "${INTEGRATION}" branch "${BRANCH}" "${BASE_REF}"
-mel_success "Branch created"
-
-mel_step "Adding worktree at ${WORKTREE}…"
-mel_git "${INTEGRATION}" worktree add "${WORKTREE}" "${BRANCH}"
-mel_success "Worktree ready"
+# Atomic create: one git operation for branch + worktree. On failure, scrub any
+# orphan local branch so retries are not blocked by "branch already exists".
+mel_step "Creating worktree ${WORKTREE} on ${BRANCH} from ${BASE_REF}…"
+if ! mel_git "${INTEGRATION}" worktree add -b "${BRANCH}" "${WORKTREE}" "${BASE_REF}"; then
+  mel_error "Failed to create worktree at ${WORKTREE}"
+  if mel_git "${INTEGRATION}" show-ref --verify --quiet "refs/heads/${BRANCH}"; then
+    if ! mel_git "${INTEGRATION}" worktree list --porcelain | grep -qx "branch refs/heads/${BRANCH}"; then
+      mel_warn "Removing orphan branch ${BRANCH} left by failed worktree add"
+      mel_git "${INTEGRATION}" branch -D "${BRANCH}" || true
+    fi
+  fi
+  if [[ -d "${WORKTREE}" ]] && [[ -z "$(ls -A "${WORKTREE}" 2>/dev/null || true)" ]]; then
+    rmdir "${WORKTREE}" 2>/dev/null || true
+  fi
+  exit 1
+fi
+mel_success "Worktree ready (${BRANCH})"
 
 if [[ -d "${WORKTREE}/.ddev" ]]; then
   mel_section "DDEV worktree isolation"
