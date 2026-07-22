@@ -233,7 +233,7 @@ GA + VIP creatable without Commerce words; advanced optional.
 - Optional redirect of Advanced manager Overview → Workspace Tickets  
 - Deeper per-ticket drawer edit (vs inline cards) if large inventories need tables  
 - Wire `mel:analytics` / logger hooks into the platform analytics pipeline  
-- VX2-05 Attendees / Door Mode
+- VX2-05 Attendees / Door Mode — **shipped Sprint 4** (see VX2-05 below)
 
 ## VX2-05 — Attendees
 
@@ -256,7 +256,26 @@ VX2-00 check-in trust; Workspace Attendees section.
 
 One place for “who’s coming” and “who’s in”.
 
----
+### Sprint 4 shipped (2026-07-22)
+
+| Item | Status |
+| --- | --- |
+| One Attendee Workspace in Event Workspace | Done — `attendees_stack` + `EventAttendeeWorkspaceBuilder` |
+| Search + filters (ticket / RSVP / waitlist / check-in / refunded / cancelled) | Done — client-side immediate filter |
+| Attendee cards + dense layout for large lists | Done — cards default; dense ≥100 |
+| Door Mode as Attendees mode | Done — tab + redirects from legacy check-in stacks |
+| Message / Export / Refund entry points | Done — no messaging rebuild |
+| Empty states (AU English) | Done |
+| Instrumentation hooks | Documented + logger/JS hooks (pipeline deferred) |
+| Bulk select messaging | Remaining — single + workspace Message CTAs shipped |
+| Mobile Door Mode PWA parity | Remaining — scanner retained; deeper PWA polish later |
+
+### Remaining after Sprint 4
+
+- Wire attendee analytics hooks into platform pipeline  
+- Bulk selection → message ticket type (VX2-06 adjacent)  
+- Deeper Door Mode mobile/PWA polish  
+- VX2-06 Messages product convergence
 
 ## VX2-06 — Messages
 
