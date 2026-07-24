@@ -1282,7 +1282,8 @@ final class VendorDashboardViewModelBuilder {
         $actions,
         'promote',
         (string) $this->t('Marketing'),
-        $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.boost', [], $account),
+        $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.marketing', [], $account)
+          ?? $this->safeUrlFromRouteIfAccessible('myeventlane_vendor.console.boost', [], $account),
       );
     }
     $this->appendOrganiserAction(

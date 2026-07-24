@@ -2277,8 +2277,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'style' => 'secondary',
       ],
       [
-        'label' => 'Boost Event',
-        'url' => '/vendor/boost',
+        'label' => 'Open Marketing',
+        'url' => '/vendor/marketing',
         'icon' => 'zap',
         'style' => 'secondary',
       ],
@@ -2379,9 +2379,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'url' => $this->safeRouteUrl('myeventlane_vendor.console.settings'),
       ],
       [
-        'title' => (string) $this->t('Boost an event'),
-        'description' => (string) $this->t('Increase visibility for your published events.'),
-        'url' => $this->safeRouteUrl('myeventlane_vendor.console.boost'),
+        'title' => (string) $this->t('Open Marketing'),
+        'description' => (string) $this->t('Share events, Boost visibility, and grow your audience.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.marketing'),
       ],
       [
         'title' => (string) $this->t('Review attendees'),
