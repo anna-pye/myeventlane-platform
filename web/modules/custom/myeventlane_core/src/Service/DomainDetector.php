@@ -179,6 +179,95 @@ final class DomainDetector {
   }
 
   /**
+   * Builds an absolute public URL suitable for sharing, copy, and QR codes.
+   *
+   * Prefer absolute http(s) URLs for scanners and social/share paste.
+   *
+   * Never falls back to the vendor/admin console host. When public_domain is
+   * unset, derives the public origin from configured vendor_domain or by
+   * stripping a conventional vendor./admin. request-host prefix. If no public
+   * origin can be determined safely, returns a site-relative path rather than
+   * an absolute URL on the wrong host.
+   *
+   * @param string $internal_path
+   *   A Drupal-generated relative path, e.g. /events/my-event.
+   *
+   * @return string
+   *   Absolute public URL when possible; otherwise a site-relative path.
+   */
+  public function absolutePublicUrl(string $internal_path): string {
+    $path = '/' . ltrim($internal_path, '/');
+    $candidate = $this->publicUrl($path);
+
+    if (preg_match('#^https?://#i', $candidate) === 1) {
+      return $candidate;
+    }
+
+    $relative = '/' . ltrim($candidate, '/');
+    try {
+      return $this->buildDomainUrl($relative, 'public');
+    }
+    catch (\Throwable) {
+      $origin = $this->resolvePublicOriginForAbsoluteUrl();
+      if ($origin !== NULL) {
+        return rtrim($origin, '/') . $relative;
+      }
+      // Last resort on a confirmed public/shared host only — never pin share
+      // or QR payloads to vendor/admin console origins.
+      if ($this->isPublicDomain()) {
+        return Url::fromUserInput($relative)->setAbsolute()->toString();
+      }
+      // Console host with no derivable public origin: keep site-relative rather
+      // than invent a wrong absolute URL for scanners/social paste.
+      return $relative;
+    }
+  }
+
+  /**
+   * Resolves scheme://host for public share URLs when public_domain is unset.
+   *
+   * @return string|null
+   *   Public origin, or NULL if it cannot be determined safely.
+   */
+  private function resolvePublicOriginForAbsoluteUrl(): ?string {
+    // Prefer deriving from configured vendor_domain (strip vendor. prefix).
+    try {
+      $vendorBase = $this->getConfiguredDomainUrl('vendor_domain');
+      $parsed = parse_url($vendorBase);
+      if (isset($parsed['scheme'], $parsed['host'])) {
+        $host = strtolower((string) $parsed['host']);
+        if (str_starts_with($host, 'vendor.') && strlen($host) > strlen('vendor.')) {
+          return $parsed['scheme'] . '://' . substr($host, strlen('vendor.'));
+        }
+      }
+    }
+    catch (\Throwable) {
+      // Fall through to request-based derivation.
+    }
+
+    $request = $this->getRequest();
+    if ($request === NULL) {
+      return NULL;
+    }
+
+    // Shared / public host (including single-host DDEV): current origin is fine.
+    if ($this->isPublicDomain()) {
+      return $request->getSchemeAndHttpHost();
+    }
+
+    // Vendor/admin console: strip conventional subdomain prefixes.
+    $host = strtolower($request->getHost());
+    $scheme = $request->getScheme();
+    foreach (['vendor.', 'admin.'] as $prefix) {
+      if (str_starts_with($host, $prefix) && strlen($host) > strlen($prefix)) {
+        return $scheme . '://' . substr($host, strlen($prefix));
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
    * Converts a Drupal Url object to one pointing at the public domain.
    *
    * Returns the original Url unchanged when already on the public domain

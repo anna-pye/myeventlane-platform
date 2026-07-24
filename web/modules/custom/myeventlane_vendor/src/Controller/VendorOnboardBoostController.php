@@ -109,8 +109,8 @@ final class VendorOnboardBoostController extends ControllerBase {
       ],
       'open_boost' => [
         '#type' => 'link',
-        '#title' => $this->t('Go to Boost'),
-        '#url' => Url::fromRoute('myeventlane_vendor.console.boost'),
+        '#title' => $this->t('Go to Marketing'),
+        '#url' => Url::fromRoute('myeventlane_vendor.console.marketing'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
         ],

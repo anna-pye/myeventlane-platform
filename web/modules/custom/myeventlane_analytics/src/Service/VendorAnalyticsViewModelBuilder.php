@@ -688,7 +688,8 @@ final class VendorAnalyticsViewModelBuilder {
           ['label' => (string) $this->t('Active Boosts'), 'value' => (string) $boostActive],
         ],
         'cta_label' => (string) $this->t('Open Marketing'),
-        'cta_url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
+        'cta_url' => $this->safeUrlFromRoute('myeventlane_vendor.console.marketing')?->toString()
+          ?? $this->safeUrlFromRoute('myeventlane_vendor.console.boost')?->toString(),
         'pro_only' => FALSE,
       ],
       [

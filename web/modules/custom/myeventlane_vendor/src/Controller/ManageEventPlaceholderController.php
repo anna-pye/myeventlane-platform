@@ -66,9 +66,9 @@ final class ManageEventPlaceholderController extends ManageEventControllerBase {
   private function destinationForPlaceholder(string $from, NodeInterface $event): array {
     $nid = (int) $event->id();
     return match ($from) {
-      // Promote / Marketing → Boost (not Messages / Publishing & updates).
+      // Promote / Marketing → Event Workspace Marketing.
       'myeventlane_vendor.manage_event.promote' => [
-        'myeventlane_boost.boost_page',
+        'myeventlane_event_studio.workspace_marketing',
         ['node' => $nid],
       ],
       'myeventlane_vendor.manage_event.comms' => [

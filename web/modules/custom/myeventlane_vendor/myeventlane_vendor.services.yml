@@ -590,6 +590,31 @@ services:
     tags:
       - { name: controller.service_arguments }
 
+  myeventlane_vendor.marketing_hub_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorMarketingHubBuilder
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@myeventlane_core.domain_detector'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+      - '@?myeventlane_boost.manager'
+      - '@?myeventlane_boost.help_content'
+      - '@?myeventlane_event_state.resolver'
+      - '@?myeventlane_tickets.qr_code_generator'
+
+  myeventlane_vendor.controller.vendor_marketing_hub:
+    class: Drupal\myeventlane_vendor\Controller\VendorMarketingHubController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_vendor.marketing_hub_builder'
+    tags:
+      - { name: controller.service_arguments }
+
   myeventlane_vendor.controller.vendor_boost:
     class: Drupal\myeventlane_vendor\Controller\VendorBoostController
     arguments:

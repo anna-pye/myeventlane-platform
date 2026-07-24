@@ -457,18 +457,17 @@ final class EventWorkspaceOverviewBuilder {
       ? (string) $this->t('Homepage featured')
       : (string) $this->t('Not homepage featured');
     if (!$event->isPublished()) {
-      $lines = [(string) $this->t('Publish to share and promote.')];
+      $lines = [(string) $this->t('Publish to share and Boost.')];
     }
 
     $url = !$event->isPublished()
       ? $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid])
-      : ($this->safeUrl('myeventlane_boost.vendor_event_boost', ['event' => $nid])
-        ?? $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]));
+      : $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]);
 
     return [
       'title' => (string) $this->t('Marketing'),
       'lines' => $lines,
-      'action_label' => (string) $this->t('Promote'),
+      'action_label' => (string) $this->t('Open Marketing'),
       'url' => $url,
     ];
   }
@@ -973,7 +972,7 @@ final class EventWorkspaceOverviewBuilder {
     return [
       'title' => (string) $this->t('Share your event'),
       'message' => (string) $this->t('Your event is live. Share the page or message your attendees.'),
-      'action_label' => (string) $this->t('Promote'),
+      'action_label' => (string) $this->t('Share'),
       'url' => $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]),
     ];
   }

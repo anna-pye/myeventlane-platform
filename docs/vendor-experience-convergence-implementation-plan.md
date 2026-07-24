@@ -398,7 +398,15 @@ Boost and share live under Marketing.
 
 Promote/Grow/Boost synonym soup reduced to Marketing + Boost.
 
----
+### Runtime status (2026-07-24)
+
+**Done** on `feature/vx2-marketing` — see [`implementation/vx2-09-marketing-hub.md`](implementation/vx2-09-marketing-hub.md).
+
+- `/vendor/marketing` Event Growth Centre  
+- Shell Marketing → hub; `/vendor/boost` → `?section=boost` (scroll to Boost)  
+- Event Workspace Marketing deepened  
+- Residual “Promote” CTAs renamed to Share / Open Marketing  
+
 
 ## VX2-10 — Settings & Support
 

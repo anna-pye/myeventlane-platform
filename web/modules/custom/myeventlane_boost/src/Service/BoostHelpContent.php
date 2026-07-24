@@ -80,9 +80,9 @@ final class BoostHelpContent {
    */
   public function getOnboardingContent(): array {
     return [
-      'title' => 'Promote your event with Boost',
+      'title' => 'Boost your event',
       'intro' => [
-        'Boost can feature your event in promoted placements across the site.',
+        'Boost can feature your event in placements across the site.',
         'You’ll see clear performance metrics so you can understand visibility and interest.',
       ],
       'sections' => [

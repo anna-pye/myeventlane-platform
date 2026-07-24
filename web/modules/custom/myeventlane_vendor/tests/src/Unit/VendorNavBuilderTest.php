@@ -66,6 +66,7 @@ final class VendorNavBuilderTest extends UnitTestCase {
         'myeventlane_checkout_flow.vendor_attendees',
         'myeventlane_vendor.console.payments',
         'myeventlane_vendor.console.payouts',
+        'myeventlane_vendor.console.marketing',
         'myeventlane_vendor.console.boost',
         'myeventlane_vendor.console.messages',
         'myeventlane_vendor.console.messaging_brand',
@@ -115,6 +116,10 @@ final class VendorNavBuilderTest extends UnitTestCase {
     $messages = $this->findItemByKey($items, 'messages');
     $this->assertNotNull($messages);
     $this->assertSame('myeventlane_vendor.console.messages', $messages['route'] ?? NULL);
+
+    $marketing = $this->findItemByKey($items, 'marketing');
+    $this->assertNotNull($marketing);
+    $this->assertSame('myeventlane_vendor.console.marketing', $marketing['route'] ?? NULL);
   }
 
   /**
@@ -132,6 +137,7 @@ final class VendorNavBuilderTest extends UnitTestCase {
         'myeventlane_checkout_flow.vendor_attendees',
         'myeventlane_vendor.console.payments',
         'myeventlane_vendor.console.payouts',
+        'myeventlane_vendor.console.marketing',
         'myeventlane_vendor.console.boost',
         'myeventlane_vendor.console.messages',
         'myeventlane_vendor.console.messaging_brand',

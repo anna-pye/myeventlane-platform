@@ -96,7 +96,9 @@ final class VendorNavBuilder {
     if ($path === '/vendor/attendees' || str_starts_with($path, '/vendor/attendees/')) {
       return 'attendees';
     }
-    if (str_starts_with($path, '/vendor/boost') || str_starts_with($path, '/vendor/audience')) {
+    if (str_starts_with($path, '/vendor/marketing')
+      || str_starts_with($path, '/vendor/boost')
+      || str_starts_with($path, '/vendor/audience')) {
       return 'marketing';
     }
     if (str_starts_with($path, '/vendor/payments')
@@ -160,6 +162,7 @@ final class VendorNavBuilder {
       'myeventlane_finance.vendor_bas' => 'payments',
       'myeventlane_donations.vendor_mel_billing' => 'payments',
       'myeventlane_escalations_refunds.vendor_refund_summary' => 'payments',
+      'myeventlane_vendor.console.marketing' => 'marketing',
       'myeventlane_vendor.console.boost' => 'marketing',
       'myeventlane_vendor.console.audience' => 'marketing',
       'myeventlane_vendor.console.settings' => 'settings',
@@ -329,7 +332,7 @@ final class VendorNavBuilder {
         'key' => 'marketing',
         'label' => $this->t('Marketing'),
         'icon' => 'growth',
-        'route' => 'myeventlane_vendor.console.boost',
+        'route' => 'myeventlane_vendor.console.marketing',
         'children' => [],
       ],
       [

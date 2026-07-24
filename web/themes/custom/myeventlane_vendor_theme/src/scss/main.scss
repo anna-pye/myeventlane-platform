@@ -112,6 +112,7 @@
   @include meta.load-css('pages/vendor-console-stack');
   @include meta.load-css('pages/payments-hub');
   @include meta.load-css('pages/messages-hub');
+  @include meta.load-css('pages/marketing-hub');
   @include meta.load-css('pages/analytics-hub');
 }
 
