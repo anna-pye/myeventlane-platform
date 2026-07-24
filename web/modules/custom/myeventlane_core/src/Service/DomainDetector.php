@@ -179,6 +179,35 @@ final class DomainDetector {
   }
 
   /**
+   * Builds an absolute public URL suitable for sharing, copy, and QR codes.
+   *
+   * Unlike publicUrl(), this never returns a site-relative path: scanners and
+   * social/share paste destinations need a full http(s) URL.
+   *
+   * @param string $internal_path
+   *   A Drupal-generated relative path, e.g. /events/my-event.
+   *
+   * @return string
+   *   Absolute public URL (configured public host when available).
+   */
+  public function absolutePublicUrl(string $internal_path): string {
+    $path = '/' . ltrim($internal_path, '/');
+    $candidate = $this->publicUrl($path);
+
+    if (preg_match('#^https?://#i', $candidate) === 1) {
+      return $candidate;
+    }
+
+    $relative = '/' . ltrim($candidate, '/');
+    try {
+      return $this->buildDomainUrl($relative, 'public');
+    }
+    catch (\Throwable) {
+      return Url::fromUserInput($relative)->setAbsolute()->toString();
+    }
+  }
+
+  /**
    * Converts a Drupal Url object to one pointing at the public domain.
    *
    * Returns the original Url unchanged when already on the public domain

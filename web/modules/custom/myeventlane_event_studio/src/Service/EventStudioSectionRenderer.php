@@ -136,8 +136,8 @@ final class EventStudioSectionRenderer {
     $nid = (int) $event->id();
     $publicPath = Url::fromRoute('entity.node.canonical', ['node' => $nid])->toString();
     $publicUrl = $this->domainDetector instanceof DomainDetector
-      ? $this->domainDetector->publicUrl($publicPath)
-      : $publicPath;
+      ? $this->domainDetector->absolutePublicUrl($publicPath)
+      : Url::fromUserInput('/' . ltrim($publicPath, '/'))->setAbsolute()->toString();
     $boostUrl = NULL;
     try {
       $boostUrl = Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $nid])->toString();

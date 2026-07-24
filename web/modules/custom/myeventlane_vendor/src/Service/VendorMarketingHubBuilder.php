@@ -221,7 +221,9 @@ final class VendorMarketingHubBuilder {
       }
       $nid = (int) $event->id();
       $path = Url::fromRoute('entity.node.canonical', ['node' => $nid])->toString();
-      $publicUrl = $this->domainDetector->publicUrl($path);
+      // Share / copy / QR must be absolute — publicUrl() can return a relative
+      // path on single-host environments (e.g. DDEV).
+      $publicUrl = $this->domainDetector->absolutePublicUrl($path);
       $title = (string) $event->label();
       $qrUri = NULL;
       if ($this->qrCodeGenerator !== NULL && method_exists($this->qrCodeGenerator, 'buildDataUri')) {
@@ -565,7 +567,6 @@ final class VendorMarketingHubBuilder {
         'body' => (string) $this->t('Optional paid visibility on MyEventLane discovery — community-first, never a hard sell.'),
         'cta_label' => (string) $this->t('Explore Boost'),
         'cta_url' => '#boost',
-        'analytics' => 'boost_started',
       ];
     }
 

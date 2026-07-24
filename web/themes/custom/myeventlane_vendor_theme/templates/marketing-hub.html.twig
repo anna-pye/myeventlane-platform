@@ -140,7 +140,7 @@
     {% endif %}
   </section>
 
-  <section class="mel-card mel-marketing-hub__section" id="boost" aria-labelledby="mel-marketing-boost-heading" data-mel-analytics-event="boost_started">
+  <section class="mel-card mel-marketing-hub__section" id="boost" aria-labelledby="mel-marketing-boost-heading">
     <p class="mel-marketing-hub__eyebrow">{{ boost.eyebrow }}</p>
     <h2 id="mel-marketing-boost-heading" class="mel-card__title">{{ boost.title }}</h2>
     {% if not boost.available %}
@@ -176,7 +176,7 @@
                 <p class="mel-marketing-hub__muted">{{ campaign.status }}{% if campaign.ends %} · {{ 'Ends @date'|t({'@date': campaign.ends}) }}{% endif %}</p>
               </div>
               {% if campaign.url %}
-                <a class="mel-button mel-button--secondary" href="{{ campaign.url }}" data-mel-analytics-event="boost_started">{{ 'Manage Boost'|t }}</a>
+                <a class="mel-button mel-button--secondary" href="{{ campaign.url }}">{{ 'Manage Boost'|t }}</a>
               {% endif %}
             </li>
           {% endfor %}

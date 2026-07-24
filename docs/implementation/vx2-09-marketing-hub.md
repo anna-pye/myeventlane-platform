@@ -56,7 +56,7 @@ Convergence redirects:
 | `marketing_opened` | Hub builder logger + Twig | Deferred collector |
 | `share_link_copied` | Copy buttons + Twig attrs | Deferred collector |
 | `share_channel_selected` | Social / email links | Deferred collector |
-| `boost_started` | Boost CTAs | Deferred collector |
+| `boost_started` | Start Boost CTAs only (not section / Manage / Explore) | Deferred collector |
 | `boost_completed` | Existing Boost purchase success (unchanged) | Existing |
 | `widget_copied` | Widgets entry CTAs | Deferred collector |
 
