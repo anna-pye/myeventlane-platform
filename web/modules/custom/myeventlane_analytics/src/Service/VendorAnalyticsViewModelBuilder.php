@@ -98,8 +98,14 @@ final class VendorAnalyticsViewModelBuilder {
       $kpis = $this->fallbackKpis();
     }
 
+    $readinessSignals = [
+      'tickets_configured' => FALSE,
+      'door_ready' => FALSE,
+      'publishing_issues' => 0,
+      'event_count' => 0,
+    ];
     try {
-      $events = $this->buildEventRows($uid, $account);
+      [$events, $readinessSignals] = $this->buildEventRows($uid, $account);
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_analytics')->warning('Vendor analytics event rows failed for uid @uid: @message', [
@@ -111,7 +117,7 @@ final class VendorAnalyticsViewModelBuilder {
 
     $refundPending = $this->countPendingRefunds();
     $paymentHealth = $this->paymentsHealth->buildForCurrentUser();
-    $launchReadiness = $this->buildLaunchReadiness($events, $paymentHealth, $refundPending);
+    $launchReadiness = $this->buildLaunchReadiness($readinessSignals, $paymentHealth, $refundPending);
     $businessHealth = $this->buildBusinessHealth($kpis, $events, $refundPending, $launchReadiness);
     $nextAction = $this->buildNextAction($launchReadiness, $businessHealth, $events, $account);
     $sections = $this->buildSections($kpis, $events, $refundPending, $isPro);
@@ -349,8 +355,11 @@ final class VendorAnalyticsViewModelBuilder {
   /**
    * Builds the Launch Readiness operational checklist.
    *
-   * @param list<array<string, mixed>> $events
-   *   Event intelligence rows.
+   * Tickets / Door / publishing signals come from all managed events (not the
+   * sales-sorted intelligence rows capped at MAX_EVENTS).
+   *
+   * @param array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int} $signals
+   *   Catalogue-wide readiness signals.
    * @param array<string, mixed> $paymentHealth
    *   Payments health payload.
    * @param int $refundPending
@@ -359,21 +368,11 @@ final class VendorAnalyticsViewModelBuilder {
    * @return array<string, mixed>
    *   Launch readiness card.
    */
-  private function buildLaunchReadiness(array $events, array $paymentHealth, int $refundPending): array {
-    $ticketsConfigured = FALSE;
-    $doorReady = FALSE;
-    $publishingIssues = 0;
-
-    foreach ($events as $row) {
-      $type = (string) ($row['event_type_key'] ?? 'unknown');
-      if (in_array($type, ['paid', 'rsvp', 'both'], TRUE)) {
-        $ticketsConfigured = TRUE;
-        $doorReady = TRUE;
-      }
-      if (($row['status_key'] ?? '') === 'draft') {
-        $publishingIssues++;
-      }
-    }
+  private function buildLaunchReadiness(array $signals, array $paymentHealth, int $refundPending): array {
+    $ticketsConfigured = !empty($signals['tickets_configured']);
+    $doorReady = !empty($signals['door_ready']);
+    $publishingIssues = (int) ($signals['publishing_issues'] ?? 0);
+    $eventCount = (int) ($signals['event_count'] ?? 0);
 
     $stripeReady = !empty($paymentHealth['connected']) && empty($paymentHealth['needs_attention']);
     $stripeTone = $stripeReady ? 'success' : (!empty($paymentHealth['needs_attention']) ? 'attention' : 'muted');
@@ -448,7 +447,7 @@ final class VendorAnalyticsViewModelBuilder {
     ];
 
     $attentionCount = count(array_filter($items, static fn(array $i): bool => ($i['tone'] ?? '') === 'attention'));
-    $tone = $attentionCount > 0 ? 'attention' : ($events === [] ? 'muted' : 'success');
+    $tone = $attentionCount > 0 ? 'attention' : ($eventCount === 0 ? 'muted' : 'success');
     $headline = match ($tone) {
       'attention' => (string) $this->t('Can I successfully run my next event today?'),
       'muted' => (string) $this->t('Can I successfully run an event today?'),
@@ -755,20 +754,31 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
-   * Builds per-event intelligence rows.
+   * Builds per-event intelligence rows and catalogue-wide readiness signals.
+   *
+   * Readiness signals are computed from every managed event before the
+   * sales-sorted MAX_EVENTS cap, so low-activity drafts still affect
+   * publishing / tickets / Door Mode checks.
    *
    * @param int $uid
    *   Organiser user ID.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current organiser account.
    *
-   * @return list<array<string, mixed>>
-   *   Event rows.
+   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int}}
+   *   Capped intelligence rows plus full-catalogue readiness signals.
    */
   private function buildEventRows(int $uid, AccountInterface $account): array {
+    $emptySignals = [
+      'tickets_configured' => FALSE,
+      'door_ready' => FALSE,
+      'publishing_issues' => 0,
+      'event_count' => 0,
+    ];
+
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
     if ($ids === []) {
-      return [];
+      return [[], $emptySignals];
     }
 
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($ids);
@@ -783,6 +793,8 @@ final class VendorAnalyticsViewModelBuilder {
     foreach ($eventNodes as $node) {
       $rows[] = $this->buildEventRow($node, $account);
     }
+
+    $signals = $this->summariseReadinessSignals($rows);
 
     usort($rows, static function (array $a, array $b): int {
       $scoreA = (int) ($a['_sort_tickets'] ?? 0) + (int) ($a['_sort_rsvps'] ?? 0);
@@ -801,7 +813,40 @@ final class VendorAnalyticsViewModelBuilder {
     }
     unset($row);
 
-    return $rows;
+    return [$rows, $signals];
+  }
+
+  /**
+   * Summarises Launch Readiness signals from the full event-row set.
+   *
+   * @param list<array<string, mixed>> $rows
+   *   Uncapped event rows (before MAX_EVENTS slice).
+   *
+   * @return array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int}
+   *   Catalogue-wide readiness signals.
+   */
+  private function summariseReadinessSignals(array $rows): array {
+    $ticketsConfigured = FALSE;
+    $doorReady = FALSE;
+    $publishingIssues = 0;
+
+    foreach ($rows as $row) {
+      $type = (string) ($row['event_type_key'] ?? 'unknown');
+      if (in_array($type, ['paid', 'rsvp', 'both'], TRUE)) {
+        $ticketsConfigured = TRUE;
+        $doorReady = TRUE;
+      }
+      if (($row['status_key'] ?? '') === 'draft') {
+        $publishingIssues++;
+      }
+    }
+
+    return [
+      'tickets_configured' => $ticketsConfigured,
+      'door_ready' => $doorReady,
+      'publishing_issues' => $publishingIssues,
+      'event_count' => count($rows),
+    ];
   }
 
   /**
