@@ -31,7 +31,7 @@ final class AttendeeRecipientResolver {
    *
    * Includes emails from:
    * - Completed Commerce orders
-   * - RSVP submissions
+   * - RSVP submissions.
    *
    * Deduplicates and validates emails.
    *
@@ -76,6 +76,54 @@ final class AttendeeRecipientResolver {
    */
   public function getCount(NodeInterface $event): int {
     return count($this->resolveEmails($event));
+  }
+
+  /**
+   * Resolves unique emails from confirmed RSVP submissions only.
+   *
+   * Excludes addresses that also appear on completed/placed/fulfilled
+   * Commerce orders for this event (ticket purchasers).
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return list<string>
+   *   Unique validated email addresses.
+   */
+  public function resolveRsvpEmails(NodeInterface $event): array {
+    $eventId = (int) $event->id();
+    $ticketEmails = [];
+    foreach ($this->getOrderEmails($eventId) as $email) {
+      if ($this->isValidEmail($email)) {
+        $ticketEmails[strtolower($email)] = TRUE;
+      }
+    }
+
+    $emails = [];
+    foreach ($this->getRsvpEmails($eventId) as $email) {
+      if (!$this->isValidEmail($email)) {
+        continue;
+      }
+      $key = strtolower($email);
+      if (isset($ticketEmails[$key])) {
+        continue;
+      }
+      $emails[$key] = $email;
+    }
+    return array_values($emails);
+  }
+
+  /**
+   * Gets RSVP-only recipient count for an event.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return int
+   *   Number of unique RSVP recipients.
+   */
+  public function getRsvpCount(NodeInterface $event): int {
+    return count($this->resolveRsvpEmails($event));
   }
 
   /**

@@ -72,7 +72,19 @@ final class VendorNavBuilder {
   public function resolveActiveSection(?string $routeName): string {
     $path = $this->requestStack->getCurrentRequest()?->getPathInfo() ?? '';
 
-    if ($routeName === 'myeventlane_vendor.console.messaging_brand') {
+    if ($routeName === 'myeventlane_vendor.console.messages'
+      || $routeName === 'myeventlane_vendor.console.messaging_brand'
+      || $routeName === 'myeventlane_vendor.console.event_promotion'
+      || $routeName === 'myeventlane_vendor_comms.branding'
+      || $routeName === 'myeventlane_vendor.message_attendees'
+      || $routeName === 'myeventlane_pro.vendor_comms') {
+      return 'messages';
+    }
+    if (str_starts_with($path, '/vendor/messages')
+      || str_contains($path, '/vendor/dashboard/messaging/brand')
+      || preg_match('#^/vendor/events/\d+/promotion(/|$)#', $path) === 1
+      || preg_match('#^/vendor/events/\d+/message(/|$)#', $path) === 1
+      || str_starts_with($path, '/vendor/pro/settings/comms')) {
       return 'messages';
     }
     if (str_starts_with($path, '/vendor/settings')) {
@@ -103,9 +115,6 @@ final class VendorNavBuilder {
     if (str_starts_with($path, '/vendor/events')) {
       return 'events';
     }
-    if (str_contains($path, '/vendor/dashboard/messaging/brand')) {
-      return 'messages';
-    }
     if ($path === '/vendor/dashboard' || str_starts_with($path, '/vendor/dashboard/')) {
       return 'dashboard';
     }
@@ -127,6 +136,12 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.event_publish' => 'events',
       'myeventlane_vendor.console.event_promotion' => 'messages',
       'myeventlane_vendor_comms.branding' => 'messages',
+      'myeventlane_vendor.console.messages' => 'messages',
+      'myeventlane_vendor.console.messaging_brand' => 'messages',
+      'myeventlane_vendor.message_attendees' => 'messages',
+      'myeventlane_event_studio.workspace_messaging' => 'events',
+      'myeventlane_event_studio.workspace_messages' => 'events',
+      'myeventlane_pro.vendor_comms' => 'messages',
       'myeventlane_vendor.console.event_analytics' => 'analytics',
       'myeventlane_vendor.console.event_settings' => 'events',
       'myeventlane_vendor.console.event_orders' => 'orders',
@@ -293,7 +308,7 @@ final class VendorNavBuilder {
         'key' => 'messages',
         'label' => $this->t('Messages'),
         'icon' => 'notifications',
-        'route' => 'myeventlane_vendor.console.messaging_brand',
+        'route' => 'myeventlane_vendor.console.messages',
         'children' => [],
       ],
       [

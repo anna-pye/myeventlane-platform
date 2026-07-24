@@ -249,10 +249,17 @@ class VendorSettingsForm extends FormBase {
     ];
 
     $quick_links = [];
-    if ($this->routeExists('myeventlane_vendor.console.messaging_brand')
+    if ($this->routeExists('myeventlane_vendor.console.messages')
+      && $this->accessManager->checkNamedRoute('myeventlane_vendor.console.messages', [], $this->currentUser, TRUE)->isAllowed()) {
+      $quick_links[] = [
+        'title' => $this->t('Messages'),
+        'url' => Url::fromRoute('myeventlane_vendor.console.messages'),
+      ];
+    }
+    elseif ($this->routeExists('myeventlane_vendor.console.messaging_brand')
       && $this->accessManager->checkNamedRoute('myeventlane_vendor.console.messaging_brand', [], $this->currentUser, TRUE)->isAllowed()) {
       $quick_links[] = [
-        'title' => $this->t('Messaging brand'),
+        'title' => $this->t('Messages brand'),
         'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand'),
       ];
     }

@@ -541,6 +541,39 @@ services:
     tags:
       - { name: controller.service_arguments }
 
+  myeventlane_vendor.messages_history:
+    class: Drupal\myeventlane_vendor\Service\VendorMessagesHistoryService
+    arguments:
+      - '@database'
+      - '@date.formatter'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+
+  myeventlane_vendor.messages_hub_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorMessagesHubBuilder
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@myeventlane_vendor.messages_history'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+      - '@?myeventlane_messaging.attendee_recipient_resolver'
+
+  myeventlane_vendor.controller.vendor_messages_hub:
+    class: Drupal\myeventlane_vendor\Controller\VendorMessagesHubController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_vendor.messages_hub_builder'
+    tags:
+      - { name: controller.service_arguments }
+
   myeventlane_vendor.controller.vendor_payouts:
     class: Drupal\myeventlane_vendor\Controller\VendorPayoutsController
     arguments:

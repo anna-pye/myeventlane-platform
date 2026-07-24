@@ -455,4 +455,4 @@ Full definitions: [`vendor-experience-convergence-success-metrics.md`](vendor-ex
 
 **Biggest revenue opportunities:** Faster first publish; higher Stripe completion; free Analytics pulse that earns Pro; clearer Boost / Marketing; fewer support dead ends that abandon paid flows.
 
-**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; Sprint 3 delivered The Ticket Experience; Sprint 4 delivered One Attendee Workspace; VX2-07 delivered the Payments Hub; remaining epics follow the roadmap.
+**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; Sprint 3 delivered The Ticket Experience; Sprint 4 delivered One Attendee Workspace; VX2-07 delivered the Payments Hub; VX2-06 delivered the Messages Hub; remaining epics follow the roadmap.
