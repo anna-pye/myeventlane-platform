@@ -57,7 +57,7 @@ final class CommsRateLimiter {
     if ($hourlyCount >= $hourlyLimit) {
       return [
         'allowed' => FALSE,
-        'reason' => "Hourly limit reached ({$hourlyCount}/{$hourlyLimit}). Please wait before sending another message.",
+        'reason' => "You've sent quite a few messages in the last hour ({$hourlyCount}/{$hourlyLimit}). Please wait a little before sending another.",
         'count' => (int) $hourlyCount,
         'limit' => $hourlyLimit,
       ];
@@ -75,7 +75,7 @@ final class CommsRateLimiter {
     if ($dailyCount >= $dailyLimit) {
       return [
         'allowed' => FALSE,
-        'reason' => "Daily limit reached ({$dailyCount}/{$dailyLimit}). Please try again tomorrow.",
+        'reason' => "You've reached today's message limit for this event ({$dailyCount}/{$dailyLimit}). Try again tomorrow.",
         'count' => (int) $dailyCount,
         'limit' => $dailyLimit,
       ];
