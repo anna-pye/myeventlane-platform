@@ -22,12 +22,10 @@ Priorities: **Critical** · **High** · **Medium** · **Low**
 
 | ID | Issue | Evidence | Product impact |
 | --- | --- | --- | --- |
-| D-H01 | Analytics Pro depth / Audience segments / Boost merge still partial after VX2-08 hub | Hub + redirects shipped; P3 depth open | Support may still ask for “full reports” |
+| D-H01 | Analytics still fragmented (Analytics / Insights / Charts) as product surfaces | Convergence MERGE inventory; VX2-08 open | “Where is reporting?” support |
 | D-H02 | Parallel interaction shells (modal/drawer/loading owners) | `mel-interaction-authority-audit.md` | Inconsistent focus/confirm behaviour |
 | D-H03 | Global Orders hub not shipped (event-scoped only) | Roadmap C-17; shell Orders disabled without context | Cross-event money findability |
-| D-H04 | Instrumentation pipelines deferred (hubs + attendees + tickets hooks) | VX2-04/05/06/07 notes | Cannot prove success metrics |
-| D-H05 | Residual Settings payment / stored-status jargon strings | VX2-07 remaining roadmap | Trust leak near money |
-| D-H06 | Parallel refund route ownership still under review | VX2-07 remaining | Refund dead-ends / duplication |
+| D-H04 | Instrumentation pipelines deferred (hubs + attendees + tickets hooks) | VX2-04/05/06/07/08/09/10 notes | Cannot prove success metrics |
 
 ---
 
@@ -52,13 +50,22 @@ Priorities: **Critical** · **High** · **Medium** · **Low**
 
 | ID | Issue | Evidence | Product impact |
 | --- | --- | --- | --- |
-| D-L01 | Help `/help/vendors` → organisers rename | Language Guide checklist | Vocabulary purity |
 | D-L02 | Wizard multi-step chrome: workspace frame vs form fields | VX2-02A backlog | Minor layout feel |
 | D-L03 | Soften residual admin messaging jargon outside organiser UI | VX2-06 | Staff/organiser bleed |
 | D-L04 | Optional embed live payout history in Payments hub | VX2-07 | Convenience |
 | D-L05 | Retire Pro MessageAttendeesForm stub after traffic dies | VX2-06 | Dead code/UX shadow |
 | D-L06 | Visual QA screenshot set desktop / tablet / 390px | Event Home follow-ups | Regression detection |
 | D-L07 | Singular legacy URL hit monitoring | Success metrics | Cleanup verification |
+
+---
+
+## Closed in VX2-10
+
+| ID | Resolution |
+| --- | --- |
+| D-H05 | Settings payment / stored-status jargon removed; Payments deep-link only |
+| D-H06 | `/vendor/support/refunds` redirects to Payments · Refunds |
+| D-L01 | `/help/vendors` → 301 `/help/organisers` |
 
 ---
 
@@ -75,7 +82,7 @@ Priorities: **Critical** · **High** · **Medium** · **Low**
 ## Suggested burn-down order
 
 1. D-C01 · D-C02  
-2. D-H01 · D-H03 · D-H06 · D-H05  
+2. D-H01 · D-H03  
 3. D-H02 · D-H04  
 4. D-M01–M06  
 5. Low items opportunistically with related epics  
@@ -87,7 +94,8 @@ Priorities: **Critical** · **High** · **Medium** · **Low**
 | Priority | Count |
 | --- | --- |
 | Critical | 2 |
-| High | 6 |
+| High | 4 |
 | Medium | 10 |
-| Low | 7 |
-| **Total** | **25** |
+| Low | 6 |
+| **Open total** | **22** |
+| Closed (VX2-10) | 3 |

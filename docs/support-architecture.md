@@ -10,12 +10,14 @@ Reference for the MyEventLane support subsystem. **No new features** — stabili
 | **myeventlane_escalations_ai** | AI | Triage, reply suggestions, risk flags, breach_soon advisory; queue-based AI jobs |
 | **myeventlane_escalations_ai_draft** | AI | Instant draft generation (staff UI) |
 | **myeventlane_escalations_analytics** | Analytics | Escalation analytics dashboards, vendor health metrics, exports |
-| **myeventlane_escalations_refunds** | Refunds correlation | Refund requests linked to escalations; vendor refund summary |
+| **myeventlane_escalations_refunds** | Refunds correlation | Refund requests linked to escalations; `/vendor/support/refunds` → Payments hub |
 | **myeventlane_escalations_capacity** | Capacity | Staff workload and capacity analytics dashboard |
 | **myeventlane_escalations_policy** | Policy | Policy triggers, vendor risk streak, escalation policy report |
-| **myeventlane_escalations_portal** | Portal | Customer (/my/support) and vendor (/vendor/support) escalation UIs |
+| **myeventlane_escalations_portal** | Portal | Customer (/my/support) and organiser Support hub (/vendor/support) |
+| **myeventlane_vendor** | Settings / Support chrome | Workspace Settings hub + Support hub builders (VX2-10) |
+| **myeventlane_vendor_settings** | Profile form | `/vendor/settings/profile` organiser profile form |
 | **myeventlane_vendor_nudges** | Vendor nudges | Educational tips on vendor dashboard |
-| **myeventlane_help_centre** | Help centre | Help articles, vendor help centre, staff snippet authoring |
+| **myeventlane_help_centre** | Help centre | Help articles, organiser help centre, staff snippet authoring |
 | **myeventlane_help_centre_ai** | Help centre (legacy shim) | Redirects `/help/ask` → `/help/assistant` (single AI entry point) |
 | **myeventlane_vendor_ai** | Vendor AI | MEL Assistant for vendors (policy questions, per-escalation) |
 | **myeventlane_staff_playbooks** | Staff playbooks | Governance dashboard, playbook content type, communication standards |

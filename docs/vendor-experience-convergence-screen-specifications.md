@@ -107,20 +107,25 @@ Format: Purpose · Primary action · Content · States · Notes
 
 | | |
 | --- | --- |
+| **Route** | `/vendor/settings` |
 | **Purpose** | Organiser defaults |
-| **Primary action** | Save |
-| **Content** | Profile; branding defaults; venues; guest question library; notification prefs; Pro billing |
-| **States** | Incomplete profile; Pro manage |
-| **Notes** | Consolidate branding satellites |
+| **Primary action** | Review Workspace Health · Edit profile |
+| **Content** | Profile; brand defaults; venues; guest questions; notifications; Payments deep-link; Pro; Danger Zone |
+| **States** | Workspace Health; incomplete profile; Stripe attention |
+| **Notes** | Branding satellites deep-linked; Profile form at `/vendor/settings/profile` |
+| **VX2-10** | Shipped — see `implementation/vx2-10-settings-hub.md` |
 
 ### A11. Support
 
 | | |
 | --- | --- |
+| **Route** | `/vendor/support` |
 | **Purpose** | Get help / resolve issues |
-| **Primary action** | Contact support / Open case |
-| **Content** | Help topics; open cases; refunds-in-support if relevant |
-| **States** | None open; active case |
+| **Primary action** | Browse Help / Contact support |
+| **Content** | Search; help articles; contact; open requests; policies; Payments note for refunds |
+| **States** | None open; active request |
+| **Notes** | Refunds → Payments; system status placeholder only |
+| **VX2-10** | Shipped |
 | **Notes** | Hide “escalation” jargon |
 
 ### A12. Onboarding steps

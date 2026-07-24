@@ -42,7 +42,7 @@ Companion audits in this folder cover patterns, components, microcopy, interacti
 
 # Stage 1 — VX2 sprint review
 
-Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Home redesign, VX2-06 Messages Hub, VX2-07 Payments Hub, VX2-08 Analytics Hub, VX2-09 Marketing Hub (2026-07-24), layout UX scores in `vx2-02a-workspace-layout-convergence.md`.
+Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Home redesign, VX2-06 Messages Hub, VX2-07 Payments Hub, VX2-08 Analytics Hub, VX2-09 Marketing Hub, VX2-10 Workspace Settings & Support (2026-07-24), layout UX scores in `vx2-02a-workspace-layout-convergence.md`.
 
 ## Dashboard
 
@@ -85,9 +85,9 @@ Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Hom
 | Lens | Finding |
 | --- | --- |
 | **Excellent** | Payments Hub; health states; AU trust copy; no Gateway/Commerce/Store in hub UI; layout hierarchy score ~8.9; Settings CTA into hub |
-| **Inconsistent** | Hub overview vs deep payouts page depth; refund surfaces still partly parallel (ownership review noted) |
-| **Still Drupal** | Settings residual stored-status phase strings called out as follow-up |
-| **Unfinished** | Live payout history table optional; analytics collector deferred; parallel refund route retirement pending |
+| **Inconsistent** | Hub overview vs deep payouts page depth |
+| **Still Drupal** | — (Settings residual payment strings removed in VX2-10) |
+| **Unfinished** | Live payout history table optional; analytics collector deferred |
 
 ## Messages (adjacent P2 — reviewed for consistency)
 
@@ -107,15 +107,24 @@ Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Hom
 | **Still Drupal** | Growth admin/report labels residual |
 | **Unfinished** | Page views / traffic on hub; collector wiring; Audience export dead link |
 
+## Settings & Support (VX2-10)
+
+| Lens | Finding |
+| --- | --- |
+| **Excellent** | Workspace Settings hub + Workspace Health; Support hub; Profile form; Payments/Help deep-links; AU calm copy |
+| **Inconsistent** | Brand satellites still multiple routes (hub deep-links, not merged into one form) |
+| **Still Drupal** | — (organiser-facing Vendor/Commerce/Store/Gateway purged on Settings/Support paths) |
+| **Unfinished** | Brand colour themes / SMS prefs / live system status — documented future only |
+
 ## Cross-sprint verdict
 
 | What already feels excellent | What still feels inconsistent | What still feels like Drupal | What still feels unfinished |
 | --- | --- | --- | --- |
 | Event Workspace Home composition | Overview/Home naming | Shared Schedule/Venue forms | Analytics Pro depth / Audience segments |
 | Layout container intents | Card header treatments | Studio CSS width islands | Global Orders hub |
-| Tickets card + Advanced collapse | Messages/Marketing scan scores (8.4) | Residual Settings payment strings | Instrumentation pipelines |
-| Payments + Analytics health framing | Interaction shells (modal/drawer owners) | Legacy path grammar | Onboarding celebration depth |
-| Language purge on critical paths | Empty-state governance coverage gaps | Drupal Form API dialogs in places | C-01/C-02 permission drift follow-up |
+| Tickets card + Advanced collapse | Messages/Marketing scan scores (8.4) | Legacy path grammar | Instrumentation pipelines |
+| Payments + Analytics + Settings health framing | Interaction shells (modal/drawer owners) | Drupal Form API dialogs in places | Onboarding celebration depth |
+| Language purge on critical paths | Empty-state governance coverage gaps | — | C-01/C-02 permission drift follow-up |
 
 ---
 
