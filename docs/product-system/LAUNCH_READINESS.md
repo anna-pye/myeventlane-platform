@@ -45,7 +45,7 @@ Success metrics prove outcomes over time; this checklist declares **launch-ready
 | **Attendees + Door Mode (VX2-05)** | Needs work | One workspace shipped | **Sign off QA/a11y**; bulk depth |
 | **Messages (VX2-06)** | Needs work | Hub + compose shipped | Audience filters; schedule UI; collector |
 | **Payments (VX2-07)** | Needs work | Hub shipped; strong trust copy | Residual settings strings; refund route ownership; QA |
-| **Analytics (VX2-08)** | Needs work | Pulse exists; naming incomplete | Merge Insights/Charts; honest Pro depth |
+| **Analytics (VX2-08)** | Needs work | Hub shipped as Event Intelligence Centre; Insights/Exports redirect; free pulse unlocked | Collector wiring; Audience/Boost depth; QA sign-off |
 | **Marketing (VX2-09)** | Needs work | Boost + Marketing sections | Scan/hierarchy polish; share tools cohesion |
 | **Settings & Support (VX2-10)** | Needs work | Settings/Support live | Branding satellite consolidation |
 | **Global Orders hub** | Not started | Event-scoped only | C-17 hub |
@@ -66,7 +66,7 @@ Success metrics prove outcomes over time; this checklist declares **launch-ready
 | Draft-choice clarity | Ready | Create CTAs through gateway |
 | Commerce jargon impressions | Needs work | Critical paths purged; residual edges |
 | Nav ≤10 | Ready | Sprint 1 Convergence IA |
-| Duplicate surfaces → 1 canonical | Needs work | Messages/Payments good; Analytics/Check-in residual |
+| Duplicate surfaces live | Needs work | Messages/Payments/Analytics converged; Check-in residual |
 | Door Mode task success | Needs work | Pending moderated test |
 | A11y critical on shell + Door Mode | Needs work | Pattern review done; live zero-critical not proven |
 | 403 dead-ends on known P0 | Blocked → Needs work | Partial; C-01/C-02 |
@@ -82,7 +82,7 @@ Success metrics prove outcomes over time; this checklist declares **launch-ready
 | Shell nav matches Convergence IA | Ready |
 | Commerce group renamed; Ticket Product gone on critical UI | Ready |
 | Event Workspace one nav model | Ready |
-| Analytics free pulse without bare deny | Needs work |
+| Analytics free pulse without bare deny | Ready (VX2-08 hub; QA pending) |
 | Door Mode canonical; others redirect | Ready (verify leftovers) |
 
 ---

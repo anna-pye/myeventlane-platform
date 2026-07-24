@@ -23,7 +23,7 @@ services:
     class: Drupal\myeventlane_analytics\Service\ReportGeneratorService
     arguments: ['@entity_type.manager', '@renderer', '@myeventlane_analytics.data']
 
-  # Vendor-wide `/vendor/analytics` view model (TASK 9 — orchestration only).
+  # Vendor-wide `/vendor/analytics` Event Intelligence Centre view model.
   myeventlane_analytics.vendor_view_model_builder:
     class: Drupal\myeventlane_analytics\Service\VendorAnalyticsViewModelBuilder
     arguments:
@@ -40,6 +40,12 @@ services:
       - '@string_translation'
       - '@myeventlane_surface.state_readiness_helper'
       - '@logger.factory'
+      - '@myeventlane_vendor.payments_health'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@config.factory'
+      - '@?myeventlane_pro.vendor_pro_state'
+      - '@?myeventlane_escalations_refunds.repository'
+      - '@?myeventlane_escalations_refunds.metrics'
 
   # Logger channel for analytics module.
   logger.channel.myeventlane_analytics:

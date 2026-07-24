@@ -359,6 +359,18 @@ One Analytics product; free pulse; Pro depth.
 **P1:** Rename Insights→Analytics; free pulse; Pro upgrade screens  
 **P3:** Charts, compare, date filters, Boost metrics, exports centre  
 
+### Status (2026-07-24)
+
+**P1 shipped** on `feature/vx2-analytics`:
+
+- `/vendor/analytics` Event Intelligence Centre (Business Health + Launch Readiness + next action)
+- Free pulse unlocked (no bare 403 on hub)
+- Insights + Export Centre list → redirects into Analytics
+- Pro depth explained in-product; exports remain Pro-gated
+- Docs: `docs/implementation/vx2-08-analytics-hub.md`
+
+**P3 remaining:** deeper charts/compare, Boost metrics merge, audience segments, collector wiring.
+
 ### Dependencies
 
 Gating honesty (C-11); merge insights routes gradually.

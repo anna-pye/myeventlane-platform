@@ -1,144 +1,245 @@
 {#
 /**
  * @file
- * Vendor-wide analytics (`/vendor/analytics`).
+ * Organiser Analytics — Event Intelligence Centre (`/vendor/analytics`).
  *
  * Variables:
- * - analytics_model: TASK 9 view model (title, subtitle, date_range, kpis, events, insights, empty_state).
- * - is_pro, pro_upgrade_url: optional; from myeventlane_pro_preprocess.
- * - summary_stats, event_analytics: legacy keys (empty); kept for compatibility.
+ * - analytics_model: hub view model from VendorAnalyticsViewModelBuilder
+ * - is_pro, pro_upgrade_url: optional; from myeventlane_pro_preprocess
  */
 #}
 {% set model = analytics_model|default({}) %}
-{% set date_items = model.date_range.items|default([]) %}
+{% set business = model.business_health|default({}) %}
+{% set launch = model.launch_readiness|default({}) %}
+{% set next = model.next_action|default({}) %}
+{% set pro = model.pro|default({}) %}
+{% set is_pro = model.is_pro|default(is_pro|default(false)) %}
+{% set upgrade_url = pro.cta_url|default(pro_upgrade_url|default(null)) %}
+{% set top_events = model.top_events|default([]) %}
 
-<div class="mel-vendor-analytics-v2 mel-analytics-dashboard">
+<div class="mel-analytics-hub" data-mel-analytics-hub data-mel-analytics-event="analytics_viewed" data-mel-analytics-pro="{{ is_pro ? '1' : '0' }}">
 
-  <header class="mel-vendor-analytics-v2__header mel-analytics-lock-content">
+  <header class="mel-analytics-hub__header">
     <div>
-      <h1 class="mel-vendor-analytics-v2__title">{{ model.title|default('Analytics'|t) }}</h1>
+      {% if model.eyebrow %}
+        <p class="mel-analytics-hub__eyebrow">{{ model.eyebrow }}</p>
+      {% endif %}
+      <h1 class="mel-analytics-hub__title">{{ model.title|default('Analytics'|t) }}</h1>
       {% if model.subtitle %}
-        <p class="mel-vendor-analytics-v2__subtitle">{{ model.subtitle }}</p>
+        <p class="mel-analytics-hub__subtitle">{{ model.subtitle }}</p>
       {% endif %}
     </div>
-    {% if date_items is not empty %}
-      <nav class="mel-vendor-analytics-v2__range" aria-label="{{ 'Date range'|t }}">
-        <ul class="mel-vendor-analytics-v2__range-list">
-          {% for item in date_items %}
-            <li>
-              {% if item.url %}
-                <a href="{{ item.url }}" class="mel-vendor-analytics-v2__range-link{% if item.active %} is-active{% endif %}">{{ item.label }}</a>
-              {% else %}
-                <span class="mel-vendor-analytics-v2__range-link{% if item.active %} is-active{% endif %}">{{ item.label }}</span>
-              {% endif %}
-            </li>
-          {% endfor %}
-        </ul>
-      </nav>
-    {% endif %}
   </header>
 
-  {% if model.kpis is defined and model.kpis is not empty %}
-    <section class="mel-vendor-analytics-v2__kpis" aria-label="{{ 'Key metrics'|t }}">
-      {% for kpi in model.kpis %}
-        <article class="mel-vendor-analytics-v2__kpi mel-kpi-card mel-kpi-card--neutral">
-          <h2 class="mel-vendor-analytics-v2__kpi-label">{{ kpi.label }}</h2>
-          <p class="mel-vendor-analytics-v2__kpi-value">{{ kpi.value }}</p>
-          {% if kpi.context %}
-            <p class="mel-vendor-analytics-v2__kpi-context">{{ kpi.context }}</p>
-          {% endif %}
-        </article>
-      {% endfor %}
+  {# Empty CTA is additive — do not hide Business Health / Launch / Pro when the organiser has no events. #}
+  {% if model.empty_state.title and model.events is empty %}
+    <section class="mel-card mel-analytics-hub__empty" role="status" aria-labelledby="mel-analytics-empty-heading">
+      <h2 id="mel-analytics-empty-heading" class="mel-card__title">{{ model.empty_state.title }}</h2>
+      <p>{{ model.empty_state.message }}</p>
+      {% if model.empty_state.url and model.empty_state.action_label %}
+        <a class="mel-button mel-button--primary" href="{{ model.empty_state.url }}">{{ model.empty_state.action_label }}</a>
+      {% elseif mel_analytics_events_empty is defined and mel_analytics_events_empty %}
+        {{ mel_analytics_events_empty }}
+      {% endif %}
     </section>
   {% endif %}
 
-  <div class="mel-analytics-lock-wrapper{% if is_pro is defined and not is_pro %} mel-analytics-lock-wrapper--locked{% endif %}">
-
-    {% if is_pro is defined and not is_pro %}
-      <div class="mel-analytics-lock-overlay">
-        <h2 class="mel-analytics-lock-overlay__title">{{ 'Unlock Full Analytics'|t }}</h2>
-        <p class="mel-analytics-lock-overlay__text">{{ 'Upgrade to Pro for workspace analytics, exports, and deeper per-event views.'|t }}</p>
-        {% if pro_upgrade_url is defined and pro_upgrade_url %}
-          <a href="{{ pro_upgrade_url }}" class="mel-pro-upgrade-btn">{{ 'Upgrade to unlock full analytics'|t }}</a>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    <div class="mel-analytics-lock-content">
-
-      {% if model.insights is defined and model.insights is not empty %}
-        <section class="mel-vendor-analytics-v2__insights" aria-label="{{ 'Analytics'|t }}">
-          {% for insight in model.insights %}
-            <div class="mel-vendor-analytics-v2__insight mel-vendor-analytics-v2__insight--{{ insight.severity|default('info') }}" role="status">
-              <h2 class="mel-vendor-analytics-v2__insight-title">{{ insight.title }}</h2>
-              <p class="mel-vendor-analytics-v2__insight-message">{{ insight.message }}</p>
-            </div>
-          {% endfor %}
-        </section>
+  {# ── Business Health ── #}
+  {% if business %}
+    <section class="mel-card mel-card--status mel-analytics-hub__health mel-analytics-hub__health--{{ business.tone|default('muted') }}" id="business-health" aria-labelledby="mel-analytics-business-heading">
+      <p class="mel-analytics-hub__eyebrow">{{ 'Business health'|t }}</p>
+      <h2 id="mel-analytics-business-heading" class="mel-analytics-hub__health-title">{{ business.headline }}</h2>
+      <p class="mel-analytics-hub__health-question">{{ business.question }}</p>
+      <p class="mel-analytics-hub__health-summary">{{ business.summary }}</p>
+      {% if business.trend_label %}
+        <p class="mel-analytics-hub__trend">{{ business.trend_label }}</p>
       {% endif %}
-
-      <section class="mel-vendor-analytics-v2__events" aria-labelledby="mel-vendor-analytics-events-heading">
-        <h2 id="mel-vendor-analytics-events-heading" class="mel-vendor-analytics-v2__section-title">{{ 'Event performance'|t }}</h2>
-
-        {% if model.events is defined and model.events is not empty %}
-          <ul class="mel-vendor-analytics-v2__event-list">
-            {% for row in model.events %}
-              <li class="mel-vendor-analytics-v2__event-card">
-                <div class="mel-vendor-analytics-v2__event-main">
-                  <h3 class="mel-vendor-analytics-v2__event-title">{{ row.title }}</h3>
-                  <p class="mel-vendor-analytics-v2__event-meta">
-                    <span class="mel-vendor-analytics-v2__badge">{{ row.status_label }}</span>
-                    {% if row.date_label %}
-                      <span class="mel-vendor-analytics-v2__event-date">{{ row.date_label }}</span>
-                    {% endif %}
-                  </p>
-                  <p class="mel-vendor-analytics-v2__event-type">{{ row.event_type_label }}</p>
-                  <dl class="mel-vendor-analytics-v2__metrics">
-                    {% if row.revenue_label %}
-                      <div class="mel-vendor-analytics-v2__metric">
-                        <dt>{{ 'Revenue'|t }}</dt>
-                        <dd>{{ row.revenue_label }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if row.tickets_label %}
-                      <div class="mel-vendor-analytics-v2__metric">
-                        <dt>{{ 'Tickets'|t }}</dt>
-                        <dd>{{ row.tickets_label }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if row.rsvp_label %}
-                      <div class="mel-vendor-analytics-v2__metric">
-                        <dt>{{ 'RSVPs'|t }}</dt>
-                        <dd>{{ row.rsvp_label }}</dd>
-                      </div>
-                    {% endif %}
-                    {% if row.conversion_label %}
-                      <div class="mel-vendor-analytics-v2__metric">
-                        <dt>{{ 'Conversion'|t }}</dt>
-                        <dd>{{ row.conversion_label }}</dd>
-                      </div>
-                    {% endif %}
-                  </dl>
-                </div>
-                <div class="mel-vendor-analytics-v2__event-actions">
-                  {% if row.analytics_url %}
-                    <a href="{{ row.analytics_url }}" class="mel-btn mel-btn-primary">{{ 'View event analytics'|t }}</a>
-                  {% endif %}
-                  {% if row.workspace_url %}
-                    <a href="{{ row.workspace_url }}" class="mel-btn mel-btn-secondary">{{ 'View workspace'|t }}</a>
-                  {% endif %}
-                </div>
-              </li>
-            {% endfor %}
-          </ul>
-        {% else %}
-          <div class="mel-vendor-analytics-v2__empty">
-            {% if mel_analytics_events_empty is defined and mel_analytics_events_empty %}
-              {{ mel_analytics_events_empty }}
-            {% endif %}
+      <div class="mel-analytics-hub__kpi-row" role="list">
+        {% for metric in business.metrics|default([]) %}
+          <div class="mel-analytics-hub__kpi" role="listitem">
+            <span class="mel-analytics-hub__kpi-label">{{ metric.label }}</span>
+            <span class="mel-analytics-hub__kpi-value" aria-label="{{ metric.label }} {{ metric.value }}">{{ metric.value }}</span>
           </div>
-        {% endif %}
-      </section>
-    </div>
-  </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ── Launch Readiness ── #}
+  {% if launch %}
+    <section class="mel-card mel-card--status mel-analytics-hub__launch mel-analytics-hub__launch--{{ launch.tone|default('muted') }}" id="launch-readiness" aria-labelledby="mel-analytics-launch-heading">
+      <p class="mel-analytics-hub__eyebrow">{{ 'Launch readiness'|t }}</p>
+      <h2 id="mel-analytics-launch-heading" class="mel-analytics-hub__health-title">{{ launch.headline }}</h2>
+      <p class="mel-analytics-hub__health-question">{{ launch.question }}</p>
+      <p class="mel-analytics-hub__health-summary">{{ launch.summary }}</p>
+      <ul class="mel-analytics-hub__readiness-list">
+        {% for item in launch.items|default([]) %}
+          <li class="mel-analytics-hub__readiness-item mel-analytics-hub__readiness-item--{{ item.tone|default('muted') }}">
+            <span class="mel-analytics-hub__status-dot" aria-hidden="true"></span>
+            <div class="mel-analytics-hub__readiness-copy">
+              <p class="mel-analytics-hub__readiness-label">
+                <span class="visually-hidden">{{ item.status_label }}: </span>{{ item.label }}
+              </p>
+              <p class="mel-analytics-hub__readiness-detail">{{ item.detail }}</p>
+            </div>
+            {% if item.url %}
+              <a class="mel-analytics-hub__readiness-link" href="{{ item.url }}">{{ 'Open'|t }}<span class="visually-hidden"> — {{ item.label }}</span></a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {# ── Next recommended action ── #}
+  {% if next %}
+    <section class="mel-card mel-analytics-hub__next mel-analytics-hub__next--{{ next.tone|default('success') }}" id="next-action" aria-labelledby="mel-analytics-next-heading">
+      <h2 id="mel-analytics-next-heading" class="mel-card__title">{{ next.title }}</h2>
+      <p>{{ next.body }}</p>
+      {% if next.cta_url and next.cta_label %}
+        <a class="mel-button mel-button--primary" href="{{ next.cta_url }}">{{ next.cta_label }}</a>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {# ── Pulse sections ── #}
+  {% if model.sections %}
+    <section class="mel-analytics-hub__sections" aria-label="{{ 'Analytics modules'|t }}">
+      <div class="mel-analytics-hub__section-grid">
+        {% for section in model.sections %}
+          <article class="mel-card mel-analytics-hub__section{% if section.pro_only and not is_pro %} mel-analytics-hub__section--pro{% endif %}" id="{{ section.key }}">
+            <h2 class="mel-card__title">{{ section.title }}</h2>
+            <p class="mel-analytics-hub__section-summary">{{ section.summary }}</p>
+            {% if section.pro_only and not is_pro %}
+              <p class="mel-analytics-hub__pro-teaser" role="status">{{ section.pro_teaser }}</p>
+              {% if upgrade_url %}
+                <a class="mel-button mel-button--secondary" href="{{ upgrade_url }}" data-mel-analytics-event="pro_upgrade_clicked">{{ 'See what’s included in Pro'|t }}</a>
+              {% endif %}
+            {% else %}
+              <dl class="mel-analytics-hub__section-metrics">
+                {% for metric in section.metrics|default([]) %}
+                  <div>
+                    <dt>{{ metric.label }}</dt>
+                    <dd>{{ metric.value }}</dd>
+                  </div>
+                {% endfor %}
+              </dl>
+              {% if section.cta_url and section.cta_label %}
+                <a class="mel-analytics-hub__link" href="{{ section.cta_url }}">{{ section.cta_label }}</a>
+              {% endif %}
+            {% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {# ── Top events (capped list from view model) ── #}
+  {% if business or launch or top_events %}
+    <section class="mel-analytics-hub__events" id="top-events" aria-labelledby="mel-analytics-events-heading">
+      <h2 id="mel-analytics-events-heading" class="mel-analytics-hub__section-title">{{ 'Top events'|t }}</h2>
+      {% if top_events %}
+        <ul class="mel-analytics-hub__event-list">
+          {% for row in top_events %}
+            <li class="mel-card mel-analytics-hub__event mel-analytics-hub__event--{{ row.health_tone|default('muted') }}">
+              <div class="mel-analytics-hub__event-main">
+                <h3 class="mel-analytics-hub__event-title">{{ row.title }}</h3>
+                <p class="mel-analytics-hub__event-meta">
+                  <span class="mel-analytics-hub__badge">{{ row.status_label }}</span>
+                  {% if row.date_label %}<span>{{ row.date_label }}</span>{% endif %}
+                  <span>{{ row.event_type_label }}</span>
+                </p>
+                <dl class="mel-analytics-hub__event-metrics">
+                  {% if row.revenue_label %}
+                    <div><dt>{{ 'Revenue'|t }}</dt><dd>{{ row.revenue_label }}</dd></div>
+                  {% endif %}
+                  {% if row.tickets_label %}
+                    <div><dt>{{ 'Tickets sold'|t }}</dt><dd>{{ row.tickets_label }}</dd></div>
+                  {% endif %}
+                  {% if row.capacity_label %}
+                    <div><dt>{{ 'Capacity'|t }}</dt><dd>{{ row.capacity_label }}</dd></div>
+                  {% endif %}
+                  {% if row.attendance_label %}
+                    <div><dt>{{ 'Attendance'|t }}</dt><dd>{{ row.attendance_label }}</dd></div>
+                  {% endif %}
+                  {% if row.checkins_label %}
+                    <div><dt>{{ 'Check-ins'|t }}</dt><dd>{{ row.checkins_label }}</dd></div>
+                  {% endif %}
+                  {% if row.refunds_label %}
+                    <div><dt>{{ 'Refunds'|t }}</dt><dd>{{ row.refunds_label }}</dd></div>
+                  {% endif %}
+                  {% if row.marketing_label %}
+                    <div><dt>{{ 'Marketing'|t }}</dt><dd>{{ row.marketing_label }}</dd></div>
+                  {% endif %}
+                </dl>
+              </div>
+              <div class="mel-analytics-hub__event-actions">
+                {% if row.analytics_url %}
+                  <a class="mel-button mel-button--primary" href="{{ row.analytics_url }}">{{ 'Event Analytics'|t }}</a>
+                {% endif %}
+                {% if is_pro and row.deep_analytics_url %}
+                  <a class="mel-button mel-button--secondary" href="{{ row.deep_analytics_url }}">{{ 'Deeper trends'|t }}</a>
+                {% elseif not is_pro and upgrade_url %}
+                  <a class="mel-button mel-button--ghost" href="{{ upgrade_url }}" data-mel-analytics-event="pro_upgrade_clicked">{{ 'Unlock deeper trends'|t }}</a>
+                {% endif %}
+                {% if row.workspace_url %}
+                  <a class="mel-analytics-hub__link" href="{{ row.workspace_url }}">{{ 'Open workspace'|t }}</a>
+                {% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="mel-analytics-hub__empty-inline" role="status">
+          {% if mel_analytics_events_empty is defined and mel_analytics_events_empty %}
+            {{ mel_analytics_events_empty }}
+          {% else %}
+            <p>{{ 'Event performance will appear here after you create an event.'|t }}</p>
+          {% endif %}
+        </div>
+      {% endif %}
+    </section>
+  {% endif %}
+
+  {# ── Recent activity ── #}
+  {% if model.recent_activity %}
+    <section class="mel-card mel-analytics-hub__activity" id="recent-activity" aria-labelledby="mel-analytics-activity-heading">
+      <h2 id="mel-analytics-activity-heading" class="mel-card__title">{{ 'Recent activity'|t }}</h2>
+      <ul class="mel-analytics-hub__activity-list">
+        {% for item in model.recent_activity %}
+          <li>
+            {% if item.url %}
+              <a href="{{ item.url }}">{{ item.title }}</a>
+            {% else %}
+              <span>{{ item.title }}</span>
+            {% endif %}
+            <span class="mel-analytics-hub__activity-meta">{{ item.meta }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+
+  {# ── Pro depth / Exports (organisers only — guest model has no business/launch) ── #}
+  {% if pro and (business or launch) %}
+    <section class="mel-card mel-analytics-hub__pro" id="exports" aria-labelledby="mel-analytics-pro-heading">
+      <h2 id="mel-analytics-pro-heading" class="mel-card__title">{{ pro.title }}</h2>
+      <p>{{ pro.body }}</p>
+      {% if pro.benefits %}
+        <ul class="mel-analytics-hub__pro-benefits">
+          {% for benefit in pro.benefits %}
+            <li>{{ benefit }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      <div class="mel-analytics-hub__pro-exports">
+        <h3 class="mel-analytics-hub__pro-exports-title">{{ pro.export_label }}</h3>
+        <p>{{ pro.export_body }}</p>
+      </div>
+      {% if upgrade_url %}
+        <a class="mel-button {{ is_pro ? 'mel-button--secondary' : 'mel-button--primary' }}" href="{{ upgrade_url }}" data-mel-analytics-event="pro_upgrade_clicked">{{ pro.cta_label }}</a>
+      {% endif %}
+    </section>
+  {% endif %}
+
 </div>

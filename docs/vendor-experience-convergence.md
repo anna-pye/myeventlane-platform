@@ -198,9 +198,9 @@ Repeat organiser
 | Field | Detail |
 | --- | --- |
 | **Goal** | Know if the event is working |
-| **Questions** | How many sold? Revenue? Refunds? What’s trending? |
-| **Pain points** | Analytics vs Insights vs Charts vs Studio Insights; Pro bare gates |
-| **Current** | `/vendor/analytics`, `/vendor/insights`, event analytics, Studio analytics, charts/exports |
+| **Questions** | How many sold? Revenue? Refunds? What’s trending? Can I run today? |
+| **Pain points** | Pro depth / Audience segments still partial; collector deferred |
+| **Current (2026-07-24)** | `/vendor/analytics` Event Intelligence Centre; Insights/Exports redirect; free pulse |
 | **Ideal** | One Analytics product: free business pulse + Pro depth |
 
 ### 10. Manage attendees

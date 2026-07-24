@@ -22,7 +22,7 @@ Priorities: **Critical** · **High** · **Medium** · **Low**
 
 | ID | Issue | Evidence | Product impact |
 | --- | --- | --- | --- |
-| D-H01 | Analytics still fragmented (Analytics / Insights / Charts) as product surfaces | Convergence MERGE inventory; VX2-08 open | “Where is reporting?” support |
+| D-H01 | Analytics Pro depth / Audience segments / Boost merge still partial after VX2-08 hub | Hub + redirects shipped; P3 depth open | Support may still ask for “full reports” |
 | D-H02 | Parallel interaction shells (modal/drawer/loading owners) | `mel-interaction-authority-audit.md` | Inconsistent focus/confirm behaviour |
 | D-H03 | Global Orders hub not shipped (event-scoped only) | Roadmap C-17; shell Orders disabled without context | Cross-event money findability |
 | D-H04 | Instrumentation pipelines deferred (hubs + attendees + tickets hooks) | VX2-04/05/06/07 notes | Cannot prove success metrics |
