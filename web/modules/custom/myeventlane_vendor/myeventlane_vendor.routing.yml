@@ -631,6 +631,14 @@ myeventlane_vendor.console.payments:
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
+myeventlane_vendor.console.messages:
+  path: '/vendor/messages'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_messages_hub:hub'
+    _title: 'Messages'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+
 myeventlane_vendor.console.payouts:
   path: '/vendor/payouts'
   defaults:
@@ -659,7 +667,7 @@ myeventlane_vendor.console.messaging_brand:
   path: '/vendor/dashboard/messaging/brand'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_dashboard_messaging_brand:brand'
-    _title: 'Messaging brand'
+    _title: 'Messages brand'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
