@@ -79,6 +79,7 @@ See `docs/implementation/vx2-06-messages-surface-inventory.md`.
 - Compose **Recent messages** status labels align with hub (Failed / Needs attention when `failed_count` or zero deliveries).
 - Global hub History/KPIs scope by managed event IDs only (not sender `vendor_uid`), so teammate sends on shared events appear.
 - Compose pre-selects message type from `?type=` deep links (do not rely on `getValue($key, $default)` for `#default_value`).
+- Legacy queue jobs without `audience` default to ticket holders (not Everyone), matching pre-VX2-06 delivery.
 
 ## Remaining roadmap
 

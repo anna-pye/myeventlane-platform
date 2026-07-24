@@ -69,7 +69,13 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
     $logId = isset($data['log_id']) ? (int) $data['log_id'] : NULL;
     $eventId = isset($data['event_id']) ? (int) $data['event_id'] : NULL;
     $messageType = $data['message_type'] ?? 'update';
-    $audience = (string) ($data['audience'] ?? 'everyone');
+    // Legacy queue items (before compose stored audience) only emailed ticket
+    // purchasers. Do not default missing audience to "everyone" — that would
+    // unexpectedly include RSVP guests for already-queued sends.
+    $rawAudience = is_array($data) && array_key_exists('audience', $data)
+      ? (string) $data['audience']
+      : '';
+    $audience = $rawAudience !== '' ? $rawAudience : 'ticket_holders';
     $subject = $data['subject'] ?? '';
     $body = $data['body'] ?? '';
 
@@ -150,9 +156,10 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
    */
   private function resolveRecipients($event, string $audience): array {
     return match ($audience) {
-      'ticket_holders' => $this->recipientResolver->getRecipientEmails($event),
+      'everyone' => $this->attendeeRecipientResolver->resolveEmails($event),
       'rsvp' => $this->attendeeRecipientResolver->resolveRsvpEmails($event),
-      default => $this->attendeeRecipientResolver->resolveEmails($event),
+      // ticket_holders and any unrecognised legacy value.
+      default => $this->recipientResolver->getRecipientEmails($event),
     };
   }
 
