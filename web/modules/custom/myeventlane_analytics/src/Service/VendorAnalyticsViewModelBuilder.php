@@ -204,8 +204,11 @@ final class VendorAnalyticsViewModelBuilder {
   private function buildKpis(int $uid): array {
     $strip = $this->metricsAggregator->getVendorKpis($uid);
     $revenueValue = (string) ($strip[2]['value'] ?? '$0.00');
-    $rsvpValue = (string) ($strip[1]['value'] ?? '0');
-    $ticketsValue = (string) ($strip[3]['value'] ?? '0');
+    $rsvpCount = (int) ($strip[1]['value'] ?? 0);
+    $ticketsSold = (int) ($strip[3]['value'] ?? 0);
+    $ticketsValue = (string) $ticketsSold;
+    // Attendance = ticket holders + confirmed RSVPs (same composition as event rows).
+    $attendanceValue = (string) ($ticketsSold + $rsvpCount);
 
     $publishedManaged = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, TRUE);
     $upcoming = $this->countUpcomingPublishedEvents($publishedManaged);
@@ -228,8 +231,8 @@ final class VendorAnalyticsViewModelBuilder {
       [
         'key' => 'attendance',
         'label' => (string) $this->t('Attendance'),
-        'value' => $rsvpValue,
-        'context' => (string) $this->t('Confirmed RSVPs across your events'),
+        'value' => $attendanceValue,
+        'context' => (string) $this->t('Ticket holders and confirmed RSVPs'),
         'severity' => 'neutral',
       ],
       [
@@ -301,12 +304,7 @@ final class VendorAnalyticsViewModelBuilder {
     $headline = (string) $this->t('Your business looks healthy');
     $summary = (string) $this->t('Sales and setup are on track. Keep an eye on upcoming events.');
 
-    if ($events === []) {
-      $tone = 'muted';
-      $headline = (string) $this->t('Ready when you are');
-      $summary = (string) $this->t('Create an event to start seeing sales, attendance, and health here.');
-    }
-    elseif ($attentionItems !== []) {
+    if ($attentionItems !== []) {
       $tone = 'attention';
       $headline = (string) $this->t('A few things need attention');
       $summary = (string) $this->t('Fix the items below so you can run your next event with confidence.');
@@ -319,6 +317,11 @@ final class VendorAnalyticsViewModelBuilder {
         '1 refund is waiting for your review.',
         '@count refunds are waiting for your review.',
       );
+    }
+    elseif ($events === []) {
+      $tone = 'muted';
+      $headline = (string) $this->t('Ready when you are');
+      $summary = (string) $this->t('Create an event to start seeing sales, attendance, and health here.');
     }
 
     $trend = (string) $this->t('Snapshot of your organiser account right now');
@@ -580,7 +583,7 @@ final class VendorAnalyticsViewModelBuilder {
             'label' => (string) $this->t('Events selling'),
             'value' => (string) count(array_filter(
               $events,
-              static fn(array $e): bool => ((int) ($e['_sort_tickets'] ?? 0)) > 0,
+              static fn(array $e): bool => ((int) ($e['tickets_sold_raw'] ?? 0)) > 0,
             )),
           ],
         ],
@@ -999,6 +1002,20 @@ final class VendorAnalyticsViewModelBuilder {
       ? (string) $this->t('@count RSVPs', ['@count' => $rsvpCount])
       : NULL;
 
+    $attendanceTotal = $rsvpCount + $ticketsSold;
+    $attendanceLabel = NULL;
+    if ($attendanceTotal > 0) {
+      if ($ticketsSold > 0 && $rsvpCount > 0) {
+        $attendanceLabel = (string) $this->t('@count guests', ['@count' => $attendanceTotal]);
+      }
+      elseif ($ticketsSold > 0) {
+        $attendanceLabel = (string) $this->t('@count ticket holders', ['@count' => $ticketsSold]);
+      }
+      else {
+        $attendanceLabel = $rsvpLabel;
+      }
+    }
+
     $healthTone = 'success';
     if ($statusKey === 'draft') {
       $healthTone = 'attention';
@@ -1022,10 +1039,11 @@ final class VendorAnalyticsViewModelBuilder {
       'event_type_label' => $eventTypeLabel,
       'revenue_label' => $revenueLabel ? (string) $revenueLabel : NULL,
       'tickets_label' => $ticketsLabel,
+      'tickets_sold_raw' => $ticketsSold,
       'capacity_label' => $capacity > 0 ? (string) $this->t('@count capacity', ['@count' => $capacity]) : NULL,
       'capacity_raw' => $capacity,
-      'attendance_label' => $rsvpLabel,
-      'attendance_raw' => $rsvpCount + $ticketsSold,
+      'attendance_label' => $attendanceLabel,
+      'attendance_raw' => $attendanceTotal,
       'checkins_label' => NULL,
       'checkins_raw' => 0,
       'refunds_label' => $refundLabel,
