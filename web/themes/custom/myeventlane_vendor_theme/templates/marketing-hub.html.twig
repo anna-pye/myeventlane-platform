@@ -52,10 +52,19 @@
       <p class="mel-marketing-hub__muted"><strong>{{ 'Next step'|t }}:</strong> {{ health.next_step }}</p>
     {% endif %}
     <div class="mel-marketing-hub__actions">
-      {% if health.cta_url %}
+      {% if health.cta_action|default('link') == 'copy' and health.cta_copy_url %}
+        <button type="button"
+          class="mel-button mel-button--primary mel-marketing-hub__share-btn"
+          data-mel-share-copy
+          data-copy-url="{{ health.cta_copy_url }}"
+          {% if health.cta_analytics %}data-mel-analytics-event="{{ health.cta_analytics }}"{% endif %}>
+          {{ health.cta_label }}
+        </button>
+      {% elseif health.cta_url %}
         <a class="mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
       {% endif %}
     </div>
+    <p class="mel-marketing-hub__copy-status" data-mel-copy-status role="status" aria-live="polite"></p>
   </section>
 
   <section class="mel-card mel-marketing-hub__section" id="share" aria-labelledby="mel-marketing-share-heading">
@@ -287,12 +296,21 @@
             <p class="mel-marketing-hub__action-title">{{ item.title }}</p>
             <p class="mel-marketing-hub__muted">{{ item.body }}</p>
           </div>
-          {% if item.cta_url %}
+          {% if item.cta_action|default('link') == 'copy' and item.cta_copy_url %}
+            <button type="button"
+              class="mel-button mel-button--secondary mel-marketing-hub__share-btn"
+              data-mel-share-copy
+              data-copy-url="{{ item.cta_copy_url }}"
+              {% if item.analytics %}data-mel-analytics-event="{{ item.analytics }}"{% endif %}>
+              {{ item.cta_label }}
+            </button>
+          {% elseif item.cta_url %}
             <a class="mel-button mel-button--secondary" href="{{ item.cta_url }}"{% if item.analytics %} data-mel-analytics-event="{{ item.analytics }}"{% endif %}>{{ item.cta_label }}</a>
           {% endif %}
         </li>
       {% endfor %}
     </ul>
+    <p class="mel-marketing-hub__copy-status" data-mel-copy-status role="status" aria-live="polite"></p>
   </section>
 
 </div>

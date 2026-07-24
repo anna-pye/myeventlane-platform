@@ -462,6 +462,10 @@ final class VendorMarketingHubBuilder {
     $needsAttention = $publishedCount === 0 || $primaryShare === NULL;
     $tone = $needsAttention ? 'attention' : ($score >= 75 ? 'success' : 'muted');
 
+    $ctaAction = 'link';
+    $ctaCopyUrl = NULL;
+    $ctaAnalytics = NULL;
+
     if ($publishedCount === 0) {
       $headline = (string) $this->t('Publish an event to grow your reach');
       $summary = (string) $this->t('Marketing tools unlock once your event is live for the public.');
@@ -469,12 +473,15 @@ final class VendorMarketingHubBuilder {
       $ctaLabel = (string) $this->t('Go to events');
       $ctaUrl = $this->safeRouteUrl('myeventlane_vendor.console.events') ?? '/vendor/events';
     }
-    elseif ($activeBoosts > 0) {
+    elseif ($activeBoosts > 0 && is_array($primaryShare) && !empty($primaryShare['public_url'])) {
       $headline = (string) $this->t('Your events are getting visibility');
       $summary = (string) $this->t('You have live pages to share and Boost campaigns running.');
       $next = (string) $this->t('Share your link with local communities while Boost is active.');
       $ctaLabel = (string) $this->t('Copy public link');
-      $ctaUrl = $primaryShare['public_url'] ?? '#share';
+      $ctaUrl = NULL;
+      $ctaAction = 'copy';
+      $ctaCopyUrl = (string) $primaryShare['public_url'];
+      $ctaAnalytics = 'share_link_copied';
     }
     elseif ($boostEligible > 0) {
       $headline = (string) $this->t('Ready to reach more people');
@@ -503,6 +510,9 @@ final class VendorMarketingHubBuilder {
       'score_label' => (string) $this->t('Marketing score'),
       'cta_label' => $ctaLabel,
       'cta_url' => $ctaUrl,
+      'cta_action' => $ctaAction,
+      'cta_copy_url' => $ctaCopyUrl,
+      'cta_analytics' => $ctaAnalytics,
       'facts' => [
         [
           'label' => (string) $this->t('Public status'),
@@ -558,12 +568,13 @@ final class VendorMarketingHubBuilder {
       return $items;
     }
 
-    if ($primaryShare !== NULL) {
+    if ($primaryShare !== NULL && !empty($primaryShare['public_url'])) {
       $items[] = [
         'title' => (string) $this->t('Share your public link'),
         'body' => (string) $this->t('Send it to friends, local groups, and your email list.'),
         'cta_label' => (string) $this->t('Copy link'),
-        'cta_url' => '#share',
+        'cta_action' => 'copy',
+        'cta_copy_url' => (string) $primaryShare['public_url'],
         'analytics' => 'share_link_copied',
       ];
     }

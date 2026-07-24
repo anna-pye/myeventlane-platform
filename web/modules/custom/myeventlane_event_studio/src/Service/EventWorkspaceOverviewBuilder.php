@@ -462,8 +462,7 @@ final class EventWorkspaceOverviewBuilder {
 
     $url = !$event->isPublished()
       ? $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid])
-      : ($this->safeUrl('myeventlane_boost.vendor_event_boost', ['event' => $nid])
-        ?? $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]));
+      : $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]);
 
     return [
       'title' => (string) $this->t('Marketing'),

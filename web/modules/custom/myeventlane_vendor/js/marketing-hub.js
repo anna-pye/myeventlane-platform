@@ -40,13 +40,34 @@
     });
   }
 
+  /**
+   * Finds the nearest copy-status live region for feedback.
+   *
+   * @param {Element} button
+   * @return {Element|null}
+   */
+  function findStatus(button) {
+    const card = button.closest('[data-mel-share-card]');
+    if (card) {
+      return card.querySelector('[data-mel-copy-status]');
+    }
+    const section = button.closest('section');
+    if (section) {
+      const local = section.querySelector('[data-mel-copy-status]');
+      if (local) {
+        return local;
+      }
+    }
+    const hub = button.closest('[data-mel-marketing-hub]');
+    return hub ? hub.querySelector('[data-mel-copy-status]') : null;
+  }
+
   Drupal.behaviors.melMarketingHub = {
     attach(context) {
       once('mel-marketing-hub-copy', '[data-mel-share-copy]', context).forEach(function (button) {
         button.addEventListener('click', function () {
           const url = button.getAttribute('data-copy-url') || '';
-          const card = button.closest('[data-mel-share-card]');
-          const status = card ? card.querySelector('[data-mel-copy-status]') : null;
+          const status = findStatus(button);
           if (!url) {
             if (status) {
               status.textContent = Drupal.t('Nothing to copy yet.');
