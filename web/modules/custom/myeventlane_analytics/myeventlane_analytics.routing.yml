@@ -10,7 +10,7 @@ myeventlane_analytics.admin_revenue:
   options:
     _admin_route: true
 
-# Analytics dashboard.
+# Analytics hub — Event Intelligence Centre (free pulse; Pro depth in UI).
 myeventlane_analytics.dashboard:
   path: '/vendor/analytics'
   defaults:
@@ -18,7 +18,6 @@ myeventlane_analytics.dashboard:
     _title: 'Analytics'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
-    _myeventlane_pro_access: 'TRUE'
 
 # Per-event analytics.
 myeventlane_analytics.event:

@@ -112,6 +112,7 @@
   @include meta.load-css('pages/vendor-console-stack');
   @include meta.load-css('pages/payments-hub');
   @include meta.load-css('pages/messages-hub');
+  @include meta.load-css('pages/analytics-hub');
 }
 
 // Klaro renders at document root (#klaro), outside .mel-vendor — reuse public theme styles.

@@ -278,6 +278,10 @@ function myeventlane_pro_preprocess_myeventlane_analytics_dashboard(array &$vari
   $variables['is_pro'] = $isPro;
   $variables['pro_upgrade_url'] = myeventlane_pro_get_overview_url();
   $variables['#attached']['library'][] = 'myeventlane_pro/pro';
+  // Free organisers always see the hub; Pro depth is explained in-product.
+  if (!$isPro) {
+    $variables['pro_gate_message'] = t('Analytics depth is included in Pro. See what’s included →');
+  }
 }
 
 /**

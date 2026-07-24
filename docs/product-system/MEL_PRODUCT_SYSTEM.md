@@ -102,10 +102,10 @@ Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Hom
 
 | What already feels excellent | What still feels inconsistent | What still feels like Drupal | What still feels unfinished |
 | --- | --- | --- | --- |
-| Event Workspace Home composition | Overview/Home naming | Shared Schedule/Venue forms | Analytics product merge (Insights) |
+| Event Workspace Home composition | Overview/Home naming | Shared Schedule/Venue forms | Analytics Pro depth / Audience segments |
 | Layout container intents | Card header treatments | Studio CSS width islands | Global Orders hub |
 | Tickets card + Advanced collapse | Messages/Marketing scan scores (8.4) | Residual Settings payment strings | Instrumentation pipelines |
-| Payments health framing | Interaction shells (modal/drawer owners) | Legacy path grammar | Onboarding celebration depth |
+| Payments + Analytics health framing | Interaction shells (modal/drawer owners) | Legacy path grammar | Onboarding celebration depth |
 | Language purge on critical paths | Empty-state governance coverage gaps | Drupal Form API dialogs in places | C-01/C-02 permission drift follow-up |
 
 ---

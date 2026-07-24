@@ -92,6 +92,13 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
         '#analytics_model' => $analyticsModel,
         '#summary_stats' => [],
         '#event_analytics' => [],
+        '#attached' => [
+          'drupalSettings' => [
+            'melAnalyticsHub' => [
+              'analytics' => $analyticsModel['analytics'] ?? [],
+            ],
+          ],
+        ],
       ],
       '#attached' => [
         'library' => [
@@ -100,9 +107,10 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
         ],
       ],
       '#cache' => [
-        'contexts' => ['user'],
+        'contexts' => ['user', 'user.permissions'],
         'tags' => $cacheTags,
-        'max-age' => 300,
+        // Hub mixes live refunds + Stripe health flags — keep short-lived.
+        'max-age' => 60,
       ],
     ]);
   }
@@ -270,7 +278,13 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
   /**
    * Builds a URL string when the route exists; no access check.
    *
+   * @param string $routeName
+   *   Route name.
    * @param array<string, mixed> $parameters
+   *   Route parameters.
+   *
+   * @return string|null
+   *   URL string or NULL.
    */
   private function safeUrlString(string $routeName, array $parameters): ?string {
     try {
@@ -284,7 +298,13 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
   /**
    * Export/download URL only when the current user may run the route.
    *
+   * @param string $routeName
+   *   Route name.
    * @param array<string, mixed> $parameters
+   *   Route parameters.
+   *
+   * @return string|null
+   *   URL string or NULL.
    */
   private function safeExportUrl(string $routeName, array $parameters): ?string {
     try {

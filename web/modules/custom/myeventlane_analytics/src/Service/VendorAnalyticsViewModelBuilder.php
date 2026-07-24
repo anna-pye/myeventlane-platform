@@ -16,26 +16,31 @@ use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\Utility\UpcomingEventEntityQueryHelper;
+use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\MetricsAggregator;
 use Drupal\myeventlane_vendor\Service\RsvpStatsService;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
-use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Drupal\myeventlane_vendor\Service\VendorPaymentsHealthService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
- * Vendor-wide analytics view model for `/vendor/analytics`.
+ * Organiser Analytics hub view model (Event Intelligence Centre).
  *
- * Orchestrates existing vendor metrics services only (same semantics as TASK 3
- * dashboard: MetricsAggregator → TicketSalesService / RsvpStatsService). Does
- * not duplicate commerce/order queries or Phase 7 analytics SQL.
+ * Orchestrates existing vendor metrics only. Does not invent telemetry or
+ * duplicate Commerce SQL. Free pulse is always available; Pro depth is
+ * value-gated in the UI (never a bare 403 on the hub route).
  */
 final class VendorAnalyticsViewModelBuilder {
 
   use StringTranslationTrait;
 
   private const MAX_EVENTS = 100;
+
+  private const DETAIL_ENRICH_LIMIT = 12;
 
   public function __construct(
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
@@ -51,21 +56,25 @@ final class VendorAnalyticsViewModelBuilder {
     TranslationInterface $string_translation,
     private readonly MelReadinessHelper $readinessHelper,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly VendorPaymentsHealthService $paymentsHealth,
+    private readonly CurrentVendorResolverInterface $vendorResolver,
+    private readonly ?object $vendorProState = NULL,
+    private readonly ?object $refundsRepository = NULL,
+    private readonly ?object $refundsMetrics = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
 
   /**
-   * Builds the vendor analytics dashboard model.
+   * Builds the Analytics hub model.
    *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Current organiser account.
    * @param array<string, mixed> $filters
-   *   Reserved for future use (e.g. date range keys). Vendor KPI services used
-   *   here are not date-window aware; filters are ignored until those services
-   *   support ranges.
+   *   Reserved for future date-range filters.
    *
    * @return array<string, mixed>
-   *   TASK 9 contract: title, subtitle, date_range, kpis, events, insights,
-   *   empty_state.
+   *   Hub contract for Twig.
    */
   public function build(AccountInterface $account, array $filters = []): array {
     unset($filters);
@@ -74,8 +83,12 @@ final class VendorAnalyticsViewModelBuilder {
       return $this->emptyGuestModel();
     }
 
+    $isPro = $this->vendorProState !== NULL && method_exists($this->vendorProState, 'isPro')
+      ? (bool) $this->vendorProState->isPro()
+      : FALSE;
+
     try {
-      $kpis = $this->buildKpis($uid, $account);
+      $kpis = $this->buildKpis($uid);
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_analytics')->warning('Vendor analytics KPI build failed for uid @uid: @message', [
@@ -96,33 +109,70 @@ final class VendorAnalyticsViewModelBuilder {
       $events = [];
     }
 
+    $refundPending = $this->countPendingRefunds();
+    $paymentHealth = $this->paymentsHealth->buildForCurrentUser();
+    $launchReadiness = $this->buildLaunchReadiness($events, $paymentHealth, $refundPending);
+    $businessHealth = $this->buildBusinessHealth($kpis, $events, $refundPending, $launchReadiness);
+    $nextAction = $this->buildNextAction($launchReadiness, $businessHealth, $events, $account);
+    $sections = $this->buildSections($kpis, $events, $refundPending, $isPro);
+    $recentActivity = $this->buildRecentActivity($events);
+    $pro = $this->buildProDepth($isPro, $account);
+
+    $this->loggerFactory->get('myeventlane_analytics')->info('analytics_viewed uid=@uid is_pro=@pro events=@count', [
+      '@uid' => (string) $uid,
+      '@pro' => $isPro ? '1' : '0',
+      '@count' => (string) count($events),
+    ]);
+
     return [
       'title' => (string) $this->t('Analytics'),
-      'subtitle' => (string) $this->t('Understand event performance across your organiser account.'),
+      'subtitle' => (string) $this->t('Your Event Intelligence Centre — how your events are performing, and what to do next.'),
+      'eyebrow' => (string) $this->t('Event Intelligence Centre'),
       'date_range' => [
         'active' => 'all',
         'items' => [],
       ],
+      'is_pro' => $isPro,
+      'business_health' => $businessHealth,
+      'launch_readiness' => $launchReadiness,
       'kpis' => $kpis,
+      'sections' => $sections,
       'events' => $events,
+      'top_events' => array_slice($events, 0, 5),
+      'recent_activity' => $recentActivity,
+      'next_action' => $nextAction,
+      'pro' => $pro,
       'insights' => [],
       'empty_state' => $this->buildEmptyState($account, $events === []),
+      'analytics' => [
+        'analytics_viewed' => TRUE,
+        'is_pro' => $isPro,
+      ],
     ];
   }
 
   /**
+   * Builds an empty model for anonymous visitors.
+   *
    * @return array<string, mixed>
+   *   Guest hub payload.
    */
   private function emptyGuestModel(): array {
     return [
       'title' => (string) $this->t('Analytics'),
-      'subtitle' => (string) $this->t('Understand event performance across your organiser account.'),
-      'date_range' => [
-        'active' => 'all',
-        'items' => [],
-      ],
+      'subtitle' => (string) $this->t('Sign in to see how your events are performing.'),
+      'eyebrow' => (string) $this->t('Event Intelligence Centre'),
+      'date_range' => ['active' => 'all', 'items' => []],
+      'is_pro' => FALSE,
+      'business_health' => NULL,
+      'launch_readiness' => NULL,
       'kpis' => [],
+      'sections' => [],
       'events' => [],
+      'top_events' => [],
+      'recent_activity' => [],
+      'next_action' => NULL,
+      'pro' => $this->buildProDepth(FALSE, NULL),
       'insights' => [],
       'empty_state' => [
         'title' => $this->readinessHelper->vendorOrganiserPortalSignInTitle(),
@@ -130,13 +180,20 @@ final class VendorAnalyticsViewModelBuilder {
         'action_label' => NULL,
         'url' => NULL,
       ],
+      'analytics' => ['analytics_viewed' => FALSE],
     ];
   }
 
   /**
+   * Builds the KPI strip for the hub.
+   *
+   * @param int $uid
+   *   Organiser user ID.
+   *
    * @return list<array<string, mixed>>
+   *   KPI cards.
    */
-  private function buildKpis(int $uid, AccountInterface $account): array {
+  private function buildKpis(int $uid): array {
     $strip = $this->metricsAggregator->getVendorKpis($uid);
     $revenueValue = (string) ($strip[2]['value'] ?? '$0.00');
     $rsvpValue = (string) ($strip[1]['value'] ?? '0');
@@ -145,29 +202,26 @@ final class VendorAnalyticsViewModelBuilder {
     $publishedManaged = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, TRUE);
     $upcoming = $this->countUpcomingPublishedEvents($publishedManaged);
 
-    $contextManaged = (string) $this->t('Published events you manage · completed ticket orders');
-    $contextNetRevenue = (string) $this->t('Net ticket revenue after refunds · completed orders only');
-
     return [
       [
         'key' => 'revenue',
         'label' => (string) $this->t('Revenue'),
         'value' => $revenueValue,
-        'context' => $contextNetRevenue,
+        'context' => (string) $this->t('Ticket sales after refunds'),
         'severity' => 'neutral',
       ],
       [
         'key' => 'tickets_sold',
         'label' => (string) $this->t('Tickets sold'),
         'value' => $ticketsValue,
-        'context' => $contextManaged,
+        'context' => (string) $this->t('Completed ticket orders'),
         'severity' => 'neutral',
       ],
       [
-        'key' => 'rsvps',
-        'label' => (string) $this->t('RSVPs'),
+        'key' => 'attendance',
+        'label' => (string) $this->t('Attendance'),
         'value' => $rsvpValue,
-        'context' => (string) $this->t('Confirmed RSVPs on published events you manage'),
+        'context' => (string) $this->t('Confirmed RSVPs across your events'),
         'severity' => 'neutral',
       ],
       [
@@ -181,44 +235,502 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
+   * Returns unavailable KPI placeholders after a load failure.
+   *
    * @return list<array<string, mixed>>
+   *   Fallback KPI cards.
    */
   private function fallbackKpis(): array {
     $na = (string) $this->t('Not available yet');
-    return [
-      [
-        'key' => 'revenue',
-        'label' => (string) $this->t('Revenue'),
+    $keys = [
+      'revenue' => (string) $this->t('Revenue'),
+      'tickets_sold' => (string) $this->t('Tickets sold'),
+      'attendance' => (string) $this->t('Attendance'),
+      'upcoming_events' => (string) $this->t('Upcoming events'),
+    ];
+    $out = [];
+    foreach ($keys as $key => $label) {
+      $out[] = [
+        'key' => $key,
+        'label' => $label,
         'value' => $na,
         'context' => (string) $this->t('Metrics could not be loaded. Try again shortly.'),
         'severity' => 'neutral',
-      ],
-      [
-        'key' => 'tickets_sold',
-        'label' => (string) $this->t('Tickets sold'),
-        'value' => $na,
-        'context' => NULL,
-        'severity' => 'neutral',
-      ],
-      [
-        'key' => 'rsvps',
-        'label' => (string) $this->t('RSVPs'),
-        'value' => $na,
-        'context' => NULL,
-        'severity' => 'neutral',
-      ],
-      [
-        'key' => 'upcoming_events',
-        'label' => (string) $this->t('Upcoming events'),
-        'value' => $na,
-        'context' => NULL,
-        'severity' => 'neutral',
+      ];
+    }
+    return $out;
+  }
+
+  /**
+   * Builds the Business Health hero card.
+   *
+   * @param list<array<string, mixed>> $kpis
+   *   KPI strip.
+   * @param list<array<string, mixed>> $events
+   *   Event intelligence rows.
+   * @param int $refundPending
+   *   Pending refund count.
+   * @param array<string, mixed> $launchReadiness
+   *   Launch readiness payload.
+   *
+   * @return array<string, mixed>
+   *   Business health card.
+   */
+  private function buildBusinessHealth(array $kpis, array $events, int $refundPending, array $launchReadiness): array {
+    $byKey = [];
+    foreach ($kpis as $kpi) {
+      $byKey[(string) ($kpi['key'] ?? '')] = $kpi;
+    }
+
+    $attentionItems = [];
+    foreach ($launchReadiness['items'] ?? [] as $item) {
+      if (($item['tone'] ?? '') === 'attention' || ($item['tone'] ?? '') === 'warning') {
+        $attentionItems[] = $item['label'] ?? '';
+      }
+    }
+
+    $tone = 'success';
+    $headline = (string) $this->t('Your business looks healthy');
+    $summary = (string) $this->t('Sales and setup are on track. Keep an eye on upcoming events.');
+
+    if ($events === []) {
+      $tone = 'muted';
+      $headline = (string) $this->t('Ready when you are');
+      $summary = (string) $this->t('Create an event to start seeing sales, attendance, and health here.');
+    }
+    elseif ($attentionItems !== []) {
+      $tone = 'attention';
+      $headline = (string) $this->t('A few things need attention');
+      $summary = (string) $this->t('Fix the items below so you can run your next event with confidence.');
+    }
+    elseif ($refundPending > 0) {
+      $tone = 'attention';
+      $headline = (string) $this->t('Refunds need a quick look');
+      $summary = (string) $this->formatPlural(
+        $refundPending,
+        '1 refund is waiting for your review.',
+        '@count refunds are waiting for your review.',
+      );
+    }
+
+    $trend = (string) $this->t('Snapshot of your organiser account right now');
+
+    return [
+      'tone' => $tone,
+      'question' => (string) $this->t('How is my business performing?'),
+      'headline' => $headline,
+      'summary' => $summary,
+      'trend_label' => $trend,
+      'metrics' => [
+        [
+          'label' => (string) $this->t('Revenue'),
+          'value' => (string) ($byKey['revenue']['value'] ?? '$0.00'),
+        ],
+        [
+          'label' => (string) $this->t('Tickets sold'),
+          'value' => (string) ($byKey['tickets_sold']['value'] ?? '0'),
+        ],
+        [
+          'label' => (string) $this->t('Attendance'),
+          'value' => (string) ($byKey['attendance']['value'] ?? '0'),
+        ],
+        [
+          'label' => (string) $this->t('Upcoming events'),
+          'value' => (string) ($byKey['upcoming_events']['value'] ?? '0'),
+        ],
+        [
+          'label' => (string) $this->t('Refunds to review'),
+          'value' => (string) $refundPending,
+        ],
       ],
     ];
   }
 
   /**
+   * Builds the Launch Readiness operational checklist.
+   *
+   * @param list<array<string, mixed>> $events
+   *   Event intelligence rows.
+   * @param array<string, mixed> $paymentHealth
+   *   Payments health payload.
+   * @param int $refundPending
+   *   Pending refund count.
+   *
+   * @return array<string, mixed>
+   *   Launch readiness card.
+   */
+  private function buildLaunchReadiness(array $events, array $paymentHealth, int $refundPending): array {
+    $ticketsConfigured = FALSE;
+    $doorReady = FALSE;
+    $publishingIssues = 0;
+
+    foreach ($events as $row) {
+      $type = (string) ($row['event_type_key'] ?? 'unknown');
+      if (in_array($type, ['paid', 'rsvp', 'both'], TRUE)) {
+        $ticketsConfigured = TRUE;
+        $doorReady = TRUE;
+      }
+      if (($row['status_key'] ?? '') === 'draft') {
+        $publishingIssues++;
+      }
+    }
+
+    $stripeReady = !empty($paymentHealth['connected']) && empty($paymentHealth['needs_attention']);
+    $stripeTone = $stripeReady ? 'success' : (!empty($paymentHealth['needs_attention']) ? 'attention' : 'muted');
+    $messagesReady = $this->isMessagesBrandConfigured();
+
+    $items = [
+      [
+        'key' => 'tickets',
+        'label' => (string) $this->t('Tickets configured'),
+        'detail' => $ticketsConfigured
+          ? (string) $this->t('At least one event has tickets or RSVP set up.')
+          : (string) $this->t('Add tickets or RSVP so people can register.'),
+        'tone' => $ticketsConfigured ? 'success' : 'attention',
+        'status_label' => $ticketsConfigured ? (string) $this->t('Ready') : (string) $this->t('Needs attention'),
+        'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
+      ],
+      [
+        'key' => 'stripe',
+        'label' => (string) $this->t('Stripe connected'),
+        'detail' => (string) ($paymentHealth['summary'] ?? $this->t('Connect Stripe to get paid for ticket sales.')),
+        'tone' => $stripeTone,
+        'status_label' => $stripeReady
+          ? (string) $this->t('Ready')
+          : (string) ($paymentHealth['verification_status'] ?? $this->t('Needs attention')),
+        'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.payments')?->toString(),
+      ],
+      [
+        'key' => 'messages',
+        'label' => (string) $this->t('Messages ready'),
+        'detail' => $messagesReady
+          ? (string) $this->t('Your sender name is set for attendee updates.')
+          : (string) $this->t('Set your Messages brand so guests know who is writing.'),
+        'tone' => $messagesReady ? 'success' : 'attention',
+        'status_label' => $messagesReady ? (string) $this->t('Ready') : (string) $this->t('Needs attention'),
+        'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.messages')?->toString(),
+      ],
+      [
+        'key' => 'door',
+        'label' => (string) $this->t('Door Mode ready'),
+        'detail' => $doorReady
+          ? (string) $this->t('You can check guests in from Attendees → Door Mode.')
+          : (string) $this->t('Set up tickets or RSVP first, then Door Mode unlocks.'),
+        'tone' => $doorReady ? 'success' : 'muted',
+        'status_label' => $doorReady ? (string) $this->t('Ready') : (string) $this->t('Not yet'),
+        'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
+      ],
+      [
+        'key' => 'refunds',
+        'label' => $refundPending > 0
+          ? (string) $this->formatPlural($refundPending, '@count refund awaiting review', '@count refunds awaiting review')
+          : (string) $this->t('No refunds awaiting review'),
+        'detail' => $refundPending > 0
+          ? (string) $this->t('Review refund requests so guests are not left waiting.')
+          : (string) $this->t('Nothing in the refund queue right now.'),
+        'tone' => $refundPending > 0 ? 'attention' : 'success',
+        'status_label' => $refundPending > 0 ? (string) $this->t('Needs attention') : (string) $this->t('Ready'),
+        'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.payments', [], ['fragment' => 'refunds'])?->toString()
+        ?? $this->safeUrlFromRoute('myeventlane_vendor.console.payments')?->toString(),
+      ],
+      [
+        'key' => 'publishing',
+        'label' => $publishingIssues > 0
+          ? (string) $this->formatPlural($publishingIssues, '@count draft needs publishing review', '@count drafts need publishing review')
+          : (string) $this->t('No publishing issues'),
+        'detail' => $publishingIssues > 0
+          ? (string) $this->t('Finish and publish drafts when you are ready to go live.')
+          : (string) $this->t('No draft events are waiting on you.'),
+        'tone' => $publishingIssues > 0 ? 'attention' : 'success',
+        'status_label' => $publishingIssues > 0 ? (string) $this->t('Needs attention') : (string) $this->t('Ready'),
+        'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
+      ],
+    ];
+
+    $attentionCount = count(array_filter($items, static fn(array $i): bool => ($i['tone'] ?? '') === 'attention'));
+    $tone = $attentionCount > 0 ? 'attention' : ($events === [] ? 'muted' : 'success');
+    $headline = match ($tone) {
+      'attention' => (string) $this->t('Can I successfully run my next event today?'),
+      'muted' => (string) $this->t('Can I successfully run an event today?'),
+      default => (string) $this->t('Yes — you are set up to run events today'),
+    };
+    $summary = match ($tone) {
+      'attention' => (string) $this->t('A few operational checks still need a quick fix.'),
+      'muted' => (string) $this->t('Create your first event to unlock this checklist.'),
+      default => (string) $this->t('Tickets, payments, messages, and door ops look ready.'),
+    };
+
+    return [
+      'tone' => $tone,
+      'question' => (string) $this->t('Can I successfully run this event today?'),
+      'headline' => $headline,
+      'summary' => $summary,
+      'items' => $items,
+      'attention_count' => $attentionCount,
+    ];
+  }
+
+  /**
+   * Builds the next recommended action card.
+   *
+   * @param array<string, mixed> $launchReadiness
+   *   Launch readiness payload.
+   * @param array<string, mixed> $businessHealth
+   *   Business health payload.
+   * @param list<array<string, mixed>> $events
+   *   Event intelligence rows.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Current organiser account.
+   *
+   * @return array<string, mixed>|null
+   *   Next action card or NULL.
+   */
+  private function buildNextAction(array $launchReadiness, array $businessHealth, array $events, AccountInterface $account): ?array {
+    foreach ($launchReadiness['items'] ?? [] as $item) {
+      if (($item['tone'] ?? '') === 'attention' && !empty($item['url'])) {
+        return [
+          'title' => (string) $this->t('Next recommended action'),
+          'body' => (string) ($item['detail'] ?? $item['label']),
+          'cta_label' => (string) ($item['label'] ?? $this->t('Fix this')),
+          'cta_url' => (string) $item['url'],
+          'tone' => 'attention',
+        ];
+      }
+    }
+
+    if ($events === []) {
+      $url = $this->urlIfAccessible($account, 'myeventlane_vendor.create_event_gateway', []);
+      return [
+        'title' => (string) $this->t('Next recommended action'),
+        'body' => (string) $this->t('Create your first event to start gathering sales and attendance insights.'),
+        'cta_label' => (string) $this->t('Create event'),
+        'cta_url' => $url?->toString(),
+        'tone' => 'muted',
+      ];
+    }
+
+    $top = $events[0] ?? NULL;
+    if (is_array($top) && !empty($top['analytics_url'])) {
+      return [
+        'title' => (string) $this->t('Next recommended action'),
+        'body' => (string) $this->t('Review @title — your strongest event right now.', [
+          '@title' => (string) ($top['title'] ?? $this->t('your top event')),
+        ]),
+        'cta_label' => (string) $this->t('Open event analytics'),
+        'cta_url' => (string) $top['analytics_url'],
+        'tone' => 'success',
+      ];
+    }
+
+    return [
+      'title' => (string) $this->t('Next recommended action'),
+      'body' => (string) ($businessHealth['summary'] ?? $this->t('Keep an eye on sales as your next event approaches.')),
+      'cta_label' => NULL,
+      'cta_url' => NULL,
+      'tone' => (string) ($businessHealth['tone'] ?? 'success'),
+    ];
+  }
+
+  /**
+   * Builds Sales / Attendance / Revenue / Marketing / Audience sections.
+   *
+   * @param list<array<string, mixed>> $kpis
+   *   KPI strip.
+   * @param list<array<string, mixed>> $events
+   *   Event intelligence rows.
+   * @param int $refundPending
+   *   Pending refund count.
+   * @param bool $isPro
+   *   Whether the organiser has Pro.
+   *
+   * @return list<array<string, mixed>>
+   *   Section cards.
+   */
+  private function buildSections(array $kpis, array $events, int $refundPending, bool $isPro): array {
+    $byKey = [];
+    foreach ($kpis as $kpi) {
+      $byKey[(string) ($kpi['key'] ?? '')] = $kpi;
+    }
+
+    $capacityTotal = 0;
+    $checkinsTotal = 0;
+    $attendanceTotal = 0;
+    foreach ($events as $row) {
+      $capacityTotal += (int) ($row['capacity_raw'] ?? 0);
+      $checkinsTotal += (int) ($row['checkins_raw'] ?? 0);
+      $attendanceTotal += (int) ($row['attendance_raw'] ?? 0);
+    }
+
+    $boostActive = 0;
+    foreach ($events as $row) {
+      if (!empty($row['boost_active'])) {
+        $boostActive++;
+      }
+    }
+
+    $sections = [
+      [
+        'key' => 'sales',
+        'title' => (string) $this->t('Sales'),
+        'summary' => (string) $this->t('Tickets sold across your events.'),
+        'metrics' => [
+          ['label' => (string) $this->t('Tickets sold'), 'value' => (string) ($byKey['tickets_sold']['value'] ?? '0')],
+          [
+            'label' => (string) $this->t('Events selling'),
+            'value' => (string) count(array_filter(
+              $events,
+              static fn(array $e): bool => ((int) ($e['_sort_tickets'] ?? 0)) > 0,
+            )),
+          ],
+        ],
+        'pro_only' => FALSE,
+      ],
+      [
+        'key' => 'attendance',
+        'title' => (string) $this->t('Attendance'),
+        'summary' => (string) $this->t('Who is coming, and who has checked in.'),
+        'metrics' => [
+          [
+            'label' => (string) $this->t('Guests'),
+            'value' => (string) max(
+              $attendanceTotal,
+              (int) ($byKey['attendance']['value'] ?? 0),
+            ),
+          ],
+          ['label' => (string) $this->t('Check-ins'), 'value' => (string) $checkinsTotal],
+        ],
+        'pro_only' => FALSE,
+      ],
+      [
+        'key' => 'revenue',
+        'title' => (string) $this->t('Revenue'),
+        'summary' => (string) $this->t('Money from ticket sales after refunds.'),
+        'metrics' => [
+          ['label' => (string) $this->t('Revenue'), 'value' => (string) ($byKey['revenue']['value'] ?? '$0.00')],
+          ['label' => (string) $this->t('Refunds to review'), 'value' => (string) $refundPending],
+        ],
+        'pro_only' => FALSE,
+      ],
+      [
+        'key' => 'marketing',
+        'title' => (string) $this->t('Marketing'),
+        'summary' => (string) $this->t('Boost and reach across your events.'),
+        'metrics' => [
+          ['label' => (string) $this->t('Active Boosts'), 'value' => (string) $boostActive],
+        ],
+        'cta_label' => (string) $this->t('Open Marketing'),
+        'cta_url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
+        'pro_only' => FALSE,
+      ],
+      [
+        'key' => 'audience',
+        'title' => (string) $this->t('Audience'),
+        'summary' => $isPro
+          ? (string) $this->t('Segment your guests and compare events over time.')
+          : (string) $this->t('See who is engaging with your events. Deeper segments are included in Pro.'),
+        'metrics' => [
+          ['label' => (string) $this->t('Events'), 'value' => (string) count($events)],
+        ],
+        'pro_only' => TRUE,
+        'pro_teaser' => (string) $this->t('Pro unlocks audience segments, longer history, and side-by-side event comparisons.'),
+      ],
+    ];
+
+    if ($capacityTotal > 0) {
+      $sections[0]['metrics'][] = [
+        'label' => (string) $this->t('Capacity tracked'),
+        'value' => (string) $capacityTotal,
+      ];
+    }
+
+    return $sections;
+  }
+
+  /**
+   * Builds the recent activity list from event rows.
+   *
+   * @param list<array<string, mixed>> $events
+   *   Event intelligence rows.
+   *
+   * @return list<array<string, mixed>>
+   *   Recent activity items.
+   */
+  private function buildRecentActivity(array $events): array {
+    $items = [];
+    foreach (array_slice($events, 0, 6) as $row) {
+      $bits = [];
+      if (!empty($row['tickets_label'])) {
+        $bits[] = (string) $row['tickets_label'];
+      }
+      if (!empty($row['rsvp_label'])) {
+        $bits[] = (string) $row['rsvp_label'];
+      }
+      if (!empty($row['revenue_label'])) {
+        $bits[] = (string) $row['revenue_label'];
+      }
+      $items[] = [
+        'title' => (string) ($row['title'] ?? ''),
+        'meta' => implode(' · ', $bits) ?: (string) ($row['status_label'] ?? ''),
+        'status' => (string) ($row['status_label'] ?? ''),
+        'url' => (string) ($row['analytics_url'] ?? $row['workspace_url'] ?? ''),
+      ];
+    }
+    return $items;
+  }
+
+  /**
+   * Builds the Pro depth / exports value card.
+   *
+   * @param bool $isPro
+   *   Whether the organiser has Pro.
+   * @param \Drupal\Core\Session\AccountInterface|null $account
+   *   Current account (reserved).
+   *
+   * @return array<string, mixed>
+   *   Pro depth card.
+   */
+  private function buildProDepth(bool $isPro, ?AccountInterface $account): array {
+    $upgradeUrl = NULL;
+    if ($this->routeExists('myeventlane_pro.overview')) {
+      $upgradeUrl = $this->safeUrlFromRoute('myeventlane_pro.overview')?->toString();
+    }
+    elseif ($this->routeExists('myeventlane_pro.vendor_overview')) {
+      $upgradeUrl = $this->safeUrlFromRoute('myeventlane_pro.vendor_overview')?->toString();
+    }
+
+    return [
+      'is_pro' => $isPro,
+      'title' => $isPro
+        ? (string) $this->t('Pro analytics')
+        : (string) $this->t('Go deeper with Pro'),
+      'body' => $isPro
+        ? (string) $this->t('Exports, longer trends, and comparisons are included with your Pro plan.')
+        : (string) $this->t('Analytics depth is included in Pro — longer trends, comparisons, exports, and advanced segmentation. See what’s included.'),
+      'benefits' => [
+        (string) $this->t('Longer-range trends'),
+        (string) $this->t('Event comparisons'),
+        (string) $this->t('PDF and spreadsheet exports'),
+        (string) $this->t('Advanced audience segments'),
+      ],
+      'cta_label' => $isPro
+        ? (string) $this->t('Open Pro tools')
+        : (string) $this->t('See Pro analytics'),
+      'cta_url' => $upgradeUrl,
+      'export_label' => (string) $this->t('Exports'),
+      'export_body' => $isPro
+        ? (string) $this->t('Download PDF or spreadsheet reports from an event’s Analytics page.')
+        : (string) $this->t('Exports are included in Pro. Upgrade to download PDF and spreadsheet reports.'),
+    ];
+  }
+
+  /**
+   * Counts upcoming published events for the organiser.
+   *
    * @param list<int> $publishedEventIds
+   *   Published managed event node IDs.
+   *
+   * @return int
+   *   Upcoming event count.
    */
   private function countUpcomingPublishedEvents(array $publishedEventIds): int {
     if ($publishedEventIds === []) {
@@ -243,7 +755,15 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
+   * Builds per-event intelligence rows.
+   *
+   * @param int $uid
+   *   Organiser user ID.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Current organiser account.
+   *
    * @return list<array<string, mixed>>
+   *   Event rows.
    */
   private function buildEventRows(int $uid, AccountInterface $account): array {
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
@@ -274,8 +794,10 @@ final class VendorAnalyticsViewModelBuilder {
     });
 
     $rows = array_slice($rows, 0, self::MAX_EVENTS);
+    $this->enrichTopEventRows($rows);
+
     foreach ($rows as &$row) {
-      unset($row['_sort_tickets'], $row['_sort_rsvps']);
+      unset($row['_sort_tickets'], $row['_sort_rsvps'], $row['_node']);
     }
     unset($row);
 
@@ -283,7 +805,67 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
+   * Enriches the strongest events with check-in / capacity / boost signals.
+   *
+   * @param list<array<string, mixed>> $rows
+   *   Event rows (modified in place).
+   */
+  private function enrichTopEventRows(array &$rows): void {
+    $limit = min(self::DETAIL_ENRICH_LIMIT, count($rows));
+    for ($i = 0; $i < $limit; $i++) {
+      $node = $rows[$i]['_node'] ?? NULL;
+      if (!$node instanceof NodeInterface) {
+        continue;
+      }
+      try {
+        $overview = $this->metricsAggregator->getEventOverview($node);
+        $capacity = (int) ($overview['capacity']['total'] ?? 0);
+        $attendees = (int) ($overview['attendees']['total'] ?? 0);
+        $checkins = (int) ($overview['attendees']['checked_in'] ?? 0);
+        $rate = $overview['attendees']['check_in_rate'] ?? NULL;
+        $boostActive = !empty($overview['boost']['active']);
+
+        if ($capacity > 0) {
+          $rows[$i]['capacity_label'] = (string) $this->t('@count capacity', ['@count' => $capacity]);
+          $rows[$i]['capacity_raw'] = $capacity;
+        }
+        if ($attendees > 0) {
+          $rows[$i]['attendance_label'] = (string) $this->t('@count guests', ['@count' => $attendees]);
+          $rows[$i]['attendance_raw'] = $attendees;
+        }
+        if ($checkins > 0 || $attendees > 0) {
+          $rows[$i]['checkins_label'] = (string) $this->t('@count checked in', ['@count' => $checkins]);
+          $rows[$i]['checkins_raw'] = $checkins;
+        }
+        if (is_numeric($rate)) {
+          $rows[$i]['checkin_rate_label'] = (string) $this->t('@rate% checked in', [
+            '@rate' => (string) round((float) $rate, 0),
+          ]);
+        }
+        $rows[$i]['boost_active'] = $boostActive;
+        $rows[$i]['marketing_label'] = $boostActive
+          ? (string) $this->t('Boost running')
+          : (string) $this->t('No active Boost');
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('myeventlane_analytics')->warning('Event overview enrich failed for nid @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+  }
+
+  /**
+   * Builds one event intelligence row.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   Event node.
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Current organiser account.
+   *
    * @return array<string, mixed>
+   *   Event row payload.
    */
   private function buildEventRow(NodeInterface $node, AccountInterface $account): array {
     $nid = (int) $node->id();
@@ -293,12 +875,15 @@ final class VendorAnalyticsViewModelBuilder {
     $now = (int) $this->time->getRequestTime();
 
     if (!$published) {
+      $statusKey = 'draft';
       $statusLabel = (string) $this->t('Draft');
     }
     elseif ($endTs > 0 && $endTs < $now) {
+      $statusKey = 'past';
       $statusLabel = (string) $this->t('Past');
     }
     else {
+      $statusKey = 'upcoming';
       $statusLabel = (string) $this->t('Upcoming');
     }
 
@@ -342,7 +927,12 @@ final class VendorAnalyticsViewModelBuilder {
     }
 
     $ticketsSold = (int) ($salesSummary['tickets_sold'] ?? 0);
-    $revenueLabel = isset($salesSummary['gross']) ? (string) $salesSummary['gross'] : NULL;
+    $capacity = (int) ($salesSummary['tickets_available'] ?? 0);
+    $revenueLabel = isset($salesSummary['net']) ? (string) $salesSummary['net'] : ($salesSummary['gross'] ?? NULL);
+    $refundLabel = NULL;
+    if (!empty($salesSummary['refunded']) && ($salesSummary['refunded'] ?? '$0.00') !== '$0.00') {
+      $refundLabel = (string) $salesSummary['refunded'];
+    }
     $ticketsLabel = $ticketsSold > 0
       ? (string) $this->t('@count sold', ['@count' => $ticketsSold])
       : NULL;
@@ -362,26 +952,60 @@ final class VendorAnalyticsViewModelBuilder {
       ? (string) $this->t('@count RSVPs', ['@count' => $rsvpCount])
       : NULL;
 
-    $analyticsUrl = $this->urlIfAccessible($account, 'myeventlane_vendor.console.event_analytics', ['event' => $nid]);
+    $healthTone = 'success';
+    if ($statusKey === 'draft') {
+      $healthTone = 'attention';
+    }
+    elseif ($ticketsSold === 0 && $rsvpCount === 0 && $statusKey === 'upcoming' && $published) {
+      $healthTone = 'muted';
+    }
+
+    $analyticsUrl = $this->urlIfAccessible($account, 'myeventlane_event_studio.workspace_analytics', ['node' => $nid]);
+    $deepAnalyticsUrl = $this->urlIfAccessible($account, 'myeventlane_analytics.event', ['node' => $nid]);
     $workspaceUrl = $this->urlIfAccessible($account, 'myeventlane_vendor.console.event_workspace', ['event' => $nid]);
 
     return [
       'nid' => $nid,
       'title' => (string) $node->getTitle(),
+      'status_key' => $statusKey,
       'status_label' => $statusLabel,
+      'health_tone' => $healthTone,
       'date_label' => $dateLabel,
+      'event_type_key' => $eventTypeKey,
       'event_type_label' => $eventTypeLabel,
-      'revenue_label' => $revenueLabel,
+      'revenue_label' => $revenueLabel ? (string) $revenueLabel : NULL,
       'tickets_label' => $ticketsLabel,
+      'capacity_label' => $capacity > 0 ? (string) $this->t('@count capacity', ['@count' => $capacity]) : NULL,
+      'capacity_raw' => $capacity,
+      'attendance_label' => $rsvpLabel,
+      'attendance_raw' => $rsvpCount + $ticketsSold,
+      'checkins_label' => NULL,
+      'checkins_raw' => 0,
+      'refunds_label' => $refundLabel,
+      'marketing_label' => NULL,
+      'boost_active' => FALSE,
       'rsvp_label' => $rsvpLabel,
       'conversion_label' => NULL,
-      'analytics_url' => $analyticsUrl,
-      'workspace_url' => $workspaceUrl,
+      'analytics_url' => $analyticsUrl?->toString(),
+      'deep_analytics_url' => $deepAnalyticsUrl?->toString(),
+      'workspace_url' => $workspaceUrl?->toString(),
       '_sort_tickets' => $ticketsSold,
       '_sort_rsvps' => $rsvpCount,
+      '_node' => $node,
     ];
   }
 
+  /**
+   * Reads a datetime field timestamp from an event node.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   Event node.
+   * @param string $field
+   *   Field machine name.
+   *
+   * @return int
+   *   Unix timestamp or 0.
+   */
   private function getDateFieldTimestamp(NodeInterface $node, string $field): int {
     if (!$node->hasField($field) || $node->get($field)->isEmpty()) {
       return 0;
@@ -394,7 +1018,73 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
+   * Counts refund requests awaiting organiser review.
+   *
+   * @return int
+   *   Pending refund count.
+   */
+  private function countPendingRefunds(): int {
+    if ($this->refundsRepository === NULL
+      || $this->refundsMetrics === NULL
+      || !method_exists($this->refundsRepository, 'findVendorSummary')
+      || !method_exists($this->refundsMetrics, 'calculateForVendor')) {
+      return 0;
+    }
+    try {
+      $vendor = $this->vendorResolver->resolveFromCurrentUser();
+      $owner = $vendor?->getOwner();
+      if (!$owner) {
+        return 0;
+      }
+      $data = $this->refundsRepository->findVendorSummary((int) $owner->id(), 90);
+      $metrics = $this->refundsMetrics->calculateForVendor($data['logs'] ?? [], $data['requests'] ?? []);
+      $byRequest = $metrics['requests_by_status'] ?? [];
+      return (int) ($byRequest['requested'] ?? 0) + (int) ($byRequest['pending'] ?? 0);
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_analytics')->warning('Analytics pending refunds failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return 0;
+    }
+  }
+
+  /**
+   * Whether the organiser Messages brand has a sender name.
+   *
+   * @return bool
+   *   TRUE when a sender name is available.
+   */
+  private function isMessagesBrandConfigured(): bool {
+    try {
+      $vendor = $this->vendorResolver->resolveFromCurrentUser();
+      if (!$vendor instanceof Vendor) {
+        return FALSE;
+      }
+      $from = '';
+      if ($vendor->hasField('field_msg_from_name') && !$vendor->get('field_msg_from_name')->isEmpty()) {
+        $from = trim((string) $vendor->get('field_msg_from_name')->value);
+      }
+      if ($from === '') {
+        $from = trim((string) ($vendor->getName() ?? ''));
+      }
+      return $from !== '';
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Builds the empty state when the organiser has no events.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Current organiser account.
+   * @param bool $noEvents
+   *   TRUE when there are no event rows.
+   *
    * @return array<string, string|\Drupal\Core\Url|null>
+   *   Empty state payload.
    */
   private function buildEmptyState(AccountInterface $account, bool $noEvents): array {
     if (!$noEvents) {
@@ -407,9 +1097,7 @@ final class VendorAnalyticsViewModelBuilder {
     }
 
     $copy = $this->readinessHelper->vendorActionNoEventsStrings();
-    $actionLabel = $copy['action_label'];
     $url = NULL;
-
     if ($this->routeExists('myeventlane_vendor.create_event_gateway')) {
       try {
         if ($this->accessManager->checkNamedRoute('myeventlane_vendor.create_event_gateway', [], $account, TRUE)->isAllowed()) {
@@ -424,15 +1112,27 @@ final class VendorAnalyticsViewModelBuilder {
     return [
       'title' => $copy['title'],
       'message' => $copy['message'],
-      'action_label' => $actionLabel,
+      'action_label' => $copy['action_label'],
       'url' => $url,
     ];
   }
 
   /**
+   * Builds a route URL when the account may access it.
+   *
+   * @param \Drupal\Core\Session\AccountInterface $account
+   *   Current account.
+   * @param string $route
+   *   Route name.
    * @param array<string, mixed> $parameters
+   *   Route parameters.
+   * @param array<string, mixed> $options
+   *   URL options.
+   *
+   * @return \Drupal\Core\Url|null
+   *   URL or NULL.
    */
-  private function urlIfAccessible(AccountInterface $account, string $route, array $parameters): ?Url {
+  private function urlIfAccessible(AccountInterface $account, string $route, array $parameters, array $options = []): ?Url {
     if (!$this->routeExists($route)) {
       return NULL;
     }
@@ -444,11 +1144,21 @@ final class VendorAnalyticsViewModelBuilder {
     catch (\Throwable) {
       return NULL;
     }
-    return $this->safeUrlFromRoute($route, $parameters);
+    return $this->safeUrlFromRoute($route, $parameters, $options);
   }
 
   /**
+   * Builds a route URL without an access check.
+   *
+   * @param string $route
+   *   Route name.
    * @param array<string, mixed> $parameters
+   *   Route parameters.
+   * @param array<string, mixed> $options
+   *   URL options.
+   *
+   * @return \Drupal\Core\Url|null
+   *   URL or NULL.
    */
   private function safeUrlFromRoute(string $route, array $parameters = [], array $options = []): ?Url {
     if (!$this->routeExists($route)) {
@@ -466,6 +1176,15 @@ final class VendorAnalyticsViewModelBuilder {
     }
   }
 
+  /**
+   * Checks whether a route name is registered.
+   *
+   * @param string $name
+   *   Route name.
+   *
+   * @return bool
+   *   TRUE if the route exists.
+   */
   private function routeExists(string $name): bool {
     try {
       $this->routeProvider->getRouteByName($name);

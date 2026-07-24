@@ -1,6 +1,6 @@
 name: 'MyEventLane Analytics'
 type: module
-description: 'Comprehensive analytics and reporting for vendors. Provides time-series sales data, conversion funnels, and detailed event analytics.'
+description: 'Organiser Analytics (Event Intelligence Centre) — business health, launch readiness, and per-event performance.'
 package: MyEventLane
 core_version_requirement: ^11
 lifecycle: stable
