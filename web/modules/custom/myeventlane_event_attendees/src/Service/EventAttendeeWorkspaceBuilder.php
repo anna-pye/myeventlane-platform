@@ -416,11 +416,9 @@ final class EventAttendeeWorkspaceBuilder {
    */
   private function buildMessageUrl(NodeInterface $event): ?string {
     $eventId = (int) $event->id();
-    if ($this->moduleHandler->moduleExists('myeventlane_pro')) {
-      $url = $this->safeRouteUrl('myeventlane_vendor.message_attendees', ['node' => $eventId]);
-      if ($url !== NULL) {
-        return $url;
-      }
+    $url = $this->safeRouteUrl('myeventlane_vendor.console.event_promotion', ['event' => $eventId]);
+    if ($url !== NULL) {
+      return $url;
     }
     return $this->safeRouteUrl('myeventlane_event_studio.workspace_messaging', ['node' => $eventId]);
   }
