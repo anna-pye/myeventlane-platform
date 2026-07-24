@@ -2265,8 +2265,8 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'style' => 'secondary',
       ],
       [
-        'label' => 'Manage Payouts',
-        'url' => '/vendor/payouts',
+        'label' => 'Manage payments',
+        'url' => '/vendor/payments',
         'icon' => 'dollar',
         'style' => 'secondary',
       ],
@@ -2389,9 +2389,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         'url' => $this->safeRouteUrl('myeventlane_vendor.console.audience'),
       ],
       [
-        'title' => (string) $this->t('Check payouts'),
-        'description' => (string) $this->t('Review transfers and payout readiness.'),
-        'url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
+        'title' => (string) $this->t('Open Payments'),
+        'description' => (string) $this->t('Check payment health, payouts, and refunds.'),
+        'url' => $this->safeRouteUrl('myeventlane_vendor.console.payments'),
       ],
     ]);
   }

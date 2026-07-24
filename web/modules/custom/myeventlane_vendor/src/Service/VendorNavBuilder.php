@@ -87,7 +87,11 @@ final class VendorNavBuilder {
     if (str_starts_with($path, '/vendor/boost') || str_starts_with($path, '/vendor/audience')) {
       return 'marketing';
     }
-    if (str_starts_with($path, '/vendor/payouts') || str_contains($path, '/refund')) {
+    if (str_starts_with($path, '/vendor/payments')
+      || str_starts_with($path, '/vendor/payouts')
+      || str_starts_with($path, '/vendor/finance')
+      || str_starts_with($path, '/vendor/billing')
+      || str_contains($path, '/refund')) {
       return 'payments';
     }
     if (str_starts_with($path, '/vendor/support') || str_starts_with($path, '/vendor/help')) {
@@ -135,7 +139,12 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.event_rsvps' => 'attendees',
       'myeventlane_tickets.ticket_checkin' => 'attendees',
       'myeventlane_tickets.ticket_checkin_validate' => 'attendees',
+      'myeventlane_vendor.console.payments' => 'payments',
       'myeventlane_vendor.console.payouts' => 'payments',
+      'myeventlane_launch.vendor_finance' => 'payments',
+      'myeventlane_finance.vendor_bas' => 'payments',
+      'myeventlane_donations.vendor_mel_billing' => 'payments',
+      'myeventlane_escalations_refunds.vendor_refund_summary' => 'payments',
       'myeventlane_vendor.console.boost' => 'marketing',
       'myeventlane_vendor.console.audience' => 'marketing',
       'myeventlane_vendor.console.settings' => 'settings',
@@ -291,7 +300,7 @@ final class VendorNavBuilder {
         'key' => 'payments',
         'label' => $this->t('Payments'),
         'icon' => 'payouts',
-        'route' => 'myeventlane_vendor.console.payouts',
+        'route' => 'myeventlane_vendor.console.payments',
         'children' => [],
       ],
       [

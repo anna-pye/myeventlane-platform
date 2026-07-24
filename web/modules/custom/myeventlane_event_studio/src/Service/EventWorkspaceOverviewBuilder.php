@@ -862,7 +862,7 @@ final class EventWorkspaceOverviewBuilder {
         'label' => (string) $this->t('Payments'),
         'tone' => 'muted',
         'detail' => (string) $this->t('Payments apply when you sell paid tickets for this event.'),
-        'url' => $this->safeUrl('myeventlane_vendor.payouts'),
+        'url' => $this->safeUrl('myeventlane_vendor.console.payments'),
       ];
     }
 
@@ -878,7 +878,7 @@ final class EventWorkspaceOverviewBuilder {
         'label' => (string) $this->t('Payments'),
         'tone' => 'attention',
         'detail' => (string) $this->t('We could not confirm Stripe just now.'),
-        'url' => $this->safeUrl('myeventlane_vendor.payouts'),
+        'url' => $this->safeUrl('myeventlane_vendor.console.payments'),
       ];
     }
 
@@ -887,7 +887,7 @@ final class EventWorkspaceOverviewBuilder {
         'label' => (string) $this->t('Payments'),
         'tone' => 'success',
         'detail' => (string) $this->t("Stripe connected — you're ready to get paid."),
-        'url' => $this->safeUrl('myeventlane_vendor.payouts'),
+        'url' => $this->safeUrl('myeventlane_vendor.console.payments'),
       ];
     }
 
@@ -895,7 +895,7 @@ final class EventWorkspaceOverviewBuilder {
       'label' => (string) $this->t('Payments'),
       'tone' => 'attention',
       'detail' => $denial,
-      'url' => $this->safeUrl('myeventlane_vendor.payouts'),
+      'url' => $this->safeUrl('myeventlane_vendor.console.payments'),
     ];
   }
 
