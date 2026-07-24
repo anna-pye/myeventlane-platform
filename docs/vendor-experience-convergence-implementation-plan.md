@@ -338,6 +338,10 @@ Stripe Connect stability; refund modules.
 
 Organiser finds money questions under Payments — never Store/Gateway.
 
+### Implementation
+
+Shipped on `feature/vx2-payments-hub`. See [`docs/implementation/vx2-07-payments-hub.md`](../implementation/vx2-07-payments-hub.md).
+
 ---
 
 ## VX2-08 — Analytics
