@@ -1,24 +1,21 @@
-# Vendor Insights Dashboard
+# Vendor Insights Dashboard → Analytics hub (VX2-08 convergence).
 myeventlane_reporting.vendor_insights:
   path: '/vendor/insights'
   defaults:
-    _controller: 'myeventlane_reporting.vendor_insights:dashboard'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::vendorInsights'
     _title: 'Analytics'
   requirements:
-    _permission: 'view vendor insights'
-    _custom_access: '\Drupal\myeventlane_reporting\Access\VendorReportingAccess::access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
-# Event Insights Overview
+# Event Insights → Event Workspace Analytics.
 myeventlane_reporting.event_insights.overview:
   path: '/vendor/events/{event}/insights'
   defaults:
-    _controller: 'myeventlane_reporting.event_insights:overview'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Event analytics'
   requirements:
-    _permission: 'view event insights'
-    _custom_access: 'myeventlane_reporting.event_insights:access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: \d+
   options:
     parameters:
       event:
@@ -26,16 +23,14 @@ myeventlane_reporting.event_insights.overview:
         bundle:
           - event
 
-# Event Insights - Sales Tab
 myeventlane_reporting.event_insights.sales:
   path: '/vendor/events/{event}/insights/sales'
   defaults:
-    _controller: 'myeventlane_reporting.event_insights:sales'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Sales analytics'
   requirements:
-    _permission: 'view event insights'
-    _custom_access: 'myeventlane_reporting.event_insights:access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: \d+
   options:
     parameters:
       event:
@@ -43,16 +38,14 @@ myeventlane_reporting.event_insights.sales:
         bundle:
           - event
 
-# Event Insights - Attendees Tab
 myeventlane_reporting.event_insights.attendees:
   path: '/vendor/events/{event}/insights/attendees'
   defaults:
-    _controller: 'myeventlane_reporting.event_insights:attendees'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Attendee analytics'
   requirements:
-    _permission: 'view event insights'
-    _custom_access: 'myeventlane_reporting.event_insights:access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: \d+
   options:
     parameters:
       event:
@@ -60,16 +53,14 @@ myeventlane_reporting.event_insights.attendees:
         bundle:
           - event
 
-# Event Insights - Check-ins Tab
 myeventlane_reporting.event_insights.checkins:
   path: '/vendor/events/{event}/insights/checkins'
   defaults:
-    _controller: 'myeventlane_reporting.event_insights:checkins'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Check-in analytics'
   requirements:
-    _permission: 'view event insights'
-    _custom_access: 'myeventlane_reporting.event_insights:access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: \d+
   options:
     parameters:
       event:
@@ -77,16 +68,14 @@ myeventlane_reporting.event_insights.checkins:
         bundle:
           - event
 
-# Event Insights - Traffic Tab (stub if pageview tracking not available)
 myeventlane_reporting.event_insights.traffic:
   path: '/vendor/events/{event}/insights/traffic'
   defaults:
-    _controller: 'myeventlane_reporting.event_insights:traffic'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Traffic analytics'
   requirements:
-    _permission: 'view event insights'
-    _custom_access: 'myeventlane_reporting.event_insights:access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: \d+
   options:
     parameters:
       event:
@@ -94,7 +83,7 @@ myeventlane_reporting.event_insights.traffic:
         bundle:
           - event
 
-# Chart Data Endpoints (JSON)
+# Chart Data Endpoints (JSON) — Pro backend for deep charts; not a product surface.
 myeventlane_reporting.chart.sales:
   path: '/vendor/charts/sales/{event}'
   defaults:
@@ -159,16 +148,14 @@ myeventlane_reporting.chart.revenue:
         bundle:
           - event
 
-# Export Centre
+# Export Centre → Analytics exports section.
 myeventlane_reporting.export_centre:
   path: '/vendor/exports'
   defaults:
-    _controller: 'myeventlane_reporting.export_centre:list'
-    _title: 'Export Centre'
+    _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::exportCentre'
+    _title: 'Analytics'
   requirements:
-    _permission: 'request exports'
-    _custom_access: '\Drupal\myeventlane_reporting\Access\VendorReportingAccess::access'
-    _myeventlane_pro_access: 'TRUE'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 myeventlane_reporting.export.request_csv:
   path: '/vendor/exports/request-csv/{event}'

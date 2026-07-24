@@ -1,6 +1,6 @@
 name: MyEventLane Reporting
 type: module
-description: 'Vendor and admin reporting & insights UI with KPIs, charts, and exports.'
+description: 'Vendor and admin reporting surfaces. Organiser Insights/Charts/Export Centre URLs redirect into Analytics (VX2-08).'
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
@@ -9,3 +9,4 @@ dependencies:
   - myeventlane_vendor
   - myeventlane_event_attendees
   - myeventlane_automation
+  - myeventlane_analytics:myeventlane_analytics
