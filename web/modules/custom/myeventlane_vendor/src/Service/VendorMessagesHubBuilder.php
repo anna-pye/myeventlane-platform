@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -30,7 +30,6 @@ final class VendorMessagesHubBuilder {
     private readonly TicketSalesService $ticketSales,
     private readonly VendorMessagesHistoryService $history,
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly ConfigFactoryInterface $configFactory,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
@@ -328,7 +327,7 @@ final class VendorMessagesHubBuilder {
       [
         'key' => 'rsvp',
         'label' => (string) $this->t('RSVP guests'),
-        'description' => (string) $this->t('People who RSVPed (included in Everyone).'),
+        'description' => (string) $this->t('People who RSVPed — not ticket purchasers.'),
         'available' => TRUE,
       ],
       [
@@ -381,21 +380,22 @@ final class VendorMessagesHubBuilder {
 
   /**
    * Whether the organiser has a sender name configured.
+   *
+   * Matches VendorBrandResolver: field_msg_from_name, else vendor name.
    */
   private function isBrandConfigured(): bool {
     $vendor = $this->vendorResolver->resolveFromCurrentUser();
-    if ($vendor === NULL) {
+    if (!$vendor instanceof Vendor) {
       return FALSE;
     }
-    // Brand config key convention used by VendorBrandingForm.
-    $cid = 'myeventlane_messaging.brand.vendor.' . $vendor->id();
-    try {
-      $from = trim((string) ($this->configFactory->get($cid)->get('from_name') ?? ''));
-      return $from !== '';
+    $from = '';
+    if ($vendor->hasField('field_msg_from_name') && !$vendor->get('field_msg_from_name')->isEmpty()) {
+      $from = trim((string) $vendor->get('field_msg_from_name')->value);
     }
-    catch (\Throwable) {
-      return FALSE;
+    if ($from === '') {
+      $from = trim((string) ($vendor->getName() ?? ''));
     }
+    return $from !== '';
   }
 
   /**

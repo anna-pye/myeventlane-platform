@@ -150,6 +150,7 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
   private function resolveRecipients($event, string $audience): array {
     return match ($audience) {
       'ticket_holders' => $this->recipientResolver->getRecipientEmails($event),
+      'rsvp' => $this->attendeeRecipientResolver->resolveRsvpEmails($event),
       default => $this->attendeeRecipientResolver->resolveEmails($event),
     };
   }

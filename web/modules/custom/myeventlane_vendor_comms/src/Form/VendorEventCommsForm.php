@@ -196,7 +196,7 @@ final class VendorEventCommsForm extends FormBase {
       '#options' => [
         'everyone' => $this->t('Everyone — ticket holders and RSVP guests'),
         'ticket_holders' => $this->t('Ticket holders only'),
-        'rsvp' => $this->t('RSVP guests (included in Everyone; choose Everyone for mixed events)'),
+        'rsvp' => $this->t('RSVP guests only'),
       ],
       '#default_value' => $form_state->getValue('audience', 'everyone'),
       '#description' => $this->t('Ticket type, checked in, waitlist, and custom selection are coming soon.'),
@@ -475,9 +475,7 @@ final class VendorEventCommsForm extends FormBase {
   private function resolveRecipientEmails(NodeInterface $event, string $audience): array {
     return match ($audience) {
       'ticket_holders' => $this->ticketRecipientResolver->getRecipientEmails($event),
-      // RSVP-only is approximated as Everyone for mixed events until a dedicated
-      // RSVP-only API is exposed; Everyone already includes RSVP + tickets.
-      'rsvp', 'everyone' => $this->attendeeRecipientResolver->resolveEmails($event),
+      'rsvp' => $this->attendeeRecipientResolver->resolveRsvpEmails($event),
       default => $this->attendeeRecipientResolver->resolveEmails($event),
     };
   }

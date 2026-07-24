@@ -559,7 +559,6 @@ services:
       - '@myeventlane_vendor.service.ticket_sales'
       - '@myeventlane_vendor.messages_history'
       - '@entity_type.manager'
-      - '@config.factory'
       - '@module_handler'
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'

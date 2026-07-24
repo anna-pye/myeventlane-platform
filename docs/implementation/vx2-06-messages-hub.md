@@ -14,7 +14,7 @@
 - Pro `/vendor/events/{id}/message` redirects into compose
 - Attendees “Message” CTA prefers live compose
 - Message types: Announcement, Reminder, Important update, Cancellation, Thank you
-- Audience: Everyone, Ticket holders, RSVP (via existing resolvers); further filters marked Soon
+- Audience: Everyone, Ticket holders, RSVP-only (via existing resolvers); further filters marked Soon
 - AU English trust copy; no Vendor Comms / queue / mail plugin jargon in organiser UI
 
 ## Architecture

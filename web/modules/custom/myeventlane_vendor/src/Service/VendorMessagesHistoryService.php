@@ -145,7 +145,9 @@ final class VendorMessagesHistoryService {
       elseif ($key === 'failed') {
         $failed++;
       }
-      else {
+      elseif ($key === 'completed') {
+        // Only completed deliveries count as Sent.
+        // Cancelled/draft/unknown statuses are excluded from the Sent KPI.
         $sent++;
       }
     }
