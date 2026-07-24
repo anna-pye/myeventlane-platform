@@ -139,15 +139,16 @@ final class VendorMessagesHistoryService {
     $failed = 0;
     foreach ($rows as $row) {
       $key = (string) ($row['status_key'] ?? '');
+      $failedCount = (int) ($row['failed_count'] ?? 0);
       if ($key === 'sending' || $key === 'pending') {
         $sending++;
       }
-      elseif ($key === 'failed') {
+      elseif ($key === 'failed' || $failedCount > 0) {
+        // Worker may store status=completed while failed_count > 0.
         $failed++;
       }
       elseif ($key === 'completed') {
-        // Only completed deliveries count as Sent.
-        // Cancelled/draft/unknown statuses are excluded from the Sent KPI.
+        // Only fully successful completed deliveries count as Sent.
         $sent++;
       }
     }
@@ -185,6 +186,11 @@ final class VendorMessagesHistoryService {
       $failedCount = (int) ($row->failed_count ?? 0);
       $eventId = (int) $row->event_id;
 
+      // Normalise total queue failure so timeline + KPIs agree.
+      if ($statusKey === 'completed' && $sentCount === 0 && $failedCount > 0) {
+        $statusKey = 'failed';
+      }
+
       $out[] = [
         'id' => (int) $row->id,
         'event_id' => $eventId,
@@ -194,7 +200,9 @@ final class VendorMessagesHistoryService {
         'type_label' => $this->typeLabel($typeKey),
         'audience_label' => (string) $this->t('Event guests'),
         'status_key' => $statusKey,
-        'status_label' => $this->statusLabel($statusKey),
+        'status_label' => $this->statusLabel($statusKey, $failedCount),
+        'failed_count' => $failedCount,
+        'sent_count' => $sentCount,
         'sent_label' => $sentAt > 0
           ? $this->dateFormatter->format($sentAt, 'custom', 'j M Y · g:ia')
           : '—',
@@ -244,7 +252,10 @@ final class VendorMessagesHistoryService {
   /**
    * Returns organiser-facing status label.
    */
-  private function statusLabel(string $status): string {
+  private function statusLabel(string $status, int $failedCount = 0): string {
+    if ($status === 'completed' && $failedCount > 0) {
+      return (string) $this->t('Needs attention');
+    }
     return match ($status) {
       'pending', 'sending' => (string) $this->t('Sending'),
       'completed' => (string) $this->t('Sent'),

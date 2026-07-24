@@ -160,9 +160,11 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
    */
   private function markCompleted(int $logId, int $sentCount, int $failedCount): void {
     $now = $this->time->getRequestTime();
+    // Total queue failure must not look like a successful send in history/KPIs.
+    $status = ($sentCount === 0 && $failedCount > 0) ? 'failed' : 'completed';
     $this->database->update('myeventlane_event_comms_log')
       ->fields([
-        'status' => 'completed',
+        'status' => $status,
         'sent_count' => $sentCount,
         'failed_count' => $failedCount,
         'completed_at' => $now,

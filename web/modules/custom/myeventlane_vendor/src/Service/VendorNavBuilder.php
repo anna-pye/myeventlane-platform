@@ -73,11 +73,18 @@ final class VendorNavBuilder {
     $path = $this->requestStack->getCurrentRequest()?->getPathInfo() ?? '';
 
     if ($routeName === 'myeventlane_vendor.console.messages'
-      || $routeName === 'myeventlane_vendor.console.messaging_brand') {
+      || $routeName === 'myeventlane_vendor.console.messaging_brand'
+      || $routeName === 'myeventlane_vendor.console.event_promotion'
+      || $routeName === 'myeventlane_vendor_comms.branding'
+      || $routeName === 'myeventlane_vendor.message_attendees'
+      || $routeName === 'myeventlane_pro.vendor_comms') {
       return 'messages';
     }
     if (str_starts_with($path, '/vendor/messages')
-      || str_contains($path, '/vendor/dashboard/messaging/brand')) {
+      || str_contains($path, '/vendor/dashboard/messaging/brand')
+      || preg_match('#^/vendor/events/\d+/promotion(/|$)#', $path) === 1
+      || preg_match('#^/vendor/events/\d+/message(/|$)#', $path) === 1
+      || str_starts_with($path, '/vendor/pro/settings/comms')) {
       return 'messages';
     }
     if (str_starts_with($path, '/vendor/settings')) {

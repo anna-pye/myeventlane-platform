@@ -189,6 +189,40 @@ final class VendorNavBuilderTest extends UnitTestCase {
   }
 
   /**
+   * Compose under /vendor/events/.../promotion highlights Messages, not Events.
+   *
+   * @covers ::resolveActiveSection
+   */
+  public function testResolveActiveSectionFromEventPromotionPath(): void {
+    $builder = $this->createBuilder(
+      routeName: 'myeventlane_vendor.console.event_promotion',
+      path: '/vendor/events/42/promotion',
+    );
+
+    $this->assertSame(
+      'messages',
+      $builder->resolveActiveSection('myeventlane_vendor.console.event_promotion'),
+    );
+  }
+
+  /**
+   * Event overview under /vendor/events still highlights Events.
+   *
+   * @covers ::resolveActiveSection
+   */
+  public function testResolveActiveSectionFromEventWorkspacePath(): void {
+    $builder = $this->createBuilder(
+      routeName: 'myeventlane_vendor.console.event_overview',
+      path: '/vendor/events/42/overview',
+    );
+
+    $this->assertSame(
+      'events',
+      $builder->resolveActiveSection('myeventlane_vendor.console.event_overview'),
+    );
+  }
+
+  /**
    * Shell nav cache contexts include permissions and route.
    */
   public function testShellNavCacheContexts(): void {

@@ -69,6 +69,11 @@ Analytics product wiring is deferred — events are logged / marked for a future
 
 See `docs/implementation/vx2-06-messages-surface-inventory.md`.
 
+## Follow-up fixes (2026-07-24)
+
+- Shell active section: compose `/vendor/events/{id}/promotion` (and related message paths) highlight **Messages**, not Events (`VendorNavBuilder`).
+- History KPIs: `failed_count > 0` counts as Failed / Needs attention even when the worker stored `status=completed`; total queue failure now stores `failed`.
+
 ## Remaining roadmap
 
 - Ticket type / checked-in / not checked-in / waitlist / custom audience filters
