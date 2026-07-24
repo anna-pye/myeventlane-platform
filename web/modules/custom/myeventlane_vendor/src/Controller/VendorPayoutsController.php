@@ -141,7 +141,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
         '#history' => $history,
         '#stripe_manage_url' => $stripeManageUrl,
         '#health' => $health,
-        '#empty' => $history === [] && ($available === '$0.00'),
+        '#empty' => $history === [] && ($available === '$0.00') && ($pending === '$0.00'),
       ],
     ]);
   }

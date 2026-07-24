@@ -126,7 +126,7 @@ final class VendorPaymentsHubBuilder {
           ? (string) $this->t("On Stripe's usual schedule after sales clear")
           : (string) $this->t('Available once payouts are enabled'),
         'history_url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
-        'empty' => $lastPayout === NULL && ($available === '$0.00' || $available === ''),
+        'empty' => $lastPayout === NULL && $this->isZeroBalance($available) && $this->isZeroBalance($pending),
         'empty_title' => (string) $this->t('No payouts yet.'),
         'empty_body' => (string) $this->t("We'll show your first payout once ticket sales begin."),
       ],
@@ -184,9 +184,23 @@ final class VendorPaymentsHubBuilder {
           $metrics = $this->refundsMetrics->calculateForVendor($data['logs'], $data['requests']);
           $byRequest = $metrics['requests_by_status'] ?? [];
           $byLog = $metrics['logs_by_status'] ?? [];
-          $pending = (int) (($byRequest['pending'] ?? 0) + ($byLog['pending'] ?? 0));
-          $completed = (int) (($byRequest['approved'] ?? 0) + ($byLog['completed'] ?? 0));
-          $declined = (int) (($byRequest['rejected'] ?? 0) + ($byRequest['declined'] ?? 0) + ($byLog['failed'] ?? 0));
+          // Buyer requests default to "requested" (awaiting organiser action).
+          // "approved" means still in flight until Stripe completes.
+          $pending = (int) (
+            ($byRequest['requested'] ?? 0)
+            + ($byRequest['pending'] ?? 0)
+            + ($byRequest['approved'] ?? 0)
+            + ($byLog['pending'] ?? 0)
+          );
+          $completed = (int) (
+            ($byRequest['completed'] ?? 0)
+            + ($byLog['completed'] ?? 0)
+          );
+          $declined = (int) (
+            ($byRequest['rejected'] ?? 0)
+            + ($byRequest['declined'] ?? 0)
+            + ($byLog['failed'] ?? 0)
+          );
         }
       }
       catch (\Throwable $e) {
@@ -211,6 +225,18 @@ final class VendorPaymentsHubBuilder {
         ] : NULL,
       ])),
     ];
+  }
+
+  /**
+   * Whether a formatted AUD balance string is effectively zero.
+   */
+  private function isZeroBalance(string $amount): bool {
+    $normalized = strtolower(trim(str_replace([',', ' '], '', $amount)));
+    return $normalized === ''
+      || $normalized === '$0'
+      || $normalized === '$0.00'
+      || $normalized === '0'
+      || $normalized === '0.00';
   }
 
   /**
