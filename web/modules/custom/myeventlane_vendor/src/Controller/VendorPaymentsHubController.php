@@ -59,9 +59,10 @@ final class VendorPaymentsHubController extends VendorConsoleBaseController impl
           ],
         ],
       ],
+      // Stripe balances/payouts are live API reads — do not page-cache KPIs.
       '#cache' => [
         'contexts' => ['user', 'user.permissions'],
-        'max-age' => 60,
+        'max-age' => 0,
       ],
     ]);
   }

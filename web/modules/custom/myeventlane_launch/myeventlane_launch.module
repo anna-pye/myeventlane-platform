@@ -19,12 +19,6 @@ function myeventlane_launch_theme(array $existing, string $type, string $theme, 
       ],
       'template' => 'pro-status',
     ],
-    'myeventlane_launch_vendor_finance_page' => [
-      'variables' => [
-        'summary' => [],
-      ],
-      'template' => 'vendor-finance-page',
-    ],
   ];
 }
 
