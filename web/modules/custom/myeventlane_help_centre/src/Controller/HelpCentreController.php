@@ -150,26 +150,26 @@ final class HelpCentreController extends ControllerBase {
   /**
    * Renders the organiser Help Centre listing.
    */
-  public function organisersIndex(): array|RedirectResponse {
+  public function organisersIndex(): array {
     if (VendorConsoleTrust::accountIsTrustedForVendorConsole($this->currentUser())) {
-      return $this->redirect('myeventlane_help_centre.vendors_index', [], [], 302);
+      return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
     }
     return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_organiser_help', 'block_organisers');
   }
 
   /**
-   * Renders the vendor Help Centre listing.
+   * Legacy /help/vendors → organiser help (D-L01).
    */
   public function vendorsIndex(): array|RedirectResponse {
     $account = $this->currentUser();
     if (!$account->isAuthenticated()) {
       return $this->redirect('user.login', [], [
         'query' => [
-          'destination' => '/help/vendors',
+          'destination' => '/help/organisers',
         ],
       ], 302);
     }
-    return $this->buildViewPage((string) $this->t('Organiser help'), 'mel_help_vendor_help', 'block_vendors', TRUE);
+    return $this->redirect('myeventlane_help_centre.organisers_index', [], [], 301);
   }
 
   /**
