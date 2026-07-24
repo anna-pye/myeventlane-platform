@@ -1,6 +1,9 @@
 {#
   Payouts deep page (under Payments Hub).
   Variables: summary, history, health, empty, stripe_manage_url.
+
+  `history` is recent completed Commerce ticket orders, not Stripe payout records.
+  Bank payout status is summarised in Payout balances (Last payout).
 #}
 {% set health = health|default({}) %}
 
@@ -71,7 +74,7 @@
 
 <div class="mel-card">
   <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Payout history'|t }}</div>
+    <div class="mel-card__title">{{ 'Recent transactions'|t }}</div>
   </div>
   <div class="mel-table">
     <div class="mel-table__head">
@@ -90,8 +93,8 @@
         </div>
       {% else %}
         <div class="mel-table__empty" role="status">
-          <p><strong>{{ 'No payouts yet.'|t }}</strong></p>
-          <p>{{ "We'll show your first payout once ticket sales begin."|t }}</p>
+          <p><strong>{{ 'No recent transactions listed.'|t }}</strong></p>
+          <p>{{ 'This list shows recent completed ticket orders. Bank transfers appear under Last payout above.'|t }}</p>
         </div>
       {% endfor %}
     </div>
