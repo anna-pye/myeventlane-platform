@@ -323,6 +323,30 @@ final class MetricsAggregator {
   }
 
   /**
+   * Returns whether Boost is currently active for one event (lightweight pulse).
+   *
+   * Prefer this over getEventOverview() when only the active flag is needed.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return bool
+   *   TRUE when Boost is active (FALSE for unpublished / errors).
+   */
+  public function isBoostActive(NodeInterface $event): bool {
+    if (!$event->isPublished()) {
+      return FALSE;
+    }
+    try {
+      $status = $this->boostStatusService->getBoostStatusesForEvent($event);
+      return !empty($status['active']);
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
+  }
+
+  /**
    * Returns checked-in attendee count for one event (lightweight pulse helper).
    *
    * Prefer this over getEventOverview() when only door check-ins are needed.

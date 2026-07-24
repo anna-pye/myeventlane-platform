@@ -108,9 +108,12 @@ final class VendorAnalyticsViewModelBuilder {
       'load_failed' => FALSE,
     ];
     $eventsLoadFailed = FALSE;
-    $checkinsCatalogueTotal = 0;
+    $cataloguePulse = [
+      'checkins_total' => 0,
+      'boosts_active' => 0,
+    ];
     try {
-      [$events, $readinessSignals, $checkinsCatalogueTotal] = $this->buildEventRows($uid, $account);
+      [$events, $readinessSignals, $cataloguePulse] = $this->buildEventRows($uid, $account);
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_analytics')->warning('Vendor analytics event rows failed for uid @uid: @message', [
@@ -120,7 +123,7 @@ final class VendorAnalyticsViewModelBuilder {
       $events = [];
       $eventsLoadFailed = TRUE;
       $readinessSignals['load_failed'] = TRUE;
-      $checkinsCatalogueTotal = NULL;
+      $cataloguePulse = NULL;
     }
 
     $refundPending = $this->countPendingRefunds();
@@ -128,7 +131,7 @@ final class VendorAnalyticsViewModelBuilder {
     $launchReadiness = $this->buildLaunchReadiness($readinessSignals, $paymentHealth, $refundPending);
     $businessHealth = $this->buildBusinessHealth($kpis, $events, $refundPending, $launchReadiness);
     $nextAction = $this->buildNextAction($launchReadiness, $businessHealth, $events, $account);
-    $sections = $this->buildSections($kpis, $events, $refundPending, $isPro, $checkinsCatalogueTotal);
+    $sections = $this->buildSections($kpis, $events, $refundPending, $isPro, $cataloguePulse);
     $recentActivity = $this->buildRecentActivity($events);
     $pro = $this->buildProDepth($isPro, $account);
 
@@ -591,14 +594,14 @@ final class VendorAnalyticsViewModelBuilder {
    *   Pending refund count.
    * @param bool $isPro
    *   Whether the organiser has Pro.
-   * @param int|null $checkinsCatalogueTotal
-   *   Catalogue-wide checked-in total (all managed events). NULL when unavailable
+   * @param array{checkins_total?: int, boosts_active?: int}|null $cataloguePulse
+   *   Catalogue-wide pulse totals (all managed events). NULL when unavailable
    *   (e.g. event rows failed to load).
    *
    * @return list<array<string, mixed>>
    *   Section cards.
    */
-  private function buildSections(array $kpis, array $events, int $refundPending, bool $isPro, ?int $checkinsCatalogueTotal = NULL): array {
+  private function buildSections(array $kpis, array $events, int $refundPending, bool $isPro, ?array $cataloguePulse = NULL): array {
     $byKey = [];
     foreach ($kpis as $kpi) {
       $byKey[(string) ($kpi['key'] ?? '')] = $kpi;
@@ -612,16 +615,19 @@ final class VendorAnalyticsViewModelBuilder {
       $checkinsTotal += (int) ($row['checkins_raw'] ?? 0);
       $attendanceTotal += (int) ($row['attendance_raw'] ?? 0);
     }
-    // Hub Check-ins must cover every managed event, not only DETAIL_ENRICH_LIMIT rows.
-    if ($checkinsCatalogueTotal !== NULL) {
-      $checkinsTotal = $checkinsCatalogueTotal;
-    }
 
     $boostActive = 0;
     foreach ($events as $row) {
       if (!empty($row['boost_active'])) {
         $boostActive++;
       }
+    }
+
+    // Hub Check-ins / Active Boosts must cover every managed event, not only
+    // DETAIL_ENRICH_LIMIT rows from enrichTopEventRows().
+    if ($cataloguePulse !== NULL) {
+      $checkinsTotal = (int) ($cataloguePulse['checkins_total'] ?? $checkinsTotal);
+      $boostActive = (int) ($cataloguePulse['boosts_active'] ?? $boostActive);
     }
 
     $sections = [
@@ -822,9 +828,9 @@ final class VendorAnalyticsViewModelBuilder {
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current organiser account.
    *
-   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int, load_failed?: bool}, 2: int}
+   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int, load_failed?: bool}, 2: array{checkins_total: int, boosts_active: int}}
    *   Capped intelligence rows, full-catalogue readiness signals, and
-   *   catalogue-wide checked-in total.
+   *   catalogue-wide Attendance / Marketing pulse totals.
    */
   private function buildEventRows(int $uid, AccountInterface $account): array {
     $emptySignals = [
@@ -834,10 +840,14 @@ final class VendorAnalyticsViewModelBuilder {
       'event_count' => 0,
       'load_failed' => FALSE,
     ];
+    $emptyPulse = [
+      'checkins_total' => 0,
+      'boosts_active' => 0,
+    ];
 
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
     if ($ids === []) {
-      return [[], $emptySignals, 0];
+      return [[], $emptySignals, $emptyPulse];
     }
 
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($ids);
@@ -854,7 +864,10 @@ final class VendorAnalyticsViewModelBuilder {
     }
 
     $signals = $this->summariseReadinessSignals($rows);
-    $checkinsCatalogueTotal = $this->sumCatalogueCheckIns($eventNodes);
+    $cataloguePulse = [
+      'checkins_total' => $this->sumCatalogueCheckIns($eventNodes),
+      'boosts_active' => $this->countCatalogueActiveBoosts($eventNodes),
+    ];
 
     usort($rows, static function (array $a, array $b): int {
       $scoreA = (int) ($a['_sort_tickets'] ?? 0) + (int) ($a['_sort_rsvps'] ?? 0);
@@ -873,7 +886,7 @@ final class VendorAnalyticsViewModelBuilder {
     }
     unset($row);
 
-    return [$rows, $signals, $checkinsCatalogueTotal];
+    return [$rows, $signals, $cataloguePulse];
   }
 
   /**
@@ -896,6 +909,35 @@ final class VendorAnalyticsViewModelBuilder {
       }
       catch (\Throwable $e) {
         $this->loggerFactory->get('myeventlane_analytics')->warning('Check-in total failed for nid @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+    return $total;
+  }
+
+  /**
+   * Counts events with an active Boost across the full catalogue.
+   *
+   * Hub Marketing Active Boosts must not rely on DETAIL_ENRICH_LIMIT rows.
+   *
+   * @param list<\Drupal\node\NodeInterface> $eventNodes
+   *   All managed event nodes.
+   *
+   * @return int
+   *   Number of events with Boost currently active.
+   */
+  private function countCatalogueActiveBoosts(array $eventNodes): int {
+    $total = 0;
+    foreach ($eventNodes as $node) {
+      try {
+        if ($this->metricsAggregator->isBoostActive($node)) {
+          $total++;
+        }
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('myeventlane_analytics')->warning('Active Boost count failed for nid @nid: @message', [
           '@nid' => (string) $node->id(),
           '@message' => $e->getMessage(),
         ]);
@@ -940,8 +982,8 @@ final class VendorAnalyticsViewModelBuilder {
   /**
    * Enriches the strongest events with check-in / capacity / boost labels.
    *
-   * Hub Attendance Check-ins use sumCatalogueCheckIns() across all managed
-   * events — this enrich is display-only for top sales-ranked rows.
+   * Hub Attendance Check-ins and Marketing Active Boosts use catalogue-wide
+   * pulse totals — this enrich is display-only for top sales-ranked rows.
    *
    * @param list<array<string, mixed>> $rows
    *   Event rows (modified in place).
