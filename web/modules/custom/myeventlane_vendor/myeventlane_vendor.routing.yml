@@ -623,6 +623,14 @@ myeventlane_vendor.console.event_publish:
         bundle:
           - event
 
+myeventlane_vendor.console.payments:
+  path: '/vendor/payments'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_payments_hub:hub'
+    _title: 'Payments'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+
 myeventlane_vendor.console.payouts:
   path: '/vendor/payouts'
   defaults:

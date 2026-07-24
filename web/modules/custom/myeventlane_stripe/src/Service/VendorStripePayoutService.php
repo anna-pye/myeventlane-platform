@@ -119,6 +119,96 @@ final class VendorStripePayoutService {
    * page load to avoid repeated Stripe calls.
    */
   public function getAvailableBalanceFormatted(StoreInterface $store): string {
+    return $this->formatAudBalanceBucket($store, 'available');
+  }
+
+  /**
+   * Gets pending Stripe balance formatted as currency.
+   */
+  public function getPendingBalanceFormatted(StoreInterface $store): string {
+    return $this->formatAudBalanceBucket($store, 'pending');
+  }
+
+  /**
+   * Returns the most recent payout summary (any age), or NULL.
+   *
+   * @return array{amount: string, currency: string, date_label: string, status: string}|null
+   *   Latest payout summary, or NULL when unavailable.
+   */
+  public function getLatestPayoutSummary(StoreInterface $store): ?array {
+    $accountId = $this->getStripeAccountId($store);
+    if ($accountId === '') {
+      return NULL;
+    }
+
+    $secret = $this->resolveStripeSecretKey();
+    if ($secret === '' || !class_exists(StripeClient::class)) {
+      return NULL;
+    }
+
+    try {
+      $client = new StripeClient($secret);
+      $list = $client->payouts->all(
+        ['limit' => 1],
+        ['stripe_account' => $accountId]
+      );
+      if ($list->count() === 0) {
+        return NULL;
+      }
+
+      $payout = $list->data[0];
+      $currency = strtolower((string) ($payout->currency ?? 'aud'));
+      $minor = (int) ($payout->amount ?? 0);
+      $divisor = in_array($currency, self::ZERO_DECIMAL, TRUE) ? 1 : 100;
+      $decimals = in_array($currency, self::ZERO_DECIMAL, TRUE) ? 0 : 2;
+      $amount = number_format($minor / $divisor, $decimals);
+      $ts = (int) ($payout->arrival_date ?? $payout->created ?? 0);
+      $dateLabel = $ts > 0 ? date('j M Y', $ts) : '';
+      $statusRaw = (string) ($payout->status ?? 'pending');
+      $status = match ($statusRaw) {
+        'paid' => 'Paid',
+        'pending' => 'Pending',
+        'in_transit' => 'In transit',
+        'canceled', 'cancelled' => 'Cancelled',
+        'failed' => 'Failed',
+        default => ucfirst($statusRaw),
+      };
+
+      return [
+        'amount' => '$' . $amount,
+        'currency' => strtoupper($currency),
+        'date_label' => $dateLabel,
+        'status' => $status,
+      ];
+    }
+    catch (ApiErrorException $e) {
+      $this->logger->error('Stripe API error in getLatestPayoutSummary for store @id: @m', [
+        '@id' => $store->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Unexpected error in getLatestPayoutSummary for store @id: @m', [
+        '@id' => $store->id(),
+        '@m' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+  }
+
+  /**
+   * Formats an AUD balance bucket from the Stripe Balance object.
+   *
+   * @param \Drupal\commerce_store\Entity\StoreInterface $store
+   *   Commerce store with Stripe account id.
+   * @param string $bucket
+   *   Either "available" or "pending".
+   *
+   * @return string
+   *   Formatted AUD amount.
+   */
+  private function formatAudBalanceBucket(StoreInterface $store, string $bucket): string {
     $accountId = $this->getStripeAccountId($store);
     if ($accountId === '') {
       return '$0.00';
@@ -136,15 +226,18 @@ final class VendorStripePayoutService {
     try {
       $client = new StripeClient($secret);
       $balance = $client->balance->retrieve([], ['stripe_account' => $accountId]);
+      $entries = $bucket === 'pending'
+        ? ($balance->pending ?? [])
+        : ($balance->available ?? []);
 
-      $availableTotal = 0;
-      foreach ($balance->available ?? [] as $entry) {
+      $total = 0;
+      foreach ($entries as $entry) {
         if (strtolower((string) ($entry->currency ?? '')) === 'aud') {
-          $availableTotal += (int) ($entry->amount ?? 0);
+          $total += (int) ($entry->amount ?? 0);
         }
       }
 
-      return '$' . number_format($availableTotal / 100, 2);
+      return '$' . number_format($total / 100, 2);
     }
     catch (ApiErrorException $e) {
       $this->logger->error('Stripe balance fetch failed for store @id: @m', [

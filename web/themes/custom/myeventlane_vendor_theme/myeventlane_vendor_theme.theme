@@ -1462,8 +1462,16 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'summary' => [],
         'history' => [],
         'stripe_manage_url' => NULL,
+        'health' => [],
+        'empty' => FALSE,
       ],
-      'template' => 'vendor/payouts',
+      'template' => 'payouts',
+    ],
+    'myeventlane_vendor_payments_hub' => [
+      'variables' => [
+        'hub' => [],
+      ],
+      'template' => 'payments-hub',
     ],
     'myeventlane_vendor_boost' => [
       'variables' => [
