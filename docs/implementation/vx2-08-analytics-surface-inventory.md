@@ -53,7 +53,7 @@
 | Stripe connected | `VendorPaymentsHealthService` |
 | Messages ready | Vendor `field_msg_from_name` or vendor name |
 | Door Mode ready | Tickets/RSVP present (Door Mode entry exists) |
-| Refunds awaiting | Escalations refunds metrics (when module present) |
+| Refunds awaiting | Escalations refunds metrics (when module present) — same pending formula + `vendor_summary_window_days` as Payments hub |
 | Publishing issues | Draft event count |
 
 ## Missing collectors (document only — do not invent)

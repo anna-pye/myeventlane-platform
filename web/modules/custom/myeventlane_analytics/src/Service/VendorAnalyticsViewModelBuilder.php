@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_analytics\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\AccessManagerInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -58,6 +59,7 @@ final class VendorAnalyticsViewModelBuilder {
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly VendorPaymentsHealthService $paymentsHealth,
     private readonly CurrentVendorResolverInterface $vendorResolver,
+    private readonly ConfigFactoryInterface $configFactory,
     private readonly ?object $vendorProState = NULL,
     private readonly ?object $refundsRepository = NULL,
     private readonly ?object $refundsMetrics = NULL,
@@ -1063,7 +1065,10 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
-   * Counts refund requests awaiting organiser review.
+   * Counts in-flight refunds awaiting organiser / Stripe action.
+   *
+   * Matches VendorPaymentsHubBuilder::buildRefundsSection() so Analytics and
+   * Payments agree on pending volume and summary window.
    *
    * @return int
    *   Pending refund count.
@@ -1081,10 +1086,19 @@ final class VendorAnalyticsViewModelBuilder {
       if (!$owner) {
         return 0;
       }
-      $data = $this->refundsRepository->findVendorSummary((int) $owner->id(), 90);
+      $windowDays = $this->resolveRefundSummaryWindowDays();
+      $data = $this->refundsRepository->findVendorSummary((int) $owner->id(), $windowDays);
       $metrics = $this->refundsMetrics->calculateForVendor($data['logs'] ?? [], $data['requests'] ?? []);
       $byRequest = $metrics['requests_by_status'] ?? [];
-      return (int) ($byRequest['requested'] ?? 0) + (int) ($byRequest['pending'] ?? 0);
+      $byLog = $metrics['logs_by_status'] ?? [];
+      // Buyer requests default to "requested" (awaiting organiser action).
+      // "approved" means still in flight until Stripe completes.
+      return (int) (
+        ($byRequest['requested'] ?? 0)
+        + ($byRequest['pending'] ?? 0)
+        + ($byRequest['approved'] ?? 0)
+        + ($byLog['pending'] ?? 0)
+      );
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_analytics')->warning('Analytics pending refunds failed: @message', [
@@ -1092,6 +1106,19 @@ final class VendorAnalyticsViewModelBuilder {
       ]);
       return 0;
     }
+  }
+
+  /**
+   * Resolves the refund summary window used by Payments hub / refund activity.
+   *
+   * @return int
+   *   Positive window days (defaults to 90).
+   */
+  private function resolveRefundSummaryWindowDays(): int {
+    $days = (int) ($this->configFactory
+      ->get('myeventlane_escalations_refunds.settings')
+      ->get('vendor_summary_window_days') ?? 90);
+    return $days > 0 ? $days : 90;
   }
 
   /**

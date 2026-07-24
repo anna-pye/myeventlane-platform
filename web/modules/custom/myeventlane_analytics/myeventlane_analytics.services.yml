@@ -42,6 +42,7 @@ services:
       - '@logger.factory'
       - '@myeventlane_vendor.payments_health'
       - '@myeventlane_vendor.current_vendor_resolver'
+      - '@config.factory'
       - '@?myeventlane_pro.vendor_pro_state'
       - '@?myeventlane_escalations_refunds.repository'
       - '@?myeventlane_escalations_refunds.metrics'

@@ -8,13 +8,15 @@ myeventlane_reporting.vendor_insights:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
 # Event Insights → Event Workspace Analytics.
+# Keep event workspace parity access (deny before redirect) — never 302 into a
+# Studio Analytics URL the organiser cannot open.
 myeventlane_reporting.event_insights.overview:
   path: '/vendor/events/{event}/insights'
   defaults:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Event analytics'
   requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _custom_access: 'myeventlane_reporting.event_insights:access'
     event: \d+
   options:
     parameters:
@@ -29,7 +31,7 @@ myeventlane_reporting.event_insights.sales:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Sales analytics'
   requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _custom_access: 'myeventlane_reporting.event_insights:access'
     event: \d+
   options:
     parameters:
@@ -44,7 +46,7 @@ myeventlane_reporting.event_insights.attendees:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Attendee analytics'
   requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _custom_access: 'myeventlane_reporting.event_insights:access'
     event: \d+
   options:
     parameters:
@@ -59,7 +61,7 @@ myeventlane_reporting.event_insights.checkins:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Check-in analytics'
   requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _custom_access: 'myeventlane_reporting.event_insights:access'
     event: \d+
   options:
     parameters:
@@ -74,7 +76,7 @@ myeventlane_reporting.event_insights.traffic:
     _controller: '\Drupal\myeventlane_analytics\Controller\AnalyticsConvergenceRedirectController::eventInsights'
     _title: 'Traffic analytics'
   requirements:
-    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    _custom_access: 'myeventlane_reporting.event_insights:access'
     event: \d+
   options:
     parameters:
