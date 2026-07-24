@@ -77,6 +77,7 @@ See `docs/implementation/vx2-06-messages-surface-inventory.md`.
 - Global hub history requires a non-empty managed-event ID list (empty picker → empty History/KPIs).
 - RSVP-only audience excludes emails that also purchased tickets (`AttendeeRecipientResolver::resolveRsvpEmails`).
 - Compose **Recent messages** status labels align with hub (Failed / Needs attention when `failed_count` or zero deliveries).
+- Global hub History/KPIs scope by managed event IDs only (not sender `vendor_uid`), so teammate sends on shared events appear.
 
 ## Remaining roadmap
 

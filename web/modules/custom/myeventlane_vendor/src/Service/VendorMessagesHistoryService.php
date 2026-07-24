@@ -42,13 +42,23 @@ final class VendorMessagesHistoryService {
   }
 
   /**
-   * Loads recent messages for a vendor across managed events.
+   * Loads recent messages across an organiser's managed events.
+   *
+   * Scopes by event_id only. Log `vendor_uid` is the sending account, not a
+   * vendor-team key — filtering on it hides teammate sends from shared events.
+   *
+   * @param int $viewerUid
+   *   Signed-in organiser UID (logging / audit context only).
+   * @param list<int> $eventIds
+   *   Managed event node IDs for this organiser.
+   * @param int $limit
+   *   Max rows.
    *
    * @return list<array<string, mixed>>
    *   Timeline rows.
    */
-  public function loadForVendor(int $vendorUid, array $eventIds, int $limit = 12): array {
-    if (!$this->isAvailable() || $vendorUid <= 0) {
+  public function loadForVendor(int $viewerUid, array $eventIds, int $limit = 12): array {
+    if (!$this->isAvailable()) {
       return [];
     }
 
@@ -71,7 +81,6 @@ final class VendorMessagesHistoryService {
           'status',
           'sent_at',
         ])
-        ->condition('vendor_uid', $vendorUid)
         ->condition('event_id', $eventIds, 'IN')
         ->orderBy('sent_at', 'DESC')
         ->range(0, $limit);
@@ -79,8 +88,8 @@ final class VendorMessagesHistoryService {
       $rows = $query->execute()->fetchAll();
     }
     catch (\Throwable $e) {
-      $this->logger->error('Messages history load failed for vendor @uid: @m', [
-        '@uid' => (string) $vendorUid,
+      $this->logger->error('Messages history load failed for viewer @uid: @m', [
+        '@uid' => (string) $viewerUid,
         '@m' => $e->getMessage(),
       ]);
       return [];
