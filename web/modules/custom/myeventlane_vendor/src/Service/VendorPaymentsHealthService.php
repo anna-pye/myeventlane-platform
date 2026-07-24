@@ -105,12 +105,15 @@ final class VendorPaymentsHealthService {
     $base['charges_enabled'] = $charges;
     $base['payouts_enabled'] = $payouts;
     $base['last_verified_label'] = $lastVerified;
-    $base['secondary_cta_label'] = $manageUrl ? (string) $this->t('Open Stripe') : NULL;
-    $base['secondary_cta_url'] = $manageUrl;
 
+    // Open Stripe only after a Connect account exists; not-connected stays
+    // Connect-only so organisers are not offered a dead manage link.
     if (!$hasAccount) {
       return $base;
     }
+
+    $base['secondary_cta_label'] = $manageUrl ? (string) $this->t('Open Stripe') : NULL;
+    $base['secondary_cta_url'] = $manageUrl;
 
     if ($charges && $payouts) {
       return array_merge($base, [

@@ -35,6 +35,8 @@ final class VendorPaymentsHealthServiceTest extends UnitTestCase {
     $this->assertSame('not_connected', $health['state']);
     $this->assertTrue($health['needs_attention']);
     $this->assertStringContainsString('Connect Stripe', $health['headline']);
+    $this->assertNull($health['secondary_cta_url']);
+    $this->assertNull($health['secondary_cta_label']);
     $this->assertStringNotContainsString('Gateway', $health['headline']);
     $this->assertStringNotContainsString('Commerce', $health['summary']);
     $this->assertStringNotContainsString('Store', $health['summary']);
