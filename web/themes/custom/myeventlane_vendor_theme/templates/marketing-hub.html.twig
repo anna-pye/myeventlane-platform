@@ -1,0 +1,298 @@
+{#
+/**
+ * @file
+ * Organiser Marketing Hub — Event Growth Centre.
+ *
+ * Variables:
+ *   - hub: view model from VendorMarketingHubBuilder
+ */
+#}
+{% set health = hub.health|default({}) %}
+{% set share = hub.share|default({}) %}
+{% set boost = hub.boost|default({}) %}
+{% set widgets = hub.widgets|default({}) %}
+{% set social = hub.social|default({}) %}
+{% set audience = hub.audience|default({}) %}
+{% set performance = hub.performance|default({}) %}
+{% set actions = hub.actions|default({}) %}
+
+<div class="mel-marketing-hub" data-mel-marketing-hub data-mel-analytics-event="marketing_opened">
+
+  <nav class="mel-marketing-hub__jump" aria-label="{{ 'Marketing sections'|t }}">
+    <a class="mel-marketing-hub__jump-link" href="#marketing-health">{{ 'Marketing health'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#share">{{ 'Share'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#boost">{{ 'Boost'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#widgets">{{ 'Widgets'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#social">{{ 'Social'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#audience">{{ 'Audience'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#performance">{{ 'Performance'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#actions">{{ 'Next steps'|t }}</a>
+  </nav>
+
+  <section class="mel-marketing-hub__health mel-card mel-card--status mel-marketing-hub__health--{{ health.tone|default('muted') }}" id="marketing-health" aria-labelledby="mel-marketing-health-heading">
+    <div class="mel-marketing-hub__health-header">
+      <p class="mel-marketing-hub__eyebrow">{{ 'Marketing health'|t }}</p>
+      <h2 id="mel-marketing-health-heading" class="mel-marketing-hub__health-title">{{ health.headline }}</h2>
+      <p class="mel-marketing-hub__health-summary">{{ health.summary }}</p>
+    </div>
+    <div class="mel-marketing-hub__score" role="status" aria-label="{{ health.score_label|default('Marketing score'|t) }} {{ health.score|default(0) }} out of 100">
+      <span class="mel-marketing-hub__score-label">{{ health.score_label|default('Marketing score'|t) }}</span>
+      <span class="mel-marketing-hub__score-value">{{ health.score|default(0) }}</span>
+      <span class="mel-marketing-hub__score-max" aria-hidden="true">/100</span>
+    </div>
+    <dl class="mel-marketing-hub__facts">
+      {% for fact in health.facts|default([]) %}
+        <div class="mel-marketing-hub__fact">
+          <dt>{{ fact.label }}</dt>
+          <dd>{{ fact.value }}</dd>
+        </div>
+      {% endfor %}
+    </dl>
+    {% if health.next_step %}
+      <p class="mel-marketing-hub__muted"><strong>{{ 'Next step'|t }}:</strong> {{ health.next_step }}</p>
+    {% endif %}
+    <div class="mel-marketing-hub__actions">
+      {% if health.cta_url %}
+        <a class="mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="share" aria-labelledby="mel-marketing-share-heading">
+    <h2 id="mel-marketing-share-heading" class="mel-card__title">{{ share.title }}</h2>
+    <p class="mel-marketing-hub__muted">{{ share.body }}</p>
+
+    {% if share.events is empty %}
+      <div class="mel-empty-state" role="status">
+        <p class="mel-empty-state__title">{{ share.empty_title }}</p>
+        <p class="mel-empty-state__body">{{ share.empty_body }}</p>
+        {% if share.publish_url %}
+          <a class="mel-button mel-button--primary" href="{{ share.publish_url }}">{{ 'Go to events'|t }}</a>
+        {% endif %}
+      </div>
+    {% else %}
+      {% for event in share.events %}
+        <article class="mel-marketing-hub__share-card" data-mel-share-card data-public-url="{{ event.public_url }}">
+          <h3 class="mel-marketing-hub__share-title">{{ event.title }}</h3>
+          <p class="mel-marketing-hub__public-url">
+            <label class="visually-hidden" for="mel-share-url-{{ event.id }}">{{ 'Public event link'|t }}</label>
+            <input id="mel-share-url-{{ event.id }}" class="mel-marketing-hub__url-input" type="text" readonly value="{{ event.public_url }}" aria-describedby="mel-share-url-hint-{{ event.id }}">
+            <span id="mel-share-url-hint-{{ event.id }}" class="visually-hidden">{{ 'Select and copy, or use the Copy link button.'|t }}</span>
+          </p>
+
+          <div class="mel-marketing-hub__share-grid">
+            <div class="mel-marketing-hub__share-channels" role="group" aria-label="{{ 'Share @event'|t({'@event': event.title}) }}">
+              {% for channel in event.channels %}
+                {% if channel.action == 'copy' %}
+                  <button type="button"
+                    class="mel-button mel-button--secondary mel-marketing-hub__share-btn"
+                    data-mel-share-copy
+                    data-mel-analytics-event="{{ channel.analytics|default('share_link_copied') }}"
+                    data-share-channel="{{ channel.key }}"
+                    data-copy-url="{{ event.public_url }}">
+                    {{ channel.label }}
+                  </button>
+                {% elseif channel.action == 'widgets' and event.widgets_url %}
+                  <a class="mel-button mel-button--secondary mel-marketing-hub__share-btn"
+                    href="{{ event.widgets_url }}"
+                    data-mel-analytics-event="{{ channel.analytics|default('widget_copied') }}">{{ channel.label }}</a>
+                {% elseif channel.url %}
+                  <a class="mel-button mel-button--secondary mel-marketing-hub__share-btn"
+                    href="{{ channel.url }}"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    data-mel-analytics-event="{{ channel.analytics|default('share_channel_selected') }}"
+                    data-share-channel="{{ channel.key }}">{{ channel.label }}</a>
+                {% endif %}
+                {% if channel.hint %}
+                  <p class="mel-marketing-hub__channel-hint">{{ channel.hint }}</p>
+                {% endif %}
+              {% endfor %}
+              {% if event.view_url %}
+                <a class="mel-marketing-hub__link" href="{{ event.view_url }}" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
+              {% endif %}
+              {% if event.marketing_url %}
+                <a class="mel-marketing-hub__link" href="{{ event.marketing_url }}">{{ 'Event Marketing'|t }}</a>
+              {% endif %}
+            </div>
+
+            {% if event.qr_data_uri %}
+              <figure class="mel-marketing-hub__qr">
+                <img src="{{ event.qr_data_uri }}" width="180" height="180" alt="{{ 'QR code for @title public page'|t({'@title': event.title}) }}">
+                <figcaption class="mel-marketing-hub__muted">{{ 'Scan to open the public event page'|t }}</figcaption>
+              </figure>
+            {% else %}
+              <p class="mel-marketing-hub__muted" role="status">{{ 'QR code will appear here when available.'|t }}</p>
+            {% endif %}
+          </div>
+          <p class="mel-marketing-hub__copy-status" data-mel-copy-status role="status" aria-live="polite"></p>
+        </article>
+      {% endfor %}
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="boost" aria-labelledby="mel-marketing-boost-heading" data-mel-analytics-event="boost_started">
+    <p class="mel-marketing-hub__eyebrow">{{ boost.eyebrow }}</p>
+    <h2 id="mel-marketing-boost-heading" class="mel-card__title">{{ boost.title }}</h2>
+    {% if not boost.available %}
+      <p class="mel-marketing-hub__muted" role="status">{{ 'Boost is not available on this site yet.'|t }}</p>
+    {% else %}
+      <dl class="mel-marketing-hub__facts mel-marketing-hub__facts--grid">
+        <div class="mel-marketing-hub__fact">
+          <dt>{{ 'What it does'|t }}</dt>
+          <dd>{{ boost.what }}</dd>
+        </div>
+        <div class="mel-marketing-hub__fact">
+          <dt>{{ 'Who sees it'|t }}</dt>
+          <dd>{{ boost.who }}</dd>
+        </div>
+        <div class="mel-marketing-hub__fact">
+          <dt>{{ 'Expected outcome'|t }}</dt>
+          <dd>{{ boost.outcome }}</dd>
+        </div>
+      </dl>
+
+      <h3 class="mel-marketing-hub__subsection-title">{{ 'Current campaigns'|t }}</h3>
+      {% if boost.campaigns is empty %}
+        <div class="mel-empty-state" role="status">
+          <p class="mel-empty-state__title">{{ boost.empty_title }}</p>
+          <p class="mel-empty-state__body">{{ boost.empty_body }}</p>
+        </div>
+      {% else %}
+        <ul class="mel-marketing-hub__campaign-list">
+          {% for campaign in boost.campaigns %}
+            <li class="mel-marketing-hub__campaign-item">
+              <div>
+                <p class="mel-marketing-hub__campaign-title">{{ campaign.title }}</p>
+                <p class="mel-marketing-hub__muted">{{ campaign.status }}{% if campaign.ends %} · {{ 'Ends @date'|t({'@date': campaign.ends}) }}{% endif %}</p>
+              </div>
+              {% if campaign.url %}
+                <a class="mel-button mel-button--secondary" href="{{ campaign.url }}" data-mel-analytics-event="boost_started">{{ 'Manage Boost'|t }}</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if boost.eligible %}
+        <h3 class="mel-marketing-hub__subsection-title">{{ 'Eligible to Boost'|t }}</h3>
+        <ul class="mel-marketing-hub__campaign-list">
+          {% for item in boost.eligible %}
+            <li class="mel-marketing-hub__campaign-item">
+              <div>
+                <p class="mel-marketing-hub__campaign-title">{{ item.title }}</p>
+                {% if item.state %}<p class="mel-marketing-hub__muted">{{ item.state }}</p>{% endif %}
+              </div>
+              {% if item.url %}
+                <a class="mel-button mel-button--primary" href="{{ item.url }}" data-mel-analytics-event="boost_started">{{ item.cta_label }}</a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {% if boost.export_url %}
+        <a class="mel-marketing-hub__link" href="{{ boost.export_url }}">{{ 'Export Boost performance'|t }}</a>
+      {% endif %}
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="widgets" aria-labelledby="mel-marketing-widgets-heading">
+    <h2 id="mel-marketing-widgets-heading" class="mel-card__title">{{ widgets.title }}</h2>
+    <p class="mel-marketing-hub__muted">{{ widgets.body }}</p>
+    {% if widgets.events is empty %}
+      <div class="mel-empty-state" role="status">
+        <p class="mel-empty-state__title">{{ widgets.empty_title }}</p>
+        <p class="mel-empty-state__body">{{ widgets.empty_body }}</p>
+      </div>
+    {% else %}
+      <ul class="mel-marketing-hub__event-list">
+        {% for event in widgets.events %}
+          <li class="mel-marketing-hub__event-item">
+            <p class="mel-marketing-hub__event-title">{{ event.title }}</p>
+            <a class="mel-button mel-button--secondary" href="{{ event.url }}" data-mel-analytics-event="widget_copied">{{ 'Open widgets'|t }}</a>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="social" aria-labelledby="mel-marketing-social-heading">
+    <h2 id="mel-marketing-social-heading" class="mel-card__title">{{ social.title }}</h2>
+    <p class="mel-marketing-hub__muted">{{ social.body }}</p>
+    <p class="mel-marketing-hub__muted" role="status">{{ social.ready_label }}</p>
+    <ul class="mel-marketing-hub__channel-list" aria-label="{{ 'Supported share channels'|t }}">
+      {% for channel in social.channels|default([]) %}
+        <li>{{ channel.label }}</li>
+      {% endfor %}
+    </ul>
+    {% if social.settings_url %}
+      <a class="mel-button mel-button--secondary" href="{{ social.settings_url }}">{{ 'Edit social links'|t }}</a>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="audience" aria-labelledby="mel-marketing-audience-heading">
+    <h2 id="mel-marketing-audience-heading" class="mel-card__title">{{ audience.title }}</h2>
+    <p class="mel-marketing-hub__muted">{{ audience.body }}</p>
+    <ul class="mel-marketing-hub__tips">
+      {% for tip in audience.tips|default([]) %}
+        <li>{{ tip }}</li>
+      {% endfor %}
+    </ul>
+    {% if audience.cta_url %}
+      <a class="mel-button mel-button--secondary" href="{{ audience.cta_url }}">{{ audience.cta_label }}</a>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="performance" aria-labelledby="mel-marketing-performance-heading">
+    <div class="mel-card__header mel-marketing-hub__section-header">
+      <h2 id="mel-marketing-performance-heading" class="mel-card__title">{{ performance.title }}</h2>
+      {% if performance.analytics_url %}
+        <a class="mel-marketing-hub__link" href="{{ performance.analytics_url }}">{{ performance.analytics_label }}</a>
+      {% endif %}
+    </div>
+    <p class="mel-marketing-hub__muted">{{ performance.body }}</p>
+    <div class="mel-marketing-hub__kpi-row" role="list">
+      {% for metric in performance.metrics|default([]) %}
+        <div class="mel-marketing-hub__kpi" role="listitem">
+          <span class="mel-marketing-hub__kpi-label">{{ metric.label }}</span>
+          <span class="mel-marketing-hub__kpi-value" aria-label="{{ metric.label }} {{ metric.value }}">{{ metric.value }}</span>
+          {% if metric.hint %}
+            <span class="mel-marketing-hub__kpi-hint">{{ metric.hint }}</span>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+    {% if performance.unavailable %}
+      <div class="mel-marketing-hub__callout" role="note">
+        <p class="mel-marketing-hub__callout-title">{{ performance.unavailable.title }}</p>
+        <ul>
+          {% for item in performance.unavailable.items %}
+            <li>{{ item }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% endif %}
+    {% if performance.export_url %}
+      <a class="mel-marketing-hub__link" href="{{ performance.export_url }}">{{ performance.export_label }}</a>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-marketing-hub__section" id="actions" aria-labelledby="mel-marketing-actions-heading">
+    <h2 id="mel-marketing-actions-heading" class="mel-card__title">{{ actions.title }}</h2>
+    <ul class="mel-marketing-hub__actions-list">
+      {% for item in actions.items|default([]) %}
+        <li class="mel-marketing-hub__action-item">
+          <div>
+            <p class="mel-marketing-hub__action-title">{{ item.title }}</p>
+            <p class="mel-marketing-hub__muted">{{ item.body }}</p>
+          </div>
+          {% if item.cta_url %}
+            <a class="mel-button mel-button--secondary" href="{{ item.cta_url }}"{% if item.analytics %} data-mel-analytics-event="{{ item.analytics }}"{% endif %}>{{ item.cta_label }}</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </section>
+
+</div>

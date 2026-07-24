@@ -1479,6 +1479,12 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
       ],
       'template' => 'messages-hub',
     ],
+    'myeventlane_vendor_marketing_hub' => [
+      'variables' => [
+        'hub' => [],
+      ],
+      'template' => 'marketing-hub',
+    ],
     'myeventlane_vendor_event_messages_panel' => [
       'variables' => [
         'panel' => [],

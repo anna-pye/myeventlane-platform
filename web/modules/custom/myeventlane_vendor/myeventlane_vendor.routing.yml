@@ -647,10 +647,19 @@ myeventlane_vendor.console.payouts:
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
+myeventlane_vendor.console.marketing:
+  path: '/vendor/marketing'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_marketing_hub:hub'
+    _title: 'Marketing'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+
+# Legacy Boost hub — redirects into Marketing · Boost (VX2-09).
 myeventlane_vendor.console.boost:
   path: '/vendor/boost'
   defaults:
-    _controller: 'myeventlane_vendor.controller.vendor_boost:boost'
+    _controller: 'myeventlane_vendor.controller.vendor_marketing_hub:redirectBoost'
     _title: 'Boost'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'

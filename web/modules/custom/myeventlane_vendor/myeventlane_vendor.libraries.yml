@@ -129,3 +129,11 @@ event_ticket_manager:
     - core/drupal
     - core/once
 
+marketing_hub:
+  version: 1.x
+  js:
+    js/marketing-hub.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
