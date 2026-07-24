@@ -146,6 +146,11 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
         '#health' => $health,
         '#empty' => $history === [] && ($available === '$0.00') && ($pending === '$0.00'),
       ],
+      // Stripe balances/payouts are live API reads — do not page-cache KPIs.
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'max-age' => 0,
+      ],
     ]);
   }
 
