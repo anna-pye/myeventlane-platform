@@ -9,7 +9,7 @@
 - Organiser **Marketing** hub at `/vendor/marketing` (Event Growth Centre)
 - Sections: Marketing Health · Share Event · Boost · Widgets & Embeds · Social Media · Audience Growth · Marketing Performance · Recommended Actions
 - Shell nav **Marketing** points at the hub (was `/vendor/boost`)
-- `/vendor/boost` redirects to `/vendor/marketing#boost`
+- `/vendor/boost` redirects to `/vendor/marketing?section=boost` (JS scrolls to Boost; fragments are not used on Location)
 - Event Workspace Marketing deepened (share channels, widgets, Boost, Marketing home link)
 - Overview / next-action “Promote” → **Open Marketing** / **Share**
 - Analytics “Open Marketing” CTA → Marketing hub
@@ -30,7 +30,7 @@
 Convergence redirects:
 
 ```text
-/vendor/boost                        → /vendor/marketing#boost
+/vendor/boost                        → /vendor/marketing?section=boost (#boost via JS)
 /vendor/event/{id}/promote           → /vendor/events/{id}/studio/marketing
 ```
 
@@ -77,7 +77,7 @@ Do not invent new telemetry tables in this epic.
 - [ ] Boost eligible — Start Boost deep link
 - [ ] Active Boost — campaign status + end date
 - [ ] Widgets entry opens Tickets widgets
-- [ ] `/vendor/boost` redirects to `#boost`
+- [ ] `/vendor/boost` redirects to Marketing and scrolls to Boost
 - [ ] Analytics Open Marketing → hub
 - [ ] Desktop / tablet / 390px
 - [ ] Keyboard through jump → health → share → Boost

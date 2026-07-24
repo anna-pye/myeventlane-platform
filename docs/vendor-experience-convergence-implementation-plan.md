@@ -403,7 +403,7 @@ Promote/Grow/Boost synonym soup reduced to Marketing + Boost.
 **Done** on `feature/vx2-marketing` — see [`implementation/vx2-09-marketing-hub.md`](implementation/vx2-09-marketing-hub.md).
 
 - `/vendor/marketing` Event Growth Centre  
-- Shell Marketing → hub; `/vendor/boost` → `#boost`  
+- Shell Marketing → hub; `/vendor/boost` → `?section=boost` (scroll to Boost)  
 - Event Workspace Marketing deepened  
 - Residual “Promote” CTAs renamed to Share / Open Marketing  
 

@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
-use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -55,8 +54,7 @@ final class VendorMarketingHubBuilder {
     $eventIds = $this->ticketSales->getManagedEventNidsForUser($uid);
     $events = $this->loadManagedEvents($eventIds);
     $vendor = $this->vendorResolver->resolveFromCurrentUser();
-    $store = $this->resolveStore($vendor);
-    $boostPayload = $this->buildBoostPayload($store, $events);
+    $boostPayload = $this->buildBoostPayload($events);
     $shareEvents = $this->buildShareEvents($events);
     $primaryShare = $shareEvents[0] ?? NULL;
     $socialReady = $this->isSocialComplete($vendor);
@@ -348,15 +346,16 @@ final class VendorMarketingHubBuilder {
   /**
    * Builds Boost campaigns and eligible event lists.
    *
-   * @param \Drupal\commerce_store\Entity\StoreInterface|null $store
-   *   Vendor store if any.
+   * Uses the same managed-event catalogue as Share and Marketing health so
+   * published events never disappear from Boost rows on this hub.
+   *
    * @param list<\Drupal\node\NodeInterface> $events
-   *   Managed events fallback.
+   *   Managed events (same list as Share / health).
    *
    * @return array{campaigns: list<array<string, mixed>>, eligible: list<array<string, mixed>>, faq: array<string, mixed>}
    *   Boost section payload.
    */
-  private function buildBoostPayload(?StoreInterface $store, array $events): array {
+  private function buildBoostPayload(array $events): array {
     $campaigns = [];
     $eligible = [];
     $faq = [];
@@ -368,26 +367,7 @@ final class VendorMarketingHubBuilder {
       return ['campaigns' => [], 'eligible' => [], 'faq' => $faq];
     }
 
-    $nodes = $events;
-    if ($store !== NULL && method_exists($this->boostManager, 'getEventsForStore')) {
-      try {
-        $storeEvents = $this->boostManager->getEventsForStore($store, [
-          'published_only' => TRUE,
-          'access_check' => TRUE,
-          'limit' => 100,
-        ]);
-        if (is_array($storeEvents) && $storeEvents !== []) {
-          $nodes = $storeEvents;
-        }
-      }
-      catch (\Throwable $e) {
-        $this->logger->warning('Marketing hub could not load Boost store events: @message', [
-          '@message' => $e->getMessage(),
-        ]);
-      }
-    }
-
-    foreach ($nodes as $event) {
+    foreach ($events as $event) {
       if (!$event instanceof NodeInterface || !$event->isPublished()) {
         continue;
       }
@@ -646,33 +626,6 @@ final class VendorMarketingHubBuilder {
       return FALSE;
     }
     return !$vendor->get('field_social_links')->isEmpty();
-  }
-
-  /**
-   * Resolves the Commerce store for Boost listings when available.
-   */
-  private function resolveStore(?Vendor $vendor): ?StoreInterface {
-    if ($vendor && $vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-      $store = $vendor->get('field_vendor_store')->entity;
-      if ($store instanceof StoreInterface) {
-        return $store;
-      }
-    }
-
-    $uid = (int) $this->currentUser->id();
-    if ($uid === 0) {
-      return NULL;
-    }
-    $ids = $this->entityTypeManager->getStorage('commerce_store')->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('uid', $uid)
-      ->range(0, 1)
-      ->execute();
-    if ($ids === []) {
-      return NULL;
-    }
-    $store = $this->entityTypeManager->getStorage('commerce_store')->load(reset($ids));
-    return $store instanceof StoreInterface ? $store : NULL;
   }
 
   /**

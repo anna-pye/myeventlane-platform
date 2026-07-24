@@ -23,7 +23,7 @@
 | Surface | Path | Disposition | Notes |
 | --- | --- | --- | --- |
 | Marketing hub (new) | `/vendor/marketing` | **CREATE** | Event Growth Centre |
-| Boost campaigns page | `/vendor/boost` | **REDIRECT** → `/vendor/marketing#boost` | Content merged into hub Boost section |
+| Boost campaigns page | `/vendor/boost` | **REDIRECT** → `/vendor/marketing?section=boost` | Content merged into hub Boost section; JS scrolls to `#boost` |
 | Audience | `/vendor/audience` | **MERGE** entry | Deep page kept; Marketing · Audience Growth CTA |
 | Boost vendor export | `/vendor/dashboard/boost/export` | **KEEP** | Linked from Marketing Performance |
 | Growth CTA / dismiss | `/vendor/growth/*` | **KEEP** | Infra; guidance surfaces under Marketing |

@@ -64,6 +64,29 @@
 
   Drupal.behaviors.melMarketingHub = {
     attach(context) {
+      once('mel-marketing-hub-section', '[data-mel-marketing-hub]', context).forEach(function (hub) {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('section') !== 'boost') {
+          return;
+        }
+        const target = document.getElementById('boost');
+        if (!target) {
+          return;
+        }
+        const reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        target.scrollIntoView({
+          behavior: reduceMotion ? 'auto' : 'smooth',
+          block: 'start',
+        });
+        if (!target.hasAttribute('tabindex')) {
+          target.setAttribute('tabindex', '-1');
+        }
+        target.focus({ preventScroll: true });
+        if (window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', window.location.pathname + '#boost');
+        }
+      });
+
       once('mel-marketing-hub-copy', '[data-mel-share-copy]', context).forEach(function (button) {
         button.addEventListener('click', function () {
           const url = button.getAttribute('data-copy-url') || '';

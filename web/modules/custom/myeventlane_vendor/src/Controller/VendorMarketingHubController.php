@@ -64,19 +64,25 @@ final class VendorMarketingHubController extends VendorConsoleBaseController imp
           ],
         ],
       ],
+      // Booking / Boost / share data are live reads — do not page-cache KPIs.
       '#cache' => [
         'contexts' => ['user', 'user.permissions'],
-        'max-age' => 60,
+        'max-age' => 0,
       ],
     ]);
   }
 
   /**
    * Redirects legacy /vendor/boost into the Marketing hub Boost section.
+   *
+   * Uses a query param (not a Location fragment). HTTP clients ignore fragments
+   * on redirect targets; JS scrolls to #boost when section=boost is present.
    */
   public function redirectBoost(): RedirectResponse {
     return new RedirectResponse(
-      Url::fromRoute('myeventlane_vendor.console.marketing')->toString() . '#boost',
+      Url::fromRoute('myeventlane_vendor.console.marketing', [], [
+        'query' => ['section' => 'boost'],
+      ])->toString(),
       302,
     );
   }
