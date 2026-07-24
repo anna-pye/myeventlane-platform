@@ -81,7 +81,8 @@ final class AttendeeRecipientResolver {
   /**
    * Resolves unique emails from confirmed RSVP submissions only.
    *
-   * Does not include ticket purchasers.
+   * Excludes addresses that also appear on completed/placed/fulfilled
+   * Commerce orders for this event (ticket purchasers).
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -90,11 +91,24 @@ final class AttendeeRecipientResolver {
    *   Unique validated email addresses.
    */
   public function resolveRsvpEmails(NodeInterface $event): array {
-    $emails = [];
-    foreach ($this->getRsvpEmails((int) $event->id()) as $email) {
+    $eventId = (int) $event->id();
+    $ticketEmails = [];
+    foreach ($this->getOrderEmails($eventId) as $email) {
       if ($this->isValidEmail($email)) {
-        $emails[strtolower($email)] = $email;
+        $ticketEmails[strtolower($email)] = TRUE;
       }
+    }
+
+    $emails = [];
+    foreach ($this->getRsvpEmails($eventId) as $email) {
+      if (!$this->isValidEmail($email)) {
+        continue;
+      }
+      $key = strtolower($email);
+      if (isset($ticketEmails[$key])) {
+        continue;
+      }
+      $emails[$key] = $email;
     }
     return array_values($emails);
   }

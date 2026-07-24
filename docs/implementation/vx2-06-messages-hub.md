@@ -75,6 +75,8 @@ See `docs/implementation/vx2-06-messages-surface-inventory.md`.
 - History KPIs: `failed_count > 0` counts as Failed / Needs attention even when the worker stored `status=completed`; total queue failure now stores `failed`.
 - Zero-delivery jobs (no recipients / `sent_count=0`) are Failed, not Sent; delivery copy no longer substitutes `recipient_count` for deliveries.
 - Global hub history requires a non-empty managed-event ID list (empty picker → empty History/KPIs).
+- RSVP-only audience excludes emails that also purchased tickets (`AttendeeRecipientResolver::resolveRsvpEmails`).
+- Compose **Recent messages** status labels align with hub (Failed / Needs attention when `failed_count` or zero deliveries).
 
 ## Remaining roadmap
 

@@ -417,7 +417,16 @@ final class VendorEventCommsForm extends FormBase {
    */
   private function getPastSendsMarkup(int $eventId): string {
     $sends = $this->database->select('myeventlane_event_comms_log', 'log')
-      ->fields('log', ['id', 'subject', 'message_type', 'recipient_count', 'sent_count', 'status', 'sent_at'])
+      ->fields('log', [
+        'id',
+        'subject',
+        'message_type',
+        'recipient_count',
+        'sent_count',
+        'failed_count',
+        'status',
+        'sent_at',
+      ])
       ->condition('event_id', $eventId)
       ->orderBy('sent_at', 'DESC')
       ->range(0, 10)
@@ -433,11 +442,21 @@ final class VendorEventCommsForm extends FormBase {
 
     foreach ($sends as $send) {
       $date = $this->dateFormatter->format((int) $send->sent_at, 'custom', 'j M Y');
-      $status = match ((string) $send->status) {
-        'pending', 'sending' => (string) $this->t('Sending'),
-        'failed' => (string) $this->t('Failed'),
-        default => (string) $this->t('Sent'),
-      };
+      $statusKey = (string) $send->status;
+      $sentCount = (int) $send->sent_count;
+      $failedCount = (int) ($send->failed_count ?? 0);
+      // Align with Messages hub history: partial/zero delivery is not Sent.
+      if ($statusKey === 'pending' || $statusKey === 'sending') {
+        $status = (string) $this->t('Sending');
+      }
+      elseif ($statusKey === 'failed' || $sentCount === 0 || $failedCount > 0) {
+        $status = $failedCount > 0 && $sentCount > 0
+          ? (string) $this->t('Needs attention')
+          : (string) $this->t('Failed');
+      }
+      else {
+        $status = (string) $this->t('Sent');
+      }
       $type = match ((string) $send->message_type) {
         'reminder' => (string) $this->t('Reminder'),
         'important_update', 'important_change' => (string) $this->t('Important update'),
@@ -449,7 +468,7 @@ final class VendorEventCommsForm extends FormBase {
       $output .= '<td>' . $date . '</td>';
       $output .= '<td>' . htmlspecialchars((string) $send->subject, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
       $output .= '<td>' . htmlspecialchars($type, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
-      $output .= '<td>' . (int) $send->sent_count . '/' . (int) $send->recipient_count . '</td>';
+      $output .= '<td>' . $sentCount . '/' . (int) $send->recipient_count . '</td>';
       $output .= '<td>' . htmlspecialchars($status, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</td>';
       $output .= '</tr>';
     }
