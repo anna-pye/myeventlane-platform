@@ -46,7 +46,7 @@ Success metrics prove outcomes over time; this checklist declares **launch-ready
 | **Messages (VX2-06)** | Needs work | Hub + compose shipped | Audience filters; schedule UI; collector |
 | **Payments (VX2-07)** | Needs work | Hub shipped; strong trust copy | Residual settings strings; refund route ownership; QA |
 | **Analytics (VX2-08)** | Needs work | Hub shipped as Event Intelligence Centre; Insights/Exports redirect; free pulse unlocked | Collector wiring; Audience/Boost depth; QA sign-off |
-| **Marketing (VX2-09)** | Needs work | Boost + Marketing sections | Scan/hierarchy polish; share tools cohesion |
+| **Marketing (VX2-09)** | Needs work | Event Growth Centre at `/vendor/marketing`; share/Boost/widgets; `/vendor/boost` redirect | Collector wiring; page-view instrumentation; QA sign-off |
 | **Settings & Support (VX2-10)** | Needs work | Settings/Support live | Branding satellite consolidation |
 | **Global Orders hub** | Not started | Event-scoped only | C-17 hub |
 | **Instrumentation / metrics pipeline** | Not started | Hooks logged/marked; collector deferred | Wire collector; baselines |
@@ -66,7 +66,7 @@ Success metrics prove outcomes over time; this checklist declares **launch-ready
 | Draft-choice clarity | Ready | Create CTAs through gateway |
 | Commerce jargon impressions | Needs work | Critical paths purged; residual edges |
 | Nav ≤10 | Ready | Sprint 1 Convergence IA |
-| Duplicate surfaces live | Needs work | Messages/Payments/Analytics converged; Check-in residual |
+| Duplicate surfaces live | Needs work | Messages/Payments/Analytics/Marketing converged; Check-in residual |
 | Door Mode task success | Needs work | Pending moderated test |
 | A11y critical on shell + Door Mode | Needs work | Pattern review done; live zero-critical not proven |
 | 403 dead-ends on known P0 | Blocked → Needs work | Partial; C-01/C-02 |
@@ -108,7 +108,7 @@ Runtime implementation of remaining debt is **out of scope** for this documentat
 
 | Dimension | Rating | Rationale |
 | --- | --- | --- |
-| Product maturity | **7.8 / 10** | Spine shipped through Payments/Messages; Orders/Analytics depth open |
+| Product maturity | **8.0 / 10** | Spine shipped through Payments/Messages/Analytics/Marketing; Orders depth open |
 | Design maturity | **8.2 / 10** | Layout + Workspace Home + hubs coherent |
 | Interaction maturity | **7.8 / 10** | Intentional on new surfaces; parallel shells remain |
 | Consistency | **8.0 / 10** | Strong post-VX2; card/Studio CSS edges |

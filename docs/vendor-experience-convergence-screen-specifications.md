@@ -101,6 +101,7 @@ Format: Purpose · Primary action · Content · States · Notes
 | **Content** | Boost hub; share tips; widgets entry; audience growth |
 | **States** | No live events; eligible Boost; active campaigns |
 | **Notes** | Renames Grow event |
+| **VX2-09** | Live at `/vendor/marketing` (Event Growth Centre) — see `implementation/vx2-09-marketing-hub.md` |
 
 ### A10. Settings
 
@@ -236,6 +237,7 @@ Format: Purpose · Primary action · Content · States · Notes
 | **Primary action** | Share link / Start Boost |
 | **Content** | Public URL; social share; Boost wizard entry; embed widget |
 | **Notes** | Boost remains guided wizard |
+| **VX2-09** | Deepened share channels + widgets + Marketing home link |
 
 ### B11. Orders (event)
 

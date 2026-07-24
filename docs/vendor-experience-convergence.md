@@ -191,7 +191,7 @@ Repeat organiser
 | **Questions** | Share link? Boost? What’s the difference? |
 | **Pain points** | Grow / Boost / Promote / Marketing language mix; Boost wizard separate from Messages |
 | **Current** | `/vendor/boost`, event Boost wizard, Studio messaging, promotion routes |
-| **Ideal** | Marketing hub: Share · Boost · Messages · Widgets — one place |
+| **Ideal** | Marketing hub: Share · Boost · Widgets · Audience growth — one place |
 
 ### 9. Watch sales
 
@@ -453,6 +453,6 @@ Full definitions: [`vendor-experience-convergence-success-metrics.md`](vendor-ex
 
 **Biggest organiser friction:** Parallel products for one event (Studio vs Manager vs legacy) plus fragmented Messages, Analytics, and Payments — Attendees/Door Mode and Tickets are now converged.
 
-**Biggest revenue opportunities:** Faster first publish; higher Stripe completion; free Analytics pulse that earns Pro; clearer Boost / Marketing; fewer support dead ends that abandon paid flows.
+**Biggest revenue opportunities:** Faster first publish; higher Stripe completion; free Analytics pulse that earns Pro; clearer Boost / Marketing hub; fewer support dead ends that abandon paid flows.
 
-**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; Sprint 3 delivered The Ticket Experience; Sprint 4 delivered One Attendee Workspace; VX2-07 delivered the Payments Hub; VX2-06 delivered the Messages Hub; remaining epics follow the roadmap.
+**Vendor Experience Convergence blueprint is complete.** Sprint 1 delivered Trust, Language & Navigation; Sprint 2 delivered One Event Workspace; Sprint 3 delivered The Ticket Experience; Sprint 4 delivered One Attendee Workspace; VX2-07 delivered the Payments Hub; VX2-06 delivered the Messages Hub; VX2-08 delivered the Analytics Hub; VX2-09 delivered the Marketing Hub (Event Growth Centre); remaining epics follow the roadmap.

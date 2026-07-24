@@ -42,7 +42,7 @@ Companion audits in this folder cover patterns, components, microcopy, interacti
 
 # Stage 1 — VX2 sprint review
 
-Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Home redesign, VX2-06 Messages Hub, VX2-07 Payments Hub (2026-07-24), layout UX scores in `vx2-02a-workspace-layout-convergence.md`.
+Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Home redesign, VX2-06 Messages Hub, VX2-07 Payments Hub, VX2-08 Analytics Hub, VX2-09 Marketing Hub (2026-07-24), layout UX scores in `vx2-02a-workspace-layout-convergence.md`.
 
 ## Dashboard
 
@@ -97,6 +97,15 @@ Evidence base: Convergence pack (2026-07-22), Sprint 1–4 + VX2-02A + Event Hom
 | **Inconsistent** | Audience filters marked Soon; schedule edit/cancel/retry incomplete; Pro template deep links |
 | **Still Drupal** | Residual admin/platform messaging jargon outside organiser surfaces |
 | **Unfinished** | Schedule UI; advanced audience; analytics collector |
+
+## Marketing (VX2-09)
+
+| Lens | Finding |
+| --- | --- |
+| **Excellent** | Marketing Hub (Event Growth Centre); Health score; Share + QR; honest Boost copy; widgets entry |
+| **Inconsistent** | Boost local task still parallel to Marketing nav; `/event/{id}/boost` alternate path |
+| **Still Drupal** | Growth admin/report labels residual |
+| **Unfinished** | Page views / traffic on hub; collector wiring; Audience export dead link |
 
 ## Cross-sprint verdict
 

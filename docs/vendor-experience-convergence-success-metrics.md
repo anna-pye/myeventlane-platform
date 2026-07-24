@@ -98,6 +98,7 @@ Minimum events to log (names illustrative):
 - `access_code_created` / `widget_created`
 - `event_publish_succeeded` / `event_publish_blocked` (+ reason codes)
 - `boost_wizard_step` / `boost_purchased`
+- `marketing_opened` / `share_link_copied` / `share_channel_selected` / `boost_started` / `boost_completed` / `widget_copied` (VX2-09; collector deferred)
 - `message_sent` / `message_failed`
 - `door_checkin_succeeded` / `door_checkin_failed`
 - `attendee_export_requested` / `attendee_export_ready`

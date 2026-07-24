@@ -27,7 +27,7 @@ Commerce · Content · Stores · Media · Taxonomy · Configuration
 | 5 | **Messages** | Brand, templates, history | `/vendor/messages` | Messaging brand + fragmented send UIs |
 | 6 | **Payments** | Stripe, payouts, refunds, tax | `/vendor/payments` | Payouts + Stripe + refunds + finance |
 | 7 | **Analytics** | Business pulse | `/vendor/analytics` | Insights label → Analytics route; merge Insights |
-| 8 | **Marketing** | Boost, share, growth | `/vendor/marketing` | Grow event / Boost hub |
+| 8 | **Marketing** | Boost, share, growth | `/vendor/marketing` | Grow event / Boost hub → Event Growth Centre (VX2-09) |
 | 9 | **Settings** | Profile, venues, defaults | `/vendor/settings` | Organiser settings |
 | 10 | **Support** | Help + escalations | `/vendor/support` | Support + Help |
 
