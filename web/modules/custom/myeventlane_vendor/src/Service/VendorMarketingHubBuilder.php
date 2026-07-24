@@ -52,13 +52,17 @@ final class VendorMarketingHubBuilder {
   public function build(): array {
     $uid = (int) $this->currentUser->id();
     $eventIds = $this->ticketSales->getManagedEventNidsForUser($uid);
-    $events = $this->loadManagedEvents($eventIds);
+    $managedEvents = $this->loadManagedEvents($eventIds);
     // Owned vendor first (then team), matching VendorConsoleBaseController /
     // legacy /vendor/boost — not CurrentVendorResolver's lowest-ID pick.
     $vendor = $this->resolveConsoleVendor();
+    // One catalogue for the whole hub: managed membership ∪ store-linked events.
+    // Boost previously unioned store events alone, which could show active
+    // campaigns while health/share/live KPIs still looked empty.
+    $events = $this->resolveHubEvents($managedEvents, $vendor);
     $boostAvailable = $this->moduleHandler->moduleExists('myeventlane_boost')
       && $this->boostManager !== NULL;
-    $boostPayload = $this->buildBoostPayload($events, $vendor);
+    $boostPayload = $this->buildBoostPayload($events);
     $shareEvents = $this->buildShareEvents($events);
     $primaryShare = $shareEvents[0] ?? NULL;
     $socialReady = $this->isSocialComplete($vendor);
@@ -66,8 +70,7 @@ final class VendorMarketingHubBuilder {
     $publishedCount = count($publishedEvents);
     $activeBoosts = count($boostPayload['campaigns']);
     $boostEligible = count($boostPayload['eligible']);
-    // Bookings must use the same managed-event set as Share / Live events —
-    // getVendorOrderCount() only counts events authored by the current user.
+    // Bookings use the same published hub catalogue as Share / Live events.
     $orderCount = $this->ticketSales->getCompletedOrderCountForEventIds(
       array_map(static fn(NodeInterface $event): int => (int) $event->id(), $publishedEvents),
     );
@@ -214,10 +217,10 @@ final class VendorMarketingHubBuilder {
   }
 
   /**
-   * Builds share cards for published events.
+   * Builds share cards for published hub events.
    *
    * @param list<\Drupal\node\NodeInterface> $events
-   *   Managed events.
+   *   Hub events (managed ∪ store).
    *
    * @return list<array<string, mixed>>
    *   Share cards for published events.
@@ -328,13 +331,13 @@ final class VendorMarketingHubBuilder {
   }
 
   /**
-   * Builds widget deep links for published managed events.
+   * Builds widget deep links for published hub events.
    *
    * Drafts are omitted so the publish empty state can appear for draft-only
    * organisers (empty_title / empty_body).
    *
    * @param list<\Drupal\node\NodeInterface> $events
-   *   Managed events.
+   *   Hub events (managed ∪ store).
    *
    * @return list<array<string, mixed>>
    *   Widget deep links for live events only.
@@ -363,19 +366,13 @@ final class VendorMarketingHubBuilder {
   /**
    * Builds Boost campaigns and eligible event lists.
    *
-   * Unions managed membership events with store-linked events
-   * (BoostManager::getEventsForStore) so field_event_store events outside
-   * membership still appear after /vendor/boost → Marketing redirect.
-   *
    * @param list<\Drupal\node\NodeInterface> $events
-   *   Managed events (same list as Share / health).
-   * @param \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor
-   *   Current vendor entity when resolved.
+   *   Hub events already resolved via resolveHubEvents() (managed ∪ store).
    *
    * @return array{campaigns: list<array<string, mixed>>, eligible: list<array<string, mixed>>, faq: array<string, mixed>}
    *   Boost section payload.
    */
-  private function buildBoostPayload(array $events, ?Vendor $vendor): array {
+  private function buildBoostPayload(array $events): array {
     $campaigns = [];
     $eligible = [];
     $faq = [];
@@ -387,7 +384,7 @@ final class VendorMarketingHubBuilder {
       return ['campaigns' => [], 'eligible' => [], 'faq' => $faq];
     }
 
-    foreach ($this->resolveBoostEvents($events, $vendor) as $event) {
+    foreach ($events as $event) {
       if (!$event instanceof NodeInterface || !$event->isPublished()) {
         continue;
       }
@@ -446,7 +443,10 @@ final class VendorMarketingHubBuilder {
   }
 
   /**
-   * Resolves the event set for Boost rows (managed ∪ store catalogue).
+   * Resolves the shared hub event catalogue (managed ∪ store).
+   *
+   * Used by health, share, widgets, bookings KPIs, and Boost so store-linked
+   * published events never appear in Boost alone.
    *
    * @param list<\Drupal\node\NodeInterface> $managedEvents
    *   Events from membership / managed query.
@@ -454,9 +454,9 @@ final class VendorMarketingHubBuilder {
    *   Current vendor when available.
    *
    * @return list<\Drupal\node\NodeInterface>
-   *   Deduped event nodes keyed by insertion order.
+   *   Deduped event nodes.
    */
-  private function resolveBoostEvents(array $managedEvents, ?Vendor $vendor): array {
+  private function resolveHubEvents(array $managedEvents, ?Vendor $vendor): array {
     $byId = [];
     foreach ($managedEvents as $event) {
       if ($event instanceof NodeInterface && $event->bundle() === 'event') {
@@ -465,25 +465,50 @@ final class VendorMarketingHubBuilder {
     }
 
     $store = $this->resolveVendorStore($vendor);
-    if ($store instanceof StoreInterface
-      && $this->boostManager !== NULL
-      && method_exists($this->boostManager, 'getEventsForStore')) {
+    if (!$store instanceof StoreInterface) {
+      return array_values($byId);
+    }
+
+    $storeEvents = [];
+    if ($this->boostManager !== NULL && method_exists($this->boostManager, 'getEventsForStore')) {
       try {
         $storeEvents = $this->boostManager->getEventsForStore($store, [
           'published_only' => TRUE,
           'access_check' => TRUE,
           'limit' => 100,
         ]);
-        foreach ($storeEvents as $event) {
-          if ($event instanceof NodeInterface && $event->bundle() === 'event') {
-            $byId[(int) $event->id()] = $event;
-          }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Marketing hub store event lookup failed: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    if ($storeEvents === []) {
+      try {
+        $nids = $this->entityTypeManager->getStorage('node')->getQuery()
+          ->accessCheck(TRUE)
+          ->condition('type', 'event')
+          ->condition('status', 1)
+          ->condition('field_event_store', $store->id())
+          ->sort('created', 'DESC')
+          ->range(0, 100)
+          ->execute();
+        if ($nids !== []) {
+          $storeEvents = $this->entityTypeManager->getStorage('node')->loadMultiple($nids);
         }
       }
       catch (\Throwable $e) {
-        $this->logger->warning('Marketing hub store Boost event lookup failed: @message', [
+        $this->logger->warning('Marketing hub direct store event query failed: @message', [
           '@message' => $e->getMessage(),
         ]);
+      }
+    }
+
+    foreach ($storeEvents as $event) {
+      if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+        $byId[(int) $event->id()] = $event;
       }
     }
 
