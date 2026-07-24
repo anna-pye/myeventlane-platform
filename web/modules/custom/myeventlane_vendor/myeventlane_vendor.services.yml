@@ -615,6 +615,45 @@ services:
     tags:
       - { name: controller.service_arguments }
 
+  myeventlane_vendor.workspace_health:
+    class: Drupal\myeventlane_vendor\Service\VendorWorkspaceHealthService
+    arguments:
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@myeventlane_vendor.payments_health'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+
+  myeventlane_vendor.settings_hub_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorSettingsHubBuilder
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@myeventlane_vendor.workspace_health'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+
+  myeventlane_vendor.controller.vendor_settings_hub:
+    class: Drupal\myeventlane_vendor\Controller\VendorSettingsHubController
+    arguments:
+      - '@myeventlane_core.domain_detector'
+      - '@current_user'
+      - '@messenger'
+      - '@myeventlane_vendor.settings_hub_builder'
+    tags:
+      - { name: controller.service_arguments }
+
+  myeventlane_vendor.support_hub_builder:
+    class: Drupal\myeventlane_vendor\Service\VendorSupportHubBuilder
+    arguments:
+      - '@current_user'
+      - '@myeventlane_vendor.current_vendor_resolver'
+      - '@entity_type.manager'
+      - '@module_handler'
+      - '@logger.channel.myeventlane_vendor'
+      - '@string_translation'
+
   myeventlane_vendor.controller.vendor_boost:
     class: Drupal\myeventlane_vendor\Controller\VendorBoostController
     arguments:

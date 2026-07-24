@@ -113,6 +113,8 @@
   @include meta.load-css('pages/payments-hub');
   @include meta.load-css('pages/messages-hub');
   @include meta.load-css('pages/marketing-hub');
+  @include meta.load-css('pages/settings-hub');
+  @include meta.load-css('pages/support-hub');
   @include meta.load-css('pages/analytics-hub');
 }
 

@@ -166,6 +166,7 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.boost' => 'marketing',
       'myeventlane_vendor.console.audience' => 'marketing',
       'myeventlane_vendor.console.settings' => 'settings',
+      'myeventlane_vendor.console.settings_profile' => 'settings',
       'myeventlane_pro.branding' => 'settings',
       'myeventlane_venue.vendor_venues' => 'settings',
       'myeventlane_venue.vendor_venue_add' => 'settings',
