@@ -132,6 +132,25 @@ final class VendorPaymentsHealthService {
       ]);
     }
 
+    // Restricted must win over charges-enabled / payouts-disabled so organisers
+    // see the general attention path instead of payout-delay copy alone.
+    if ($rawStatus === 'restricted') {
+      return array_merge($base, [
+        'state' => 'needs_attention',
+        'tone' => 'attention',
+        'headline' => (string) $this->t('Stripe needs attention'),
+        'summary' => (string) $this->t('Stripe needs more information before payments can continue smoothly.'),
+        'why' => (string) $this->t('Verification or account requirements are outstanding in Stripe.'),
+        'impact' => (string) $this->t('Charges or payouts may be paused until this is resolved.'),
+        'next_step' => (string) $this->t('Review the outstanding items in Stripe.'),
+        'cta_label' => (string) $this->t('Fix issue'),
+        'cta_url' => $resumeUrl ?? $manageUrl,
+        'connected' => $charges,
+        'verification_status' => (string) $this->t('Action required'),
+        'needs_attention' => TRUE,
+      ]);
+    }
+
     if ($charges && !$payouts) {
       return array_merge($base, [
         'state' => 'payout_delayed',
@@ -149,23 +168,7 @@ final class VendorPaymentsHealthService {
       ]);
     }
 
-    if ($rawStatus === 'restricted') {
-      return array_merge($base, [
-        'state' => 'needs_attention',
-        'tone' => 'attention',
-        'headline' => (string) $this->t('Stripe needs attention'),
-        'summary' => (string) $this->t('Stripe needs more information before payments can continue smoothly.'),
-        'why' => (string) $this->t('Verification or account requirements are outstanding in Stripe.'),
-        'impact' => (string) $this->t('Charges or payouts may be paused until this is resolved.'),
-        'next_step' => (string) $this->t('Review the outstanding items in Stripe.'),
-        'cta_label' => (string) $this->t('Fix issue'),
-        'cta_url' => $resumeUrl ?? $manageUrl,
-        'connected' => TRUE,
-        'verification_status' => (string) $this->t('Action required'),
-        'needs_attention' => TRUE,
-      ]);
-    }
-
+    // acct_ present but charges not ready — connection row must not say Connected.
     return array_merge($base, [
       'state' => 'verification_pending',
       'tone' => 'attention',
@@ -176,7 +179,7 @@ final class VendorPaymentsHealthService {
       'next_step' => (string) $this->t('Continue setup in Stripe.'),
       'cta_label' => (string) $this->t('Fix issue'),
       'cta_url' => $resumeUrl ?? $connectUrl,
-      'connected' => TRUE,
+      'connected' => FALSE,
       'verification_status' => (string) $this->t('Setup incomplete'),
       'needs_attention' => TRUE,
     ]);
