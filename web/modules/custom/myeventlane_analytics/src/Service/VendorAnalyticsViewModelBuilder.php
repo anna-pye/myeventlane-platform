@@ -105,9 +105,12 @@ final class VendorAnalyticsViewModelBuilder {
       'door_ready' => FALSE,
       'publishing_issues' => 0,
       'event_count' => 0,
+      'load_failed' => FALSE,
     ];
+    $eventsLoadFailed = FALSE;
+    $checkinsCatalogueTotal = 0;
     try {
-      [$events, $readinessSignals] = $this->buildEventRows($uid, $account);
+      [$events, $readinessSignals, $checkinsCatalogueTotal] = $this->buildEventRows($uid, $account);
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_analytics')->warning('Vendor analytics event rows failed for uid @uid: @message', [
@@ -115,6 +118,9 @@ final class VendorAnalyticsViewModelBuilder {
         '@message' => $e->getMessage(),
       ]);
       $events = [];
+      $eventsLoadFailed = TRUE;
+      $readinessSignals['load_failed'] = TRUE;
+      $checkinsCatalogueTotal = NULL;
     }
 
     $refundPending = $this->countPendingRefunds();
@@ -122,7 +128,7 @@ final class VendorAnalyticsViewModelBuilder {
     $launchReadiness = $this->buildLaunchReadiness($readinessSignals, $paymentHealth, $refundPending);
     $businessHealth = $this->buildBusinessHealth($kpis, $events, $refundPending, $launchReadiness);
     $nextAction = $this->buildNextAction($launchReadiness, $businessHealth, $events, $account);
-    $sections = $this->buildSections($kpis, $events, $refundPending, $isPro);
+    $sections = $this->buildSections($kpis, $events, $refundPending, $isPro, $checkinsCatalogueTotal);
     $recentActivity = $this->buildRecentActivity($events);
     $pro = $this->buildProDepth($isPro, $account);
 
@@ -151,7 +157,7 @@ final class VendorAnalyticsViewModelBuilder {
       'next_action' => $nextAction,
       'pro' => $pro,
       'insights' => [],
-      'empty_state' => $this->buildEmptyState($account, $events === []),
+      'empty_state' => $this->buildEmptyState($account, $events === [] && !$eventsLoadFailed, $eventsLoadFailed),
       'analytics' => [
         'analytics_viewed' => TRUE,
         'is_pro' => $isPro,
@@ -304,7 +310,12 @@ final class VendorAnalyticsViewModelBuilder {
     $headline = (string) $this->t('Your business looks healthy');
     $summary = (string) $this->t('Sales and setup are on track. Keep an eye on upcoming events.');
 
-    if ($attentionItems !== []) {
+    if (!empty($launchReadiness['load_failed'])) {
+      $tone = 'attention';
+      $headline = (string) $this->t('Some insights could not load');
+      $summary = (string) $this->t('We could not load your event list just now. Refresh shortly — KPI figures above may still be available.');
+    }
+    elseif ($attentionItems !== []) {
       $tone = 'attention';
       $headline = (string) $this->t('A few things need attention');
       $summary = (string) $this->t('Fix the items below so you can run your next event with confidence.');
@@ -363,8 +374,8 @@ final class VendorAnalyticsViewModelBuilder {
    * Tickets / Door / publishing signals come from all managed events (not the
    * sales-sorted intelligence rows capped at MAX_EVENTS).
    *
-   * @param array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int} $signals
-   *   Catalogue-wide readiness signals.
+   * @param array{tickets_configured?: bool, door_ready?: bool, publishing_issues?: int, event_count?: int, load_failed?: bool} $signals
+   *   Catalogue-wide readiness signals (or load_failed after a catalogue error).
    * @param array<string, mixed> $paymentHealth
    *   Payments health payload.
    * @param int $refundPending
@@ -374,6 +385,7 @@ final class VendorAnalyticsViewModelBuilder {
    *   Launch readiness card.
    */
   private function buildLaunchReadiness(array $signals, array $paymentHealth, int $refundPending): array {
+    $loadFailed = !empty($signals['load_failed']);
     $ticketsConfigured = !empty($signals['tickets_configured']);
     $doorReady = !empty($signals['door_ready']);
     $publishingIssues = (int) ($signals['publishing_issues'] ?? 0);
@@ -383,15 +395,20 @@ final class VendorAnalyticsViewModelBuilder {
     $stripeTone = $stripeReady ? 'success' : (!empty($paymentHealth['needs_attention']) ? 'attention' : 'muted');
     $messagesReady = $this->isMessagesBrandConfigured();
 
+    $unavailable = (string) $this->t('Unavailable');
     $items = [
       [
         'key' => 'tickets',
         'label' => (string) $this->t('Tickets configured'),
-        'detail' => $ticketsConfigured
-          ? (string) $this->t('At least one event has tickets or RSVP set up.')
-          : (string) $this->t('Add tickets or RSVP so people can register.'),
-        'tone' => $ticketsConfigured ? 'success' : 'attention',
-        'status_label' => $ticketsConfigured ? (string) $this->t('Ready') : (string) $this->t('Needs attention'),
+        'detail' => $loadFailed
+          ? (string) $this->t('Could not load event ticket setup just now.')
+          : ($ticketsConfigured
+            ? (string) $this->t('At least one event has tickets or RSVP set up.')
+            : (string) $this->t('Add tickets or RSVP so people can register.')),
+        'tone' => $loadFailed ? 'muted' : ($ticketsConfigured ? 'success' : 'attention'),
+        'status_label' => $loadFailed
+          ? $unavailable
+          : ($ticketsConfigured ? (string) $this->t('Ready') : (string) $this->t('Needs attention')),
         'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
       ],
       [
@@ -417,11 +434,15 @@ final class VendorAnalyticsViewModelBuilder {
       [
         'key' => 'door',
         'label' => (string) $this->t('Door Mode ready'),
-        'detail' => $doorReady
-          ? (string) $this->t('You can check guests in from Attendees → Door Mode.')
-          : (string) $this->t('Set up tickets or RSVP first, then Door Mode unlocks.'),
-        'tone' => $doorReady ? 'success' : 'muted',
-        'status_label' => $doorReady ? (string) $this->t('Ready') : (string) $this->t('Not yet'),
+        'detail' => $loadFailed
+          ? (string) $this->t('Could not confirm Door Mode readiness without your event list.')
+          : ($doorReady
+            ? (string) $this->t('You can check guests in from Attendees → Door Mode.')
+            : (string) $this->t('Set up tickets or RSVP first, then Door Mode unlocks.')),
+        'tone' => $loadFailed ? 'muted' : ($doorReady ? 'success' : 'muted'),
+        'status_label' => $loadFailed
+          ? $unavailable
+          : ($doorReady ? (string) $this->t('Ready') : (string) $this->t('Not yet')),
         'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
       ],
       [
@@ -439,30 +460,43 @@ final class VendorAnalyticsViewModelBuilder {
       ],
       [
         'key' => 'publishing',
-        'label' => $publishingIssues > 0
-          ? (string) $this->formatPlural($publishingIssues, '@count draft needs publishing review', '@count drafts need publishing review')
-          : (string) $this->t('No publishing issues'),
-        'detail' => $publishingIssues > 0
-          ? (string) $this->t('Finish and publish drafts when you are ready to go live.')
-          : (string) $this->t('No draft events are waiting on you.'),
-        'tone' => $publishingIssues > 0 ? 'attention' : 'success',
-        'status_label' => $publishingIssues > 0 ? (string) $this->t('Needs attention') : (string) $this->t('Ready'),
+        'label' => $loadFailed
+          ? (string) $this->t('Publishing status unavailable')
+          : ($publishingIssues > 0
+            ? (string) $this->formatPlural($publishingIssues, '@count draft needs publishing review', '@count drafts need publishing review')
+            : (string) $this->t('No publishing issues')),
+        'detail' => $loadFailed
+          ? (string) $this->t('Could not load draft events just now.')
+          : ($publishingIssues > 0
+            ? (string) $this->t('Finish and publish drafts when you are ready to go live.')
+            : (string) $this->t('No draft events are waiting on you.')),
+        'tone' => $loadFailed ? 'muted' : ($publishingIssues > 0 ? 'attention' : 'success'),
+        'status_label' => $loadFailed
+          ? $unavailable
+          : ($publishingIssues > 0 ? (string) $this->t('Needs attention') : (string) $this->t('Ready')),
         'url' => $this->safeUrlFromRoute('myeventlane_vendor.console.events')?->toString(),
       ],
     ];
 
     $attentionCount = count(array_filter($items, static fn(array $i): bool => ($i['tone'] ?? '') === 'attention'));
-    $tone = $attentionCount > 0 ? 'attention' : ($eventCount === 0 ? 'muted' : 'success');
-    $headline = match ($tone) {
-      'attention' => (string) $this->t('Can I successfully run my next event today?'),
-      'muted' => (string) $this->t('Can I successfully run an event today?'),
-      default => (string) $this->t('Yes — you are set up to run events today'),
-    };
-    $summary = match ($tone) {
-      'attention' => (string) $this->t('A few operational checks still need a quick fix.'),
-      'muted' => (string) $this->t('Create your first event to unlock this checklist.'),
-      default => (string) $this->t('Tickets, payments, messages, and door ops look ready.'),
-    };
+    if ($loadFailed) {
+      $tone = 'attention';
+      $headline = (string) $this->t('Event readiness could not be fully checked');
+      $summary = (string) $this->t('We could not load your events. Stripe and Messages below still reflect live setup.');
+    }
+    else {
+      $tone = $attentionCount > 0 ? 'attention' : ($eventCount === 0 ? 'muted' : 'success');
+      $headline = match ($tone) {
+        'attention' => (string) $this->t('Can I successfully run my next event today?'),
+        'muted' => (string) $this->t('Can I successfully run an event today?'),
+        default => (string) $this->t('Yes — you are set up to run events today'),
+      };
+      $summary = match ($tone) {
+        'attention' => (string) $this->t('A few operational checks still need a quick fix.'),
+        'muted' => (string) $this->t('Create your first event to unlock this checklist.'),
+        default => (string) $this->t('Tickets, payments, messages, and door ops look ready.'),
+      };
+    }
 
     return [
       'tone' => $tone,
@@ -471,6 +505,7 @@ final class VendorAnalyticsViewModelBuilder {
       'summary' => $summary,
       'items' => $items,
       'attention_count' => $attentionCount,
+      'load_failed' => $loadFailed,
     ];
   }
 
@@ -500,6 +535,16 @@ final class VendorAnalyticsViewModelBuilder {
           'tone' => 'attention',
         ];
       }
+    }
+
+    if (!empty($launchReadiness['load_failed'])) {
+      return [
+        'title' => (string) $this->t('Next recommended action'),
+        'body' => (string) $this->t('Refresh Analytics to reload your events and launch checks.'),
+        'cta_label' => NULL,
+        'cta_url' => NULL,
+        'tone' => 'attention',
+      ];
     }
 
     if ($events === []) {
@@ -546,11 +591,14 @@ final class VendorAnalyticsViewModelBuilder {
    *   Pending refund count.
    * @param bool $isPro
    *   Whether the organiser has Pro.
+   * @param int|null $checkinsCatalogueTotal
+   *   Catalogue-wide checked-in total (all managed events). NULL when unavailable
+   *   (e.g. event rows failed to load).
    *
    * @return list<array<string, mixed>>
    *   Section cards.
    */
-  private function buildSections(array $kpis, array $events, int $refundPending, bool $isPro): array {
+  private function buildSections(array $kpis, array $events, int $refundPending, bool $isPro, ?int $checkinsCatalogueTotal = NULL): array {
     $byKey = [];
     foreach ($kpis as $kpi) {
       $byKey[(string) ($kpi['key'] ?? '')] = $kpi;
@@ -563,6 +611,10 @@ final class VendorAnalyticsViewModelBuilder {
       $capacityTotal += (int) ($row['capacity_raw'] ?? 0);
       $checkinsTotal += (int) ($row['checkins_raw'] ?? 0);
       $attendanceTotal += (int) ($row['attendance_raw'] ?? 0);
+    }
+    // Hub Check-ins must cover every managed event, not only DETAIL_ENRICH_LIMIT rows.
+    if ($checkinsCatalogueTotal !== NULL) {
+      $checkinsTotal = $checkinsCatalogueTotal;
     }
 
     $boostActive = 0;
@@ -770,8 +822,9 @@ final class VendorAnalyticsViewModelBuilder {
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current organiser account.
    *
-   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int}}
-   *   Capped intelligence rows plus full-catalogue readiness signals.
+   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int, load_failed?: bool}, 2: int}
+   *   Capped intelligence rows, full-catalogue readiness signals, and
+   *   catalogue-wide checked-in total.
    */
   private function buildEventRows(int $uid, AccountInterface $account): array {
     $emptySignals = [
@@ -779,11 +832,12 @@ final class VendorAnalyticsViewModelBuilder {
       'door_ready' => FALSE,
       'publishing_issues' => 0,
       'event_count' => 0,
+      'load_failed' => FALSE,
     ];
 
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
     if ($ids === []) {
-      return [[], $emptySignals];
+      return [[], $emptySignals, 0];
     }
 
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($ids);
@@ -800,6 +854,7 @@ final class VendorAnalyticsViewModelBuilder {
     }
 
     $signals = $this->summariseReadinessSignals($rows);
+    $checkinsCatalogueTotal = $this->sumCatalogueCheckIns($eventNodes);
 
     usort($rows, static function (array $a, array $b): int {
       $scoreA = (int) ($a['_sort_tickets'] ?? 0) + (int) ($a['_sort_rsvps'] ?? 0);
@@ -818,7 +873,35 @@ final class VendorAnalyticsViewModelBuilder {
     }
     unset($row);
 
-    return [$rows, $signals];
+    return [$rows, $signals, $checkinsCatalogueTotal];
+  }
+
+  /**
+   * Sums checked-in guests across every managed event (hub Attendance pulse).
+   *
+   * Uses the lightweight MetricsAggregator::getCheckedInCount path — not the
+   * full getEventOverview enrich reserved for top sales-ranked rows.
+   *
+   * @param list<\Drupal\node\NodeInterface> $eventNodes
+   *   All managed event nodes.
+   *
+   * @return int
+   *   Catalogue-wide check-in total.
+   */
+  private function sumCatalogueCheckIns(array $eventNodes): int {
+    $total = 0;
+    foreach ($eventNodes as $node) {
+      try {
+        $total += $this->metricsAggregator->getCheckedInCount($node);
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('myeventlane_analytics')->warning('Check-in total failed for nid @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+    return $total;
   }
 
   /**
@@ -855,7 +938,10 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
-   * Enriches the strongest events with check-in / capacity / boost signals.
+   * Enriches the strongest events with check-in / capacity / boost labels.
+   *
+   * Hub Attendance Check-ins use sumCatalogueCheckIns() across all managed
+   * events — this enrich is display-only for top sales-ranked rows.
    *
    * @param list<array<string, mixed>> $rows
    *   Event rows (modified in place).
@@ -1171,12 +1257,23 @@ final class VendorAnalyticsViewModelBuilder {
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current organiser account.
    * @param bool $noEvents
-   *   TRUE when there are no event rows.
+   *   TRUE when there are no event rows (and load succeeded).
+   * @param bool $loadFailed
+   *   TRUE when the event catalogue failed to load.
    *
    * @return array<string, string|\Drupal\Core\Url|null>
    *   Empty state payload.
    */
-  private function buildEmptyState(AccountInterface $account, bool $noEvents): array {
+  private function buildEmptyState(AccountInterface $account, bool $noEvents, bool $loadFailed = FALSE): array {
+    if ($loadFailed) {
+      return [
+        'title' => (string) $this->t('Event list unavailable'),
+        'message' => (string) $this->t('We could not load your events just now. Refresh the page to try again.'),
+        'action_label' => NULL,
+        'url' => NULL,
+      ];
+    }
+
     if (!$noEvents) {
       return [
         'title' => '',

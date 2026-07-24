@@ -323,6 +323,24 @@ final class MetricsAggregator {
   }
 
   /**
+   * Returns checked-in attendee count for one event (lightweight pulse helper).
+   *
+   * Prefer this over getEventOverview() when only door check-ins are needed.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   *
+   * @return int
+   *   Checked-in count (0 for unpublished / empty).
+   */
+  public function getCheckedInCount(NodeInterface $event): int {
+    if (!$event->isPublished()) {
+      return 0;
+    }
+    return $this->eventMetricsService->getCheckedInCount($event);
+  }
+
+  /**
    * Returns an event overview block using EventMetricsService and other services.
    *
    * Orchestrates calls to multiple services to build complete event metrics.
