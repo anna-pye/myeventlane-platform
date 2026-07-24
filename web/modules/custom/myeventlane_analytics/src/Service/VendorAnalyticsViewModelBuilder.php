@@ -112,8 +112,12 @@ final class VendorAnalyticsViewModelBuilder {
       'checkins_total' => 0,
       'boosts_active' => 0,
     ];
+    $recentActivity = [];
+    $cacheEventNids = [];
     try {
-      [$events, $readinessSignals, $cataloguePulse] = $this->buildEventRows($uid, $account);
+      [$events, $readinessSignals, $cataloguePulse, $hubExtras] = $this->buildEventRows($uid, $account);
+      $recentActivity = $hubExtras['recent_activity'] ?? [];
+      $cacheEventNids = $hubExtras['cache_event_nids'] ?? [];
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_analytics')->warning('Vendor analytics event rows failed for uid @uid: @message', [
@@ -124,6 +128,8 @@ final class VendorAnalyticsViewModelBuilder {
       $eventsLoadFailed = TRUE;
       $readinessSignals['load_failed'] = TRUE;
       $cataloguePulse = NULL;
+      // Still tag every managed event so readiness/pulse rebuild when any event changes.
+      $cacheEventNids = $this->managedEventCacheNids($uid);
     }
 
     $refundPending = $this->countPendingRefunds();
@@ -132,7 +138,6 @@ final class VendorAnalyticsViewModelBuilder {
     $businessHealth = $this->buildBusinessHealth($kpis, $events, $refundPending, $launchReadiness);
     $nextAction = $this->buildNextAction($launchReadiness, $businessHealth, $events, $account);
     $sections = $this->buildSections($kpis, $events, $refundPending, $isPro, $cataloguePulse);
-    $recentActivity = $this->buildRecentActivity($events);
     $pro = $this->buildProDepth($isPro, $account);
 
     $this->loggerFactory->get('myeventlane_analytics')->info('analytics_viewed uid=@uid is_pro=@pro events=@count', [
@@ -161,6 +166,7 @@ final class VendorAnalyticsViewModelBuilder {
       'pro' => $pro,
       'insights' => [],
       'empty_state' => $this->buildEmptyState($account, $events === [] && !$eventsLoadFailed, $eventsLoadFailed),
+      'cache_event_nids' => $cacheEventNids,
       'analytics' => [
         'analytics_viewed' => TRUE,
         'is_pro' => $isPro,
@@ -197,6 +203,7 @@ final class VendorAnalyticsViewModelBuilder {
         'action_label' => NULL,
         'url' => NULL,
       ],
+      'cache_event_nids' => [],
       'analytics' => ['analytics_viewed' => FALSE],
     ];
   }
@@ -709,17 +716,30 @@ final class VendorAnalyticsViewModelBuilder {
   }
 
   /**
-   * Builds the recent activity list from event rows.
+   * Builds the recent activity list from the full event catalogue.
    *
-   * @param list<array<string, mixed>> $events
-   *   Event intelligence rows.
+   * Ordered by node changed time (then start date), not sales rank — the
+   * intelligence table may still be sales-sorted separately.
+   *
+   * @param list<array<string, mixed>> $rows
+   *   Uncapped event rows.
    *
    * @return list<array<string, mixed>>
    *   Recent activity items.
    */
-  private function buildRecentActivity(array $events): array {
+  private function buildRecentActivity(array $rows): array {
+    $sorted = $rows;
+    usort($sorted, static function (array $a, array $b): int {
+      $changedA = (int) ($a['changed_ts'] ?? 0);
+      $changedB = (int) ($b['changed_ts'] ?? 0);
+      if ($changedA !== $changedB) {
+        return $changedB <=> $changedA;
+      }
+      return ((int) ($b['start_ts'] ?? 0)) <=> ((int) ($a['start_ts'] ?? 0));
+    });
+
     $items = [];
-    foreach (array_slice($events, 0, 6) as $row) {
+    foreach (array_slice($sorted, 0, 6) as $row) {
       $bits = [];
       if (!empty($row['tickets_label'])) {
         $bits[] = (string) $row['tickets_label'];
@@ -729,6 +749,12 @@ final class VendorAnalyticsViewModelBuilder {
       }
       if (!empty($row['revenue_label'])) {
         $bits[] = (string) $row['revenue_label'];
+      }
+      $changedTs = (int) ($row['changed_ts'] ?? 0);
+      if ($changedTs > 0) {
+        $bits[] = (string) $this->t('Updated @when', [
+          '@when' => $this->dateFormatter->format($changedTs, 'short'),
+        ]);
       }
       $items[] = [
         'title' => (string) ($row['title'] ?? ''),
@@ -828,9 +854,10 @@ final class VendorAnalyticsViewModelBuilder {
    * @param \Drupal\Core\Session\AccountInterface $account
    *   Current organiser account.
    *
-   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int, load_failed?: bool}, 2: array{checkins_total: int, boosts_active: int}}
-   *   Capped intelligence rows, full-catalogue readiness signals, and
-   *   catalogue-wide Attendance / Marketing pulse totals.
+   * @return array{0: list<array<string, mixed>>, 1: array{tickets_configured: bool, door_ready: bool, publishing_issues: int, event_count: int, load_failed?: bool}, 2: array{checkins_total: int, boosts_active: int}, 3: array{recent_activity: list<array<string, mixed>>, cache_event_nids: list<int>}}
+   *   Capped intelligence rows, full-catalogue readiness signals,
+   *   catalogue-wide Attendance / Marketing pulse totals, and hub extras
+   *   (recent activity + cache node IDs for every managed event).
    */
   private function buildEventRows(int $uid, AccountInterface $account): array {
     $emptySignals = [
@@ -844,10 +871,15 @@ final class VendorAnalyticsViewModelBuilder {
       'checkins_total' => 0,
       'boosts_active' => 0,
     ];
+    $emptyExtras = [
+      'recent_activity' => [],
+      'cache_event_nids' => [],
+    ];
 
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
+    $cacheEventNids = array_values(array_map(static fn($id): int => (int) $id, $ids));
     if ($ids === []) {
-      return [[], $emptySignals, $emptyPulse];
+      return [[], $emptySignals, $emptyPulse, $emptyExtras];
     }
 
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($ids);
@@ -868,6 +900,12 @@ final class VendorAnalyticsViewModelBuilder {
       'checkins_total' => $this->sumCatalogueCheckIns($eventNodes),
       'boosts_active' => $this->countCatalogueActiveBoosts($eventNodes),
     ];
+    // Recency feed from the full catalogue before the sales-rank MAX_EVENTS cap.
+    $recentActivity = $this->buildRecentActivity($rows);
+    $hubExtras = [
+      'recent_activity' => $recentActivity,
+      'cache_event_nids' => $cacheEventNids,
+    ];
 
     usort($rows, static function (array $a, array $b): int {
       $scoreA = (int) ($a['_sort_tickets'] ?? 0) + (int) ($a['_sort_rsvps'] ?? 0);
@@ -882,11 +920,34 @@ final class VendorAnalyticsViewModelBuilder {
     $this->enrichTopEventRows($rows);
 
     foreach ($rows as &$row) {
-      unset($row['_sort_tickets'], $row['_sort_rsvps'], $row['_node']);
+      unset($row['_sort_tickets'], $row['_sort_rsvps'], $row['_node'], $row['changed_ts'], $row['start_ts']);
     }
     unset($row);
 
-    return [$rows, $signals, $cataloguePulse];
+    return [$rows, $signals, $cataloguePulse, $hubExtras];
+  }
+
+  /**
+   * Returns managed event node IDs for hub cache tags (best-effort).
+   *
+   * @param int $uid
+   *   Organiser user ID.
+   *
+   * @return list<int>
+   *   Event node IDs.
+   */
+  private function managedEventCacheNids(int $uid): array {
+    try {
+      $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
+      return array_values(array_map(static fn($id): int => (int) $id, $ids));
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_analytics')->warning('Managed event cache IDs failed for uid @uid: @message', [
+        '@uid' => (string) $uid,
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
   }
 
   /**
@@ -1182,6 +1243,8 @@ final class VendorAnalyticsViewModelBuilder {
       'analytics_url' => $analyticsUrl?->toString(),
       'deep_analytics_url' => $deepAnalyticsUrl?->toString(),
       'workspace_url' => $workspaceUrl?->toString(),
+      'changed_ts' => (int) $node->getChangedTime(),
+      'start_ts' => $startTs,
       '_sort_tickets' => $ticketsSold,
       '_sort_rsvps' => $rsvpCount,
       '_node' => $node,

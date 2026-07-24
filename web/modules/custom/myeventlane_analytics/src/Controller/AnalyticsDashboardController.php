@@ -79,9 +79,19 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     $analyticsModel = $this->vendorAnalyticsViewModelBuilder->build($this->currentUser, []);
 
     $cacheTags = ['node_list', 'user:' . $this->currentUser->id()];
-    foreach ($analyticsModel['events'] ?? [] as $row) {
-      if (!empty($row['nid'])) {
-        $cacheTags[] = 'node:' . (int) $row['nid'];
+    $eventNids = $analyticsModel['cache_event_nids'] ?? [];
+    if ($eventNids === []) {
+      // Fallback for older payloads: at least tag visible intelligence rows.
+      foreach ($analyticsModel['events'] ?? [] as $row) {
+        if (!empty($row['nid'])) {
+          $eventNids[] = (int) $row['nid'];
+        }
+      }
+    }
+    foreach ($eventNids as $nid) {
+      $nid = (int) $nid;
+      if ($nid > 0) {
+        $cacheTags[] = 'node:' . $nid;
       }
     }
 
