@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -126,7 +127,10 @@ final class EventStudioSectionRenderer {
   }
 
   /**
+   * Builds the Event Workspace Marketing hub for a single event.
+   *
    * @return array<string, mixed>
+   *   Render array for the Marketing section.
    */
   private function buildMarketingHub(NodeInterface $event): array {
     $nid = (int) $event->id();
@@ -140,6 +144,20 @@ final class EventStudioSectionRenderer {
     }
     catch (\Throwable) {
       $boostUrl = NULL;
+    }
+    $widgetsUrl = NULL;
+    try {
+      $widgetsUrl = Url::fromRoute('myeventlane_tickets.event_tickets_widgets', ['event' => $nid])->toString();
+    }
+    catch (\Throwable) {
+      $widgetsUrl = NULL;
+    }
+    $marketingHomeUrl = NULL;
+    try {
+      $marketingHomeUrl = Url::fromRoute('myeventlane_vendor.console.marketing')->toString();
+    }
+    catch (\Throwable) {
+      $marketingHomeUrl = NULL;
     }
 
     if (!$event->isPublished()) {
@@ -162,13 +180,24 @@ final class EventStudioSectionRenderer {
       );
     }
 
+    $title = (string) $event->label();
+    $facebook = 'https://www.facebook.com/sharer/sharer.php?' . UrlHelper::buildQuery(['u' => $publicUrl]);
+    $linkedin = 'https://www.linkedin.com/sharing/share-offsite/?' . UrlHelper::buildQuery(['url' => $publicUrl]);
+    $mailto = 'mailto:?' . UrlHelper::buildQuery([
+      'subject' => (string) $this->t('Join me at @title', ['@title' => $title]),
+      'body' => (string) $this->t("I thought you might like this event on MyEventLane:\n\n@url", ['@url' => $publicUrl]),
+    ]);
+
     return [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-workspace-marketing']],
+      '#attributes' => [
+        'class' => ['mel-event-workspace-marketing'],
+        'data-mel-analytics-event' => 'marketing_opened',
+      ],
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Drive ticket sales for this event. Share your public page or Boost visibility across MyEventLane.'),
+        '#value' => $this->t('Drive ticket sales for this event. Share your public page, embed a widget, or Boost visibility across MyEventLane.'),
       ],
       'share' => [
         '#type' => 'container',
@@ -182,18 +211,86 @@ final class EventStudioSectionRenderer {
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#value' => $publicUrl,
+          '#attributes' => ['class' => ['mel-event-workspace-marketing__url']],
         ],
-        'view' => [
-          '#type' => 'link',
-          '#title' => $this->t('View page'),
-          '#url' => Url::fromRoute('entity.node.canonical', ['node' => $nid]),
+        'channels' => [
+          '#type' => 'container',
           '#attributes' => [
-            'class' => ['mel-btn', 'mel-btn--secondary'],
-            'target' => '_blank',
-            'rel' => 'noopener noreferrer',
+            'class' => ['mel-event-workspace-marketing__channels'],
+            'role' => 'group',
+            'aria-label' => (string) $this->t('Share channels'),
+          ],
+          'view' => [
+            '#type' => 'link',
+            '#title' => $this->t('View page'),
+            '#url' => Url::fromRoute('entity.node.canonical', ['node' => $nid]),
+            '#attributes' => [
+              'class' => ['mel-btn', 'mel-btn--secondary'],
+              'target' => '_blank',
+              'rel' => 'noopener noreferrer',
+            ],
+          ],
+          'facebook' => [
+            '#type' => 'link',
+            '#title' => $this->t('Facebook'),
+            '#url' => Url::fromUri($facebook),
+            '#attributes' => [
+              'class' => ['mel-btn', 'mel-btn--secondary'],
+              'target' => '_blank',
+              'rel' => 'noopener noreferrer',
+              'data-mel-analytics-event' => 'share_channel_selected',
+            ],
+          ],
+          'linkedin' => [
+            '#type' => 'link',
+            '#title' => $this->t('LinkedIn'),
+            '#url' => Url::fromUri($linkedin),
+            '#attributes' => [
+              'class' => ['mel-btn', 'mel-btn--secondary'],
+              'target' => '_blank',
+              'rel' => 'noopener noreferrer',
+              'data-mel-analytics-event' => 'share_channel_selected',
+            ],
+          ],
+          'email' => [
+            '#type' => 'link',
+            '#title' => $this->t('Email'),
+            '#url' => Url::fromUri($mailto),
+            '#attributes' => [
+              'class' => ['mel-btn', 'mel-btn--secondary'],
+              'data-mel-analytics-event' => 'share_channel_selected',
+            ],
+          ],
+          'instagram' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $this->t('Instagram: copy the public link above, then paste it into your post or story.'),
+            '#attributes' => ['class' => ['mel-event-workspace-marketing__hint']],
           ],
         ],
       ],
+      'widgets' => $widgetsUrl ? [
+        '#type' => 'container',
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Widgets & embeds'),
+        ],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Add a ticket widget to your own website.'),
+        ],
+        'cta' => [
+          '#type' => 'link',
+          '#title' => $this->t('Open widgets'),
+          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets', ['event' => $nid]),
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--secondary'],
+            'data-mel-analytics-event' => 'widget_copied',
+          ],
+        ],
+      ] : [],
       'boost' => $boostUrl ? [
         '#type' => 'container',
         'title' => [
@@ -204,14 +301,23 @@ final class EventStudioSectionRenderer {
         'copy' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Feature your event in discovery so more people find you.'),
+          '#value' => $this->t('Feature your event in discovery so more people find you. Boost never guarantees sales.'),
         ],
         'cta' => [
           '#type' => 'link',
           '#title' => $this->t('Start Boost'),
           '#url' => Url::fromRoute('myeventlane_boost.vendor_event_boost', ['event' => $nid]),
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
+          '#attributes' => [
+            'class' => ['mel-btn', 'mel-btn--primary'],
+            'data-mel-analytics-event' => 'boost_started',
+          ],
         ],
+      ] : [],
+      'home' => $marketingHomeUrl ? [
+        '#type' => 'link',
+        '#title' => $this->t('Open Marketing home'),
+        '#url' => Url::fromRoute('myeventlane_vendor.console.marketing'),
+        '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary']],
       ] : [],
     ];
   }
