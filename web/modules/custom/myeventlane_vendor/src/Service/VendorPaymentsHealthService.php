@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Service;
 
 use Drupal\commerce_store\Entity\StoreInterface;
-use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
@@ -24,7 +23,6 @@ final class VendorPaymentsHealthService {
 
   public function __construct(
     private readonly CurrentVendorResolverInterface $vendorResolver,
-    private readonly DateFormatterInterface $dateFormatter,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
   ) {
@@ -63,6 +61,7 @@ final class VendorPaymentsHealthService {
       'verification_status' => (string) $this->t('Not connected'),
       'account_label' => NULL,
       'account_id_present' => FALSE,
+      // No Stripe sync timestamp field exists; never use store changed time.
       'last_verified_label' => NULL,
       'needs_attention' => TRUE,
     ];
@@ -94,17 +93,10 @@ final class VendorPaymentsHealthService {
       $rawStatus = (string) $store->get('field_stripe_status')->value;
     }
 
-    $lastVerified = NULL;
-    $changed = (int) $store->getChangedTime();
-    if ($changed > 0) {
-      $lastVerified = $this->dateFormatter->format($changed, 'medium');
-    }
-
     $base['account_label'] = $store->label() ?: NULL;
     $base['account_id_present'] = $hasAccount;
     $base['charges_enabled'] = $charges;
     $base['payouts_enabled'] = $payouts;
-    $base['last_verified_label'] = $lastVerified;
 
     // Open Stripe only after a Connect account exists; not-connected stays
     // Connect-only so organisers are not offered a dead manage link.

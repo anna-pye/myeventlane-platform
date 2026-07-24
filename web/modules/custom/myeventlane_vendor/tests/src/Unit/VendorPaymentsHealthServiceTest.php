@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_vendor\Unit;
 
-use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\VendorPaymentsHealthService;
 use Drupal\Tests\UnitTestCase;
@@ -26,7 +25,6 @@ final class VendorPaymentsHealthServiceTest extends UnitTestCase {
 
     $service = new VendorPaymentsHealthService(
       $resolver,
-      $this->createMock(DateFormatterInterface::class),
       $this->createMock(LoggerInterface::class),
       $this->getStringTranslationStub(),
     );
@@ -37,6 +35,7 @@ final class VendorPaymentsHealthServiceTest extends UnitTestCase {
     $this->assertStringContainsString('Connect Stripe', $health['headline']);
     $this->assertNull($health['secondary_cta_url']);
     $this->assertNull($health['secondary_cta_label']);
+    $this->assertNull($health['last_verified_label']);
     $this->assertStringNotContainsString('Gateway', $health['headline']);
     $this->assertStringNotContainsString('Commerce', $health['summary']);
     $this->assertStringNotContainsString('Store', $health['summary']);

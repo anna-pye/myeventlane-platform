@@ -513,7 +513,6 @@ services:
     class: Drupal\myeventlane_vendor\Service\VendorPaymentsHealthService
     arguments:
       - '@myeventlane_vendor.current_vendor_resolver'
-      - '@date.formatter'
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'
 
