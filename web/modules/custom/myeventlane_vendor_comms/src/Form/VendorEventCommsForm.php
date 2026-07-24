@@ -95,12 +95,9 @@ final class VendorEventCommsForm extends FormBase {
     }
 
     $request = $this->requestStackService->getCurrentRequest();
-    $defaultType = (string) ($request?->query->get('type') ?? 'announcement');
-    if (!isset(self::TYPE_TEMPLATE_MAP[$defaultType])) {
-      $defaultType = 'announcement';
-    }
+    $defaultType = $this->resolveDefaultMessageType($request?->query->get('type'));
 
-    $audience = (string) ($form_state->getValue('audience') ?? 'everyone');
+    $audience = (string) ($form_state->getValue('audience') ?: 'everyone');
     $recipientCount = $this->resolveRecipientCount($node, $audience);
     $rateLimitCheck = $this->rateLimiter->checkRateLimit((int) $node->id(), (int) $this->currentUserAccount->id());
 
@@ -160,6 +157,13 @@ final class VendorEventCommsForm extends FormBase {
       $form['#disabled'] = TRUE;
     }
 
+    // Do not use getValue($key, $default): an empty/missing input key can exist
+    // without applying the second argument, so hub ?type= links would not stick.
+    $submittedType = $form_state->getValue('message_type');
+    $messageTypeDefault = (is_string($submittedType) && $submittedType !== '')
+      ? $this->resolveDefaultMessageType($submittedType)
+      : $defaultType;
+
     $form['message_type'] = [
       '#type' => 'radios',
       '#title' => $this->t('Message type'),
@@ -171,7 +175,7 @@ final class VendorEventCommsForm extends FormBase {
         'cancellation' => $this->t('Cancellation'),
         'thank_you' => $this->t('Thank you'),
       ],
-      '#default_value' => $form_state->getValue('message_type', $defaultType),
+      '#default_value' => $messageTypeDefault,
       '#description' => $this->t('Choose the tone that matches why you are writing.'),
     ];
 
@@ -198,7 +202,7 @@ final class VendorEventCommsForm extends FormBase {
         'ticket_holders' => $this->t('Ticket holders only'),
         'rsvp' => $this->t('RSVP guests only'),
       ],
-      '#default_value' => $form_state->getValue('audience', 'everyone'),
+      '#default_value' => $form_state->getValue('audience') ?: 'everyone',
       '#description' => $this->t('Ticket type, checked in, waitlist, and custom selection are coming soon.'),
       '#ajax' => [
         'callback' => '::audienceAjax',
@@ -497,6 +501,32 @@ final class VendorEventCommsForm extends FormBase {
       'rsvp' => $this->attendeeRecipientResolver->resolveRsvpEmails($event),
       default => $this->attendeeRecipientResolver->resolveEmails($event),
     };
+  }
+
+  /**
+   * Resolves an organiser-facing message type for radios / query deep links.
+   *
+   * @param string|null $type
+   *   Raw type from query or form input.
+   *
+   * @return string
+   *   One of the compose radio option keys.
+   */
+  private function resolveDefaultMessageType(?string $type): string {
+    $candidate = trim((string) $type);
+    $legacyToUi = [
+      'update' => 'announcement',
+      'important_change' => 'important_update',
+    ];
+    $candidate = $legacyToUi[$candidate] ?? $candidate;
+    $allowed = [
+      'announcement',
+      'reminder',
+      'important_update',
+      'cancellation',
+      'thank_you',
+    ];
+    return in_array($candidate, $allowed, TRUE) ? $candidate : 'announcement';
   }
 
 }

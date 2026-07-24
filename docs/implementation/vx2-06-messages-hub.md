@@ -78,6 +78,7 @@ See `docs/implementation/vx2-06-messages-surface-inventory.md`.
 - RSVP-only audience excludes emails that also purchased tickets (`AttendeeRecipientResolver::resolveRsvpEmails`).
 - Compose **Recent messages** status labels align with hub (Failed / Needs attention when `failed_count` or zero deliveries).
 - Global hub History/KPIs scope by managed event IDs only (not sender `vendor_uid`), so teammate sends on shared events appear.
+- Compose pre-selects message type from `?type=` deep links (do not rely on `getValue($key, $default)` for `#default_value`).
 
 ## Remaining roadmap
 
