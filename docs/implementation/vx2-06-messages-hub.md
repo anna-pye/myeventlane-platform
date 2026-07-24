@@ -73,6 +73,8 @@ See `docs/implementation/vx2-06-messages-surface-inventory.md`.
 
 - Shell active section: compose `/vendor/events/{id}/promotion` (and related message paths) highlight **Messages**, not Events (`VendorNavBuilder`).
 - History KPIs: `failed_count > 0` counts as Failed / Needs attention even when the worker stored `status=completed`; total queue failure now stores `failed`.
+- Zero-delivery jobs (no recipients / `sent_count=0`) are Failed, not Sent; delivery copy no longer substitutes `recipient_count` for deliveries.
+- Global hub history requires a non-empty managed-event ID list (empty picker → empty History/KPIs).
 
 ## Remaining roadmap
 

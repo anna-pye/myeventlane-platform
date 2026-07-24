@@ -97,7 +97,8 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
         '@id' => $eventId,
         '@audience' => $audience,
       ]);
-      $this->markCompleted($logId, 0, 0);
+      // Do not mark completed — zero deliveries must not look like a successful send.
+      $this->markFailed((int) $logId);
       return;
     }
 
@@ -160,8 +161,8 @@ final class VendorEventCommsWorker extends QueueWorkerBase implements ContainerF
    */
   private function markCompleted(int $logId, int $sentCount, int $failedCount): void {
     $now = $this->time->getRequestTime();
-    // Total queue failure must not look like a successful send in history/KPIs.
-    $status = ($sentCount === 0 && $failedCount > 0) ? 'failed' : 'completed';
+    // Zero deliveries (all failed or none queued) must not look like a successful send.
+    $status = $sentCount === 0 ? 'failed' : 'completed';
     $this->database->update('myeventlane_event_comms_log')
       ->fields([
         'status' => $status,

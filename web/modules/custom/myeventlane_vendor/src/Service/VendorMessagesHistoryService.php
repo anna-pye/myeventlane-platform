@@ -52,6 +52,12 @@ final class VendorMessagesHistoryService {
       return [];
     }
 
+    // Empty managed-event list must not mean "all vendor history".
+    // Otherwise Overview can show zero events while History still lists past sends.
+    if ($eventIds === []) {
+      return [];
+    }
+
     try {
       $query = $this->database->select('myeventlane_event_comms_log', 'log')
         ->fields('log', [
@@ -66,12 +72,9 @@ final class VendorMessagesHistoryService {
           'sent_at',
         ])
         ->condition('vendor_uid', $vendorUid)
+        ->condition('event_id', $eventIds, 'IN')
         ->orderBy('sent_at', 'DESC')
         ->range(0, $limit);
-
-      if ($eventIds !== []) {
-        $query->condition('event_id', $eventIds, 'IN');
-      }
 
       $rows = $query->execute()->fetchAll();
     }
@@ -140,15 +143,16 @@ final class VendorMessagesHistoryService {
     foreach ($rows as $row) {
       $key = (string) ($row['status_key'] ?? '');
       $failedCount = (int) ($row['failed_count'] ?? 0);
+      $sentCount = (int) ($row['sent_count'] ?? 0);
       if ($key === 'sending' || $key === 'pending') {
         $sending++;
       }
-      elseif ($key === 'failed' || $failedCount > 0) {
-        // Worker may store status=completed while failed_count > 0.
+      elseif ($key === 'failed' || $failedCount > 0 || ($key === 'completed' && $sentCount === 0)) {
+        // Worker may store completed with failures, or completed with zero deliveries.
         $failed++;
       }
-      elseif ($key === 'completed') {
-        // Only fully successful completed deliveries count as Sent.
+      elseif ($key === 'completed' && $sentCount > 0) {
+        // Only completed jobs that actually delivered count as Sent.
         $sent++;
       }
     }
@@ -186,8 +190,8 @@ final class VendorMessagesHistoryService {
       $failedCount = (int) ($row->failed_count ?? 0);
       $eventId = (int) $row->event_id;
 
-      // Normalise total queue failure so timeline + KPIs agree.
-      if ($statusKey === 'completed' && $sentCount === 0 && $failedCount > 0) {
+      // Normalise zero-delivery "completed" and total queue failure for timeline + KPIs.
+      if ($statusKey === 'completed' && $sentCount === 0) {
         $statusKey = 'failed';
       }
 
@@ -273,6 +277,9 @@ final class VendorMessagesHistoryService {
     if ($status === 'pending' || $status === 'sending') {
       return (string) $this->t('Sending to @count guest(s)…', ['@count' => $recipients]);
     }
+    if ($sent === 0 && $failed === 0) {
+      return (string) $this->t('No guests received this message.');
+    }
     if ($status === 'failed' && $sent === 0) {
       return (string) $this->t('Could not send. Try again from Compose.');
     }
@@ -284,7 +291,7 @@ final class VendorMessagesHistoryService {
       ]);
     }
     return (string) $this->t('@sent of @total delivered', [
-      '@sent' => $sent > 0 ? $sent : $recipients,
+      '@sent' => $sent,
       '@total' => $recipients,
     ]);
   }
