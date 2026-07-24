@@ -29,7 +29,6 @@ final class VendorMarketingHubBuilder {
 
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
-    private readonly CurrentVendorResolverInterface $vendorResolver,
     private readonly TicketSalesService $ticketSales,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ModuleHandlerInterface $moduleHandler,
@@ -54,7 +53,11 @@ final class VendorMarketingHubBuilder {
     $uid = (int) $this->currentUser->id();
     $eventIds = $this->ticketSales->getManagedEventNidsForUser($uid);
     $events = $this->loadManagedEvents($eventIds);
-    $vendor = $this->vendorResolver->resolveFromCurrentUser();
+    // Owned vendor first (then team), matching VendorConsoleBaseController /
+    // legacy /vendor/boost — not CurrentVendorResolver's lowest-ID pick.
+    $vendor = $this->resolveConsoleVendor();
+    $boostAvailable = $this->moduleHandler->moduleExists('myeventlane_boost')
+      && $this->boostManager !== NULL;
     $boostPayload = $this->buildBoostPayload($events, $vendor);
     $shareEvents = $this->buildShareEvents($events);
     $primaryShare = $shareEvents[0] ?? NULL;
@@ -69,7 +72,7 @@ final class VendorMarketingHubBuilder {
       array_map(static fn(NodeInterface $event): int => (int) $event->id(), $publishedEvents),
     );
     $score = $this->computeMarketingScore($publishedCount, $primaryShare !== NULL, $boostEligible > 0 || $activeBoosts > 0, $socialReady, $activeBoosts > 0);
-    $health = $this->buildHealth($publishedCount, $primaryShare, $boostEligible, $activeBoosts, $socialReady, $score);
+    $health = $this->buildHealth($publishedCount, $primaryShare, $boostEligible, $activeBoosts, $socialReady, $score, $boostAvailable);
 
     $this->logger->info('marketing_opened uid=@uid events=@events published=@published boosts=@boosts score=@score', [
       '@uid' => (string) $uid,
@@ -101,14 +104,14 @@ final class VendorMarketingHubBuilder {
         'export_url' => $this->safeRouteUrl('myeventlane_vendor.console.boost_vendor_export'),
         'empty_title' => (string) $this->t('No active Boost campaigns'),
         'empty_body' => (string) $this->t('When you Boost an event, its status and end date appear here.'),
-        'available' => $this->moduleHandler->moduleExists('myeventlane_boost'),
+        'available' => $boostAvailable,
       ],
       'widgets' => [
         'title' => (string) $this->t('Widgets & embeds'),
         'body' => (string) $this->t('Add a ticket widget to your own website so people can book without leaving your brand.'),
         'events' => $this->buildWidgetEvents($events),
         'empty_title' => (string) $this->t('Publish an event to add widgets'),
-        'empty_body' => (string) $this->t('Widgets live under Tickets for each event. Marketing brings you there in one click.'),
+        'empty_body' => (string) $this->t('Widgets live under Tickets for each live event. Marketing brings you there in one click.'),
       ],
       'social' => [
         'title' => (string) $this->t('Social media'),
@@ -325,17 +328,23 @@ final class VendorMarketingHubBuilder {
   }
 
   /**
-   * Builds widget deep links for managed events.
+   * Builds widget deep links for published managed events.
+   *
+   * Drafts are omitted so the publish empty state can appear for draft-only
+   * organisers (empty_title / empty_body).
    *
    * @param list<\Drupal\node\NodeInterface> $events
    *   Managed events.
    *
    * @return list<array<string, mixed>>
-   *   Widget deep links.
+   *   Widget deep links for live events only.
    */
   private function buildWidgetEvents(array $events): array {
     $rows = [];
     foreach ($events as $event) {
+      if (!$event->isPublished()) {
+        continue;
+      }
       $nid = (int) $event->id();
       $url = $this->safeRouteUrl('myeventlane_tickets.event_tickets_widgets', ['event' => $nid]);
       if ($url === NULL) {
@@ -345,7 +354,7 @@ final class VendorMarketingHubBuilder {
         'id' => $nid,
         'title' => (string) $event->label(),
         'url' => $url,
-        'published' => $event->isPublished(),
+        'published' => TRUE,
       ];
     }
     return $rows;
@@ -482,6 +491,53 @@ final class VendorMarketingHubBuilder {
   }
 
   /**
+   * Resolves the console vendor: owned first, then team membership.
+   *
+   * Mirrors VendorConsoleBaseController::getCurrentVendorOrNull() so Boost
+   * store catalogues match the retired /vendor/boost page for multi-vendor users.
+   */
+  private function resolveConsoleVendor(): ?Vendor {
+    $uid = (int) $this->currentUser->id();
+    if ($uid === 0) {
+      return NULL;
+    }
+
+    try {
+      $storage = $this->entityTypeManager->getStorage('myeventlane_vendor');
+      $ownerIds = $storage->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('uid', $uid)
+        ->range(0, 1)
+        ->execute();
+      if ($ownerIds !== []) {
+        $vendor = $storage->load(reset($ownerIds));
+        if ($vendor instanceof Vendor) {
+          return $vendor;
+        }
+      }
+
+      $teamIds = $storage->getQuery()
+        ->accessCheck(TRUE)
+        ->condition('field_vendor_users', $uid)
+        ->range(0, 1)
+        ->execute();
+      if ($teamIds !== []) {
+        $vendor = $storage->load(reset($teamIds));
+        if ($vendor instanceof Vendor) {
+          return $vendor;
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Marketing hub console vendor resolve failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return NULL;
+  }
+
+  /**
    * Resolves the commerce store for the current vendor / user.
    *
    * Mirrors VendorBoostController::getCurrentUserStore().
@@ -541,6 +597,7 @@ final class VendorMarketingHubBuilder {
     int $activeBoosts,
     bool $socialReady,
     int $score,
+    bool $boostAvailable,
   ): array {
     $needsAttention = $publishedCount === 0 || $primaryShare === NULL;
     $tone = $needsAttention ? 'attention' : ($score >= 75 ? 'success' : 'muted');
@@ -583,6 +640,22 @@ final class VendorMarketingHubBuilder {
       $ctaUrl = '#share';
     }
 
+    if ($activeBoosts > 0) {
+      $boostFact = (string) $this->formatPlural($activeBoosts, '1 campaign active', '@count campaigns active');
+    }
+    elseif ($boostEligible > 0) {
+      $boostFact = (string) $this->t('Eligible to Boost');
+    }
+    elseif ($publishedCount === 0) {
+      $boostFact = (string) $this->t('Publish a live event first');
+    }
+    elseif (!$boostAvailable) {
+      $boostFact = (string) $this->t('Boost not available right now');
+    }
+    else {
+      $boostFact = (string) $this->t('Not boosting yet');
+    }
+
     return [
       'tone' => $tone,
       'headline' => $headline,
@@ -611,11 +684,7 @@ final class VendorMarketingHubBuilder {
         ],
         [
           'label' => (string) $this->t('Boost eligibility'),
-          'value' => $activeBoosts > 0
-            ? (string) $this->formatPlural($activeBoosts, '1 campaign active', '@count campaigns active')
-            : ($boostEligible > 0
-              ? (string) $this->t('Eligible to Boost')
-              : (string) $this->t('Publish a live event first')),
+          'value' => $boostFact,
         ],
         [
           'label' => (string) $this->t('Social completeness'),

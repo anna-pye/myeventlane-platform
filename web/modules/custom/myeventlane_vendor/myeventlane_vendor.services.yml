@@ -594,7 +594,6 @@ services:
     class: Drupal\myeventlane_vendor\Service\VendorMarketingHubBuilder
     arguments:
       - '@current_user'
-      - '@myeventlane_vendor.current_vendor_resolver'
       - '@myeventlane_vendor.service.ticket_sales'
       - '@entity_type.manager'
       - '@module_handler'
