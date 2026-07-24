@@ -69,13 +69,10 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     $health = $this->paymentsHealth->buildForCurrentUser($vendor);
     $store = $this->paymentsHealth->resolveStore($vendor);
 
-    $stripeManageUrl = NULL;
-    try {
-      $stripeManageUrl = Url::fromRoute('myeventlane_vendor.stripe_manage')->toString();
-    }
-    catch (\Exception) {
-      // Route may not exist.
-    }
+    // Prefer health secondary CTA (only set when a Connect acct_ exists).
+    $stripeManageUrl = !empty($health['secondary_cta_url'])
+      ? (string) $health['secondary_cta_url']
+      : NULL;
 
     $vendorRevenue = $this->ticketSalesService->getManagedVendorRevenue($userId);
     $available = '$0.00';
@@ -131,7 +128,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     }
     if ($stripeManageUrl) {
       $headerActions[] = [
-        'label' => (string) $this->t('Open Stripe'),
+        'label' => (string) ($health['secondary_cta_label'] ?? $this->t('Open Stripe')),
         'url' => $stripeManageUrl,
         'class' => 'mel-btn--secondary',
         'external' => TRUE,

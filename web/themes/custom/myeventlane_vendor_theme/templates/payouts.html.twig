@@ -61,7 +61,11 @@
       <a class="mel-list__item mel-button mel-button--primary mel-button--stripe" href="{{ path('myeventlane_vendor.stripe_connect', {}, {'query': {'destination': '/vendor/payouts'}}) }}">{{ 'Connect Stripe'|t }}</a>
     {% endif %}
     <a class="mel-list__item" href="{{ path('myeventlane_vendor.console.payments') }}">{{ 'Payments overview'|t }}</a>
-    <a class="mel-list__item" href="{{ path('myeventlane_vendor.stripe_manage') }}">{{ 'Open Stripe'|t }}</a>
+    {% if health.secondary_cta_url %}
+      <a class="mel-list__item" href="{{ health.secondary_cta_url }}">{{ health.secondary_cta_label|default('Open Stripe'|t) }}</a>
+    {% elseif stripe_manage_url and health.account_id_present %}
+      <a class="mel-list__item" href="{{ stripe_manage_url }}">{{ 'Open Stripe'|t }}</a>
+    {% endif %}
   </div>
 </div>
 
