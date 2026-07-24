@@ -76,7 +76,7 @@ final class ManageEventPlaceholderController extends ManageEventControllerBase {
         ['node' => $nid],
       ],
       'myeventlane_vendor.manage_event.payments' => [
-        'myeventlane_vendor.console.payouts',
+        'myeventlane_vendor.console.payments',
         [],
       ],
       'myeventlane_vendor.manage_event.advanced' => [

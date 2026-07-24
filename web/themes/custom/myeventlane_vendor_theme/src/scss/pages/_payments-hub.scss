@@ -1,0 +1,221 @@
+/**
+ * @file
+ * Organiser Payments Hub (Trust Centre).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+.mel-payments-hub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-5, 1.5rem);
+  max-width: var(--mel-layout-dashboard, 1280px);
+}
+
+.mel-payments-hub__eyebrow {
+  margin: 0 0 var(--mel-space-1, 0.25rem);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mel-color-text-secondary, #5b6470);
+}
+
+.mel-payments-hub__health {
+  padding: var(--mel-space-5, 1.5rem);
+
+  &--success {
+    border-color: rgba(4, 120, 87, 0.28);
+    background: rgba(16, 185, 129, 0.06);
+  }
+
+  &--attention {
+    border-color: rgba(180, 83, 9, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+  }
+
+  &--muted {
+    border-color: var(--mel-color-border, #e5e7eb);
+  }
+}
+
+.mel-payments-hub__health-title {
+  margin: 0 0 var(--mel-space-2, 0.5rem);
+  font-size: 1.375rem;
+  line-height: 1.3;
+  color: var(--mel-color-text, #111827);
+}
+
+.mel-payments-hub__health-summary {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--mel-color-text-secondary, #4b5563);
+}
+
+.mel-payments-hub__section-title {
+  margin: 0 0 var(--mel-space-3, 0.75rem);
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.mel-payments-hub__section {
+  padding: var(--mel-space-5, 1.5rem);
+}
+
+.mel-payments-hub__section-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mel-space-2, 0.5rem);
+  margin-bottom: var(--mel-space-3, 0.75rem);
+}
+
+.mel-payments-hub__kpi-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--mel-space-3, 0.75rem);
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  &--compact .mel-payments-hub__kpi-value {
+    font-size: 1.25rem;
+  }
+}
+
+.mel-payments-hub__kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-1, 0.25rem);
+  padding: var(--mel-space-4, 1rem);
+  border: 1px solid var(--mel-color-border, #e5e7eb);
+  border-radius: var(--mel-radius-md, 12px);
+  background: var(--mel-color-bg, #fff);
+  min-height: 5.5rem;
+}
+
+.mel-payments-hub__kpi-label {
+  font-size: 0.875rem;
+  color: var(--mel-color-text-secondary, #5b6470);
+}
+
+.mel-payments-hub__kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--mel-color-text, #111827);
+  line-height: 1.2;
+}
+
+.mel-payments-hub__facts {
+  margin: var(--mel-space-4, 1rem) 0 0;
+  padding: 0;
+
+  &--grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--mel-space-3, 0.75rem);
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 960px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+  }
+}
+
+.mel-payments-hub__fact {
+  margin: 0 0 var(--mel-space-3, 0.75rem);
+
+  dt {
+    margin: 0 0 0.15rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--mel-color-text-secondary, #5b6470);
+  }
+
+  dd {
+    margin: 0;
+    font-size: 0.975rem;
+    line-height: 1.45;
+    color: var(--mel-color-text, #111827);
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.mel-payments-hub__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mel-space-3, 0.75rem);
+  margin-top: var(--mel-space-4, 1rem);
+  align-items: center;
+}
+
+.mel-payments-hub__actions .mel-button,
+.mel-payments-hub__section .mel-button {
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem 1rem;
+}
+
+.mel-payments-hub__link {
+  font-weight: 600;
+  color: var(--mel-color-accent, #2563eb);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mel-payments-hub__link:focus-visible,
+.mel-payments-hub__actions .mel-button:focus-visible,
+.mel-payments-hub__section .mel-button:focus-visible {
+  outline: 2px solid var(--mel-color-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+.mel-payments-hub__muted {
+  margin: 0 0 var(--mel-space-3, 0.75rem);
+  color: var(--mel-color-text-secondary, #4b5563);
+  line-height: 1.5;
+}
+
+.mel-payments-hub__callout {
+  margin-top: var(--mel-space-4, 1rem);
+  padding: var(--mel-space-4, 1rem);
+  border-radius: var(--mel-radius-md, 12px);
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(180, 83, 9, 0.25);
+
+  p {
+    margin: 0 0 var(--mel-space-2, 0.5rem);
+    line-height: 1.45;
+  }
+}
+
+.mel-empty-state {
+  padding: var(--mel-space-4, 1rem) 0;
+}
+
+.mel-empty-state__title {
+  margin: 0 0 var(--mel-space-1, 0.25rem);
+  font-weight: 600;
+}
+
+.mel-empty-state__body {
+  margin: 0;
+  color: var(--mel-color-text-secondary, #4b5563);
+  line-height: 1.5;
+}

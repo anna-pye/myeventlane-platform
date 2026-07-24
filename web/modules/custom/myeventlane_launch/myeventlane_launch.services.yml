@@ -7,19 +7,6 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_monitoring']
 
-  myeventlane_launch.vendor_finance_summary:
-    class: Drupal\myeventlane_launch\Service\VendorFinanceSummaryBuilder
-    arguments:
-      - '@current_user'
-      - '@entity_type.manager'
-      - '@myeventlane_vendor.current_vendor_resolver'
-      - '@myeventlane_vendor.service.ticket_sales'
-      - '@myeventlane_vendor.service.metrics_aggregator'
-      - '@myeventlane_commerce.stripe_connect_payment'
-      - '@myeventlane_domain_events.read_model.finance'
-      - '@myeventlane_domain_events.read_model.vendor_metrics'
-      - '@logger.channel.myeventlane_launch'
-
   myeventlane_launch.vendor_dashboard_health:
     class: Drupal\myeventlane_launch\Service\VendorDashboardHealthBuilder
     arguments:

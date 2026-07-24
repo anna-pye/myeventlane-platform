@@ -12,13 +12,15 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EntityIdNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventRepository;
+use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\TicketSalesService;
+use Drupal\myeventlane_vendor\Service\VendorPaymentsHealthService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Payouts controller for vendor console.
  *
- * Displays real sales data from Commerce orders.
+ * Deep page under Payments Hub — ticket earnings history and Stripe balances.
  */
 final class VendorPayoutsController extends VendorConsoleBaseController implements ContainerInjectionInterface {
 
@@ -33,6 +35,9 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly EntityIdNormalizer $entityIdNormalizer,
     private readonly ?EventRepository $eventRepository,
+    private readonly CurrentVendorResolverInterface $vendorResolver,
+    private readonly VendorPaymentsHealthService $paymentsHealth,
+    private readonly ?object $stripePayout = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
   }
@@ -49,6 +54,9 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       $container->get('entity_type.manager'),
       $container->get('myeventlane_core.entity_id_normalizer'),
       $container->has('myeventlane_event_studio.repository') ? $container->get('myeventlane_event_studio.repository') : NULL,
+      $container->get('myeventlane_vendor.current_vendor_resolver'),
+      $container->get('myeventlane_vendor.payments_health'),
+      $container->has('myeventlane_stripe.vendor_payout') ? $container->get('myeventlane_stripe.vendor_payout') : NULL,
     );
   }
 
@@ -57,45 +65,91 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
    */
   public function payouts(): array {
     $userId = (int) $this->currentUser->id();
+    $vendor = $this->vendorResolver->resolveFromCurrentUser();
+    $health = $this->paymentsHealth->buildForCurrentUser($vendor);
+    $store = $this->paymentsHealth->resolveStore($vendor);
 
-    // Build Stripe manage URL.
-    $stripeManageUrl = NULL;
-    try {
-      $stripeManageUrl = Url::fromRoute('myeventlane_vendor.stripe_manage')->toString();
-    }
-    catch (\Exception) {
-      // Route may not exist.
-    }
+    // Prefer health secondary CTA (only set when a Connect acct_ exists).
+    $stripeManageUrl = !empty($health['secondary_cta_url'])
+      ? (string) $health['secondary_cta_url']
+      : NULL;
 
-    // Same managed-events scope as dashboard KPIs (author or vendor team).
     $vendorRevenue = $this->ticketSalesService->getManagedVendorRevenue($userId);
+    $available = '$0.00';
+    $pending = '$0.00';
+    $lastPayoutLabel = '—';
+    if ($store !== NULL && $this->stripePayout !== NULL) {
+      if (method_exists($this->stripePayout, 'getBalancesFormatted')) {
+        $balances = $this->stripePayout->getBalancesFormatted($store);
+        $available = (string) ($balances['available'] ?? '$0.00');
+        $pending = (string) ($balances['pending'] ?? '$0.00');
+      }
+      elseif (method_exists($this->stripePayout, 'getAvailableBalanceFormatted')) {
+        $available = $this->stripePayout->getAvailableBalanceFormatted($store);
+        if (method_exists($this->stripePayout, 'getPendingBalanceFormatted')) {
+          $pending = $this->stripePayout->getPendingBalanceFormatted($store);
+        }
+      }
+      if (method_exists($this->stripePayout, 'getLatestPayoutSummary')) {
+        $last = $this->stripePayout->getLatestPayoutSummary($store);
+        if (is_array($last)) {
+          $lastPayoutLabel = trim(($last['amount'] ?? '') . ' · ' . ($last['date_label'] ?? '') . ' · ' . ($last['status'] ?? ''), ' ·');
+        }
+      }
+    }
 
     $summary = [
       'total_sales' => $vendorRevenue['gross'] ?? '$0.00',
       'total_fees' => $vendorRevenue['fees'] ?? '$0.00',
       'net_earnings' => $vendorRevenue['net'] ?? '$0.00',
-    // Would come from Stripe API.
-      'pending_payout' => '$0.00',
+      'pending_payout' => $pending,
+      'balance' => $available,
+      'next_payout' => !empty($health['payouts_enabled'])
+        ? (string) $this->t("On Stripe's usual schedule")
+        : (string) $this->t('Once payouts are enabled'),
+      'last_payout' => $lastPayoutLabel,
     ];
 
-    // Get recent transactions from completed orders.
     $history = $this->getRecentTransactions($userId);
+    $paymentsHubUrl = NULL;
+    try {
+      $paymentsHubUrl = Url::fromRoute('myeventlane_vendor.console.payments')->toString();
+    }
+    catch (\Exception) {
+    }
+
+    $headerActions = [];
+    if ($paymentsHubUrl) {
+      $headerActions[] = [
+        'label' => (string) $this->t('Payments overview'),
+        'url' => $paymentsHubUrl,
+        'class' => 'mel-btn--secondary',
+      ];
+    }
+    if ($stripeManageUrl) {
+      $headerActions[] = [
+        'label' => (string) ($health['secondary_cta_label'] ?? $this->t('Open Stripe')),
+        'url' => $stripeManageUrl,
+        'class' => 'mel-btn--secondary',
+        'external' => TRUE,
+      ];
+    }
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => 'Payouts',
-      'header_actions' => $stripeManageUrl ? [
-        [
-          'label' => 'Manage in Stripe',
-          'url' => $stripeManageUrl,
-          'class' => 'mel-btn--secondary',
-          'external' => TRUE,
-        ],
-      ] : [],
+      'title' => (string) $this->t('Payouts'),
+      'header_actions' => $headerActions,
       'body' => [
         '#theme' => 'myeventlane_vendor_payouts',
         '#summary' => $summary,
         '#history' => $history,
         '#stripe_manage_url' => $stripeManageUrl,
+        '#health' => $health,
+        '#empty' => $history === [] && ($available === '$0.00') && ($pending === '$0.00'),
+      ],
+      // Stripe balances/payouts are live API reads — do not page-cache KPIs.
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'max-age' => 0,
       ],
     ]);
   }
@@ -113,7 +167,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     $transactions = [];
 
     try {
-      // Include unpublished managed events so historical completed orders stay visible.
+      // Include unpublished managed events so historical sales stay visible.
       $managedEventIds = $this->ticketSalesService->getManagedEventNidsForUser($userId);
       $normalized = $this->entityIdNormalizer->normalizeNodeIds($managedEventIds);
       if ($normalized === []) {
@@ -196,10 +250,10 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
         $completedTime = $order->getCompletedTime() ?? $order->getChangedTime();
 
         $transactions[] = [
-          'date' => date('M j, Y', (int) $completedTime),
-          'event' => implode(', ', array_values($data['events'])) ?: 'Unknown',
+          'date' => date('j M Y', (int) $completedTime),
+          'event' => implode(', ', array_values($data['events'])) ?: (string) $this->t('Event'),
           'amount' => '$' . number_format($data['amount'], 2),
-          'status' => 'Completed',
+          'status' => (string) $this->t('Completed'),
         ];
       }
     }

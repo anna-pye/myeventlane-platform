@@ -910,7 +910,7 @@ class VendorSettingsForm extends FormBase {
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
     ];
     $form['store']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal entity details stay in sync with your account. Stripe status reflects the last saved connection state (no live API calls here).') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal entity details stay in sync with your account. For live payment health, open Payments.') . '</p>',
       '#weight' => -10,
     ];
     // Business Information subsection.
@@ -942,10 +942,10 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Store & Stripe subsection.
+    // Payment account subsection (Stripe readiness — no Commerce jargon).
     $form['store']['payment_processing'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Store & Stripe'),
+      '#title' => $this->t('Payment account'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__grid']],
     ];
 
@@ -955,13 +955,13 @@ class VendorSettingsForm extends FormBase {
         // Store details table.
         $store_rows = [];
         $store_rows[] = [
-          ['data' => $this->t('Store Name'), 'header' => TRUE],
+          ['data' => $this->t('Account name'), 'header' => TRUE],
           ['data' => $store->label()],
         ];
 
         if ($store->getEmail()) {
           $store_rows[] = [
-            ['data' => $this->t('Store Email'), 'header' => TRUE],
+            ['data' => $this->t('Account email'), 'header' => TRUE],
             ['data' => $store->getEmail()],
           ];
         }
@@ -1007,8 +1007,18 @@ class VendorSettingsForm extends FormBase {
         // Stripe status display (stored fields only — no Stripe API).
         $form['store']['payment_processing']['stripe_section'] = [
           '#type' => 'fieldset',
-          '#title' => $this->t('Stripe Connect'),
+          '#title' => $this->t('Stripe'),
           '#attributes' => ['class' => ['mel-vendor-settings-v2__status']],
+        ];
+
+        $form['store']['payment_processing']['stripe_section']['payments_hub'] = [
+          '#type' => 'link',
+          '#title' => $this->t('Open Payments'),
+          '#url' => Url::fromRoute('myeventlane_vendor.console.payments'),
+          '#attributes' => [
+            'class' => ['button', 'button--primary', 'mel-btn', 'mel-btn--primary', 'mel-vendor-settings-v2__actions-link'],
+          ],
+          '#weight' => -5,
         ];
 
         if ($store->hasField('field_stripe_status') && !$store->get('field_stripe_status')->isEmpty()) {
@@ -1016,7 +1026,7 @@ class VendorSettingsForm extends FormBase {
           if ($phase !== '') {
             $form['store']['payment_processing']['stripe_section']['phase'] = [
               '#type' => 'markup',
-              '#markup' => '<p class="mel-vendor-settings-v2__status-note">' . $this->t('Onboarding status (stored): @s', [
+              '#markup' => '<p class="mel-vendor-settings-v2__status-note">' . $this->t('Saved connection status: @s', [
                 '@s' => Html::escape($phase),
               ]) . '</p>',
             ];
@@ -1052,7 +1062,7 @@ class VendorSettingsForm extends FormBase {
           // Manage Stripe button.
           $form['store']['payment_processing']['stripe_section']['manage'] = [
             '#type' => 'link',
-            '#title' => $this->t('Manage Stripe Account'),
+            '#title' => $this->t('Open Stripe'),
             '#url' => Url::fromRoute('myeventlane_vendor.stripe_manage'),
             '#attributes' => [
               'class' => ['button', 'button--secondary', 'mel-btn', 'mel-btn--secondary', 'mel-vendor-settings-v2__actions-link'],
@@ -1065,9 +1075,9 @@ class VendorSettingsForm extends FormBase {
           // Not connected.
           $status_markup = '<div class="stripe-status stripe-status--disconnected mel-vendor-settings-v2__pill mel-vendor-settings-v2__pill--warning">';
           $status_markup .= '<span class="status-indicator status-indicator--warning"></span>';
-          $status_markup .= '<strong>' . $this->t('Not Connected') . '</strong>';
+          $status_markup .= '<strong>' . $this->t('Not connected') . '</strong>';
           $status_markup .= '</div>';
-          $status_markup .= '<p class="description">' . $this->t('Connect your Stripe account to accept payments for tickets and donations.') . '</p>';
+          $status_markup .= '<p class="description">' . $this->t('Connect Stripe to get paid for tickets.') . '</p>';
 
           $form['store']['payment_processing']['stripe_section']['status'] = [
             '#type' => 'markup',
@@ -1077,7 +1087,7 @@ class VendorSettingsForm extends FormBase {
           // Connect Stripe button.
           $form['store']['payment_processing']['stripe_section']['connect'] = [
             '#type' => 'link',
-            '#title' => $this->t('Connect Stripe Account'),
+            '#title' => $this->t('Connect Stripe'),
             '#url' => Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
               'query' => [
                 'destination' => $this->getRequest()->getPathInfo() !== '' && $this->getRequest()->getPathInfo() !== '/'
@@ -1109,7 +1119,7 @@ class VendorSettingsForm extends FormBase {
       $form['store']['payment_processing']['no_store'] = [
         '#type' => 'markup',
         '#markup' => '<div class="messages messages--warning"><p>'
-          . $this->t('No store configured. Please complete your account setup to enable payment processing.')
+          . $this->t('Payment account not ready yet. Finish account setup, then connect Stripe from Payments.')
           . '</p></div>',
       ];
     }

@@ -1396,8 +1396,8 @@ final class VendorDashboardViewModelBuilder {
       $items[] = [
         'type' => 'success',
         'message' => (string) $this->t('Stripe payouts are active.'),
-        'url' => $this->routeExists('myeventlane_vendor.console.payouts')
-          ? $this->safeUrlFromRoute('myeventlane_vendor.console.payouts')
+        'url' => $this->routeExists('myeventlane_vendor.console.payments')
+          ? $this->safeUrlFromRoute('myeventlane_vendor.console.payments')
           : NULL,
       ];
     }

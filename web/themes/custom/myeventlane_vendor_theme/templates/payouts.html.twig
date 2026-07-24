@@ -1,43 +1,85 @@
 {#
-  Payouts view.
-  Variables: summary, history.
-  VX2-02A: side-by-side status cards; history keeps workspace width via console.
+  Payouts deep page (under Payments Hub).
+  Variables: summary, history, health, empty, stripe_manage_url.
+
+  `history` is recent completed Commerce ticket orders, not Stripe payout records.
+  Bank payout status is summarised in Payout balances (Last payout).
 #}
+{% set health = health|default({}) %}
+
 <div class="mel-layout__split mel-layout__split--status-primary">
   <div class="mel-card mel-card--status">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Stripe account'|t }}</div>
+      <div class="mel-card__title">{{ 'Earnings'|t }}</div>
     </div>
     <div class="mel-list">
       <div class="mel-list__item">
-        <div>{{ 'Balance'|t }}</div>
-        <div class="mel-list__meta">{{ summary.balance|default('$0') }}</div>
+        <div>{{ 'Total sales'|t }}</div>
+        <div class="mel-list__meta">{{ summary.total_sales|default('$0.00') }}</div>
       </div>
       <div class="mel-list__item">
-        <div>{{ 'Next payout'|t }}</div>
-        <div class="mel-list__meta">{{ summary.next_payout|default('-') }}</div>
+        <div>{{ 'Fees'|t }}</div>
+        <div class="mel-list__meta">{{ summary.total_fees|default('$0.00') }}</div>
+      </div>
+      <div class="mel-list__item">
+        <div>{{ 'Net earnings'|t }}</div>
+        <div class="mel-list__meta">{{ summary.net_earnings|default('$0.00') }}</div>
       </div>
     </div>
   </div>
 
-  <div class="mel-card mel-card--next">
+  <div class="mel-card mel-card--status">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Actions'|t }}</div>
+      <div class="mel-card__title">{{ 'Payout balances'|t }}</div>
     </div>
-    <div class="mel-list mel-list--actions">
+    <div class="mel-list">
+      <div class="mel-list__item">
+        <div>{{ 'Available'|t }}</div>
+        <div class="mel-list__meta">{{ summary.balance|default('$0.00') }}</div>
+      </div>
+      <div class="mel-list__item">
+        <div>{{ 'Pending'|t }}</div>
+        <div class="mel-list__meta">{{ summary.pending_payout|default('$0.00') }}</div>
+      </div>
+      <div class="mel-list__item">
+        <div>{{ 'Last payout'|t }}</div>
+        <div class="mel-list__meta">{{ summary.last_payout|default('—'|t) }}</div>
+      </div>
+      <div class="mel-list__item">
+        <div>{{ 'Next expected'|t }}</div>
+        <div class="mel-list__meta">{{ summary.next_payout|default('—'|t) }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="mel-card mel-card--next">
+  <div class="mel-card__header">
+    <div class="mel-card__title">{{ 'Actions'|t }}</div>
+  </div>
+  <div class="mel-list mel-list--actions">
+    {% if health.needs_attention and health.cta_url %}
+      <a class="mel-list__item mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
+    {% elseif not health.connected %}
       <a class="mel-list__item mel-button mel-button--primary mel-button--stripe" href="{{ path('myeventlane_vendor.stripe_connect', {}, {'query': {'destination': '/vendor/payouts'}}) }}">{{ 'Connect Stripe'|t }}</a>
-      <a class="mel-list__item" href="{{ path('myeventlane_vendor.stripe_manage') }}">{{ 'Open Stripe dashboard'|t }}</a>
-    </div>
+    {% endif %}
+    <a class="mel-list__item" href="{{ path('myeventlane_vendor.console.payments') }}">{{ 'Payments overview'|t }}</a>
+    {% if health.secondary_cta_url %}
+      <a class="mel-list__item" href="{{ health.secondary_cta_url }}">{{ health.secondary_cta_label|default('Open Stripe'|t) }}</a>
+    {% elseif stripe_manage_url and health.account_id_present %}
+      <a class="mel-list__item" href="{{ stripe_manage_url }}">{{ 'Open Stripe'|t }}</a>
+    {% endif %}
   </div>
 </div>
 
 <div class="mel-card">
   <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Payout history'|t }}</div>
+    <div class="mel-card__title">{{ 'Recent transactions'|t }}</div>
   </div>
   <div class="mel-table">
     <div class="mel-table__head">
       <div>{{ 'Date'|t }}</div>
+      <div>{{ 'Event'|t }}</div>
       <div>{{ 'Amount'|t }}</div>
       <div>{{ 'Status'|t }}</div>
     </div>
@@ -45,11 +87,15 @@
       {% for item in history %}
         <div class="mel-table__row">
           <div>{{ item.date }}</div>
+          <div>{{ item.event|default('') }}</div>
           <div>{{ item.amount }}</div>
           <div>{{ item.status }}</div>
         </div>
       {% else %}
-        <div class="mel-table__empty">{{ 'No payouts yet.'|t }}</div>
+        <div class="mel-table__empty" role="status">
+          <p><strong>{{ 'No recent transactions listed.'|t }}</strong></p>
+          <p>{{ 'This list shows recent completed ticket orders. Bank transfers appear under Last payout above.'|t }}</p>
+        </div>
       {% endfor %}
     </div>
   </div>
