@@ -81,11 +81,17 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
     $available = '$0.00';
     $pending = '$0.00';
     $lastPayoutLabel = '—';
-    if ($store !== NULL && $this->stripePayout !== NULL
-      && method_exists($this->stripePayout, 'getAvailableBalanceFormatted')) {
-      $available = $this->stripePayout->getAvailableBalanceFormatted($store);
-      if (method_exists($this->stripePayout, 'getPendingBalanceFormatted')) {
-        $pending = $this->stripePayout->getPendingBalanceFormatted($store);
+    if ($store !== NULL && $this->stripePayout !== NULL) {
+      if (method_exists($this->stripePayout, 'getBalancesFormatted')) {
+        $balances = $this->stripePayout->getBalancesFormatted($store);
+        $available = (string) ($balances['available'] ?? '$0.00');
+        $pending = (string) ($balances['pending'] ?? '$0.00');
+      }
+      elseif (method_exists($this->stripePayout, 'getAvailableBalanceFormatted')) {
+        $available = $this->stripePayout->getAvailableBalanceFormatted($store);
+        if (method_exists($this->stripePayout, 'getPendingBalanceFormatted')) {
+          $pending = $this->stripePayout->getPendingBalanceFormatted($store);
+        }
       }
       if (method_exists($this->stripePayout, 'getLatestPayoutSummary')) {
         $last = $this->stripePayout->getLatestPayoutSummary($store);

@@ -7,6 +7,26 @@
 <div class="mel-layout__split mel-layout__split--status-primary">
   <div class="mel-card mel-card--status">
     <div class="mel-card__header">
+      <div class="mel-card__title">{{ 'Earnings'|t }}</div>
+    </div>
+    <div class="mel-list">
+      <div class="mel-list__item">
+        <div>{{ 'Total sales'|t }}</div>
+        <div class="mel-list__meta">{{ summary.total_sales|default('$0.00') }}</div>
+      </div>
+      <div class="mel-list__item">
+        <div>{{ 'Fees'|t }}</div>
+        <div class="mel-list__meta">{{ summary.total_fees|default('$0.00') }}</div>
+      </div>
+      <div class="mel-list__item">
+        <div>{{ 'Net earnings'|t }}</div>
+        <div class="mel-list__meta">{{ summary.net_earnings|default('$0.00') }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="mel-card mel-card--status">
+    <div class="mel-card__header">
       <div class="mel-card__title">{{ 'Payout balances'|t }}</div>
     </div>
     <div class="mel-list">
@@ -28,20 +48,20 @@
       </div>
     </div>
   </div>
+</div>
 
-  <div class="mel-card mel-card--next">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Actions'|t }}</div>
-    </div>
-    <div class="mel-list mel-list--actions">
-      {% if health.needs_attention and health.cta_url %}
-        <a class="mel-list__item mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
-      {% elseif not health.connected %}
-        <a class="mel-list__item mel-button mel-button--primary mel-button--stripe" href="{{ path('myeventlane_vendor.stripe_connect', {}, {'query': {'destination': '/vendor/payouts'}}) }}">{{ 'Connect Stripe'|t }}</a>
-      {% endif %}
-      <a class="mel-list__item" href="{{ path('myeventlane_vendor.console.payments') }}">{{ 'Payments overview'|t }}</a>
-      <a class="mel-list__item" href="{{ path('myeventlane_vendor.stripe_manage') }}">{{ 'Open Stripe'|t }}</a>
-    </div>
+<div class="mel-card mel-card--next">
+  <div class="mel-card__header">
+    <div class="mel-card__title">{{ 'Actions'|t }}</div>
+  </div>
+  <div class="mel-list mel-list--actions">
+    {% if health.needs_attention and health.cta_url %}
+      <a class="mel-list__item mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
+    {% elseif not health.connected %}
+      <a class="mel-list__item mel-button mel-button--primary mel-button--stripe" href="{{ path('myeventlane_vendor.stripe_connect', {}, {'query': {'destination': '/vendor/payouts'}}) }}">{{ 'Connect Stripe'|t }}</a>
+    {% endif %}
+    <a class="mel-list__item" href="{{ path('myeventlane_vendor.console.payments') }}">{{ 'Payments overview'|t }}</a>
+    <a class="mel-list__item" href="{{ path('myeventlane_vendor.stripe_manage') }}">{{ 'Open Stripe'|t }}</a>
   </div>
 </div>
 

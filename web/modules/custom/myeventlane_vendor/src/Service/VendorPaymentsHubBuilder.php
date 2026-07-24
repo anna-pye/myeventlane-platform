@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
@@ -34,6 +35,8 @@ final class VendorPaymentsHubBuilder {
    *   Ticket sales totals.
    * @param \Drupal\Core\Extension\ModuleHandlerInterface $moduleHandler
    *   Module handler.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   Config factory.
    * @param \Psr\Log\LoggerInterface $logger
    *   Logger.
    * @param \Drupal\Core\StringTranslation\TranslationInterface $stringTranslation
@@ -51,6 +54,7 @@ final class VendorPaymentsHubBuilder {
     private readonly VendorPaymentsHealthService $paymentsHealth,
     private readonly TicketSalesService $ticketSales,
     private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
     private readonly ?object $stripePayout = NULL,
@@ -76,14 +80,22 @@ final class VendorPaymentsHubBuilder {
     $available = '$0.00';
     $pending = '$0.00';
     $lastPayout = NULL;
-    if ($store !== NULL && $this->stripePayout !== NULL
-      && method_exists($this->stripePayout, 'getAvailableBalanceFormatted')
-      && method_exists($this->stripePayout, 'getPendingBalanceFormatted')
-      && method_exists($this->stripePayout, 'getLatestPayoutSummary')) {
+    if ($store !== NULL && $this->stripePayout !== NULL) {
       try {
-        $available = $this->stripePayout->getAvailableBalanceFormatted($store);
-        $pending = $this->stripePayout->getPendingBalanceFormatted($store);
-        $lastPayout = $this->stripePayout->getLatestPayoutSummary($store);
+        if (method_exists($this->stripePayout, 'getBalancesFormatted')) {
+          $balances = $this->stripePayout->getBalancesFormatted($store);
+          $available = (string) ($balances['available'] ?? '$0.00');
+          $pending = (string) ($balances['pending'] ?? '$0.00');
+        }
+        elseif (method_exists($this->stripePayout, 'getAvailableBalanceFormatted')) {
+          $available = $this->stripePayout->getAvailableBalanceFormatted($store);
+          if (method_exists($this->stripePayout, 'getPendingBalanceFormatted')) {
+            $pending = $this->stripePayout->getPendingBalanceFormatted($store);
+          }
+        }
+        if (method_exists($this->stripePayout, 'getLatestPayoutSummary')) {
+          $lastPayout = $this->stripePayout->getLatestPayoutSummary($store);
+        }
       }
       catch (\Throwable $e) {
         $this->logger->warning('Payments hub could not load Stripe balances: @message', [
@@ -180,7 +192,8 @@ final class VendorPaymentsHubBuilder {
         $vendor = $this->vendorResolver->resolveFromCurrentUser();
         $owner = $vendor?->getOwner();
         if ($owner) {
-          $data = $this->refundsRepository->findVendorSummary((int) $owner->id(), 90);
+          $windowDays = $this->resolveRefundSummaryWindowDays();
+          $data = $this->refundsRepository->findVendorSummary((int) $owner->id(), $windowDays);
           $metrics = $this->refundsMetrics->calculateForVendor($data['logs'], $data['requests']);
           $byRequest = $metrics['requests_by_status'] ?? [];
           $byLog = $metrics['logs_by_status'] ?? [];
@@ -225,6 +238,16 @@ final class VendorPaymentsHubBuilder {
         ] : NULL,
       ])),
     ];
+  }
+
+  /**
+   * Resolves the refund summary window used by the linked activity page.
+   */
+  private function resolveRefundSummaryWindowDays(): int {
+    $days = (int) ($this->configFactory
+      ->get('myeventlane_escalations_refunds.settings')
+      ->get('vendor_summary_window_days') ?? 90);
+    return $days > 0 ? $days : 90;
   }
 
   /**

@@ -525,6 +525,7 @@ services:
       - '@myeventlane_vendor.payments_health'
       - '@myeventlane_vendor.service.ticket_sales'
       - '@module_handler'
+      - '@config.factory'
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'
       - '@?myeventlane_stripe.vendor_payout'
