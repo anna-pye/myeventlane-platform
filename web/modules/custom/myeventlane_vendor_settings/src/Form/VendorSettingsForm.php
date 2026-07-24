@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor_settings\Form;
 
 use Drupal\commerce_store\Entity\StoreInterface;
-use Drupal\Component\Utility\Html;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -25,9 +24,9 @@ use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Single source of truth for /vendor/settings — profile, contact, payments, team.
+ * Organiser profile form for Workspace Settings · Profile.
  *
- * Data is stored on the myeventlane_vendor entity (and Commerce store where synced).
+ * Data is stored on the organiser account entity (synced where needed).
  */
 class VendorSettingsForm extends FormBase {
 
@@ -230,7 +229,7 @@ class VendorSettingsForm extends FormBase {
 
     if (!$vendor) {
       $form['error'] = [
-        '#markup' => '<p>' . $this->t('Vendor not found. Please contact support.') . '</p>',
+        '#markup' => '<p>' . $this->t('Organiser account not found. Please contact support.') . '</p>',
       ];
       $form['#cache']['max-age'] = 0;
       return $form;
@@ -279,14 +278,21 @@ class VendorSettingsForm extends FormBase {
     $form['page_header']['title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h1',
-      '#value' => $this->t('Organiser profile'),
+      '#value' => $this->t('Profile'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__header-title', 'mel-settings-header__title']],
     ];
     $form['page_header']['lede'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('Manage your public presence, contact details, payments readiness, and team in one place.'),
+      '#value' => $this->t('Update your organisation details, contact email, public profile, and notification defaults.'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__header-lede', 'mel-settings-header__lede']],
+    ];
+    $form['page_header']['back'] = [
+      '#type' => 'link',
+      '#title' => $this->t('← Workspace Settings'),
+      '#url' => Url::fromRoute('myeventlane_vendor.console.settings'),
+      '#attributes' => ['class' => ['mel-vendor-settings-v2__header-link']],
+      '#weight' => -10,
     ];
     if ($quick_links !== []) {
       $form['page_header']['quick'] = [
@@ -519,7 +525,7 @@ class VendorSettingsForm extends FormBase {
         '#default_value' => $bio_value,
         '#format' => $bio_format,
         '#rows' => 8,
-        '#description' => $this->t('Extended biography or about section for your vendor profile.'),
+        '#description' => $this->t('Extended biography or about section for your public organiser page.'),
         '#attributes' => ['class' => ['mel-vendor-settings-v2__field']],
       ];
     }
@@ -624,9 +630,12 @@ class VendorSettingsForm extends FormBase {
   private function buildVisualAssetsSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['visual_assets'] = [
       '#type' => 'details',
-      '#title' => $this->t('Visual assets'),
+      '#title' => $this->t('Logo & brand colour'),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
+        'id' => 'visual-assets',
+      ],
     ];
     $form['visual_assets']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Logo, banner, and accent colour are shared with emails and messaging previews.') . '</p>',
@@ -879,59 +888,74 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Show banner image on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_banner', FALSE),
-        '#description' => $this->t('Display your banner image on your public vendor profile.'),
+        '#description' => $this->t('Display your banner image on your public organiser page.'),
       ];
     }
 
   }
 
   /**
-   * Builds the recurring venues placeholder section.
+   * Links to the saved venues library (no duplicate placeholder UI).
    */
   private function buildVenuesSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['venues'] = [
       '#type' => 'details',
-      '#title' => $this->t('Recurring venues'),
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#title' => $this->t('Venues'),
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
+        'id' => 'venues',
+      ],
     ];
     $form['venues']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Save frequently used venues to quickly add them to events.') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Save venues once and reuse them when you create events.') . '</p>',
       '#weight' => -9,
     ];
-
-    $form['venues']['venue_list'] = [
-      '#type' => 'markup',
-      '#markup' => '<p>' . $this->t('Venue management will be implemented here. For now, venues are managed per-event.') . '</p>',
-    ];
-
+    if ($this->routeExists('myeventlane_venue.vendor_venues')) {
+      $form['venues']['manage'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Manage venues'),
+        '#url' => Url::fromRoute('myeventlane_venue.vendor_venues'),
+        '#attributes' => [
+          'class' => ['button', 'button--secondary', 'mel-btn', 'mel-btn--secondary'],
+        ],
+      ];
+    }
+    else {
+      $form['venues']['venue_list'] = [
+        '#type' => 'markup',
+        '#markup' => '<p>' . $this->t('Venue management is not available on this site yet.') . '</p>',
+      ];
+    }
   }
 
   /**
-   * Builds Commerce store, business, and payout readiness details.
+   * Business details with a deep link to Payments (no parallel Stripe desk).
    */
   private function buildCommerceSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['store'] = [
       '#type' => 'details',
-      '#title' => $this->t('Business & payments'),
+      '#title' => $this->t('Business details'),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
+        'id' => 'business',
+      ],
     ];
     $form['store']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal entity details stay in sync with your account. For live payment health, open Payments.') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal details for invoices. For Stripe connection, payouts, and refunds, open Payments.') . '</p>',
       '#weight' => -10,
     ];
-    // Business Information subsection.
     $form['store']['business'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Business details'),
-      '#description' => $this->t('Legal business details for invoices and tax documents.'),
+      '#title' => $this->t('Legal entity'),
+      '#description' => $this->t('Used on invoices and tax documents.'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__grid']],
     ];
 
     if ($vendor->hasField('field_business_name')) {
       $form['store']['business']['business_name'] = [
         '#type' => 'textfield',
-        '#title' => $this->t('Legal Business Name'),
+        '#title' => $this->t('Legal business name'),
         '#default_value' => $this->getFieldValue($vendor, 'field_business_name', ''),
         '#description' => $this->t('Your registered business name (if different from display name).'),
         '#maxlength' => 255,
@@ -949,188 +973,15 @@ class VendorSettingsForm extends FormBase {
       ];
     }
 
-    // Payment account subsection (Stripe readiness — no Commerce jargon).
-    $form['store']['payment_processing'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Payment account'),
-      '#attributes' => ['class' => ['mel-vendor-settings-v2__grid']],
+    $form['store']['payments_link'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Open Payments'),
+      '#url' => Url::fromRoute('myeventlane_vendor.console.payments'),
+      '#attributes' => [
+        'class' => ['button', 'button--primary', 'mel-btn', 'mel-btn--primary', 'mel-vendor-settings-v2__actions-link'],
+      ],
+      '#prefix' => '<p class="mel-vendor-settings-v2__status-note">' . $this->t('Stripe connection and payout status live in Payments.') . '</p>',
     ];
-
-    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
-      $store = $vendor->get('field_vendor_store')->entity;
-      if ($store) {
-        // Store details table.
-        $store_rows = [];
-        $store_rows[] = [
-          ['data' => $this->t('Account name'), 'header' => TRUE],
-          ['data' => $store->label()],
-        ];
-
-        if ($store->getEmail()) {
-          $store_rows[] = [
-            ['data' => $this->t('Account email'), 'header' => TRUE],
-            ['data' => $store->getEmail()],
-          ];
-        }
-
-        if ($store->getDefaultCurrencyCode()) {
-          $store_rows[] = [
-            ['data' => $this->t('Currency'), 'header' => TRUE],
-            ['data' => $store->getDefaultCurrencyCode()],
-          ];
-        }
-
-        if ($store->getTimezone()) {
-          $store_rows[] = [
-            ['data' => $this->t('Timezone'), 'header' => TRUE],
-            ['data' => $store->getTimezone()],
-          ];
-        }
-
-        $form['store']['payment_processing']['details'] = [
-          '#type' => 'table',
-          '#rows' => $store_rows,
-          '#attributes' => ['class' => ['store-details-table']],
-        ];
-
-        // Stripe connection status.
-        $stripe_connected = FALSE;
-        $charges_enabled = FALSE;
-        $payouts_enabled = FALSE;
-
-        if ($store->hasField('field_stripe_connected')) {
-          $stripe_connected = !$store->get('field_stripe_connected')->isEmpty()
-            && (bool) $store->get('field_stripe_connected')->value;
-        }
-        if ($store->hasField('field_stripe_charges_enabled')) {
-          $charges_enabled = !$store->get('field_stripe_charges_enabled')->isEmpty()
-            && (bool) $store->get('field_stripe_charges_enabled')->value;
-        }
-        if ($store->hasField('field_stripe_payouts_enabled')) {
-          $payouts_enabled = !$store->get('field_stripe_payouts_enabled')->isEmpty()
-            && (bool) $store->get('field_stripe_payouts_enabled')->value;
-        }
-
-        // Stripe status display (stored fields only — no Stripe API).
-        $form['store']['payment_processing']['stripe_section'] = [
-          '#type' => 'fieldset',
-          '#title' => $this->t('Stripe'),
-          '#attributes' => ['class' => ['mel-vendor-settings-v2__status']],
-        ];
-
-        $form['store']['payment_processing']['stripe_section']['payments_hub'] = [
-          '#type' => 'link',
-          '#title' => $this->t('Open Payments'),
-          '#url' => Url::fromRoute('myeventlane_vendor.console.payments'),
-          '#attributes' => [
-            'class' => ['button', 'button--primary', 'mel-btn', 'mel-btn--primary', 'mel-vendor-settings-v2__actions-link'],
-          ],
-          '#weight' => -5,
-        ];
-
-        if ($store->hasField('field_stripe_status') && !$store->get('field_stripe_status')->isEmpty()) {
-          $phase = trim((string) $store->get('field_stripe_status')->value);
-          if ($phase !== '') {
-            $form['store']['payment_processing']['stripe_section']['phase'] = [
-              '#type' => 'markup',
-              '#markup' => '<p class="mel-vendor-settings-v2__status-note">' . $this->t('Saved connection status: @s', [
-                '@s' => Html::escape($phase),
-              ]) . '</p>',
-            ];
-          }
-        }
-
-        if ($stripe_connected) {
-          $status_markup = '<div class="stripe-status stripe-status--connected mel-vendor-settings-v2__pill mel-vendor-settings-v2__pill--success">';
-          $status_markup .= '<span class="status-indicator status-indicator--success"></span>';
-          $status_markup .= '<strong>' . $this->t('Connected') . '</strong>';
-          $status_markup .= '</div>';
-
-          $form['store']['payment_processing']['stripe_section']['status'] = [
-            '#type' => 'markup',
-            '#markup' => $status_markup,
-          ];
-
-          // Show capabilities.
-          $capabilities = [];
-          $capabilities[] = $this->t('Charges: @status', [
-            '@status' => $charges_enabled ? $this->t('Enabled') : $this->t('Pending'),
-          ]);
-          $capabilities[] = $this->t('Payouts: @status', [
-            '@status' => $payouts_enabled ? $this->t('Enabled') : $this->t('Pending'),
-          ]);
-
-          $form['store']['payment_processing']['stripe_section']['capabilities'] = [
-            '#theme' => 'item_list',
-            '#items' => $capabilities,
-            '#attributes' => ['class' => ['stripe-capabilities']],
-          ];
-
-          // Manage Stripe button.
-          $form['store']['payment_processing']['stripe_section']['manage'] = [
-            '#type' => 'link',
-            '#title' => $this->t('Open Stripe'),
-            '#url' => Url::fromRoute('myeventlane_vendor.stripe_manage'),
-            '#attributes' => [
-              'class' => ['button', 'button--secondary', 'mel-btn', 'mel-btn--secondary', 'mel-vendor-settings-v2__actions-link'],
-              'target' => '_blank',
-              'rel' => 'noopener noreferrer',
-            ],
-          ];
-        }
-        else {
-          // Not connected.
-          $status_markup = '<div class="stripe-status stripe-status--disconnected mel-vendor-settings-v2__pill mel-vendor-settings-v2__pill--warning">';
-          $status_markup .= '<span class="status-indicator status-indicator--warning"></span>';
-          $status_markup .= '<strong>' . $this->t('Not connected') . '</strong>';
-          $status_markup .= '</div>';
-          $status_markup .= '<p class="description">' . $this->t('Connect Stripe to get paid for tickets.') . '</p>';
-
-          $form['store']['payment_processing']['stripe_section']['status'] = [
-            '#type' => 'markup',
-            '#markup' => $status_markup,
-          ];
-
-          // Connect Stripe button.
-          $form['store']['payment_processing']['stripe_section']['connect'] = [
-            '#type' => 'link',
-            '#title' => $this->t('Connect Stripe'),
-            '#url' => Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
-              'query' => [
-                'destination' => $this->getRequest()->getPathInfo() !== '' && $this->getRequest()->getPathInfo() !== '/'
-                  ? (string) $this->getRequest()->getPathInfo()
-                  : '/vendor/settings',
-              ],
-            ]),
-            '#attributes' => [
-              'class' => ['button', 'button--primary', 'mel-button', 'mel-button--primary', 'mel-button--stripe', 'mel-btn', 'mel-btn--primary', 'mel-vendor-settings-v2__actions-link'],
-            ],
-          ];
-        }
-
-        // Tax settings info (read-only for now).
-        if ($store->hasField('prices_include_tax')) {
-          $prices_include_tax = !$store->get('prices_include_tax')->isEmpty()
-            && (bool) $store->get('prices_include_tax')->value;
-
-          $form['store']['payment_processing']['tax_info'] = [
-            '#type' => 'markup',
-            '#markup' => '<p class="tax-info"><strong>' . $this->t('Tax Settings:') . '</strong> '
-              . ($prices_include_tax ? $this->t('Prices include GST') : $this->t('Prices exclude GST'))
-              . '</p>',
-          ];
-        }
-      }
-    }
-    else {
-      $form['store']['payment_processing']['no_store'] = [
-        '#type' => 'markup',
-        '#markup' => '<div class="messages messages--warning"><p>'
-          . $this->t('Payment account not ready yet. Finish account setup, then connect Stripe from Payments.')
-          . '</p></div>',
-      ];
-    }
-
   }
 
   /**
@@ -1147,7 +998,7 @@ class VendorSettingsForm extends FormBase {
       ],
     ];
     $form['team']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Manage users who have access to manage this vendor account.') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings__card-description">' . $this->t('Manage people who can help run this organiser account.') . '</p>',
       '#weight' => -9,
     ];
 
@@ -1198,16 +1049,19 @@ class VendorSettingsForm extends FormBase {
   private function buildPreferencesSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['preferences'] = [
       '#type' => 'details',
-      '#title' => $this->t('Preferences'),
+      '#title' => $this->t('Notifications'),
       '#open' => TRUE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
+        'id' => 'notifications',
+      ],
     ];
     $form['preferences']['notifications'] = [
       '#type' => 'fieldset',
-      '#title' => $this->t('Email Notifications'),
+      '#title' => $this->t('Email notifications'),
+      '#description' => $this->t('Choose when MyEventLane emails you about bookings. Message delivery to guests lives in Messages.'),
     ];
 
-    // Load preference defaults from vendor entity fields if they exist.
     $email_on_order_default = TRUE;
     $email_on_rsvp_default = TRUE;
     $email_digest_default = 'daily';
@@ -1224,19 +1078,19 @@ class VendorSettingsForm extends FormBase {
 
     $form['preferences']['notifications']['email_on_new_order'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Email me when a new order is placed'),
+      '#title' => $this->t('Email me when someone books tickets'),
       '#default_value' => $email_on_order_default,
     ];
 
     $form['preferences']['notifications']['email_on_rsvp'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('Email me when someone RSVPs to an event'),
+      '#title' => $this->t('Email me when someone RSVPs'),
       '#default_value' => $email_on_rsvp_default,
     ];
 
     $form['preferences']['notifications']['email_digest'] = [
       '#type' => 'select',
-      '#title' => $this->t('Email Digest Frequency'),
+      '#title' => $this->t('Email digest'),
       '#options' => [
         'never' => $this->t('Never'),
         'daily' => $this->t('Daily'),
@@ -1245,6 +1099,14 @@ class VendorSettingsForm extends FormBase {
       '#default_value' => $email_digest_default,
     ];
 
+    if ($this->routeExists('myeventlane_notifications.preferences')) {
+      $form['preferences']['inbox_link'] = [
+        '#type' => 'link',
+        '#title' => $this->t('Inbox & alert preferences'),
+        '#url' => Url::fromRoute('myeventlane_notifications.preferences'),
+        '#attributes' => ['class' => ['mel-vendor-settings-v2__header-link']],
+      ];
+    }
   }
 
   /**
