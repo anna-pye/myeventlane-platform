@@ -763,7 +763,10 @@ final class TicketSalesService {
   }
 
   /**
-   * Gets total order count for a vendor (all published events).
+   * Gets total completed order count for a vendor's authored published events.
+   *
+   * Prefer getCompletedOrderCountForEventIds() when the caller already has a
+   * managed-event ID list (team organisers are not always the node author).
    *
    * @param int $userId
    *   The vendor user ID.
@@ -777,21 +780,38 @@ final class TicketSalesService {
     }
 
     try {
-      $nodeStorage = $this->entityTypeManager->getStorage('node');
-      $eventIds = $nodeStorage->getQuery()
+      $eventIds = $this->entityTypeManager->getStorage('node')->getQuery()
         ->accessCheck(FALSE)
         ->condition('type', 'event')
         ->condition('uid', $userId)
         ->condition('status', 1)
         ->execute();
 
-      if (empty($eventIds)) {
-        return 0;
-      }
+      return $this->getCompletedOrderCountForEventIds(array_map('intval', array_values($eventIds)));
+    }
+    catch (\Exception) {
+      return 0;
+    }
+  }
 
-      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-      $orderItems = $orderItemStorage->loadByProperties([
-        'field_target_event' => array_values($eventIds),
+  /**
+   * Counts distinct completed ticket orders for the given event node IDs.
+   *
+   * @param list<int> $eventIds
+   *   Event node IDs (typically managed / published events).
+   *
+   * @return int
+   *   Distinct completed order count (vendor-revenue-eligible items only).
+   */
+  public function getCompletedOrderCountForEventIds(array $eventIds): int {
+    $eventIds = array_values(array_unique(array_filter(array_map('intval', $eventIds), static fn(int $id): bool => $id > 0)));
+    if ($eventIds === []) {
+      return 0;
+    }
+
+    try {
+      $orderItems = $this->entityTypeManager->getStorage('commerce_order_item')->loadByProperties([
+        'field_target_event' => $eventIds,
       ]);
 
       $processedOrders = [];
@@ -818,10 +838,7 @@ final class TicketSalesService {
             ->getStorage('commerce_order')
             ->load($order_id);
           if ($order && $order->getState()->getId() === 'completed') {
-            $orderId = $order->id();
-            if (!isset($processedOrders[$orderId])) {
-              $processedOrders[$orderId] = TRUE;
-            }
+            $processedOrders[(string) $order->id()] = TRUE;
           }
         }
         catch (\Exception) {

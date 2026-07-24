@@ -75,13 +75,14 @@ final class VendorMarketingHubController extends VendorConsoleBaseController imp
   /**
    * Redirects legacy /vendor/boost into the Marketing hub Boost section.
    *
-   * Uses a query param (not a Location fragment). HTTP clients ignore fragments
-   * on redirect targets; JS scrolls to #boost when section=boost is present.
+   * Includes both ?section=boost (JS scroll + focus) and #boost (native
+   * in-page target when JavaScript is unavailable or the library fails).
    */
   public function redirectBoost(): RedirectResponse {
     return new RedirectResponse(
       Url::fromRoute('myeventlane_vendor.console.marketing', [], [
         'query' => ['section' => 'boost'],
+        'fragment' => 'boost',
       ])->toString(),
       302,
     );

@@ -66,7 +66,9 @@
     attach(context) {
       once('mel-marketing-hub-section', '[data-mel-marketing-hub]', context).forEach(function (hub) {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('section') !== 'boost') {
+        const wantsBoost = params.get('section') === 'boost'
+          || window.location.hash === '#boost';
+        if (!wantsBoost) {
           return;
         }
         const target = document.getElementById('boost');
@@ -83,6 +85,7 @@
         }
         target.focus({ preventScroll: true });
         if (window.history && window.history.replaceState) {
+          // Keep a stable, shareable Boost deep-link (hash for no-JS; drop query noise).
           window.history.replaceState(null, '', window.location.pathname + '#boost');
         }
       });

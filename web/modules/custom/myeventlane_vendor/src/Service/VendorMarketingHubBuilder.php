@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Utility\UrlHelper;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
@@ -54,14 +55,19 @@ final class VendorMarketingHubBuilder {
     $eventIds = $this->ticketSales->getManagedEventNidsForUser($uid);
     $events = $this->loadManagedEvents($eventIds);
     $vendor = $this->vendorResolver->resolveFromCurrentUser();
-    $boostPayload = $this->buildBoostPayload($events);
+    $boostPayload = $this->buildBoostPayload($events, $vendor);
     $shareEvents = $this->buildShareEvents($events);
     $primaryShare = $shareEvents[0] ?? NULL;
     $socialReady = $this->isSocialComplete($vendor);
-    $publishedCount = count(array_filter($events, static fn(NodeInterface $n): bool => $n->isPublished()));
+    $publishedEvents = array_values(array_filter($events, static fn(NodeInterface $n): bool => $n->isPublished()));
+    $publishedCount = count($publishedEvents);
     $activeBoosts = count($boostPayload['campaigns']);
     $boostEligible = count($boostPayload['eligible']);
-    $orderCount = $this->ticketSales->getVendorOrderCount($uid);
+    // Bookings must use the same managed-event set as Share / Live events —
+    // getVendorOrderCount() only counts events authored by the current user.
+    $orderCount = $this->ticketSales->getCompletedOrderCountForEventIds(
+      array_map(static fn(NodeInterface $event): int => (int) $event->id(), $publishedEvents),
+    );
     $score = $this->computeMarketingScore($publishedCount, $primaryShare !== NULL, $boostEligible > 0 || $activeBoosts > 0, $socialReady, $activeBoosts > 0);
     $health = $this->buildHealth($publishedCount, $primaryShare, $boostEligible, $activeBoosts, $socialReady, $score);
 
@@ -348,16 +354,19 @@ final class VendorMarketingHubBuilder {
   /**
    * Builds Boost campaigns and eligible event lists.
    *
-   * Uses the same managed-event catalogue as Share and Marketing health so
-   * published events never disappear from Boost rows on this hub.
+   * Unions managed membership events with store-linked events
+   * (BoostManager::getEventsForStore) so field_event_store events outside
+   * membership still appear after /vendor/boost → Marketing redirect.
    *
    * @param list<\Drupal\node\NodeInterface> $events
    *   Managed events (same list as Share / health).
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor
+   *   Current vendor entity when resolved.
    *
    * @return array{campaigns: list<array<string, mixed>>, eligible: list<array<string, mixed>>, faq: array<string, mixed>}
    *   Boost section payload.
    */
-  private function buildBoostPayload(array $events): array {
+  private function buildBoostPayload(array $events, ?Vendor $vendor): array {
     $campaigns = [];
     $eligible = [];
     $faq = [];
@@ -369,7 +378,7 @@ final class VendorMarketingHubBuilder {
       return ['campaigns' => [], 'eligible' => [], 'faq' => $faq];
     }
 
-    foreach ($events as $event) {
+    foreach ($this->resolveBoostEvents($events, $vendor) as $event) {
       if (!$event instanceof NodeInterface || !$event->isPublished()) {
         continue;
       }
@@ -425,6 +434,98 @@ final class VendorMarketingHubBuilder {
       'eligible' => $eligible,
       'faq' => $faq,
     ];
+  }
+
+  /**
+   * Resolves the event set for Boost rows (managed ∪ store catalogue).
+   *
+   * @param list<\Drupal\node\NodeInterface> $managedEvents
+   *   Events from membership / managed query.
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor|null $vendor
+   *   Current vendor when available.
+   *
+   * @return list<\Drupal\node\NodeInterface>
+   *   Deduped event nodes keyed by insertion order.
+   */
+  private function resolveBoostEvents(array $managedEvents, ?Vendor $vendor): array {
+    $byId = [];
+    foreach ($managedEvents as $event) {
+      if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+        $byId[(int) $event->id()] = $event;
+      }
+    }
+
+    $store = $this->resolveVendorStore($vendor);
+    if ($store instanceof StoreInterface
+      && $this->boostManager !== NULL
+      && method_exists($this->boostManager, 'getEventsForStore')) {
+      try {
+        $storeEvents = $this->boostManager->getEventsForStore($store, [
+          'published_only' => TRUE,
+          'access_check' => TRUE,
+          'limit' => 100,
+        ]);
+        foreach ($storeEvents as $event) {
+          if ($event instanceof NodeInterface && $event->bundle() === 'event') {
+            $byId[(int) $event->id()] = $event;
+          }
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Marketing hub store Boost event lookup failed: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    return array_values($byId);
+  }
+
+  /**
+   * Resolves the commerce store for the current vendor / user.
+   *
+   * Mirrors VendorBoostController::getCurrentUserStore().
+   */
+  private function resolveVendorStore(?Vendor $vendor): ?StoreInterface {
+    if ($vendor instanceof Vendor
+      && $vendor->hasField('field_vendor_store')
+      && !$vendor->get('field_vendor_store')->isEmpty()) {
+      try {
+        $store = $vendor->get('field_vendor_store')->entity;
+        if ($store instanceof StoreInterface) {
+          return $store;
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Marketing hub could not load vendor store: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    $uid = (int) $this->currentUser->id();
+    if ($uid <= 0) {
+      return NULL;
+    }
+
+    try {
+      $storeIds = $this->entityTypeManager->getStorage('commerce_store')->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('uid', $uid)
+        ->range(0, 1)
+        ->execute();
+      if ($storeIds === []) {
+        return NULL;
+      }
+      $store = $this->entityTypeManager->getStorage('commerce_store')->load(reset($storeIds));
+      return $store instanceof StoreInterface ? $store : NULL;
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Marketing hub store owner fallback failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
   /**
