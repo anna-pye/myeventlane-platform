@@ -24,6 +24,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     parent::setUp();
     $dateFormatter = $this->createMock(DateFormatterInterface::class);
     $dateFormatter->method('format')->willReturn('10 Jun 2026 - 16:46');
+    $dateFormatter->method('formatTimeDiffSince')->willReturn('1 min');
     $translator = $this->createMock(\Drupal\Core\StringTranslation\TranslationInterface::class);
     $translator->method('translateString')->willReturnCallback(
       static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
@@ -115,6 +116,22 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertCount(1, $ideaRows);
     $this->assertSame('Add banner image', $ideaRows[0]['label']);
     $this->assertArrayHasKey('show_homepage_readiness', $payload);
+    // Home guide cards come from overview builder in the publish controller.
+    $this->assertArrayNotHasKey('home', $payload);
+  }
+
+  public function testPublishControllerAttachesHomeGuideFromOverviewBuilder(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($publish);
+    $this->assertIsString($overview);
+    $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
+    $this->assertStringContainsString("ajax_readiness['home']", $publish);
+    $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
+    $this->assertStringContainsString('function buildGuideCardState', $overview);
+    // AJAX guide must reuse Stripe-aware Event Ready / next-action builders.
+    $this->assertStringContainsString("(\$stripe['tone'] ?? '') === 'attention'", $overview);
+    $this->assertStringContainsString('Connect Stripe', $overview);
   }
 
   public function testStripChecklistIncludesRecommendationIdeas(): void {
@@ -228,6 +245,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertLessThan($stripPos, $healthPos);
     $this->assertStringContainsString("'event_health'", $publish);
     $this->assertStringContainsString('buildAjaxReadinessPayloadFromBundle', $publish);
+    $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
   }
 
   public function testShellJsUpdatesEventHealthAfterPublish(): void {
@@ -236,7 +254,12 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringContainsString('function updateEventHealth', $js);
     $this->assertStringContainsString('result.event_health', $js);
     $this->assertStringContainsString('ensureReadinessStrip', $js);
+    $this->assertStringContainsString('isHomeShell', $js);
+    $this->assertStringContainsString('mel-event-studio--home', $js);
     $this->assertStringContainsString('updateHomepageReadiness', $js);
+    $this->assertStringContainsString('updateHomeDashboard', $js);
+    $this->assertStringContainsString('data-mel-home-dashboard', $js);
+    $this->assertStringContainsString('readiness.home', $js);
     $this->assertStringContainsString('updateReadinessChecklist', $js);
     $this->assertStringContainsString('strip_explanation', $js);
     $this->assertStringContainsString('data-mel-readiness-explain', $js);
@@ -246,6 +269,11 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $this->assertStringNotContainsString('blocker(s)', $js);
     $this->assertStringContainsString("tone === 'idea'", $js);
     $this->assertStringContainsString("Drupal.t('Idea')", $js);
+    $twig = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-overview.html.twig');
+    $this->assertIsString($twig);
+    $this->assertStringContainsString('data-mel-home-dashboard', $twig);
+    $this->assertStringContainsString('data-mel-home-event-ready', $twig);
+    $this->assertStringContainsString('data-mel-home-readiness-checklist', $twig);
   }
 
   /**

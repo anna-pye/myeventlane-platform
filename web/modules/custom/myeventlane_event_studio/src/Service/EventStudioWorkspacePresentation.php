@@ -145,22 +145,22 @@ final class EventStudioWorkspacePresentation {
   public function buildAjaxReadinessPayloadFromBundle(array $readiness_bundle, NodeInterface $node): array {
     $result = $readiness_bundle['publish'];
     $published = $node->isPublished();
+    $recommendations = is_array($readiness_bundle['recommended'] ?? NULL)
+      ? $readiness_bundle['recommended']
+      : [];
 
     return [
       'ready' => $result->ready,
       'errors' => $result->errors,
       'warnings' => $result->warnings,
       'completed' => $result->completed,
-      'recommendations' => $readiness_bundle['recommended'] ?? [],
+      'recommendations' => $recommendations,
       'state' => $this->operationalState($result),
       'published' => $published,
       'show_publish_strip' => $this->shouldShowPublishStrip($result, $published),
       'strip_title' => $this->readinessStripTitle($result, $published),
       'strip_explanation' => $this->readinessStripExplanation($result),
-      'checklist' => $this->buildHumanChecklist(
-        $result,
-        is_array($readiness_bundle['recommended'] ?? NULL) ? $readiness_bundle['recommended'] : [],
-      ),
+      'checklist' => $this->buildHumanChecklist($result, $recommendations),
       'show_homepage_readiness' => $this->shouldShowHomepageReadinessCard(
         (bool) ($readiness_bundle['promotion_ready'] ?? FALSE),
         $published,

@@ -65,7 +65,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     );
 
     $this->assertSame('Share your event', $action['title']);
-    $this->assertSame('Open marketing', $action['action_label']);
+    $this->assertSame('Promote', $action['action_label']);
   }
 
   public function testLiveBookingActivityKeepsMissionControlAction(): void {
@@ -103,13 +103,70 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     $this->assertSame('Edit event', $action['action_label']);
   }
 
+  public function testPublishBlockersBeatStripeConnectRecommendation(): void {
+    $action = $this->resolve(
+      [
+        'severity' => 'warning',
+        'title' => 'Finish and publish your event',
+        'message' => 'Review your details and publish when you are ready to go live.',
+        'action_label' => 'Continue editing',
+        'url' => '/vendor/events/1/edit',
+      ],
+      EventReadinessResult::create(['Add tickets.']),
+      FALSE,
+      [
+        'tone' => 'attention',
+        'detail' => 'Connect Stripe to accept payments.',
+        'url' => '/vendor/payouts',
+      ],
+    );
+
+    $this->assertSame('Continue setup', $action['title']);
+    $this->assertSame('Review publishing', $action['action_label']);
+    $this->assertNotSame('Connect Stripe', $action['title']);
+  }
+
+  public function testStripeConnectWinsWhenReadinessReady(): void {
+    $action = $this->resolve(
+      [
+        'severity' => 'success',
+        'title' => 'Event looks ready',
+        'message' => 'Keep an eye on bookings.',
+        'action_label' => NULL,
+        'url' => NULL,
+      ],
+      EventReadinessResult::create([], [], ['Event title added.']),
+      FALSE,
+      [
+        'tone' => 'attention',
+        'detail' => 'Connect Stripe to accept payments.',
+        'url' => '/vendor/payouts',
+      ],
+    );
+
+    $this->assertSame('Connect Stripe', $action['title']);
+    $this->assertSame('/vendor/payouts', $action['url']);
+  }
+
+  public function testAjaxGuideSnapshotReusesStripeAwareBuilders(): void {
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($overview);
+    $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
+    $this->assertStringContainsString('buildGuideCardState', $overview);
+    $this->assertStringContainsString('buildEventReady(', $overview);
+    $this->assertStringContainsString('resolveNextRecommendedAction(', $overview);
+    $this->assertStringContainsString('buildStripeHealth(', $overview);
+  }
+
   /**
    * @param array<string, mixed> $next
    *   Mission-control next_action payload.
+   * @param array<string, mixed> $stripe
+   *   Optional Stripe health payload.
    *
    * @return array{title: string, message: string, action_label: ?string, url: ?string}
    */
-  private function resolve(array $next, EventReadinessResult $readiness, bool $published): array {
+  private function resolve(array $next, EventReadinessResult $readiness, bool $published, array $stripe = []): array {
     $translator = $this->createMock(TranslationInterface::class);
     $translator->method('translateString')->willReturnCallback(
       static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
@@ -125,7 +182,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
       ->getMethod('resolveNextRecommendedAction');
 
     /** @var array{title: string, message: string, action_label: ?string, url: ?string} $action */
-    $action = $method->invoke($builder, $next, $readiness, $published, 1);
+    $action = $method->invoke($builder, $next, $readiness, $published, 1, $stripe);
     return $action;
   }
 

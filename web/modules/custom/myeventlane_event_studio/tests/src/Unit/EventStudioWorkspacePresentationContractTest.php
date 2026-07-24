@@ -24,6 +24,7 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     parent::setUp();
     $dateFormatter = $this->createMock(DateFormatterInterface::class);
     $dateFormatter->method('format')->willReturn('10 Jun 2026 - 16:46');
+    $dateFormatter->method('formatTimeDiffSince')->willReturn('1 min');
     $translator = $this->createMock(\Drupal\Core\StringTranslation\TranslationInterface::class);
     $translator->method('translateString')->willReturnCallback(
       static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
@@ -146,6 +147,35 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('updateHomepageReadiness', $js);
     $this->assertStringContainsString('homepage_readiness_html', $js);
     $this->assertStringContainsString('show_homepage_readiness', $js);
+  }
+
+  public function testPublishControllerUsesOverviewBuilderForHomeAjax(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $services = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.services.yml');
+    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($publish);
+    $this->assertIsString($services);
+    $this->assertIsString($presentation);
+    $this->assertIsString($overview);
+    $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
+    $this->assertStringContainsString('overviewBuilder', $publish);
+    $this->assertStringContainsString("ajax_readiness['home']", $publish);
+    $this->assertStringContainsString('@myeventlane_event_studio.overview_builder', $services);
+    $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
+    $this->assertStringContainsString('buildStripeHealth', $overview);
+    $this->assertStringContainsString('resolveNextRecommendedAction', $overview);
+    // Presentation must not own a simplified Home AJAX path that skips Stripe.
+    $this->assertStringNotContainsString('buildHomeAjaxSnapshot', $presentation);
+    $this->assertStringNotContainsString('buildHomeNextAction', $presentation);
+  }
+
+  public function testShellJsAppliesHomeDashboardAfterPublish(): void {
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
+    $this->assertIsString($js);
+    $this->assertStringContainsString('function updateHomeDashboard', $js);
+    $this->assertStringContainsString('updateHomeDashboard(shell, readiness)', $js);
+    $this->assertStringContainsString('readiness.home', $js);
   }
 
   /**

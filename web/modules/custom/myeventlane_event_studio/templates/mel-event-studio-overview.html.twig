@@ -1,43 +1,65 @@
 {#
 /**
  * @file
- * Event Workspace Overview — organiser home for one event.
+ * Event Workspace Home — organiser operational dashboard for one event.
+ *
+ * Compositional redesign (not spacing polish). Answers five questions:
+ * where am I, is it healthy, what next, how is business, what happened.
+ *
+ * data-mel-* hooks let shell AJAX apply readiness after topbar publish without
+ * inventing the readiness strip on Home.
  */
 #}
-<section class="mel-event-workspace-overview" aria-labelledby="mel-workspace-overview-heading">
-  <header class="mel-event-workspace-overview__header">
-    <h2 id="mel-workspace-overview-heading" class="mel-event-workspace-overview__title">{{ 'Overview'|t }}</h2>
-    <p class="mel-event-workspace-overview__lede">{{ "Here's where you are with this event — and what to do next."|t }}</p>
-  </header>
+<section class="mel-event-workspace-home" aria-label="{{ 'Event home'|t }}" data-mel-home-dashboard>
 
-  {% if celebration is iterable and celebration.show|default(false) %}
-    <div class="mel-event-workspace-overview__celebrate" role="status">
-      <p class="mel-event-workspace-overview__celebrate-title">{{ celebration.title|default('') }}</p>
-      <p class="mel-event-workspace-overview__celebrate-message">{{ celebration.message|default('') }}</p>
-    </div>
-  {% endif %}
+  {# ROW 1 — Event Ready | Next Action (mobile: Next first via CSS order) #}
+  <div class="mel-event-workspace-home__row mel-event-workspace-home__row--guide">
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--ready mel-event-workspace-home__card--{{ event_ready.tone|default('success')|clean_class }}" aria-labelledby="mel-home-ready-heading" data-mel-home-event-ready data-mel-home-tone="{{ event_ready.tone|default('success')|e('html_attr') }}">
+      <p class="mel-event-workspace-home__eyebrow">{{ 'Event Ready'|t }}</p>
+      <h2 id="mel-home-ready-heading" class="mel-event-workspace-home__card-title">
+        <span class="mel-event-workspace-home__ready-mark" aria-hidden="true" data-mel-home-ready-mark>{{ event_ready.tone|default('') == 'attention' ? '⚠' : '✔' }}</span>
+        <span data-mel-home-ready-headline>{{ event_ready.headline }}</span>
+      </h2>
+      <p class="mel-event-workspace-home__card-detail" data-mel-home-ready-detail>{{ event_ready.detail }}</p>
+      <ul class="mel-event-workspace-home__meta">
+        <li><span class="mel-event-workspace-home__pill mel-event-workspace-home__pill--{{ event_ready.status_key|default('draft')|clean_class }}" data-mel-home-status-pill data-mel-home-status-key="{{ event_ready.status_key|default('draft')|e('html_attr') }}">{{ event_ready.status_label }}</span></li>
+        {% if event_ready.updated_label %}
+          <li data-mel-home-updated>{{ event_ready.updated_label }}</li>
+        {% else %}
+          <li data-mel-home-updated hidden></li>
+        {% endif %}
+        <li data-mel-home-ready-complete>{{ '@done of @total complete'|t({'@done': event_ready.complete_count, '@total': event_ready.total_count}) }}</li>
+      </ul>
+      <a class="mel-event-workspace-home__text-link" href="#mel-home-readiness">{{ event_ready.checklist_label }}</a>
+    </section>
 
-  {% if next_action %}
-    <section class="mel-event-workspace-overview__next" aria-labelledby="mel-workspace-next-heading">
-      <h3 id="mel-workspace-next-heading" class="mel-event-workspace-overview__section-title">{{ 'What to do next'|t }}</h3>
-      <p class="mel-event-workspace-overview__next-title">{{ next_action.title }}</p>
-      {% if next_action.message %}
-        <p class="mel-event-workspace-overview__next-message">{{ next_action.message }}</p>
-      {% endif %}
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--next mel-event-workspace-home__card--guide" aria-labelledby="mel-home-next-heading" data-mel-home-next-action>
+      <p class="mel-event-workspace-home__eyebrow">{{ 'Next recommended action'|t }}</p>
+      <h2 id="mel-home-next-heading" class="mel-event-workspace-home__card-title" data-mel-home-next-title>{{ next_action.title }}</h2>
+      <p class="mel-event-workspace-home__card-detail" data-mel-home-next-message{% if not next_action.message %} hidden{% endif %}>{{ next_action.message }}</p>
       {% if next_action.url and next_action.action_label %}
-        <a class="mel-btn mel-btn--primary" href="{{ next_action.url }}">{{ next_action.action_label }}</a>
+        <a class="mel-btn mel-btn--primary" href="{{ next_action.url }}" data-mel-home-next-cta>{{ next_action.action_label }}</a>
+      {% else %}
+        <a class="mel-btn mel-btn--primary" href="#" data-mel-home-next-cta hidden></a>
       {% endif %}
     </section>
-  {% endif %}
+  </div>
 
-  <section class="mel-event-workspace-overview__readiness" aria-labelledby="mel-workspace-readiness-heading">
-    <h3 id="mel-workspace-readiness-heading" class="mel-event-workspace-overview__section-title">{{ readiness.headline }}</h3>
-    <p class="mel-event-workspace-overview__readiness-explain">{{ readiness.explanation }}</p>
-    {% if readiness.items %}
-      <ul class="mel-event-workspace-overview__checklist">
+  {# Compact readiness — expandable #}
+  <details class="mel-event-workspace-home__readiness" id="mel-home-readiness" data-mel-home-readiness>
+    <summary class="mel-event-workspace-home__readiness-summary">
+      <span class="mel-event-workspace-home__readiness-summary-main">
+        <strong data-mel-home-readiness-headline>{{ readiness.headline }}</strong>
+        <span class="mel-event-workspace-home__readiness-count" data-mel-home-readiness-count>{{ '@done of @total complete'|t({'@done': readiness.complete_count, '@total': readiness.total_count}) }}</span>
+      </span>
+      <span class="mel-event-workspace-home__readiness-hint">{{ 'View checklist'|t }}</span>
+    </summary>
+    <div class="mel-event-workspace-home__readiness-body">
+      <p class="mel-event-workspace-home__card-detail" data-mel-home-readiness-explain>{{ readiness.explanation }}</p>
+      <ul class="mel-event-workspace-home__checklist" data-mel-home-readiness-checklist{% if not readiness.items %} hidden{% endif %}>
         {% for item in readiness.items %}
-          <li class="mel-event-workspace-overview__check mel-event-workspace-overview__check--{{ item.tone|clean_class }}">
-            <span class="mel-event-workspace-overview__check-mark" aria-hidden="true">{{ item.complete ? '✔' : (item.tone == 'warning' or item.tone == 'idea' ? '◇' : '○') }}</span>
+          <li class="mel-event-workspace-home__check mel-event-workspace-home__check--{{ item.tone|clean_class }}">
+            <span class="mel-event-workspace-home__check-mark" aria-hidden="true">{{ item.complete ? '✔' : (item.tone == 'warning' or item.tone == 'idea' ? '◇' : '○') }}</span>
             <span class="visually-hidden">
               {% if item.complete %}
                 {{ 'Complete:'|t }}
@@ -53,78 +75,123 @@
           </li>
         {% endfor %}
       </ul>
-    {% endif %}
-  </section>
+    </div>
+  </details>
 
-  {% if todays_tasks.message|default('') %}
-    <section class="mel-event-workspace-overview__focus" aria-labelledby="mel-workspace-focus-heading">
-      <h3 id="mel-workspace-focus-heading" class="mel-event-workspace-overview__section-title">{{ "Today's tasks"|t }}</h3>
-      <p>{{ todays_tasks.message }}</p>
+  {# ROW 2 — Operational #}
+  <div class="mel-event-workspace-home__row mel-event-workspace-home__row--ops">
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--ops" aria-labelledby="mel-home-tickets-heading">
+      <h3 id="mel-home-tickets-heading" class="mel-event-workspace-home__card-title">{{ tickets.title }}</h3>
+      {% if tickets.empty %}
+        <p class="mel-event-workspace-home__card-detail">{{ tickets.empty_message }}</p>
+      {% else %}
+        <ul class="mel-event-workspace-home__kpis">
+          {% for metric in tickets.metrics %}
+            <li>
+              {% if metric.value != '' %}<strong>{{ metric.value }}</strong> {% endif %}{{ metric.label }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if tickets.url %}
+        <a class="mel-btn mel-btn--ghost" href="{{ tickets.url }}">{{ tickets.action_label }}</a>
+      {% endif %}
     </section>
-  {% endif %}
 
-  <div class="mel-event-workspace-overview__grid">
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-status-heading">
-      <h3 id="mel-workspace-status-heading" class="mel-event-workspace-overview__card-title">{{ 'Status'|t }}</h3>
-      <p>{{ status.label }}</p>
-    </section>
-
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-sales-heading">
-      <h3 id="mel-workspace-sales-heading" class="mel-event-workspace-overview__card-title">{{ 'Recent sales'|t }}</h3>
-      {% if sales.metrics|default([]) %}
-        <ul class="mel-event-workspace-overview__metrics">
-          {% for metric in sales.metrics %}
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--ops" aria-labelledby="mel-home-attendees-heading">
+      <h3 id="mel-home-attendees-heading" class="mel-event-workspace-home__card-title">{{ attendees.title }}</h3>
+      {% if attendees.empty %}
+        <p class="mel-event-workspace-home__card-detail">{{ attendees.empty_message }}</p>
+      {% else %}
+        <ul class="mel-event-workspace-home__kpis">
+          {% for metric in attendees.metrics %}
             <li><strong>{{ metric.value }}</strong> {{ metric.label }}</li>
           {% endfor %}
         </ul>
-      {% else %}
-        <p>{{ 'Sales will appear here after your first booking.'|t }}</p>
       {% endif %}
-    </section>
-
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-tickets-heading">
-      <h3 id="mel-workspace-tickets-heading" class="mel-event-workspace-overview__card-title">{{ 'Ticket summary'|t }}</h3>
-      <p>{{ ticket_summary|default('Add tickets so people can register.'|t) }}</p>
-    </section>
-
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-attendees-heading">
-      <h3 id="mel-workspace-attendees-heading" class="mel-event-workspace-overview__card-title">{{ 'Attendee summary'|t }}</h3>
-      <p>{{ attendee_summary|default('Guests will appear here after your first booking.'|t) }}</p>
-    </section>
-
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-stripe-heading">
-      <h3 id="mel-workspace-stripe-heading" class="mel-event-workspace-overview__card-title">{{ stripe.label }}</h3>
-      <p>{{ stripe.detail }}</p>
-      {% if stripe.url %}
-        <a class="mel-btn mel-btn--ghost" href="{{ stripe.url }}">{{ 'View payments'|t }}</a>
-      {% endif %}
-    </section>
-
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-marketing-heading">
-      <h3 id="mel-workspace-marketing-heading" class="mel-event-workspace-overview__card-title">{{ marketing.label }}</h3>
-      <p>{{ marketing.detail }}</p>
-      {% if marketing.url %}
-        <a class="mel-btn mel-btn--ghost" href="{{ marketing.url }}">{{ 'Open marketing'|t }}</a>
-      {% endif %}
-    </section>
-
-    <section class="mel-event-workspace-overview__card" aria-labelledby="mel-workspace-analytics-heading">
-      <h3 id="mel-workspace-analytics-heading" class="mel-event-workspace-overview__card-title">{{ analytics.label }}</h3>
-      <p>{{ analytics.detail }}</p>
-      {% if analytics.url %}
-        <a class="mel-btn mel-btn--ghost" href="{{ analytics.url }}">{{ 'View analytics'|t }}</a>
+      {% if attendees.url %}
+        <a class="mel-btn mel-btn--ghost" href="{{ attendees.url }}">{{ attendees.action_label }}</a>
       {% endif %}
     </section>
   </div>
 
-  {% if quick_links %}
-    <nav class="mel-event-workspace-overview__quick" aria-label="{{ 'Quick links'|t }}">
-      <h3 class="mel-event-workspace-overview__section-title">{{ 'Jump to'|t }}</h3>
-      <ul class="mel-event-workspace-overview__quick-list">
-        {% for link in quick_links %}
-          <li><a href="{{ link.url }}">{{ link.label }}</a></li>
+  {# ROW 3 — Business KPIs #}
+  <div class="mel-event-workspace-home__row mel-event-workspace-home__row--business">
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--kpi" aria-labelledby="mel-home-sales-heading">
+      <h3 id="mel-home-sales-heading" class="mel-event-workspace-home__card-title">{{ sales.title }}</h3>
+      {% if sales.empty %}
+        <p class="mel-event-workspace-home__card-detail">{{ sales.empty_message }}</p>
+      {% else %}
+        <ul class="mel-event-workspace-home__kpis">
+          {% for metric in sales.metrics %}
+            <li class="{% if metric.primary|default(false) %}is-primary{% endif %}">
+              <strong>{{ metric.value }}</strong> {{ metric.label }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if sales.url %}
+        <a class="mel-btn mel-btn--ghost" href="{{ sales.url }}">{{ sales.action_label }}</a>
+      {% endif %}
+    </section>
+
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--kpi" aria-labelledby="mel-home-marketing-heading">
+      <h3 id="mel-home-marketing-heading" class="mel-event-workspace-home__card-title">{{ marketing.title }}</h3>
+      <ul class="mel-event-workspace-home__lines">
+        {% for line in marketing.lines %}
+          <li>{{ line }}</li>
         {% endfor %}
       </ul>
-    </nav>
-  {% endif %}
+      {% if marketing.url %}
+        <a class="mel-btn mel-btn--ghost" href="{{ marketing.url }}">{{ marketing.action_label }}</a>
+      {% endif %}
+    </section>
+
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--kpi{% if boost.active %} is-active{% endif %}" aria-labelledby="mel-home-boost-heading">
+      <h3 id="mel-home-boost-heading" class="mel-event-workspace-home__card-title">{{ boost.title }}</h3>
+      <p class="mel-event-workspace-home__pill">{{ boost.status }}</p>
+      <p class="mel-event-workspace-home__card-detail">{{ boost.detail }}</p>
+      {% if boost.url %}
+        <a class="mel-btn mel-btn--ghost" href="{{ boost.url }}">{{ boost.action_label }}</a>
+      {% endif %}
+    </section>
+
+    <section class="mel-event-workspace-home__card mel-event-workspace-home__card--kpi" aria-labelledby="mel-home-analytics-heading">
+      <h3 id="mel-home-analytics-heading" class="mel-event-workspace-home__card-title">{{ analytics.title }}</h3>
+      {% if analytics.empty %}
+        <p class="mel-event-workspace-home__card-detail">{{ analytics.empty_message }}</p>
+      {% else %}
+        <ul class="mel-event-workspace-home__kpis">
+          {% for metric in analytics.metrics %}
+            <li class="{% if metric.primary|default(false) %}is-primary{% endif %}">
+              <strong>{{ metric.value }}</strong> {{ metric.label }}
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+      {% if analytics.url %}
+        <a class="mel-btn mel-btn--ghost" href="{{ analytics.url }}">{{ analytics.action_label }}</a>
+      {% endif %}
+    </section>
+  </div>
+
+  {# ROW 4 — Activity #}
+  <section class="mel-event-workspace-home__card mel-event-workspace-home__card--activity" aria-labelledby="mel-home-activity-heading">
+    <h3 id="mel-home-activity-heading" class="mel-event-workspace-home__card-title">{{ 'Activity'|t }}</h3>
+    {% if activity.empty %}
+      <p class="mel-event-workspace-home__card-detail">{{ activity.empty_message }}</p>
+    {% else %}
+      <ol class="mel-event-workspace-home__timeline">
+        {% for item in activity.items %}
+          <li class="mel-event-workspace-home__timeline-item mel-event-workspace-home__timeline-item--{{ item.type|default('order')|clean_class }}">
+            <strong class="mel-event-workspace-home__timeline-title">{{ item.title }}</strong>
+            {% if item.detail %}
+              <span class="mel-event-workspace-home__timeline-detail">{{ item.detail }}</span>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% endif %}
+  </section>
+
 </section>

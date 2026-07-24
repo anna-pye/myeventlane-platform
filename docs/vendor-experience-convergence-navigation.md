@@ -126,7 +126,7 @@ Single secondary nav inside event chrome:
 
 | Label | Section key |
 | --- | --- |
-| Overview | overview |
+| Home | overview |
 | Details | details |
 | Schedule | schedule |
 | Venue | venue |

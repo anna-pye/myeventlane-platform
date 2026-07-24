@@ -4,20 +4,27 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
+use Drupal\myeventlane_event_attendees\Service\AttendanceWaitlistManager;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
+use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\myeventlane_vendor\Service\PaidPublishStripeGate;
+use Drupal\myeventlane_vendor\Service\TicketSalesService;
 use Drupal\myeventlane_vendor\Service\VendorEventWorkspaceViewModelBuilder;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Builds the Event Workspace Overview (organiser home).
+ * Builds the Event Workspace Home (organiser home for one event).
  *
- * Reuses Workspace mission-control signals without a second product shell.
+ * Compositional dashboard — not a status dump. Confirmed metrics only.
  */
 final class EventWorkspaceOverviewBuilder {
 
@@ -27,31 +34,98 @@ final class EventWorkspaceOverviewBuilder {
     private readonly VendorEventWorkspaceViewModelBuilder $workspaceViewModel,
     private readonly PaidPublishStripeGate $stripeGate,
     private readonly EventReadinessFacade $readinessFacade,
+    private readonly TicketSalesService $ticketSalesService,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly DateFormatterInterface $dateFormatter,
+    private readonly OrderItemClassifier $orderItemClassifier,
+    private readonly Connection $database,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
+    private readonly ?BoostStatusService $boostStatusService = NULL,
+    private readonly ?AttendanceWaitlistManager $waitlistManager = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
 
   /**
-   * Builds the Overview render array for one event.
+   * Builds the Home render array for one event.
    *
    * @return array<string, mixed>
    *   Themeable render array.
    */
   public function build(NodeInterface $event, AccountInterface $account): array {
+    $guide = $this->buildGuideCardState($event, $account);
+    $workspace = $guide['workspace'];
+    $nid = (int) $event->id();
+    $salesSummary = $this->safeSalesSummary($event);
+
+    return [
+      '#theme' => 'mel_event_studio_overview',
+      '#event_ready' => $guide['event_ready'],
+      '#next_action' => $guide['next_action'],
+      '#readiness' => $guide['readiness'],
+      '#tickets' => $this->buildTicketsCard($event, $account, $nid, $salesSummary, $workspace),
+      '#attendees' => $this->buildAttendeesCard($account, $nid, $workspace, $salesSummary),
+      '#sales' => $this->buildSalesCard($salesSummary, $nid),
+      '#marketing' => $this->buildMarketingCard($event, $account, $nid),
+      '#boost' => $this->buildBoostCard($event, $nid),
+      '#analytics' => $this->buildAnalyticsCard($workspace, $salesSummary, $nid),
+      '#activity' => $this->buildActivityFeed($event, $salesSummary),
+    ];
+  }
+
+  /**
+   * Home Event Ready / readiness / next action for publish AJAX refresh.
+   *
+   * Same Stripe + mission-control rules as full Home render — not a simplified
+   * presentation fallback.
+   *
+   * @return array{
+   *   event_ready: array<string, mixed>,
+   *   readiness: array<string, mixed>,
+   *   next_action: array<string, mixed>
+   * }
+   */
+  public function buildHomeAjaxGuideSnapshot(NodeInterface $event, AccountInterface $account): array {
+    $guide = $this->buildGuideCardState($event, $account);
+    $event_ready = $guide['event_ready'];
+    $readiness = $guide['readiness'];
+    $complete_label = (string) $this->t('@done of @total complete', [
+      '@done' => (int) ($event_ready['complete_count'] ?? 0),
+      '@total' => (int) ($event_ready['total_count'] ?? 1),
+    ]);
+    $event_ready['complete_label'] = $complete_label;
+    $readiness['complete_label'] = $complete_label;
+
+    return [
+      'event_ready' => $event_ready,
+      'readiness' => $readiness,
+      'next_action' => $guide['next_action'],
+    ];
+  }
+
+  /**
+   * Shared guide-row state for full Home and AJAX (Stripe + mission-control).
+   *
+   * @return array{
+   *   workspace: array<string, mixed>,
+   *   event_ready: array<string, mixed>,
+   *   next_action: array<string, mixed>,
+   *   readiness: array<string, mixed>
+   * }
+   */
+  private function buildGuideCardState(NodeInterface $event, AccountInterface $account): array {
     try {
       $workspace = $this->workspaceViewModel->build($event, $account);
     }
     catch (\Throwable $e) {
-      $this->logger->error('Event Workspace overview model failed for event @nid: @message', [
+      $this->logger->error('Event Workspace home model failed for event @nid: @message', [
         '@nid' => (string) $event->id(),
         '@message' => $e->getMessage(),
       ]);
       $workspace = [];
     }
 
-    // Same facade bundle as the workspace readiness strip so idea rows match.
     $bundle = $this->readinessFacade->evaluate($event, $account);
     $readiness = $bundle['publish'];
     $recommended = is_array($bundle['recommended'] ?? NULL) ? $bundle['recommended'] : [];
@@ -59,8 +133,6 @@ final class EventWorkspaceOverviewBuilder {
     $published = $event->isPublished();
 
     $next = is_array($workspace['next_action'] ?? NULL) ? $workspace['next_action'] : [];
-    $focus = is_array($workspace['todays_focus'] ?? NULL) ? $workspace['todays_focus'] : [];
-    $sales = is_array($workspace['sales_snapshot'] ?? NULL) ? $workspace['sales_snapshot'] : [];
     $eventMeta = is_array($workspace['event'] ?? NULL) ? $workspace['event'] : [];
     $humanChecklist = $this->buildHumanChecklist(
       $readiness->completed,
@@ -70,53 +142,632 @@ final class EventWorkspaceOverviewBuilder {
     );
 
     $stripe = $this->buildStripeHealth($account, $event, $eventMeta);
-    $remaining = count($readiness->errors);
-    $nextRecommended = $this->resolveNextRecommendedAction($next, $readiness, $published, $nid);
+    $remainingErrors = count($readiness->errors);
+    $completedCount = count($readiness->completed);
+    // Match expandable checklist length (completed + blockers + warnings + ideas).
+    $totalChecklist = count($humanChecklist);
+    if ($totalChecklist < 1) {
+      $totalChecklist = 1;
+    }
+
+    $nextRecommended = $this->resolveNextRecommendedAction($next, $readiness, $published, $nid, $stripe);
+    $celebration = $this->buildCelebrationHint($event, $readiness, $published);
+    if (!empty($celebration['show']) && $nextRecommended['message'] === '') {
+      $nextRecommended['message'] = (string) ($celebration['message'] ?? '');
+    }
+    elseif (!empty($celebration['show']) && is_string($nextRecommended['message'])) {
+      // Soft celebration stays in Next Action message when early draft.
+      $nextRecommended['message'] = trim($nextRecommended['message'] . ' ' . (string) ($celebration['message'] ?? ''));
+    }
+
+    $statusLabel = (string) ($eventMeta['status_label'] ?? ($published ? $this->t('Live') : $this->t('Draft')));
+    $statusKey = (string) ($eventMeta['status'] ?? ($published ? 'live' : 'draft'));
 
     return [
-      '#theme' => 'mel_event_studio_overview',
-      '#status' => [
-        'label' => (string) ($eventMeta['status_label'] ?? ($published ? $this->t('Live') : $this->t('Draft'))),
-        'key' => (string) ($eventMeta['status'] ?? ($published ? 'live' : 'draft')),
-      ],
-      '#readiness' => [
+      'workspace' => $workspace,
+      'event_ready' => $this->buildEventReady(
+        $readiness,
+        $published,
+        $statusLabel,
+        $statusKey,
+        $completedCount,
+        $totalChecklist,
+        $remainingErrors,
+        $event,
+        $stripe,
+        $eventMeta,
+      ),
+      'next_action' => $nextRecommended,
+      'readiness' => [
         'ready' => $readiness->ready,
         'score' => (int) ($workspace['readiness']['score'] ?? 0),
         'items' => $humanChecklist,
-        'headline' => $this->readinessHeadline($readiness->ready, $published, $remaining),
+        'complete_count' => $completedCount,
+        'total_count' => $totalChecklist,
+        'headline' => $this->readinessHeadline($readiness->ready, $published, $remainingErrors),
         'explanation' => $this->readinessExplanation($readiness),
       ],
-      '#todays_tasks' => $focus,
-      '#sales' => $sales,
-      '#ticket_summary' => $this->metricFromSales($sales, 'tickets'),
-      '#attendee_summary' => $this->metricFromSales($sales, 'attendees'),
-      '#stripe' => $stripe,
-      '#marketing' => $this->buildMarketingStatus($event, $account),
-      '#analytics' => $this->buildAnalyticsSnapshot($workspace),
-      '#next_action' => $nextRecommended,
-      '#quick_links' => $this->buildQuickLinks($nid, $account),
-      '#celebration' => $this->buildCelebrationHint($event, $readiness, $published),
     ];
   }
 
   /**
-   * Builds a human checklist from readiness strings.
+   * @return array<string, mixed>
+   */
+  private function safeSalesSummary(NodeInterface $event): array {
+    try {
+      return $this->ticketSalesService->getSalesSummary($event);
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Home sales summary failed for event @nid: @message', [
+        '@nid' => (string) $event->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return [];
+    }
+  }
+
+  /**
+   * Event Ready card — Q2 health (not “Event Status”).
    *
-   * Blocking errors use tone "attention". Warnings are non-blocking
-   * (EventReadinessResult::ready can still be TRUE) and use tone "warning"
-   * so they are not presented as publish blockers.
+   * @param array<string, mixed> $eventMeta
+   *   Workspace event metadata (same source as Stripe health booking type).
    *
+   * @return array<string, mixed>
+   */
+  private function buildEventReady(
+    EventReadinessResult $readiness,
+    bool $published,
+    string $statusLabel,
+    string $statusKey,
+    int $completedCount,
+    int $totalChecklist,
+    int $remainingErrors,
+    NodeInterface $event,
+    array $stripe,
+    array $eventMeta = [],
+  ): array {
+    $tone = 'success';
+    $headline = (string) $this->t('Ready to publish');
+    $detail = (string) $this->t('Everything looks good.');
+    if ($published && $readiness->ready) {
+      $headline = (string) $this->t('Live and healthy');
+      $detail = (string) $this->t('Your event is published and ready for guests.');
+    }
+    elseif (!$readiness->ready) {
+      $tone = 'attention';
+      $headline = $remainingErrors === 1
+        ? (string) $this->t('Almost ready')
+        : (string) $this->t('Needs a few things');
+      $detail = $remainingErrors === 1
+        ? (string) $this->t('One thing left before publishing.')
+        : (string) $this->t('@count items left before publishing.', ['@count' => $remainingErrors]);
+    }
+
+    if (($stripe['tone'] ?? '') === 'attention' && in_array($this->resolveEventBookingType($event, $eventMeta), ['paid', 'both'], TRUE)) {
+      $tone = 'attention';
+      if ($readiness->ready) {
+        // Published events stay Live on the status pill — never claim "Almost ready".
+        $headline = $published
+          ? (string) $this->t('Live — payments need attention')
+          : (string) $this->t('Almost ready');
+        $detail = (string) ($stripe['detail'] ?? $detail);
+      }
+    }
+
+    $changed = (int) $event->getChangedTime();
+    $updated = $changed > 0
+      ? $this->dateFormatter->formatTimeDiffSince($changed, ['granularity' => 1])
+      : '';
+
+    return [
+      'headline' => $headline,
+      'detail' => $detail,
+      'tone' => $tone,
+      'status_label' => $statusLabel,
+      'status_key' => $statusKey,
+      'complete_count' => $completedCount,
+      'total_count' => $totalChecklist,
+      'updated_label' => $updated !== ''
+        ? (string) $this->t('Updated @when ago', ['@when' => $updated])
+        : '',
+      'checklist_label' => (string) $this->t('View checklist'),
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $salesSummary
+   * @param array<string, mixed> $workspace
+   *
+   * @return array<string, mixed>
+   */
+  private function buildTicketsCard(
+    NodeInterface $event,
+    AccountInterface $account,
+    int $nid,
+    array $salesSummary,
+    array $workspace,
+  ): array {
+    $types = 0;
+    if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
+      $types = count($event->get('field_ticket_types')->getValue());
+    }
+
+    $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
+    $available = $salesSummary['tickets_available'] ?? NULL;
+    // TicketSalesService returns 0 when capacity is unset/unknown — omit remaining
+    // rather than implying sell-out (metrics policy).
+    $remaining = NULL;
+    if ((is_int($available) || (is_string($available) && ctype_digit($available))) && (int) $available > 0) {
+      $remaining = max(0, (int) $available - $sold);
+    }
+
+    $metrics = [];
+    if ($types > 0) {
+      $metrics[] = [
+        'label' => $types === 1
+          ? (string) $this->t('1 ticket type')
+          : (string) $this->t('@count ticket types', ['@count' => $types]),
+        'value' => (string) $types,
+      ];
+    }
+    $metrics[] = [
+      'label' => (string) $this->t('sold'),
+      'value' => (string) $sold,
+    ];
+    if ($remaining !== NULL) {
+      $metrics[] = [
+        'label' => (string) $this->t('remaining'),
+        'value' => (string) $remaining,
+      ];
+    }
+    elseif (is_string($available) && $available !== '' && !ctype_digit($available)) {
+      $metrics[] = [
+        'label' => (string) $available,
+        'value' => '',
+      ];
+    }
+
+    $url = $this->safeUrl('myeventlane_event_studio.workspace_tickets', ['node' => $nid]);
+    return [
+      'title' => (string) $this->t('Tickets'),
+      'metrics' => $metrics,
+      'empty' => $types === 0 && $sold === 0,
+      'empty_message' => (string) $this->t('Add tickets so people can register.'),
+      'action_label' => (string) $this->t('Manage tickets'),
+      'url' => $url,
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $workspace
+   * @param array<string, mixed> $salesSummary
+   *
+   * @return array<string, mixed>
+   */
+  private function buildAttendeesCard(AccountInterface $account, int $nid, array $workspace, array $salesSummary): array {
+    $salesMetrics = is_array($workspace['sales_snapshot']['metrics'] ?? NULL)
+      ? $workspace['sales_snapshot']['metrics']
+      : [];
+    $booked = (int) ($salesSummary['tickets_sold'] ?? 0);
+    $rsvps = 0;
+    $checkins = 0;
+    foreach ($salesMetrics as $metric) {
+      if (!is_array($metric)) {
+        continue;
+      }
+      $key = (string) ($metric['key'] ?? '');
+      $label = strtolower((string) ($metric['label'] ?? ''));
+      $value = (int) ($metric['value'] ?? 0);
+      if ($key === 'rsvps' || str_contains($label, 'rsvp')) {
+        $rsvps = $value;
+      }
+      if ($key === 'checkins' || str_contains($label, 'check')) {
+        $checkins = $value;
+      }
+    }
+    if ($booked === 0 && $rsvps > 0) {
+      $booked = $rsvps;
+    }
+
+    $waitlist = NULL;
+    if ($this->waitlistManager !== NULL) {
+      try {
+        $waitlist = $this->waitlistManager->getWaitlistCount($nid);
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Home waitlist count failed for event @nid: @message', [
+          '@nid' => (string) $nid,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    $metrics = [
+      ['label' => (string) $this->t('booked'), 'value' => (string) $booked],
+      ['label' => (string) $this->t('checked in'), 'value' => (string) $checkins],
+    ];
+    if ($waitlist !== NULL) {
+      $metrics[] = ['label' => (string) $this->t('waitlist'), 'value' => (string) $waitlist];
+    }
+
+    $hasWaitlist = is_int($waitlist) && $waitlist > 0;
+
+    return [
+      'title' => (string) $this->t('Attendees'),
+      'metrics' => $metrics,
+      'empty' => $booked === 0 && $checkins === 0 && !$hasWaitlist,
+      'empty_message' => (string) $this->t('Guests will appear here after your first booking.'),
+      'action_label' => (string) $this->t('Manage attendees'),
+      'url' => $this->safeUrl('myeventlane_event_studio.workspace_attendees', ['node' => $nid]),
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $salesSummary
+   *
+   * @return array<string, mixed>
+   */
+  private function buildSalesCard(array $salesSummary, int $nid): array {
+    $gross = trim((string) ($salesSummary['gross'] ?? ''));
+    $orders = (int) ($salesSummary['orders_count'] ?? 0);
+    $metrics = [];
+    if ($gross !== '') {
+      $metrics[] = ['label' => (string) $this->t('gross'), 'value' => $gross, 'primary' => TRUE];
+    }
+    $metrics[] = [
+      'label' => (string) $this->t('orders'),
+      'value' => (string) $orders,
+    ];
+
+    return [
+      'title' => (string) $this->t('Sales'),
+      'metrics' => $metrics,
+      'empty' => $orders === 0 && ($gross === '' || $gross === '$0.00' || $gross === '$0'),
+      'empty_message' => (string) $this->t('Sales will appear after your first booking.'),
+      'action_label' => (string) $this->t('View orders'),
+      'url' => $this->safeUrl('myeventlane_event_studio.workspace_orders', ['node' => $nid])
+        ?? $this->safeUrl('myeventlane_vendor.console.event_orders', ['event' => $nid]),
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildMarketingCard(NodeInterface $event, AccountInterface $account, int $nid): array {
+    $boostActive = FALSE;
+    if ($this->boostStatusService !== NULL) {
+      try {
+        $payload = $this->boostStatusService->getVisibilityPayload($event);
+        $boostActive = !empty($payload['active']);
+      }
+      catch (\Throwable) {
+        $boostActive = FALSE;
+      }
+    }
+
+    $featured = $event->hasField('field_promoted')
+      && !$event->get('field_promoted')->isEmpty()
+      && (bool) $event->get('field_promoted')->value;
+
+    $lines = [];
+    $lines[] = $boostActive
+      ? (string) $this->t('Boost active')
+      : (string) $this->t('Boost not running');
+    $lines[] = $featured
+      ? (string) $this->t('Homepage featured')
+      : (string) $this->t('Not homepage featured');
+    if (!$event->isPublished()) {
+      $lines = [(string) $this->t('Publish to share and promote.')];
+    }
+
+    $url = !$event->isPublished()
+      ? $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid])
+      : ($this->safeUrl('myeventlane_boost.vendor_event_boost', ['event' => $nid])
+        ?? $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]));
+
+    return [
+      'title' => (string) $this->t('Marketing'),
+      'lines' => $lines,
+      'action_label' => (string) $this->t('Promote'),
+      'url' => $url,
+    ];
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function buildBoostCard(NodeInterface $event, int $nid): array {
+    $active = FALSE;
+    $detail = (string) $this->t('Reach more people on MyEventLane.');
+    $days = NULL;
+    if ($this->boostStatusService !== NULL) {
+      try {
+        $payload = $this->boostStatusService->getVisibilityPayload($event);
+        $active = !empty($payload['active']);
+        if ($active) {
+          $days = $payload['days_remaining'] ?? NULL;
+          $detail = is_numeric($days)
+            ? (string) $this->formatPlural((int) $days, '1 day remaining', '@count days remaining')
+            : (string) $this->t('Featured across MyEventLane');
+        }
+      }
+      catch (\Throwable) {
+        // Keep default detail.
+      }
+    }
+
+    return [
+      'title' => (string) $this->t('Boost'),
+      'status' => $active ? (string) $this->t('Active') : (string) $this->t('Available'),
+      'detail' => $detail,
+      'active' => $active,
+      'action_label' => $active
+        ? (string) $this->t('View performance')
+        : (string) $this->t('Boost event'),
+      'url' => $this->safeUrl('myeventlane_boost.vendor_event_boost', ['event' => $nid])
+        ?? $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]),
+    ];
+  }
+
+  /**
+   * @param array<string, mixed> $workspace
+   * @param array<string, mixed> $salesSummary
+   *
+   * @return array<string, mixed>
+   */
+  private function buildAnalyticsCard(array $workspace, array $salesSummary, int $nid): array {
+    $metrics = [];
+    $conversion = $salesSummary['conversion'] ?? NULL;
+    $available = $salesSummary['tickets_available'] ?? NULL;
+    if (is_numeric($conversion) && (float) $conversion > 0 && (is_int($available) || (is_string($available) && ctype_digit((string) $available))) && (int) $available > 0) {
+      $pct = round((float) $conversion * 100, 1);
+      $metrics[] = [
+        'label' => (string) $this->t('conversion'),
+        'value' => $pct . '%',
+        'primary' => TRUE,
+      ];
+    }
+
+    $orders = (int) ($salesSummary['orders_count'] ?? 0);
+    $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
+    if ($sold > 0) {
+      // Same tickets_sold metric as Tickets card — never label as "bookings"
+      // (Sales uses orders_count for order volume).
+      $metrics[] = ['label' => (string) $this->t('sold'), 'value' => (string) $sold];
+    }
+    elseif ($orders > 0) {
+      $metrics[] = ['label' => (string) $this->t('orders'), 'value' => (string) $orders];
+    }
+
+    // Fall back to workspace metric snippets (confirmed only).
+    if ($metrics === []) {
+      $workspaceMetrics = is_array($workspace['metrics'] ?? NULL) ? $workspace['metrics'] : [];
+      foreach ($workspaceMetrics as $metric) {
+        if (!is_array($metric)) {
+          continue;
+        }
+        $label = trim((string) ($metric['label'] ?? ''));
+        $value = trim((string) ($metric['value'] ?? ''));
+        if ($label !== '' && $value !== '' && $value !== '—') {
+          $metrics[] = ['label' => strtolower($label), 'value' => $value];
+        }
+        if (count($metrics) >= 2) {
+          break;
+        }
+      }
+    }
+
+    return [
+      'title' => (string) $this->t('Analytics'),
+      'metrics' => $metrics,
+      'empty' => $metrics === [],
+      'empty_message' => (string) $this->t('Publish your event to start tracking sales.'),
+      'action_label' => (string) $this->t('View report'),
+      'url' => $this->safeUrl('myeventlane_event_studio.workspace_analytics', ['node' => $nid]),
+    ];
+  }
+
+  /**
+   * Recent bookings / sales / orders activity (2B). No messages/system yet.
+   *
+   * @param array<string, mixed> $salesSummary
+   *
+   * @return array{items: list<array<string, mixed>>, empty: bool, empty_message: string}
+   */
+  private function buildActivityFeed(NodeInterface $event, array $salesSummary): array {
+    $items = [];
+    $eventId = (int) $event->id();
+    try {
+      if (!$this->entityTypeManager->hasDefinition('commerce_order_item')) {
+        return $this->activityFromSalesFallback($salesSummary);
+      }
+      $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
+      // Bound to the 8 most recent completed orders (not every historical line).
+      $recentOrderIds = $this->loadRecentCompletedOrderIdsForEvent($eventId, 8);
+      if ($recentOrderIds !== []) {
+        $itemQuery = $orderItemStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('field_target_event', $eventId)
+          ->condition('order_id', $recentOrderIds, 'IN');
+        $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+        if ($excludedTypes !== []) {
+          $itemQuery->condition('type', $excludedTypes, 'NOT IN');
+        }
+        $ids = $itemQuery->execute();
+        if ($ids !== []) {
+          /** @var \Drupal\commerce_order\Entity\OrderItemInterface[] $orderItems */
+          $orderItems = $orderItemStorage->loadMultiple($ids);
+          // Aggregate per completed order using vendor-revenue-eligible lines only
+          // (same rules as TicketSalesService — exclude Boost / donations).
+          $orderAgg = [];
+          foreach ($orderItems as $item) {
+            if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
+              continue;
+            }
+            $order = $item->getOrder();
+            if ($order === NULL) {
+              continue;
+            }
+            if ($order->getState()->getId() !== 'completed') {
+              continue;
+            }
+            $oid = (int) $order->id();
+            if (!isset($orderAgg[$oid])) {
+              $orderAgg[$oid] = [
+                'order' => $order,
+                'qty' => 0,
+                'placed' => (int) $order->getPlacedTime(),
+                'amount' => 0.0,
+                'currency' => 'AUD',
+              ];
+            }
+            $orderAgg[$oid]['qty'] += (int) round((float) $item->getQuantity());
+            $lineTotal = $item->getTotalPrice();
+            if ($lineTotal) {
+              $orderAgg[$oid]['amount'] += (float) $lineTotal->getNumber();
+              $currency = $lineTotal->getCurrencyCode();
+              if (is_string($currency) && $currency !== '') {
+                $orderAgg[$oid]['currency'] = $currency;
+              }
+            }
+          }
+
+          // Preserve recent-order ranking from the bounded ID query.
+          foreach ($recentOrderIds as $oid) {
+            if (!isset($orderAgg[$oid])) {
+              continue;
+            }
+            $row = $orderAgg[$oid];
+            /** @var \Drupal\commerce_order\Entity\OrderInterface $order */
+            $order = $row['order'];
+            $amountNumber = (float) $row['amount'];
+            $amount = $amountNumber > 0
+              ? $this->formatActivityMoney($amountNumber, (string) $row['currency'])
+              : '';
+            $qty = (int) $row['qty'];
+            $placed = (int) $row['placed'];
+            $when = $placed > 0
+              ? $this->dateFormatter->formatTimeDiffSince($placed, ['granularity' => 1])
+              : '';
+            $items[] = [
+              'title' => (string) $this->t('Order @number', [
+                '@number' => $order->getOrderNumber() ?: (string) $oid,
+              ]),
+              'detail' => trim(implode(' · ', array_filter([
+                $qty > 0 ? (string) $this->formatPlural($qty, '1 ticket', '@count tickets') : '',
+                $amount,
+                $when !== '' ? (string) $this->t('@when ago', ['@when' => $when]) : '',
+              ]))),
+              'type' => 'order',
+            ];
+          }
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->logger->warning('Home activity feed failed for event @nid: @message', [
+        '@nid' => (string) $eventId,
+        '@message' => $e->getMessage(),
+      ]);
+      return $this->activityFromSalesFallback($salesSummary);
+    }
+
+    if ($items === []) {
+      return $this->activityFromSalesFallback($salesSummary);
+    }
+
+    return [
+      'items' => $items,
+      'empty' => FALSE,
+      'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
+    ];
+  }
+
+  /**
+   * Most recent completed order IDs with vendor-revenue-eligible lines for an event.
+   *
+   * @return list<int>
+   */
+  private function loadRecentCompletedOrderIdsForEvent(int $eventId, int $limit): array {
+    if ($eventId <= 0 || $limit < 1) {
+      return [];
+    }
+    $query = $this->database->select('commerce_order', 'o');
+    $query->join('commerce_order_item', 'oi', 'oi.order_id = o.order_id');
+    $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+    $query->addField('o', 'order_id');
+    $query->addExpression('MAX(o.placed)', 'placed_ts');
+    $query->condition('o.state', 'completed');
+    $query->condition('lnk.field_target_event_target_id', $eventId);
+    $query->condition('lnk.deleted', 0);
+    $excludedTypes = $this->orderItemClassifier->getExcludedTypes();
+    if ($excludedTypes !== []) {
+      $query->condition('oi.type', $excludedTypes, 'NOT IN');
+    }
+    $query->groupBy('o.order_id');
+    $query->orderBy('placed_ts', 'DESC');
+    // Qualify order_id — both commerce_order and commerce_order_item expose it.
+    $query->orderBy('o.order_id', 'DESC');
+    $query->range(0, $limit);
+    return array_map('intval', $query->execute()->fetchCol());
+  }
+
+  /**
+   * Confirmed aggregate fallback when per-order activity rows are unavailable.
+   *
+   * @param array<string, mixed> $salesSummary
+   *
+   * @return array{items: list<array<string, mixed>>, empty: bool, empty_message: string}
+   */
+  private function activityFromSalesFallback(array $salesSummary): array {
+    $orders = (int) ($salesSummary['orders_count'] ?? 0);
+    $sold = (int) ($salesSummary['tickets_sold'] ?? 0);
+    if ($orders > 0 || $sold > 0) {
+      return [
+        'items' => [[
+          'title' => (string) $this->t('Sales activity'),
+          'detail' => (string) $this->t('@orders bookings · @sold tickets sold', [
+            '@orders' => $orders,
+            '@sold' => $sold,
+          ]),
+          'type' => 'sales',
+        ]],
+        'empty' => FALSE,
+        'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
+      ];
+    }
+    return $this->emptyActivity();
+  }
+
+  /**
+   * @return array{items: list<array<string, mixed>>, empty: bool, empty_message: string}
+   */
+  private function emptyActivity(): array {
+    return [
+      'items' => [],
+      'empty' => TRUE,
+      'empty_message' => (string) $this->t('Recent bookings and orders will show up here.'),
+    ];
+  }
+
+  /**
+   * Formats event-scoped activity money (aligned with TicketSalesService / vendor orders).
+   */
+  private function formatActivityMoney(float $amount, string $currency): string {
+    $currency = strtoupper($currency !== '' ? $currency : 'AUD');
+    if ($currency === 'AUD') {
+      return '$' . number_format($amount, 2);
+    }
+    return number_format($amount, 2) . ' ' . $currency;
+  }
+
+  /**
    * @param list<string> $completed
-   *   Completed readiness labels.
    * @param list<string> $errors
-   *   Blocking readiness labels.
    * @param list<string> $warnings
-   *   Warning readiness labels.
    * @param list<string> $recommendations
-   *   Optional recommendation labels.
    *
    * @return list<array{label: string, complete: bool, tone: string}>
-   *   Checklist rows for Overview.
    */
   private function buildHumanChecklist(array $completed, array $errors, array $warnings, array $recommendations): array {
     $items = [];
@@ -151,9 +802,6 @@ final class EventWorkspaceOverviewBuilder {
     return $items;
   }
 
-  /**
-   * Maps technical readiness copy to short organiser labels.
-   */
   private function humaniseChecklistLabel(string $label): string {
     $trimmed = rtrim($label, '.');
     $map = [
@@ -170,9 +818,6 @@ final class EventWorkspaceOverviewBuilder {
     return $map[$trimmed] ?? $trimmed;
   }
 
-  /**
-   * Builds the readiness headline for Overview.
-   */
   private function readinessHeadline(bool $ready, bool $published, int $remaining): string {
     if ($published && $ready) {
       return (string) $this->t('Your event is live');
@@ -181,42 +826,33 @@ final class EventWorkspaceOverviewBuilder {
       return (string) $this->t('Ready to publish');
     }
     if ($remaining === 1) {
-      return (string) $this->t("You're almost there…");
+      return (string) $this->t('Almost ready');
     }
     return (string) $this->t('A few things left before publishing');
   }
 
-  /**
-   * Explains why publishing is ready or blocked.
-   */
   private function readinessExplanation(EventReadinessResult $readiness): string {
     if ($readiness->ready) {
       if ($readiness->warnings !== []) {
-        return (string) $this->t('You can publish now. The items marked for review are optional improvements.');
+        return (string) $this->t('You can publish now. Optional improvements are in the checklist.');
       }
       return (string) $this->t('Everything needed to go live looks good.');
     }
     if (count($readiness->errors) === 1) {
       return (string) $this->t('One more thing before publishing: @reason', [
-        '@reason' => $readiness->errors[0],
+        '@reason' => $this->humaniseChecklistLabel($readiness->errors[0]),
       ]);
     }
     if ($readiness->errors !== []) {
-      return (string) $this->t('Finish the items below so guests can find and book your event.');
+      return (string) $this->t('Finish the checklist so guests can find and book your event.');
     }
-    return (string) $this->t('Review the suggestions below to make your event page stronger.');
+    return (string) $this->t('Review the suggestions to make your event page stronger.');
   }
 
   /**
-   * Builds Stripe / payments health for Overview.
-   *
-   * Paid-ticket Stripe checks only run for paid / hybrid events.
-   *
    * @param array<string, mixed> $eventMeta
-   *   Workspace event metadata (may include event_type).
    *
    * @return array{label: string, tone: string, detail: string, url: ?string}
-   *   Payments status card payload.
    */
   private function buildStripeHealth(AccountInterface $account, NodeInterface $event, array $eventMeta): array {
     $eventId = (int) $event->id();
@@ -234,7 +870,7 @@ final class EventWorkspaceOverviewBuilder {
       $denial = $this->stripeGate->validatePaidPublishAllowed($account, $eventId);
     }
     catch (\Throwable $e) {
-      $this->logger->warning('Stripe health check failed for overview event @nid: @message', [
+      $this->logger->warning('Stripe health check failed for home event @nid: @message', [
         '@nid' => (string) $eventId,
         '@message' => $e->getMessage(),
       ]);
@@ -264,10 +900,7 @@ final class EventWorkspaceOverviewBuilder {
   }
 
   /**
-   * Resolves booking mode for Overview payments gating.
-   *
    * @param array<string, mixed> $eventMeta
-   *   Workspace event metadata.
    */
   private function resolveEventBookingType(NodeInterface $event, array $eventMeta): string {
     $fromMeta = trim((string) ($eventMeta['event_type'] ?? ''));
@@ -281,87 +914,21 @@ final class EventWorkspaceOverviewBuilder {
   }
 
   /**
-   * Builds marketing status for Overview.
-   *
-   * @return array{label: string, detail: string, url: ?string}
-   *   Marketing card payload.
-   */
-  private function buildMarketingStatus(NodeInterface $event, AccountInterface $account): array {
-    $nid = (int) $event->id();
-    $boostUrl = $this->safeUrl('myeventlane_boost.vendor_event_boost', ['event' => $nid]);
-    if (!$event->isPublished()) {
-      return [
-        'label' => (string) $this->t('Marketing'),
-        'detail' => (string) $this->t('Publish your event to share and Boost it.'),
-        'url' => $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
-      ];
-    }
-    return [
-      'label' => (string) $this->t('Marketing'),
-      'detail' => (string) $this->t('Share your page or Boost to reach more people.'),
-      'url' => $boostUrl ?? $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]),
-    ];
-  }
-
-  /**
-   * Builds a short analytics snapshot from workspace metrics.
-   *
-   * @param array<string, mixed> $workspace
-   *   Workspace view model.
-   *
-   * @return array{label: string, detail: string, url: ?string}
-   *   Analytics card payload.
-   */
-  private function buildAnalyticsSnapshot(array $workspace): array {
-    $metrics = is_array($workspace['metrics'] ?? NULL) ? $workspace['metrics'] : [];
-    $parts = [];
-    foreach ($metrics as $metric) {
-      if (!is_array($metric)) {
-        continue;
-      }
-      $label = trim((string) ($metric['label'] ?? ''));
-      $value = trim((string) ($metric['value'] ?? ''));
-      if ($label !== '' && $value !== '') {
-        $parts[] = $label . ': ' . $value;
-      }
-      if (count($parts) >= 2) {
-        break;
-      }
-    }
-    $nid = (int) ($workspace['event']['nid'] ?? 0);
-    return [
-      'label' => (string) $this->t('Analytics'),
-      'detail' => $parts !== []
-        ? implode(' · ', $parts)
-        : (string) $this->t('Publish your event to start tracking sales.'),
-      'url' => $nid > 0 ? $this->safeUrl('myeventlane_event_studio.workspace_analytics', ['node' => $nid]) : NULL,
-    ];
-  }
-
-  /**
-   * Resolves the primary next action for Overview.
-   *
-   * Prefers Workspace readiness/publishing CTAs over generic mission-control
-   * placeholders such as "Finish and publish your event" or "Event looks ready".
-   * Concrete operational actions (unknown event type, manage bookings) still win.
-   *
    * @param array<string, mixed> $next
-   *   Workspace next-action payload.
-   * @param \Drupal\myeventlane_event_studio\DTO\EventReadinessResult $readiness
-   *   Publish readiness result.
-   * @param bool $published
-   *   Whether the event is published.
-   * @param int $nid
-   *   Event node id.
+   * @param array<string, mixed> $stripe
    *
    * @return array{title: string, message: string, action_label: ?string, url: ?string}
-   *   Next-action card payload.
    */
-  private function resolveNextRecommendedAction(array $next, EventReadinessResult $readiness, bool $published, int $nid): array {
+  private function resolveNextRecommendedAction(
+    array $next,
+    EventReadinessResult $readiness,
+    bool $published,
+    int $nid,
+    array $stripe = [],
+  ): array {
     $title = trim((string) ($next['title'] ?? ''));
     $severity = (string) ($next['severity'] ?? '');
 
-    // Keep hard blockers and live booking activity from mission-control.
     if ($title !== '' && ($severity === 'error' || ($published && $severity === 'info'))) {
       return [
         'title' => $title,
@@ -373,14 +940,28 @@ final class EventWorkspaceOverviewBuilder {
       ];
     }
 
+    // Publish blockers win over Stripe Connect — never push payouts while
+    // checklist items (tickets, schedule, etc.) remain unresolved.
     if (!$readiness->ready) {
       return [
         'title' => (string) $this->t('Continue setup'),
-        'message' => $readiness->errors[0] ?? (string) $this->t('Finish the readiness checklist so you can publish.'),
+        'message' => isset($readiness->errors[0])
+          ? $this->humaniseChecklistLabel($readiness->errors[0])
+          : (string) $this->t('Finish the readiness checklist so you can publish.'),
         'action_label' => (string) $this->t('Review publishing'),
         'url' => $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
       ];
     }
+
+    if (($stripe['tone'] ?? '') === 'attention' && ($stripe['url'] ?? NULL)) {
+      return [
+        'title' => (string) $this->t('Connect Stripe'),
+        'message' => (string) ($stripe['detail'] ?? $this->t('Connect payments so you can get paid.')),
+        'action_label' => (string) $this->t('Connect Stripe'),
+        'url' => (string) $stripe['url'],
+      ];
+    }
+
     if (!$published) {
       return [
         'title' => (string) $this->t('Ready when you are'),
@@ -392,40 +973,13 @@ final class EventWorkspaceOverviewBuilder {
     return [
       'title' => (string) $this->t('Share your event'),
       'message' => (string) $this->t('Your event is live. Share the page or message your attendees.'),
-      'action_label' => (string) $this->t('Open marketing'),
+      'action_label' => (string) $this->t('Promote'),
       'url' => $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]),
     ];
   }
 
   /**
-   * Builds Overview quick links.
-   *
-   * @return list<array{label: string, url: string}>
-   *   Quick-link rows.
-   */
-  private function buildQuickLinks(int $nid, AccountInterface $account): array {
-    $links = [];
-    $map = [
-      [(string) $this->t('Tickets'), 'myeventlane_event_studio.workspace_tickets', ['node' => $nid]],
-      [(string) $this->t('Attendees'), 'myeventlane_event_studio.workspace_attendees', ['node' => $nid]],
-      [(string) $this->t('Messages'), 'myeventlane_event_studio.workspace_messaging', ['node' => $nid]],
-      [(string) $this->t('Orders'), 'myeventlane_event_studio.workspace_orders', ['node' => $nid]],
-      [(string) $this->t('Analytics'), 'myeventlane_event_studio.workspace_analytics', ['node' => $nid]],
-    ];
-    foreach ($map as [$label, $route, $params]) {
-      $url = $this->safeUrl($route, $params);
-      if ($url !== NULL) {
-        $links[] = ['label' => $label, 'url' => $url];
-      }
-    }
-    return $links;
-  }
-
-  /**
-   * Optional subtle celebration for early draft progress.
-   *
    * @return array{show: bool, title: string, message: string}
-   *   Celebration payload. show is FALSE when nothing should render.
    */
   private function buildCelebrationHint(NodeInterface $event, EventReadinessResult $readiness, bool $published): array {
     $title = trim($event->label());
@@ -446,40 +1000,7 @@ final class EventWorkspaceOverviewBuilder {
   }
 
   /**
-   * Extracts a preferred metric string from the sales snapshot.
-   *
-   * @param array<string, mixed> $sales
-   *   Sales snapshot payload.
-   * @param string $prefer
-   *   Preference key: tickets or attendees.
-   *
-   * @return string
-   *   Metric value or empty string.
-   */
-  private function metricFromSales(array $sales, string $prefer): string {
-    $metrics = is_array($sales['metrics'] ?? NULL) ? $sales['metrics'] : [];
-    foreach ($metrics as $metric) {
-      if (!is_array($metric)) {
-        continue;
-      }
-      $label = strtolower((string) ($metric['label'] ?? ''));
-      if ($prefer === 'tickets' && str_contains($label, 'ticket')) {
-        return trim((string) ($metric['value'] ?? ''));
-      }
-      if ($prefer === 'attendees' && (str_contains($label, 'rsvp') || str_contains($label, 'attendee') || str_contains($label, 'check'))) {
-        return trim((string) ($metric['value'] ?? ''));
-      }
-    }
-    return '';
-  }
-
-  /**
-   * Builds a route URL string when the route exists.
-   *
-   * @param string $route
-   *   Route name.
    * @param array<string, mixed> $params
-   *   Route parameters.
    */
   private function safeUrl(string $route, array $params = []): ?string {
     try {

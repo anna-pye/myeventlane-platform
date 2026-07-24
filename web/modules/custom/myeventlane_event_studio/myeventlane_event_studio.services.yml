@@ -106,8 +106,15 @@ services:
       - '@myeventlane_vendor.event_workspace_view_model_builder'
       - '@myeventlane_vendor.paid_publish_stripe_gate'
       - '@myeventlane_event_studio.readiness_facade'
+      - '@myeventlane_vendor.service.ticket_sales'
+      - '@entity_type.manager'
+      - '@date.formatter'
+      - '@myeventlane_commerce.order_item_classifier'
+      - '@database'
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
+      - '@?myeventlane_vendor.service.boost_status'
+      - '@?myeventlane_event_attendees.waitlist'
 
   myeventlane_event_studio.section_renderer:
     class: Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer
@@ -505,6 +512,7 @@ services:
       - '@myeventlane_event_studio.readiness'
       - '@myeventlane_event_studio.readiness_facade'
       - '@myeventlane_event_studio.workspace_presentation'
+      - '@myeventlane_event_studio.overview_builder'
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_event_studio.autosave'
       - '@plugin.manager.myeventlane_event_studio_section'

@@ -122,7 +122,7 @@ final class EventStudioSectionRenderer {
     $this->logger->error('Event Workspace overview builder unavailable for event @event.', [
       '@event' => (string) $event->id(),
     ]);
-    return $this->emptyStateBuilder->unavailableSection((string) $this->t('Overview'));
+    return $this->emptyStateBuilder->unavailableSection((string) $this->t('Home'));
   }
 
   /**
