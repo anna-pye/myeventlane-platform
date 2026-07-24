@@ -104,9 +104,9 @@ P4 Advanced
 
 ### Sprint 1 behaviour notes
 
-- **Payments** shell item opens Payments Hub (`/vendor/payments`); payouts remain a deep page.  
+- **Messages** shell item opens Messages Hub (`/vendor/messages`); brand settings remain a deep page.  
 - **Orders** remains event-scoped (disabled without event context) until C-17 hub.  
-- **Messages** still lands on messaging brand settings until VX2-06 unifies send UIs.  
+- **Payments** shell item opens Payments Hub (`/vendor/payments`); payouts remain a deep page.  
 - Refund requests and Check-in removed from shell; event/ops entry points remain.
 
 ---

@@ -315,6 +315,10 @@ Existing vendor_comms live path; Pro message; Studio messaging — decide canoni
 
 One “Message attendees” mental model; brand settings not a separate product.
 
+### Implementation
+
+Shipped on `feature/vx2-messages`. See [`docs/implementation/vx2-06-messages-hub.md`](../implementation/vx2-06-messages-hub.md).
+
 ---
 
 ## VX2-07 — Payments
