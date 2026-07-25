@@ -1,0 +1,29 @@
+{#
+/**
+ * @file
+ * Dashboard loading skeleton — reuses .mel-skeleton (no fake statistics).
+ *
+ * Hidden by default for SSR. Progressive loaders must:
+ * - remove [hidden]
+ * - set aria-busy="true" on the dashboard root
+ * - clear aria-hidden on this region while busy
+ * Do not announce loading while this region remains hidden.
+ */
+#}
+<div class="mel-vendor-dashboard__skeleton" data-mel-dashboard-skeleton hidden aria-hidden="true">
+  <div class="mel-vendor-dashboard__skeleton-block">
+    <div class="mel-skeleton mel-skeleton--title"></div>
+    <div class="mel-skeleton mel-skeleton--text"></div>
+    <div class="mel-skeleton mel-skeleton--text"></div>
+  </div>
+  <div class="mel-vendor-dashboard__skeleton-kpis">
+    <div class="mel-skeleton mel-skeleton--kpi"></div>
+    <div class="mel-skeleton mel-skeleton--kpi"></div>
+    <div class="mel-skeleton mel-skeleton--kpi"></div>
+    <div class="mel-skeleton mel-skeleton--kpi"></div>
+  </div>
+  <div class="mel-vendor-dashboard__skeleton-block">
+    <div class="mel-skeleton mel-skeleton--card"></div>
+    <div class="mel-skeleton mel-skeleton--card"></div>
+  </div>
+</div>

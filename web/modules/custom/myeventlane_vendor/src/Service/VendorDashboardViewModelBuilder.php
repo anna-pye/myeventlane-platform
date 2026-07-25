@@ -818,6 +818,10 @@ final class VendorDashboardViewModelBuilder {
       'metrics' => $this->buildEventMetrics($ticketsSold, $rsvpCount, $revenueLabel, $capacityLabel),
       'presentation_issues' => $presentationIssues,
       'attention_reasons' => $this->buildAttentionReasons($status, $eventType, $startTs, $endTs, $presentationIssues),
+      // Surfaced from existing field_event_start / field_event_end (already read above).
+      'start_timestamp' => $startTs > 0 ? $startTs : NULL,
+      'end_timestamp' => $endTs > 0 ? $endTs : NULL,
+      'doors_open_label' => $this->buildDoorsOpenLabel($status, $startTs, $endTs),
       'image' => $this->vendorEventRemovalService->buildEventThumbnailData($node),
       'boost' => $boost,
       'is_promoted' => !empty($boost['active']),
@@ -895,6 +899,40 @@ final class VendorDashboardViewModelBuilder {
       'both' => (string) $this->t('Tickets and RSVPs are active.'),
       default => (string) $this->t('Booking setup needs review.'),
     };
+  }
+
+  /**
+   * Human label for doors / start timing from existing event timestamps.
+   *
+   * Returns NULL when status is not operationally upcoming/in-session or when
+   * no start time exists — callers must omit the countdown, not invent one.
+   */
+  private function buildDoorsOpenLabel(string $status, int $startTs, int $endTs): ?string {
+    if ($status === 'draft' || $status === 'past' || $startTs <= 0) {
+      return NULL;
+    }
+
+    $now = (int) $this->time->getRequestTime();
+    $inSession = $startTs <= $now && ($endTs === 0 || $endTs >= $now);
+    if ($inSession) {
+      return (string) $this->t('Doors open');
+    }
+
+    if ($startTs <= $now) {
+      return NULL;
+    }
+
+    $seconds = $startTs - $now;
+    if ($seconds < 3600) {
+      $minutes = max(1, (int) ceil($seconds / 60));
+      return (string) $this->formatPlural($minutes, 'Opens in 1 minute', 'Opens in @count minutes');
+    }
+    if ($seconds < 86400) {
+      $hours = max(1, (int) floor($seconds / 3600));
+      return (string) $this->formatPlural($hours, 'Opens in 1 hour', 'Opens in @count hours');
+    }
+    $days = max(1, (int) ceil($seconds / 86400));
+    return (string) $this->formatPlural($days, 'Opens in 1 day', 'Opens in @count days');
   }
 
   private function attendeeSummary(int $ticketsSold, int $rsvpCount): string {

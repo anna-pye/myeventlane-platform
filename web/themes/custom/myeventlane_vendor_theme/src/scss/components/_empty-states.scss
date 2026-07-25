@@ -99,6 +99,18 @@
   border-radius: $radius-md;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .mel-skeleton {
+    animation: none;
+    background: $bg-secondary;
+  }
+
+  .mel-loading__spinner {
+    animation: none;
+    border-top-color: $border-color;
+  }
+}
+
 @keyframes mel-skeleton-pulse {
   0% {
     background-position: 200% 0;

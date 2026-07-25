@@ -934,4 +934,61 @@ final class TicketSalesService {
     }
   }
 
+  /**
+   * Counts distinct completed ticket orders for events in a time window.
+   *
+   * One checkout counts once even when it has multiple ticket line items.
+   * Filters completion time in SQL so callers do not hydrate all vendor order
+   * items on every dashboard request.
+   *
+   * @param array<int, int|string> $eventIds
+   *   Event node IDs.
+   * @param int $start
+   *   Inclusive unix timestamp.
+   * @param int $end
+   *   Inclusive unix timestamp.
+   *
+   * @return int
+   *   Distinct completed order count (excludes boost/donation line types).
+   */
+  public function countCompletedOrdersInWindowForEvents(array $eventIds, int $start, int $end): int {
+    $eventIds = array_values(array_unique(array_filter(array_map(
+      static fn(int|string $id): int => (int) $id,
+      $eventIds,
+    ), static fn(int $id): bool => $id > 0)));
+    if ($eventIds === [] || $end < $start) {
+      return 0;
+    }
+
+    try {
+      if (!$this->database->schema()->tableExists('commerce_order_item__field_target_event')) {
+        return 0;
+      }
+
+      $query = $this->database->select('commerce_order_item', 'oi');
+      $query->join('commerce_order', 'o', 'o.order_id = oi.order_id');
+      $query->join('commerce_order_item__field_target_event', 'lnk', 'lnk.entity_id = oi.order_item_id');
+      $query->condition('o.state', 'completed');
+      $query->condition('lnk.field_target_event_target_id', $eventIds, 'IN');
+      // Match entity getCompletedTime() ?? getChangedTime().
+      $query->where('COALESCE(o.completed, o.changed) >= :start AND COALESCE(o.completed, o.changed) <= :end', [
+        ':start' => $start,
+        ':end' => $end,
+      ]);
+      $excluded = $this->orderItemClassifier->getExcludedTypes();
+      if ($excluded !== []) {
+        $query->condition('oi.type', $excluded, 'NOT IN');
+      }
+      $query->addExpression('COUNT(DISTINCT o.order_id)', 'cnt');
+
+      return (int) $query->execute()->fetchField();
+    }
+    catch (\Throwable $e) {
+      $this->logger()->warning('Overnight completed-order count failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+      return 0;
+    }
+  }
+
 }

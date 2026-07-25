@@ -1,9 +1,9 @@
 /**
  * @file
- * Vendor organiser dashboard — overview, attention, focus, upcoming, activity, tools.
+ * Vendor organiser dashboard — Dashboard v2 Slice 2 (builds on Slice 1).
  *
- * Structural chrome (hero, stat cards, panels) lives in live-operations primitives;
- * this file handles dashboard-specific composition only.
+ * Hierarchy: Hero → Daily Brief → Action Queue → Today's Event → KPIs →
+ * Upcoming → Activity → secondary / tools.
  */
 
 @use '../tokens/spacing' as *;
@@ -42,6 +42,68 @@ $mel-dash-attention-danger: #D64545;
   }
 
   // ---------------------------------------------------------------------------
+  // Skeleton (SSR-hidden; progressive loaders may reveal)
+  // ---------------------------------------------------------------------------
+
+  &__skeleton {
+    display: grid;
+    gap: $spacing-5;
+    padding: $spacing-4 0;
+
+    &[hidden] {
+      display: none;
+    }
+  }
+
+  &__skeleton-block {
+    display: grid;
+    gap: $spacing-2;
+  }
+
+  &__skeleton-kpis {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-3;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Daily Brief
+  // ---------------------------------------------------------------------------
+
+  &__daily-brief {
+    padding: $spacing-3 0 $spacing-2;
+    border: none;
+    background: transparent;
+  }
+
+  &__daily-brief-greeting {
+    margin: 0 0 $spacing-2;
+    color: $mel-ws-navy;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-normal;
+  }
+
+  &__daily-brief-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: $spacing-1;
+  }
+
+  &__daily-brief-item {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  // ---------------------------------------------------------------------------
   // 1 — Organiser header: flat identity surface (~140–180px desktop).
   // ---------------------------------------------------------------------------
 
@@ -61,12 +123,13 @@ $mel-dash-attention-danger: #D64545;
 
   &__organiser-header-inner {
     display: grid;
-    gap: $spacing-4;
+    gap: $spacing-5;
     align-items: start;
 
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) auto;
       column-gap: $spacing-12;
+      align-items: end;
     }
   }
 
@@ -145,81 +208,16 @@ $mel-dash-attention-danger: #D64545;
     gap: $spacing-2;
     align-items: center;
 
-    @include respond-to(md) {
-      grid-column: 1;
+    .mel-btn {
+      min-height: 44px;
+      min-width: 44px;
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // 2 — Workspace overview
-  // ---------------------------------------------------------------------------
-
-  &__workspace-overview {
-    padding: $spacing-6 0;
-    border-top: 1px solid rgba($mel-shell-border, 0.55);
-    background: transparent;
-    box-shadow: none;
-  }
-
-  &__workspace-overview-heading {
-    margin: 0 0 $spacing-4;
-    color: $text-muted;
-    font-size: $font-size-xs;
-    font-weight: $font-weight-semibold;
-    letter-spacing: 0.15em;
-    line-height: $line-height-normal;
-    text-transform: uppercase;
-  }
-
-  &__workspace-overview-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: $spacing-4 $spacing-6;
-    margin: 0;
-    padding: 0;
-    list-style: none;
-
-    @include respond-to(md) {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-  }
-
-  &__workspace-overview-item {
-    display: grid;
-    gap: $spacing-1;
-    min-width: 0;
-  }
-
-  &__workspace-overview-value {
-    color: $mel-ws-navy;
-    font-size: 2rem;
-    font-weight: $font-weight-bold;
-    line-height: $line-height-tight;
-    font-variant-numeric: tabular-nums;
-  }
-
-  &__workspace-overview-label {
-    color: $text-muted;
-    font-size: 0.75rem;
-    font-weight: $font-weight-semibold;
-    letter-spacing: 0.04em;
-    line-height: $line-height-normal;
-    text-transform: uppercase;
-  }
-
-  &__workspace-overview-focus {
-    margin: $spacing-4 0 0;
-    color: $text-secondary;
-    font-size: $font-size-sm;
-    line-height: $line-height-normal;
-  }
-
-  &__workspace-overview-focus-label {
-    color: $text-muted;
-    font-weight: $font-weight-semibold;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 0.75rem;
+  &__section--secondary {
+    margin-top: 0;
+    padding: var(--section-gap) 0 0;
+    border-top: 1px solid rgba($mel-shell-border, 0.4);
   }
 
   // ---------------------------------------------------------------------------
@@ -258,11 +256,11 @@ $mel-dash-attention-danger: #D64545;
   }
 
   // ---------------------------------------------------------------------------
-  // 3 — Needs attention action queue
+  // Action Queue — Action Cards (PDS 05 / 12)
   // ---------------------------------------------------------------------------
 
   &__action-queue.mel-dashboard-needs-attention {
-    padding: $spacing-4;
+    padding: $spacing-5 $spacing-4;
     border: 1px solid rgba($mel-shell-border, 0.55);
     border-left: 4px solid $mel-dash-attention-warning;
     border-radius: $radius-lg;
@@ -270,107 +268,333 @@ $mel-dash-attention-danger: #D64545;
     box-shadow: none;
 
     @include respond-to(md) {
-      padding: $spacing-5;
+      padding: $spacing-6 $spacing-5;
     }
 
     .mel-vendor-dashboard__section-title {
-      font-size: 1.5rem;
+      font-size: clamp(1.25rem, 2.5vw, 1.5rem);
+      margin-bottom: $spacing-4;
+    }
+  }
+
+  &__action-cards {
+    display: grid;
+    gap: $spacing-3;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  &__action-card.mel-action-card,
+  .mel-action-card {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+    padding: $spacing-4;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-left-width: 3px;
+    border-left-style: solid;
+    border-radius: $radius-md;
+    background: rgba($mel-shell-page-bg, 0.35);
+    box-shadow: none;
+    text-decoration: none;
+    color: inherit;
+    min-height: 0;
+    transform: none;
+
+    &:hover,
+    &:focus-within {
+      border-color: rgba($mel-shell-border, 0.85);
+      transform: none;
+      text-decoration: none;
     }
 
-    .mel-vendor-dashboard__timeline {
-      display: grid;
-      gap: $spacing-2;
-      margin: 0;
-      padding: 0;
-      border-left: none;
-      list-style: none;
+    &:focus-within {
+      outline: 2px solid $primary;
+      outline-offset: 2px;
+    }
+  }
+
+  .mel-action-card--warn {
+    border-left-color: $mel-dash-attention-warning;
+  }
+
+  .mel-action-card--danger {
+    border-left-color: $mel-dash-attention-danger;
+  }
+
+  .mel-action-card--info {
+    border-left-color: $primary;
+  }
+
+  .mel-action-card--success {
+    border-left-color: rgba($success, 0.75);
+  }
+
+  .mel-action-card__severity {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-2;
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.02em;
+    line-height: $line-height-normal;
+  }
+
+  .mel-action-card__severity-dot {
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+
+    .mel-action-card--warn & {
+      background: $mel-dash-attention-warning;
     }
 
-    .mel-vendor-dashboard__timeline-item {
-      position: relative;
-      display: flex;
-      align-items: center;
-      gap: $spacing-3;
-      min-height: 4rem;
-      padding: $spacing-3;
-      margin: 0;
-      border: 1px solid rgba($mel-shell-border, 0.45);
-      border-left-width: 3px;
-      border-left-style: solid;
-      border-radius: $radius-md;
-      background: rgba($mel-shell-page-bg, 0.4);
-      box-shadow: none;
+    .mel-action-card--danger & {
+      background: $mel-dash-attention-danger;
     }
 
-    .mel-vendor-dashboard__timeline-item--warn {
-      border-left-color: $mel-dash-attention-warning;
+    .mel-action-card--info & {
+      background: $primary;
     }
 
-    .mel-vendor-dashboard__timeline-item--danger {
-      border-left-color: $mel-dash-attention-danger;
+    .mel-action-card--success & {
+      background: $success;
     }
+  }
 
-    .mel-vendor-dashboard__timeline-item--info {
-      border-left-color: $primary;
+  .mel-action-card__title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: $font-size-base;
+    font-weight: $font-weight-semibold;
+    line-height: $line-height-tight;
+  }
+
+  .mel-action-card__reason {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+    line-height: $line-height-normal;
+  }
+
+  .mel-action-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-top: $spacing-1;
+
+    .mel-btn {
+      min-height: 44px;
     }
+  }
 
-    .mel-vendor-dashboard__timeline-item--success {
-      border-left-color: rgba($success, 0.75);
-    }
+  &__queue-empty {
+    align-items: flex-start;
+    text-align: left;
+    padding: $spacing-2 0 0;
 
-    .mel-vendor-dashboard__timeline-marker {
-      position: static;
-      flex-shrink: 0;
-      align-self: center;
-      width: auto;
-      height: auto;
-      border: none;
-      background: transparent;
-      color: inherit;
-      font-size: $font-size-base;
-      font-weight: $font-weight-bold;
-      line-height: 1;
-    }
+    .mel-empty-state__actions {
+      justify-content: flex-start;
 
-    .mel-vendor-dashboard__timeline-item--warn .mel-vendor-dashboard__timeline-marker {
-      color: $mel-dash-attention-warning;
-    }
-
-    .mel-vendor-dashboard__timeline-item--danger .mel-vendor-dashboard__timeline-marker {
-      color: $mel-dash-attention-danger;
-    }
-
-    .mel-vendor-dashboard__timeline-item--info .mel-vendor-dashboard__timeline-marker {
-      color: $primary;
-    }
-
-    .mel-vendor-dashboard__timeline-content {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: $spacing-2 $spacing-4;
-      flex: 1 1 auto;
-      min-width: 0;
-      width: 100%;
-    }
-
-    .mel-vendor-dashboard__timeline-text {
-      font-size: $font-size-base;
-      font-weight: $font-weight-semibold;
-      color: $text-primary;
-      line-height: $line-height-normal;
-    }
-
-    .mel-vendor-dashboard__timeline-action {
-      flex: 0 0 auto;
-      margin-left: auto;
-      white-space: nowrap;
+      .mel-btn {
+        min-height: 44px;
+      }
     }
   }
 
   // ---------------------------------------------------------------------------
-  // 4 — Current focus: compact status card
+  // Today's Event — operational panel
+  // ---------------------------------------------------------------------------
+
+  &__todays-event {
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.5);
+    border-radius: $radius-md;
+    background: $bg-primary;
+  }
+
+  &__todays-event-body {
+    display: grid;
+    gap: $spacing-4;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: end;
+      gap: $spacing-6;
+    }
+  }
+
+  &__todays-event-main {
+    display: grid;
+    gap: $spacing-3;
+    min-width: 0;
+  }
+
+  &__todays-event-name {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+  }
+
+  &__todays-event-meta {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+  }
+
+  &__todays-event-meta-row {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr);
+    gap: $spacing-3;
+    align-items: baseline;
+
+    dt {
+      margin: 0;
+      color: $text-muted;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    dd {
+      margin: 0;
+      color: $text-primary;
+      font-size: $font-size-sm;
+      line-height: $line-height-normal;
+    }
+  }
+
+  &__todays-event-status {
+    color: $text-primary;
+
+    &--live {
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &__todays-event-metric-value {
+    font-weight: $font-weight-bold;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__todays-event-metric-context {
+    display: block;
+    margin-top: 0.125rem;
+    color: $text-muted;
+    font-size: $font-size-xs;
+  }
+
+  &__todays-event-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    justify-content: flex-start;
+
+    .mel-btn {
+      min-height: 44px;
+      min-width: 44px;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Business health — ≤4 KPIs, lean strip (Slice 2)
+  // ---------------------------------------------------------------------------
+
+  &__business-health {
+    padding: var(--section-gap) 0 0;
+
+    &--calm {
+      padding-top: $spacing-5;
+    }
+  }
+
+  &__kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-4;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: $spacing-5;
+    }
+
+    &--lean {
+      gap: $spacing-3 $spacing-5;
+
+      @include respond-to(md) {
+        gap: $spacing-4 $spacing-6;
+      }
+    }
+  }
+
+  &__kpi {
+    min-width: 0;
+  }
+
+  &__kpi-link,
+  &__kpi-static {
+    display: grid;
+    gap: $spacing-1;
+    padding: $spacing-3 0 0;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.35);
+    border-radius: 0;
+    background: transparent;
+    text-decoration: none;
+    color: inherit;
+    min-height: 44px;
+  }
+
+  &__kpi-link {
+    &:hover,
+    &:focus-visible {
+      border-color: transparent;
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      outline: 2px solid $primary;
+      outline-offset: 2px;
+    }
+  }
+
+  &__kpi-label {
+    order: -1;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
+    letter-spacing: 0.04em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
+  }
+
+  &__kpi-value {
+    color: $mel-ws-navy;
+    font-size: clamp(1.125rem, 2vw, 1.5rem);
+    font-weight: $font-weight-bold;
+    line-height: $line-height-tight;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__kpi-trend {
+    color: $text-muted;
+    font-size: $font-size-xs;
+    line-height: $line-height-normal;
+  }
+
+  // ---------------------------------------------------------------------------
+  // 4 — Current focus: compact status card (legacy residual)
   // ---------------------------------------------------------------------------
 
   &__current-event {
@@ -433,7 +657,7 @@ $mel-dash-attention-danger: #D64545;
   }
 
   // ---------------------------------------------------------------------------
-  // 5 — Upcoming events cards (planning anchor)
+  // 5 — Upcoming events — hierarchy / scanability (Slice 2)
   // ---------------------------------------------------------------------------
 
   &__upcoming-strip {
@@ -442,19 +666,35 @@ $mel-dash-attention-danger: #D64545;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
+
+    &--scan {
+      padding-top: $spacing-5;
+
+      .mel-vendor-dashboard__section-head {
+        margin-bottom: $spacing-4;
+      }
+    }
   }
 
   &__section-title--prominent {
     font-size: clamp(1.125rem, 2.2vw, 1.375rem);
   }
 
+  &__section-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    min-width: 44px;
+  }
+
   &__summary-cards {
     display: grid;
-    gap: $spacing-4;
+    gap: $spacing-5;
     grid-template-columns: 1fr;
 
     @include respond-to(sm) {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: $spacing-5 $spacing-6;
     }
   }
 
@@ -462,16 +702,17 @@ $mel-dash-attention-danger: #D64545;
     display: grid;
     gap: $spacing-1;
     min-width: 0;
-    padding: $spacing-6;
-    border: 1px solid rgba($mel-shell-border, 0.5);
-    border-radius: 1.25rem;
-    background: $bg-primary;
+    padding: $spacing-4 0;
+    border: none;
+    border-top: 1px solid rgba($mel-shell-border, 0.4);
+    border-radius: 0;
+    background: transparent;
     box-shadow: none;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: none;
 
     &:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+      transform: none;
+      box-shadow: none;
     }
   }
 
@@ -504,7 +745,7 @@ $mel-dash-attention-danger: #D64545;
   &__summary-card-title {
     margin: 0;
     color: $text-primary;
-    font-size: 1.375rem;
+    font-size: 1.125rem;
     font-weight: $font-weight-bold;
     line-height: $line-height-tight;
   }
@@ -525,35 +766,11 @@ $mel-dash-attention-danger: #D64545;
 
     &--draft {
       color: $text-muted;
-      background: rgba($ml-vendor-navy, 0.04);
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      min-height: 1.75rem;
-      padding: 0 $spacing-2;
-      width: fit-content;
     }
 
-    &--upcoming {
-      color: $mel-ws-purple;
-      background: rgba($mel-ws-purple, 0.08);
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      min-height: 1.75rem;
-      padding: 0 $spacing-2;
-      width: fit-content;
-    }
-
+    &--upcoming,
     &--boosted {
-      color: $ml-color-accent;
-      background: rgba($ml-color-accent, 0.12);
-      border-radius: 999px;
-      display: inline-flex;
-      align-items: center;
-      min-height: 1.75rem;
-      padding: 0 $spacing-2;
-      width: fit-content;
+      color: $text-secondary;
     }
   }
 
@@ -566,7 +783,7 @@ $mel-dash-attention-danger: #D64545;
   }
 
   // ---------------------------------------------------------------------------
-  // 6 — Recent activity: compressed flat list
+  // 6 — Recent activity: grouped, lower noise
   // ---------------------------------------------------------------------------
 
   &__activity-stream {
@@ -590,8 +807,8 @@ $mel-dash-attention-danger: #D64545;
     justify-content: space-between;
     gap: $spacing-2 $spacing-4;
     min-height: 3rem;
-    padding: $spacing-2 0;
-    border-bottom: 1px solid rgba($mel-shell-border, 0.35);
+    padding: $spacing-3 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.28);
 
     &:last-child {
       border-bottom: none;
@@ -604,6 +821,13 @@ $mel-dash-attention-danger: #D64545;
     color: $text-primary;
     font-size: 0.9375rem;
     line-height: $line-height-normal;
+  }
+
+  &__activity-count {
+    margin-left: $spacing-2;
+    color: $text-muted;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-semibold;
   }
 
   &__activity-link {
