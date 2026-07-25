@@ -247,6 +247,8 @@
    * Rebuilds checklist rows from payload items, or from readiness when items are omitted.
    *
    * Prevents “All required items complete” while stale blocker rows remain.
+   * When rebuilding from readiness, preserves Fix links from the current DOM and
+   * resolves missing ones client-side so blockers do not lose “Fix → …” CTAs.
    */
   function syncLaunchChecklistList(list, checklist, readiness, ready) {
     if (Array.isArray(checklist.items)) {
@@ -257,8 +259,9 @@
       return;
     }
     if (readiness) {
+      const preservedFixLinks = collectLaunchFixLinksFromList(list);
       list.replaceChildren();
-      buildLaunchChecklistItemsFromReadiness(readiness).forEach((item) => {
+      buildLaunchChecklistItemsFromReadiness(readiness, preservedFixLinks).forEach((item) => {
         list.appendChild(buildLaunchChecklistItem(item));
       });
       return;
@@ -271,22 +274,138 @@
     }
   }
 
-  function buildLaunchChecklistItemsFromReadiness(readiness) {
+  function normalizeLaunchChecklistLabel(label) {
+    return String(label || '').replace(/\.$/, '').trim().toLowerCase();
+  }
+
+  /**
+   * Snapshots Fix links already rendered in Launch Centre before a readiness rebuild.
+   *
+   * @return {Object<string, {fix_url: string, fix_label: ?string}>}
+   */
+  function collectLaunchFixLinksFromList(list) {
+    const map = {};
+    list.querySelectorAll('.mel-launch-centre__item').forEach((li) => {
+      const labelEl = li.querySelector('.mel-launch-centre__item-label');
+      const fix = li.querySelector('a.mel-launch-centre__fix');
+      if (!labelEl || !fix) {
+        return;
+      }
+      const href = fix.getAttribute('href');
+      if (!href) {
+        return;
+      }
+      const clone = labelEl.cloneNode(true);
+      clone.querySelectorAll('.visually-hidden').forEach((el) => el.remove());
+      const key = normalizeLaunchChecklistLabel(clone.textContent);
+      if (!key) {
+        return;
+      }
+      map[key] = {
+        fix_url: href,
+        fix_label: (fix.textContent || '').trim() || null,
+      };
+    });
+    return map;
+  }
+
+  /**
+   * Presentation-only deep links — mirrors EventStudioSectionRenderer::resolveLaunchFixLink.
+   *
+   * @return {{fix_url: ?string, fix_label: ?string}}
+   */
+  function resolveLaunchFixLinkClient(label) {
+    const lower = String(label || '').toLowerCase();
+    const publishUrl = String(studioSettings().publishUrl || '');
+    const studioMatch = publishUrl.match(/^(.*\/studio)\/publish\/?(\?.*)?$/);
+    const studioBase = studioMatch ? studioMatch[1] : '';
+
+    let path = '';
+    let fixLabel = Drupal.t('Fix → Details');
+    if (lower.includes('stripe') || lower.includes('payment') || lower.includes('get paid')) {
+      path = '/vendor/payments';
+      fixLabel = Drupal.t('Connect Stripe');
+    }
+    else if (lower.includes('organiser') || lower.includes('terms') || lower.includes('signed in') || lower.includes('profile')) {
+      path = '/vendor/settings';
+      fixLabel = Drupal.t('Open account');
+    }
+    else if (!studioBase) {
+      return { fix_url: null, fix_label: null };
+    }
+    else if (lower.includes('ticket') || lower.includes('capacity')) {
+      path = `${studioBase}/tickets`;
+      fixLabel = Drupal.t('Fix → Tickets');
+    }
+    else if (lower.includes('cover') || lower.includes('image') || lower.includes('branding')) {
+      path = `${studioBase}/images`;
+      fixLabel = Drupal.t('Fix → Images');
+    }
+    else if (isLaunchScheduleFixLabelClient(lower)) {
+      path = `${studioBase}/schedule`;
+      fixLabel = Drupal.t('Fix → Schedule');
+    }
+    else if (lower.includes('question')) {
+      path = `${studioBase}/questions`;
+      fixLabel = Drupal.t('Fix → Questions');
+    }
+    else {
+      path = `${studioBase}/details`;
+    }
+
+    return {
+      fix_url: path,
+      fix_label: fixLabel,
+    };
+  }
+
+  function isLaunchScheduleFixLabelClient(lower) {
+    if (lower.includes('schedule')) {
+      return true;
+    }
+    if (lower.includes('start date') || lower.includes('end date')) {
+      return true;
+    }
+    return /\bdates?\b/.test(lower);
+  }
+
+  function buildLaunchChecklistItemsFromReadiness(readiness, preservedFixLinks) {
     const items = [];
     const trimDot = (label) => String(label || '').replace(/\.$/, '');
+    const preserved = preservedFixLinks || {};
+    const attachFix = (item) => {
+      if (item.complete) {
+        return item;
+      }
+      const key = normalizeLaunchChecklistLabel(item.label);
+      if (preserved[key] && preserved[key].fix_url) {
+        return {
+          ...item,
+          fix_url: preserved[key].fix_url,
+          fix_label: preserved[key].fix_label || item.fix_label || null,
+        };
+      }
+      const resolved = resolveLaunchFixLinkClient(item.label);
+      return {
+        ...item,
+        fix_url: resolved.fix_url,
+        fix_label: resolved.fix_label,
+      };
+    };
+
     (Array.isArray(readiness.errors) ? readiness.errors : []).forEach((label) => {
-      items.push({
+      items.push(attachFix({
         label: trimDot(label),
         complete: false,
         tone: 'attention',
-      });
+      }));
     });
     (Array.isArray(readiness.warnings) ? readiness.warnings : []).forEach((label) => {
-      items.push({
+      items.push(attachFix({
         label: trimDot(label),
         complete: false,
         tone: 'warning',
-      });
+      }));
     });
     (Array.isArray(readiness.completed) ? readiness.completed : []).forEach((label) => {
       items.push({
@@ -296,11 +415,11 @@
       });
     });
     (Array.isArray(readiness.recommendations) ? readiness.recommendations : []).forEach((label) => {
-      items.push({
+      items.push(attachFix({
         label: trimDot(label),
         complete: false,
         tone: 'idea',
-      });
+      }));
     });
     return items;
   }

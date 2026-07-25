@@ -67,6 +67,9 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringContainsString('function applyDegradedLaunchCentre(root, result)', $js);
     $this->assertStringContainsString('function syncLaunchChecklistList(list, checklist, readiness, ready)', $js);
     $this->assertStringContainsString('function syncLaunchAfterBand(root, after, published)', $js);
+    $this->assertStringContainsString('function collectLaunchFixLinksFromList(list)', $js);
+    $this->assertStringContainsString('function resolveLaunchFixLinkClient(label)', $js);
+    $this->assertStringContainsString('buildLaunchChecklistItemsFromReadiness(readiness, preservedFixLinks)', $js);
     $this->assertStringContainsString('updateLaunchCentre(shell, result.launch_centre, result)', $js);
     $this->assertGreaterThanOrEqual(3, substr_count($js, 'updateLaunchCentre(shell, result.launch_centre, result)'));
     $this->assertStringContainsString('While your event is live', $js);
