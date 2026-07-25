@@ -67,6 +67,14 @@ final class EventStudioLaunchSuccessTest extends UnitTestCase {
     $this->assertStringContainsString('View public page', $twig);
     $this->assertStringContainsString('Boost visibility (optional)', $twig);
     $this->assertStringContainsString('Grow later', $twig);
+    $this->assertStringContainsString('mel-btn--secondary mel-launch-success__share', $twig);
+    $this->assertStringContainsString('mel-btn--ghost', $twig);
+    $this->assertStringNotContainsString('mel-btn--primary mel-launch-success__share', $twig);
+    $work_position = strpos($twig, '<div class="mel-event-studio-workspace">');
+    $outcome_position = strpos($twig, 'data-mel-launch-success');
+    $this->assertNotFalse($work_position);
+    $this->assertNotFalse($outcome_position);
+    $this->assertGreaterThan($work_position, $outcome_position);
     $this->assertStringNotContainsString('Boost my event', $twig);
     $this->assertStringNotContainsString('mel-publish-boost-cta__features', $twig);
     $this->assertStringNotContainsString('data-mel-publish-success-view-row', $twig);
