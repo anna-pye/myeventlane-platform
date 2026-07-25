@@ -2588,8 +2588,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
   /**
    * Counts overnight ticket purchases + confirmed RSVPs for Daily Brief.
    *
-   * Uses the same Commerce/RSVP sources as activity rows, but is not limited to
-   * the six-item recent-activity feed (which can be crowded by edits/check-ins).
+   * Ticket side: distinct completed orders in the overnight window (not line
+   * items), via a time-bounded SQL count — no full vendor order-item hydrate.
+   * RSVP side: entity query already constrained to created timestamps.
    *
    * @param array<int, int|string> $eventIds
    *   Vendor event node IDs.
@@ -2604,31 +2605,11 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     }
 
     [$overnightStart, $overnightEnd] = $this->viewerOvernightWindow();
-    $count = 0;
-
-    try {
-      $orderItems = $this->entityTypeManager
-        ->getStorage('commerce_order_item')
-        ->loadByProperties(['field_target_event' => $eventIds]);
-      foreach ($orderItems as $orderItem) {
-        if (!$orderItem instanceof OrderItemInterface) {
-          continue;
-        }
-        $order = $this->getOrderFromItem($orderItem);
-        if (!$order || $order->getState()->getId() !== 'completed') {
-          continue;
-        }
-        $ts = (int) ($order->getCompletedTime() ?? $order->getChangedTime());
-        if ($ts >= $overnightStart && $ts <= $overnightEnd) {
-          $count++;
-        }
-      }
-    }
-    catch (\Throwable $e) {
-      $this->melDebugLogger->warning('Overnight ticket count failed: @message', [
-        '@message' => $e->getMessage(),
-      ]);
-    }
+    $count = $this->ticketSales->countCompletedOrdersInWindowForEvents(
+      $eventIds,
+      $overnightStart,
+      $overnightEnd,
+    );
 
     try {
       if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
@@ -2639,8 +2620,9 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           ->condition('status', 'confirmed')
           ->condition('created', $overnightStart, '>=')
           ->condition('created', $overnightEnd, '<=')
+          ->count()
           ->execute();
-        $count += count($rsvpIds);
+        $count += (int) $rsvpIds;
       }
     }
     catch (\Throwable $e) {
