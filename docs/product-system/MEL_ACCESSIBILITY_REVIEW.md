@@ -48,6 +48,8 @@ Core organiser patterns: Dashboard, Event Workspace, Tickets, Attendees / Door M
 | **Payments hub** | Health region heading; keyboard CTAs | In VX2-07 QA checklist |
 | **Messages hub** | Section headings; compose radios | In VX2-06 QA checklist |
 | **Marketing hub** | Jump nav; share controls; QR alt; copy live region | In VX2-09 QA checklist |
+| **Settings hub** | Jump nav; health checklist SR labels; 44px targets; reduced motion | In VX2-10 QA checklist |
+| **Support hub** | Jump nav; open requests table; calm policies links | In VX2-10 QA checklist |
 | **Door Mode** | Large targets; SR check-in feedback; no colour-only | Critical path — must pass manual QA before launch claims |
 | **Publish blocked** | Checklist items as text links/buttons | Human readiness strip |
 

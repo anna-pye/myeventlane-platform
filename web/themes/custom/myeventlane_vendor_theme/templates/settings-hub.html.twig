@@ -1,0 +1,118 @@
+{#
+/**
+ * @file
+ * Organiser Workspace Settings hub.
+ *
+ * Variables:
+ *   - hub: view model from VendorSettingsHubBuilder
+ */
+#}
+{% set health = hub.health|default({}) %}
+{% set sections = hub.sections|default([]) %}
+
+<div class="mel-settings-hub mel-layout--form" data-mel-settings-hub data-mel-analytics-event="settings_hub_opened">
+
+  <header class="mel-settings-hub__intro">
+    <p class="mel-settings-hub__eyebrow">{{ 'Workspace'|t }}</p>
+    <h1 class="mel-settings-hub__title">{{ hub.title|default('Workspace Settings'|t) }}</h1>
+    <p class="mel-settings-hub__lede">{{ hub.lede }}</p>
+  </header>
+
+  <nav class="mel-settings-hub__jump" aria-label="{{ 'Settings sections'|t }}">
+    <a class="mel-settings-hub__jump-link" href="#workspace-health">{{ 'Workspace health'|t }}</a>
+    {% for section in sections %}
+      <a class="mel-settings-hub__jump-link" href="#{{ section.id }}">{{ section.title }}</a>
+    {% endfor %}
+  </nav>
+
+  <section class="mel-settings-hub__health mel-card mel-card--status mel-settings-hub__health--{{ health.tone|default('muted') }}" id="workspace-health" aria-labelledby="mel-settings-health-heading">
+    <div class="mel-settings-hub__health-header">
+      <p class="mel-settings-hub__eyebrow">{{ 'Workspace health'|t }}</p>
+      <h2 id="mel-settings-health-heading" class="mel-settings-hub__health-title">{{ health.headline }}</h2>
+      <p class="mel-settings-hub__health-summary">{{ health.summary }}</p>
+    </div>
+
+    {% if health.items %}
+      <ul class="mel-settings-hub__checklist" role="list">
+        {% for item in health.items %}
+          <li class="mel-settings-hub__check mel-settings-hub__check--{{ item.tone|default('muted') }}">
+            <span class="mel-settings-hub__check-icon" aria-hidden="true">
+              {% if item.tone == 'success' %}●{% elseif item.tone == 'attention' %}●{% else %}○{% endif %}
+            </span>
+            <div class="mel-settings-hub__check-copy">
+              <p class="mel-settings-hub__check-label">
+                <span class="visually-hidden">
+                  {% if item.tone == 'success' %}{{ 'Ready:'|t }}
+                  {% elseif item.tone == 'attention' %}{{ 'Needs attention:'|t }}
+                  {% else %}{{ 'Optional:'|t }}{% endif %}
+                </span>
+                {{ item.label }}
+              </p>
+              <p class="mel-settings-hub__muted">{{ item.detail }}</p>
+            </div>
+            {% if item.cta_url and item.tone == 'attention' %}
+              <a class="mel-settings-hub__check-link" href="{{ item.cta_url }}">{{ item.cta_label }}</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    {% if health.next_step %}
+      <p class="mel-settings-hub__muted"><strong>{{ 'Next step'|t }}:</strong> {{ health.next_step }}</p>
+    {% endif %}
+    <div class="mel-settings-hub__actions">
+      {% if health.cta_url %}
+        <a class="mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="mel-settings-hub__sections">
+    {% for section in sections %}
+      <section class="mel-card mel-settings-hub__section" id="{{ section.id }}" aria-labelledby="mel-settings-{{ section.id }}-heading">
+        <div class="mel-card__header mel-settings-hub__section-header">
+          <h2 id="mel-settings-{{ section.id }}-heading" class="mel-card__title">{{ section.title }}</h2>
+        </div>
+        <p class="mel-settings-hub__muted">{{ section.body }}</p>
+
+        {% if section.links %}
+          <ul class="mel-settings-hub__link-list">
+            {% for link in section.links %}
+              <li><a class="mel-settings-hub__link" href="{{ link.url }}">{{ link.label }}</a></li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+
+        {% if section.future %}
+          <details class="mel-settings-hub__future">
+            <summary>{{ 'Coming later'|t }}</summary>
+            <ul>
+              {% for item in section.future %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
+
+        {% if section.missing %}
+          <details class="mel-settings-hub__future">
+            <summary>{{ 'Not available yet'|t }}</summary>
+            <ul>
+              {% for item in section.missing %}
+                <li>{{ item }}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
+
+        {% if section.cta_url %}
+          <div class="mel-settings-hub__actions">
+            <a class="mel-button mel-button--{% if section.id == 'danger' %}secondary{% else %}primary{% endif %}" href="{{ section.cta_url }}">{{ section.cta_label }}</a>
+          </div>
+        {% endif %}
+      </section>
+    {% endfor %}
+  </div>
+
+</div>

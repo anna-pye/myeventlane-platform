@@ -682,7 +682,8 @@ myeventlane_vendor.console.messaging_brand:
   options:
     _theme: myeventlane_vendor_theme
 
-# /vendor/settings is defined by myeventlane_vendor_settings (VendorSettingsForm).
+# /vendor/settings hub + /vendor/settings/profile are defined by
+# myeventlane_vendor_settings (Workspace Settings + Profile form).
 
 myeventlane_vendor.manage_event.design:
   path: '/vendor/event/{event}/design'

@@ -31,6 +31,7 @@ This pack is the permanent product foundation for MyEventLane 1.0 organiser expe
 | [`MEL_ACCESSIBILITY_REVIEW.md`](MEL_ACCESSIBILITY_REVIEW.md) | WCAG AA pattern review |
 | [`MEL_DESIGN_DEBT.md`](MEL_DESIGN_DEBT.md) | Prioritised design debt register |
 | [`LAUNCH_READINESS.md`](LAUNCH_READINESS.md) | Launch checklist by product area |
+| [`MEL_1_0_COMPLETION.md`](MEL_1_0_COMPLETION.md) | VX2 programme close → Launch Polish handover |
 
 ## How to use
 

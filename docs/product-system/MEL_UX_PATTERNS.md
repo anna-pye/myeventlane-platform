@@ -69,6 +69,40 @@ Rules: tokens for padding/radius/shadow; clickable lift respects reduced motion;
 
 ---
 
+## 4A. Workspace Health pattern (product spine)
+
+**Purpose:** Every major organiser product answers the same three questions in order.
+
+```text
+Health
+  ↓
+Issues
+  ↓
+Recommended Action
+```
+
+| Slot | Rule |
+| --- | --- |
+| **Health** | One headline + tone (`success` / `attention` / `muted`) — never colour alone |
+| **Issues** | Checklist or short list of what is incomplete; each item has a human label + why |
+| **Recommended Action** | One primary next step + CTA into the owning surface |
+| **Language** | Organiser Australian English — never Store / Gateway / Commerce / Drupal |
+| **Reuse** | Same mental model on Workspace Settings, Payments, Analytics, Marketing (and Messages readiness where applicable) |
+| **Anti-pattern** | Parallel “status desks”, duplicate Stripe UI, or inventing unfinished toggles as live controls |
+
+**Shipped owners**
+
+| Product | Surface | Service / builder |
+| --- | --- | --- |
+| Workspace Settings | `/vendor/settings` · Workspace Health | `VendorWorkspaceHealthService` |
+| Payments | `/vendor/payments` | `VendorPaymentsHealthService` |
+| Analytics | Analytics hub readiness | Analytics hub builders |
+| Marketing | Marketing hub readiness | Marketing hub builders |
+
+Extend this pattern — do not invent a fifth health vocabulary.
+
+---
+
 ## 5. Metric card pattern
 
 **Purpose:** Operational summary — not a nav dump.
@@ -266,6 +300,7 @@ Examples (IA):
 | Organiser goal | Pattern |
 | --- | --- |
 | What should I do? | Dashboard / Workspace Home |
+| Am I set up? | Workspace Health (Health → Issues → Action) |
 | Change event story | Form |
 | Sell entry | Tickets cards + Advanced disclosure |
 | Run the door | Attendees + Door Mode |
@@ -273,6 +308,7 @@ Examples (IA):
 | Tell guests | Messages |
 | Understand performance | Analytics pulse |
 | Grow reach | Marketing / Boost |
+| Configure defaults / get help | Settings hub + Support hub |
 
 ---
 

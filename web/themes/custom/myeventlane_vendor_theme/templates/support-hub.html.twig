@@ -1,0 +1,127 @@
+{#
+/**
+ * @file
+ * Organiser Support hub.
+ *
+ * Variables:
+ *   - hub: view model from VendorSupportHubBuilder
+ *   - requests_table: optional render array for open requests
+ */
+#}
+{% set health = hub.health|default({}) %}
+{% set search = hub.search|default({}) %}
+{% set articles = hub.articles|default({}) %}
+{% set contact = hub.contact|default({}) %}
+{% set requests = hub.requests|default({}) %}
+{% set policies = hub.policies|default({}) %}
+{% set payments_note = hub.payments_note|default({}) %}
+{% set status_placeholder = hub.status_placeholder|default({}) %}
+{% set settings_link = hub.settings_link|default({}) %}
+
+<div class="mel-support-hub mel-layout--reading" data-mel-support-hub data-mel-analytics-event="support_hub_opened">
+
+  <header class="mel-support-hub__intro">
+    <p class="mel-support-hub__eyebrow">{{ 'Help & Support'|t }}</p>
+    <h1 class="mel-support-hub__title">{{ hub.title|default('Support'|t) }}</h1>
+    <p class="mel-support-hub__lede">{{ hub.lede }}</p>
+    {% if settings_link.url %}
+      <p class="mel-support-hub__muted">
+        <a class="mel-support-hub__link" href="{{ settings_link.url }}">{{ settings_link.label }}</a>
+      </p>
+    {% endif %}
+  </header>
+
+  <nav class="mel-support-hub__jump" aria-label="{{ 'Support sections'|t }}">
+    <a class="mel-support-hub__jump-link" href="#support-health">{{ 'Status'|t }}</a>
+    <a class="mel-support-hub__jump-link" href="#support-search">{{ 'Search'|t }}</a>
+    <a class="mel-support-hub__jump-link" href="#support-articles">{{ 'Help'|t }}</a>
+    <a class="mel-support-hub__jump-link" href="#support-contact">{{ 'Contact'|t }}</a>
+    <a class="mel-support-hub__jump-link" href="#support-requests">{{ 'Open requests'|t }}</a>
+    <a class="mel-support-hub__jump-link" href="#support-policies">{{ 'Policies'|t }}</a>
+  </nav>
+
+  <section class="mel-support-hub__health mel-card mel-card--status mel-support-hub__health--{{ health.tone|default('muted') }}" id="support-health" aria-labelledby="mel-support-health-heading">
+    <div class="mel-support-hub__health-header">
+      <h2 id="mel-support-health-heading" class="mel-support-hub__health-title">{{ health.headline }}</h2>
+      <p class="mel-support-hub__health-summary">{{ health.summary }}</p>
+    </div>
+    {% if health.next_step %}
+      <p class="mel-support-hub__muted"><strong>{{ 'Next step'|t }}:</strong> {{ health.next_step }}</p>
+    {% endif %}
+    <div class="mel-support-hub__actions">
+      {% if health.cta_url %}
+        <a class="mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="mel-card mel-support-hub__section" id="support-search" aria-labelledby="mel-support-search-heading">
+    <h2 id="mel-support-search-heading" class="mel-card__title">{{ search.title }}</h2>
+    <p class="mel-support-hub__muted">{{ search.body }}</p>
+    {% if search.cta_url %}
+      <a class="mel-button mel-button--secondary" href="{{ search.cta_url }}">{{ search.cta_label }}</a>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-support-hub__section" id="support-articles" aria-labelledby="mel-support-articles-heading">
+    <h2 id="mel-support-articles-heading" class="mel-card__title">{{ articles.title }}</h2>
+    <p class="mel-support-hub__muted">{{ articles.body }}</p>
+    <div class="mel-support-hub__actions">
+      {% if articles.cta_url %}
+        <a class="mel-button mel-button--primary" href="{{ articles.cta_url }}">{{ articles.cta_label }}</a>
+      {% endif %}
+      {% if articles.assistant_url %}
+        <a class="mel-button mel-button--secondary" href="{{ articles.assistant_url }}">{{ articles.assistant_label }}</a>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="mel-card mel-support-hub__section" id="support-contact" aria-labelledby="mel-support-contact-heading">
+    <h2 id="mel-support-contact-heading" class="mel-card__title">{{ contact.title }}</h2>
+    <p class="mel-support-hub__muted">{{ contact.body }}</p>
+    {% if contact.cta_url %}
+      <a class="mel-button mel-button--primary" href="{{ contact.cta_url }}">{{ contact.cta_label }}</a>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-support-hub__section" id="support-requests" aria-labelledby="mel-support-requests-heading">
+    <h2 id="mel-support-requests-heading" class="mel-card__title">{{ requests.title }}</h2>
+    <p class="mel-support-hub__muted">{{ requests.body }}</p>
+    {% if requests_table %}
+      {{ requests_table }}
+    {% elseif requests.count == 0 %}
+      <div class="mel-empty-state" role="status">
+        <p class="mel-empty-state__title">{{ requests.empty_title }}</p>
+        <p class="mel-empty-state__body">{{ requests.empty_body }}</p>
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-support-hub__section" id="support-policies" aria-labelledby="mel-support-policies-heading">
+    <h2 id="mel-support-policies-heading" class="mel-card__title">{{ policies.title }}</h2>
+    <p class="mel-support-hub__muted">{{ policies.body }}</p>
+    {% if policies.links %}
+      <ul class="mel-support-hub__link-list">
+        {% for link in policies.links %}
+          <li><a class="mel-support-hub__link" href="{{ link.url }}">{{ link.label }}</a></li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </section>
+
+  <section class="mel-card mel-support-hub__section" id="support-payments" aria-labelledby="mel-support-payments-heading">
+    <h2 id="mel-support-payments-heading" class="mel-card__title">{{ payments_note.title }}</h2>
+    <p class="mel-support-hub__muted">{{ payments_note.body }}</p>
+    {% if payments_note.cta_url %}
+      <a class="mel-button mel-button--secondary" href="{{ payments_note.cta_url }}">{{ payments_note.cta_label }}</a>
+    {% endif %}
+  </section>
+
+  {% if status_placeholder.future %}
+    <section class="mel-card mel-support-hub__section mel-support-hub__section--future" id="support-status" aria-labelledby="mel-support-status-heading">
+      <h2 id="mel-support-status-heading" class="mel-card__title">{{ status_placeholder.title }}</h2>
+      <p class="mel-support-hub__muted">{{ status_placeholder.body }}</p>
+    </section>
+  {% endif %}
+
+</div>

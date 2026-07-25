@@ -93,14 +93,14 @@ final class SupportActionBuilder {
 
     if ($audience === 'vendor' || $audience === 'staff') {
       $this->tryAddRoute($actions, 'vendor_console', 'myeventlane_vendor.console.dashboard', [], $account, [
-        'label' => (string) $this->t('Vendor dashboard'),
+        'label' => (string) $this->t('Dashboard'),
         'audience' => 'vendor',
         'style' => 'link',
         'weight' => 15,
       ], $include_debug_metadata);
 
       $this->tryAddRoute($actions, 'vendor_support', 'myeventlane_escalations_portal.vendor_list', [], $account, [
-        'label' => (string) $this->t('Vendor support'),
+        'label' => (string) $this->t('Support'),
         'audience' => 'vendor',
         'style' => 'secondary',
         'weight' => 18,

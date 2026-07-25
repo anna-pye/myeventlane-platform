@@ -9,16 +9,18 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_escalations\Entity\Escalation;
 use Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm;
+use Drupal\myeventlane_escalations_portal\Form\VendorEscalationForm;
 use Drupal\myeventlane_escalations_portal\Service\EscalationMailer;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
 use Drupal\myeventlane_escalations_portal\Service\EscalationThreadRenderer;
 use Drupal\myeventlane_escalations_sla\Service\EscalationSlaBadgeResolver;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\myeventlane_vendor\Service\VendorSupportHubBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
- * Vendor-facing escalation controller.
+ * Organiser-facing support controller.
  */
 final class VendorEscalationController extends ControllerBase {
 
@@ -29,6 +31,7 @@ final class VendorEscalationController extends ControllerBase {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly EscalationSlaBadgeResolver $badgeResolver,
     private readonly EscalationThreadRenderer $threadRenderer,
+    private readonly VendorSupportHubBuilder $supportHubBuilder,
   ) {}
 
   /**
@@ -42,11 +45,12 @@ final class VendorEscalationController extends ControllerBase {
       $container->get('date.formatter'),
       $container->get('myeventlane_escalations_sla.badge_resolver'),
       $container->get('myeventlane_escalations_portal.thread_renderer'),
+      $container->get('myeventlane_vendor.support_hub_builder'),
     );
   }
 
   /**
-   * Lists escalations assigned to the current user's vendor.
+   * Support hub with open requests for the current organiser.
    */
   public function list(): array {
     $vendor = $this->vendorResolver->resolveFromUser($this->currentUser());
@@ -54,9 +58,11 @@ final class VendorEscalationController extends ControllerBase {
       return ['#markup' => '<p>' . $this->t('You are not associated with an organiser account.') . '</p>'];
     }
 
+    // Open requests only — resolved/closed must not drive Support health.
     $ids = $this->entityTypeManager()->getStorage('escalation')
       ->getQuery()
       ->condition('vendor_id', $vendor->id())
+      ->condition('status', ['resolved', 'closed'], 'NOT IN')
       ->sort('created', 'DESC')
       ->range(0, 50)
       ->accessCheck(FALSE)
@@ -100,38 +106,53 @@ final class VendorEscalationController extends ControllerBase {
         $this->t('Subject'),
         $this->t('Status'),
         $this->t('Priority'),
-        $this->t('SLA'),
+        $this->t('Response time'),
         $this->t('Waiting on'),
         $this->t('Created'),
       ],
       '#rows' => $rows,
-      '#empty' => $this->t('No support requests are assigned to your organiser account yet.'),
+      '#empty' => $this->t('No open support requests right now.'),
       '#attributes' => ['class' => ['mel-support-table']],
     ];
 
-    $helper = [];
-    if ($this->moduleHandler()->moduleExists('myeventlane_help_centre')) {
-      $helper = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-support-helper']],
-        'text' => [
-          '#type' => 'markup',
-          '#markup' => $this->t(
-            '<a href=":url" class="mel-support-helper__link">Browse the Help Centre</a> for guides and policies.',
-            [':url' => Url::fromRoute('myeventlane_help_centre.home')->toString()],
-          ),
-        ],
-      ];
-    }
+    $hub = $this->supportHubBuilder->build($rows);
 
     return [
-      '#theme' => 'mel_support_layout',
+      '#theme' => 'myeventlane_vendor_support_hub',
+      '#hub' => $hub,
+      '#requests_table' => $table,
       '#title' => $this->t('Support'),
-      '#intro' => $this->t('Manage support requests for your organiser account.'),
-      '#content' => array_filter([
-        'helper' => $helper,
-        'table' => $table,
-      ]),
+      '#attached' => [
+        'library' => [
+          'myeventlane_vendor_theme/global-styling',
+        ],
+      ],
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Organiser contact form — creates escalations with vendor_id set.
+   */
+  public function add(): array {
+    $vendor = $this->vendorResolver->resolveFromUser($this->currentUser());
+    if (!$vendor) {
+      return ['#markup' => '<p>' . $this->t('You are not associated with an organiser account.') . '</p>'];
+    }
+
+    $form = $this->formBuilder()->getForm(VendorEscalationForm::class);
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => $this->t('Contact Support'),
+      '#intro' => $this->t('Tell us what’s going on — we’ll reply by email.'),
+      '#content' => $form,
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'max-age' => 0,
+      ],
     ];
   }
 
@@ -200,7 +221,7 @@ final class VendorEscalationController extends ControllerBase {
     if (in_array($status, ['resolved', 'closed'], TRUE) && $this->currentUser()->hasPermission('reopen escalations')) {
       $build['actions']['reopen'] = [
         '#type' => 'link',
-        '#title' => $this->t('Reopen escalation'),
+        '#title' => $this->t('Reopen request'),
         '#url' => Url::fromRoute('myeventlane_escalations_portal.vendor_reopen', ['escalation' => $escalation]),
         '#attributes' => ['class' => ['button', 'button--small']],
       ];
@@ -275,7 +296,7 @@ final class VendorEscalationController extends ControllerBase {
     $entity->save();
 
     $this->mailer->notifyCustomerResolved($entity);
-    $this->messenger()->addStatus($this->t('The escalation has been marked as resolved.'));
+    $this->messenger()->addStatus($this->t('The support request has been marked as resolved.'));
 
     return new RedirectResponse('/vendor/support/' . $escalation);
   }
@@ -299,7 +320,7 @@ final class VendorEscalationController extends ControllerBase {
     $entity->save();
 
     $this->mailer->notifyVendorReopened($entity);
-    $this->messenger()->addStatus($this->t('The escalation has been reopened.'));
+    $this->messenger()->addStatus($this->t('The support request has been reopened.'));
 
     return new RedirectResponse('/vendor/support/' . $escalation);
   }

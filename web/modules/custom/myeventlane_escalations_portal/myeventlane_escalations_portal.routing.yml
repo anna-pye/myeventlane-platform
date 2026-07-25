@@ -58,6 +58,15 @@ myeventlane_escalations_portal.vendor_list:
   requirements:
     _permission: 'view vendor escalations'
 
+# Must be declared before vendor_view; path segment is non-numeric so \d+ is safe.
+myeventlane_escalations_portal.vendor_add:
+  path: '/vendor/support/add'
+  defaults:
+    _controller: '\Drupal\myeventlane_escalations_portal\Controller\VendorEscalationController::add'
+    _title: 'Contact Support'
+  requirements:
+    _permission: 'view vendor escalations'
+
 myeventlane_escalations_portal.vendor_view:
   path: '/vendor/support/{escalation}'
   defaults:

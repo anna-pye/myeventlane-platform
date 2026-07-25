@@ -110,6 +110,7 @@ final class EscalationReplyForm extends FormBase {
 
     // Determine party and update field_waiting_on.
     $party = $this->partyResolver->resolve($this->currentUser, $escalation);
+    $organiserOwned = $this->partyResolver->submitterIsAssignedVendor($escalation);
 
     if ($escalation->hasField('field_waiting_on')) {
       if ($party === 'customer') {
@@ -117,7 +118,8 @@ final class EscalationReplyForm extends FormBase {
         $escalation->set('field_waiting_on', $escalation->hasAssignedVendor() ? 'vendor' : 'staff');
       }
       elseif ($party === 'vendor') {
-        $escalation->set('field_waiting_on', 'customer');
+        // Organiser-created requests have no separate guest — wait on MEL staff.
+        $escalation->set('field_waiting_on', $organiserOwned ? 'staff' : 'customer');
       }
       // Staff: no automatic change.
     }
@@ -130,11 +132,11 @@ final class EscalationReplyForm extends FormBase {
 
     $escalation->save();
 
-    // Send email to the other party.
+    // Send email to the other party (skip self-mail on organiser-owned cases).
     if ($party === 'customer') {
       $this->mailer->notifyVendorReply($escalation);
     }
-    elseif ($party === 'vendor') {
+    elseif ($party === 'vendor' && !$organiserOwned) {
       $this->mailer->notifyCustomerReply($escalation);
     }
 
