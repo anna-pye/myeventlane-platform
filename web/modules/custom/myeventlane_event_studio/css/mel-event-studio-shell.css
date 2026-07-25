@@ -5600,12 +5600,12 @@
   box-shadow: 0 8px 24px rgba(36, 48, 58, 0.04);
 }
 
-/* Phase 2A — shared Mission Control (Home + Information chrome) */
+/* Phase 2B — Mission Control progressive disclosure (compact by default) */
 .mel-event-studio-mission-control {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  padding: 1rem 1.1rem;
+  gap: 0.35rem;
+  padding: 0.7rem 0.95rem;
   border-radius: 16px;
   border: 1px solid rgba(36, 48, 58, 0.1);
   background: var(--mel-surface, #fff);
@@ -5617,102 +5617,232 @@
 }
 
 .mel-event-studio-mission-control__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
   margin: 0;
 }
 
+/* Beat body.mel-vendor h2 / h3 type scale — Mission Control is assistant chrome. */
+body.mel-vendor .mel-event-studio-mission-control__title,
 .mel-event-studio-mission-control__title {
   margin: 0;
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.04em;
+  line-height: 1.3;
   text-transform: uppercase;
   color: var(--mel-text-muted, #64748b);
+}
+
+.mel-event-studio-mission-control__quality-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0;
+  max-width: 100%;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(36, 48, 58, 0.12);
+  background: rgba(36, 48, 58, 0.03);
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--mel-text, #24303a);
+}
+
+.mel-event-studio-mission-control__quality-badge[hidden] {
+  display: none !important;
+}
+
+.mel-event-studio-mission-control__quality-badge.is-ready {
+  border-color: rgba(21, 128, 61, 0.28);
+  background: rgba(21, 128, 61, 0.08);
+}
+
+.mel-event-studio-mission-control__quality-pip {
+  flex: 0 0 auto;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: #b45309;
+}
+
+.mel-event-studio-mission-control__quality-badge.is-ready .mel-event-studio-mission-control__quality-pip {
+  background: #15803d;
 }
 
 .mel-event-studio-mission-control__next {
   display: flex;
   flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+body.mel-vendor .mel-event-studio-mission-control__next-title,
+.mel-event-studio-mission-control__next-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--mel-text, #24303a);
+}
+
+.mel-event-studio-mission-control__support {
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--mel-text, #24303a);
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+}
+
+.mel-event-studio-mission-control__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.85rem;
+  margin-top: 0.15rem;
+}
+
+.mel-event-studio-mission-control__cta {
+  align-self: center;
+  min-height: 44px;
+  margin: 0;
+}
+
+.mel-event-studio-mission-control__publish-hint {
+  margin: 0;
+  flex: 1 1 12rem;
+  font-size: 0.875rem;
+  line-height: 1.35;
+  color: var(--mel-text-muted, #64748b);
+}
+
+.mel-event-studio-mission-control__details {
+  margin: 0;
+  border: 0;
+  padding: 0;
+  flex: 1 1 8rem;
+  min-width: 7rem;
+}
+
+.mel-event-studio-mission-control__details[open] {
+  flex: 1 1 100%;
+}
+
+/* Override .mel-vendor details > summary peach panel chrome. */
+body.mel-vendor .mel-event-studio-mission-control__details > .mel-event-studio-mission-control__details-summary,
+.mel-event-studio-mission-control__details > .mel-event-studio-mission-control__details-summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin: 0;
+  padding: 0.15rem 0;
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--mel-text-muted, #64748b);
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.mel-event-studio-mission-control__details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio-mission-control__details-summary::after {
+  content: '';
+  width: 0.4rem;
+  height: 0.4rem;
+  margin-left: 0.45rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.2s ease;
+}
+
+.mel-event-studio-mission-control__details[open] > .mel-event-studio-mission-control__details-summary::after {
+  transform: rotate(225deg);
+  margin-top: 0.2rem;
+}
+
+.mel-event-studio-mission-control__details-summary:focus {
+  outline: none;
+}
+
+.mel-event-studio-mission-control__details-summary:focus-visible {
+  outline: 2px solid var(--mel-focus, #2563eb);
+  outline-offset: 2px;
+}
+
+.mel-event-studio-mission-control__details-label--hide {
+  display: none;
+}
+
+.mel-event-studio-mission-control__details[open] > .mel-event-studio-mission-control__details-summary .mel-event-studio-mission-control__details-label--show {
+  display: none;
+}
+
+.mel-event-studio-mission-control__details[open] > .mel-event-studio-mission-control__details-summary .mel-event-studio-mission-control__details-label--hide {
+  display: inline;
+}
+
+.mel-event-studio-mission-control__details-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.5rem 0 0.15rem;
+}
+
+@supports (interpolate-size: allow-keywords) {
+  .mel-event-studio-mission-control__details::details-content {
+    block-size: 0;
+    overflow: hidden;
+    interpolate-size: allow-keywords;
+    transition:
+      block-size 0.22s ease,
+      content-visibility 0.22s allow-discrete;
+  }
+
+  .mel-event-studio-mission-control__details[open]::details-content {
+    block-size: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-studio-mission-control__details-summary::after,
+  .mel-event-studio-mission-control__details::details-content {
+    transition: none;
+  }
+}
+
+.mel-event-studio-mission-control__improvements {
+  display: flex;
+  flex-direction: column;
   gap: 0.4rem;
 }
 
-.mel-event-studio-mission-control__eyebrow {
+.mel-event-studio-mission-control__improvements-count {
   margin: 0;
   font-size: 0.8rem;
   font-weight: 600;
   color: var(--mel-text-muted, #64748b);
 }
 
-.mel-event-studio-mission-control__next-title {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 700;
-  line-height: 1.25;
-  color: var(--mel-text, #24303a);
-}
-
-.mel-event-studio-mission-control__why-label {
-  margin: 0;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: var(--mel-text-muted, #64748b);
-}
-
-.mel-event-studio-mission-control__why-text {
-  margin: 0.15rem 0 0;
-  font-size: 0.95rem;
-  line-height: 1.4;
-  color: var(--mel-text, #24303a);
-}
-
-.mel-event-studio-mission-control__cta {
-  align-self: flex-start;
-  min-height: 44px;
-  margin-top: 0.35rem;
-}
-
-.mel-event-studio-mission-control__publish-hint {
-  margin: 0.25rem 0 0;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  color: var(--mel-text-muted, #64748b);
-}
-
-.mel-event-studio-mission-control__improvements {
-  border-top: 1px solid rgba(36, 48, 58, 0.08);
-  padding-top: 0.65rem;
-}
-
-.mel-event-studio-mission-control__improvements-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  cursor: pointer;
-  list-style: none;
-  min-height: 44px;
-}
-
-.mel-event-studio-mission-control__improvements-summary::-webkit-details-marker {
-  display: none;
-}
-
-.mel-event-studio-mission-control__improvements-main {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 0.5rem;
-}
-
-.mel-event-studio-mission-control__improvements-count,
-.mel-event-studio-mission-control__improvements-hint {
-  font-size: 0.85rem;
-  color: var(--mel-text-muted, #64748b);
-}
-
 .mel-event-studio-mission-control__improvements-headline {
-  margin: 0 0 0.5rem;
-  font-size: 0.9rem;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.35;
   color: var(--mel-text-muted, #64748b);
 }
 
@@ -5757,6 +5887,10 @@
   gap: 0.35rem;
 }
 
+.mel-event-studio-mission-control__quality[hidden] {
+  display: none !important;
+}
+
 .mel-event-studio-mission-control__quality-head {
   display: flex;
   flex-wrap: wrap;
@@ -5765,10 +5899,12 @@
   gap: 0.5rem;
 }
 
+body.mel-vendor .mel-event-studio-mission-control__quality-title,
 .mel-event-studio-mission-control__quality-title {
   margin: 0;
   font-size: 0.95rem;
   font-weight: 700;
+  line-height: 1.3;
   color: var(--mel-text, #24303a);
 }
 
@@ -5810,12 +5946,21 @@
 
 @media (max-width: 47.99em) {
   .mel-event-studio-mission-control {
-    padding: 0.9rem 1rem;
-    gap: 0.65rem;
+    padding: 0.65rem 0.85rem;
+    gap: 0.3rem;
   }
 
+  body.mel-vendor .mel-event-studio-mission-control__next-title,
   .mel-event-studio-mission-control__next-title {
-    font-size: 1.15rem;
+    font-size: 1rem;
+  }
+
+  .mel-event-studio-mission-control__quality-badge {
+    font-size: 0.75rem;
+  }
+
+  .mel-event-studio-mission-control__actions {
+    gap: 0.25rem 0.65rem;
   }
 }
 

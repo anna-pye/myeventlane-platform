@@ -34,7 +34,21 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
     $this->assertStringContainsString('mel_event_studio_mission_control', $module);
     $this->assertStringContainsString('data-mel-mission-control', $template);
     $this->assertStringContainsString('Event Quality', $template);
-    $this->assertStringContainsString('Other improvements', $template);
+    $this->assertStringContainsString('data-mel-mc-details', $template);
+    $this->assertStringContainsString('Show details', $template);
+    $this->assertStringContainsString('data-mel-mc-quality-badge', $template);
+    $this->assertStringNotContainsString('Next step', $template);
+    $this->assertStringNotContainsString('Why this matters', $template);
+    $this->assertStringNotContainsString('Other improvements', $template);
+  }
+
+  public function testMissionControlDisclosureUsesSessionStorage(): void {
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
+    $this->assertIsString($js);
+    $this->assertStringContainsString('mel.eventStudio.missionControl.expanded', $js);
+    $this->assertStringContainsString('function bindMissionControlDetails', $js);
+    $this->assertStringContainsString('bindMissionControlDetails(shell)', $js);
+    $this->assertStringContainsString('sessionStorage', $js);
   }
 
   public function testHomepageReadinessSupportsSummaryOnlyDisplay(): void {

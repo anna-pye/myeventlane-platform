@@ -118,7 +118,9 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertStringContainsString('mel-event-workspace-home', $twig);
     $this->assertStringContainsString('mission_control', $module);
     $this->assertStringContainsString('mel-event-studio-mission-control.html.twig', $twig);
-    $this->assertStringContainsString('View checklist', $mission);
+    $this->assertStringContainsString('Show details', $mission);
+    $this->assertStringContainsString('data-mel-mc-details', $mission);
+    $this->assertStringContainsString('data-mel-mc-checklist', $mission);
   }
 
   public function testActivityOrderIdSortIsTableQualified(): void {
