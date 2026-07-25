@@ -1,0 +1,230 @@
+/**
+ * @file
+ * VL-5A — Launch Success Alternative A (Outcome zone).
+ *
+ * Presentation only. Reuses buildPublishSuccessHandoff + shell refresh.
+ * Does not change Hero CTA resolver, Mission Control, Launch Centre
+ * composition, eligibility, Commerce, or routes.
+ *
+ * Authority: B.5 · Workspace Zones Outcome · docs 19 / 20 · VL-5A
+ *
+ * Loaded under `.mel-vendor` (see main.scss).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+
+// ============================================================================
+// OUTCOME PANEL — calm white soft surface on Warm Cream (earned card)
+// ============================================================================
+
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-event-studio-publish-feedback.is-success,
+.mel-event-studio--workspace .mel-event-studio-publish-feedback.is-success,
+.mel-event-studio--workspace .mel-launch-success.is-success {
+  margin: 0 0 $mel-zone-gap-sm;
+  padding: $spacing-5 $spacing-5;
+  max-width: 42rem;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 16px;
+  background: $mel-shell-surface;
+  box-shadow: $shadow-sm;
+}
+
+.mel-event-studio--workspace .mel-launch-success.is-success.mel-launch-success--enter {
+  animation: mel-launch-success-enter 180ms ease-out;
+}
+
+@keyframes mel-launch-success-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-event-studio--workspace .mel-launch-success.is-success.mel-launch-success--enter {
+    animation: none;
+  }
+}
+
+.mel-event-studio--workspace .mel-launch-success__title,
+.mel-event-studio--workspace .mel-event-studio-publish-feedback.is-success .mel-event-studio-publish-feedback__title {
+  margin: 0 0 $spacing-3;
+  font-size: 1.375rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.25;
+  color: $text-primary;
+}
+
+.mel-event-studio--workspace .mel-launch-success__title:focus {
+  outline: none;
+}
+
+.mel-event-studio--workspace .mel-launch-success__title:focus-visible {
+  outline: 3px solid $mel-brand-coral;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+// ============================================================================
+// PEOPLE CAN — flat capability list
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-success__people {
+  margin: 0 0 $spacing-5;
+}
+
+.mel-event-studio--workspace .mel-launch-success__people-intro {
+  margin: 0 0 $spacing-2;
+  @include meta-text;
+  font-weight: $font-weight-semibold;
+  color: $text-secondary;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.mel-event-studio--workspace .mel-launch-success__people-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-event-studio--workspace .mel-launch-success__people-list li {
+  position: relative;
+  margin: 0;
+  padding: 0.25rem 0 0.25rem 1.5rem;
+  color: $text-primary;
+  font-size: 1rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio--workspace .mel-launch-success__people-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  font-weight: $font-weight-bold;
+  color: $success;
+}
+
+// ============================================================================
+// RECOMMENDED — Share as sole Outcome primary
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-success__eyebrow {
+  margin: 0 0 $spacing-2;
+  @include meta-text;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $text-secondary;
+}
+
+.mel-event-studio--workspace .mel-launch-success__recommended {
+  margin: 0 0 $spacing-4;
+}
+
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-launch-success__share.mel-btn--primary,
+.mel-event-studio--workspace .mel-launch-success__share.mel-btn--primary {
+  min-height: 44px;
+  background-color: $mel-brand-purple;
+  border-color: $mel-brand-purple;
+  color: #fff;
+  font-weight: $font-weight-semibold;
+  box-shadow: none;
+
+  &:hover,
+  &:focus {
+    background-color: #5a38e0;
+    border-color: #5a38e0;
+    color: #fff;
+  }
+
+  &:focus-visible {
+    outline: 3px solid $mel-brand-coral;
+    outline-offset: 2px;
+  }
+}
+
+.mel-event-studio--workspace .mel-launch-success__secondary {
+  margin: 0 0 $spacing-3;
+  gap: $spacing-2 $spacing-3;
+}
+
+.mel-event-studio--workspace .mel-launch-success__secondary .mel-btn {
+  min-height: 44px;
+}
+
+.mel-event-studio--workspace .mel-launch-success__secondary .mel-btn--secondary:focus-visible,
+.mel-event-studio--workspace .mel-launch-success__social-link:focus-visible {
+  outline: 3px solid $mel-brand-coral;
+  outline-offset: 2px;
+}
+
+.mel-event-studio--workspace .mel-launch-success__social {
+  margin: 0 0 $spacing-3;
+  gap: $spacing-2;
+}
+
+.mel-event-studio--workspace .mel-launch-success__social-link {
+  min-height: 40px;
+  font-size: $font-size-meta;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+  border-color: $mel-ws-border-soft;
+  background: transparent;
+  box-shadow: none;
+}
+
+// ============================================================================
+// BOOST — quiet optional aftercare (never primary)
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-success__boost {
+  margin: $spacing-4 0 0;
+  padding: $spacing-4 0 0;
+  border-top: 1px solid $mel-ws-border-soft;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace .mel-launch-success__boost-link {
+  color: $text-secondary;
+  font-size: $font-size-meta;
+  font-weight: $font-weight-medium;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+
+  &:hover,
+  &:focus {
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 3px solid $mel-brand-coral;
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio--workspace .mel-launch-success__recommended .mel-btn,
+  .mel-event-studio--workspace .mel-launch-success__secondary .mel-btn {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .mel-event-studio--workspace .mel-launch-success__secondary,
+  .mel-event-studio--workspace .mel-launch-success__social {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
