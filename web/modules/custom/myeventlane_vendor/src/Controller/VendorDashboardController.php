@@ -654,6 +654,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $cacheTags = $pageVars['#cache']['tags'] ?? [];
     $cacheTags[] = 'node_list';
     $cacheTags[] = 'commerce_order_list';
+    // Daily Brief overnight count includes confirmed RSVPs (not only orders).
+    if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
+      $cacheTags[] = 'rsvp_submission_list';
+    }
     if ($vendor && $vendor->id()) {
       $cacheTags[] = 'myeventlane_vendor:' . $vendor->id();
     }
