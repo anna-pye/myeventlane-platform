@@ -122,6 +122,8 @@ Statuses in `docs/product-system/LAUNCH_READINESS.md` remain **Needs work** for 
 
 **Formal close statement:**
 
+> Vendor Experience Convergence is complete and MEL is ready to enter Launch Polish.
+
 > Vendor Experience Convergence (VX2-00 through VX2-10) is **complete as a programme**. The organiser product spine is one Dashboard, one Event Workspace, and one hub each for Messages, Payments, Analytics, Marketing, Settings, and Support. Remaining work belongs to **MEL 1.0 Launch Polish** (QA sign-off, trust Criticals, Orders hub, instrumentation) — not a new Convergence epic series.
 
 ---

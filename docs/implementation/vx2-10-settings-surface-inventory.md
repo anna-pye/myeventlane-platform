@@ -46,6 +46,48 @@
 | D-H06 | Support refunds redirects to Payments · Refunds |
 | D-L01 | `/help/vendors` → `/help/organisers` |
 
+## Stage 1B — Product consistency (genuine)
+
+| Lens | Settings / Support finding |
+| --- | --- |
+| Cards / spacing | Hub uses `.mel-card` + `.mel-layout--form`; aligns with Payments/Messages hubs |
+| Buttons | Primary per section; Danger Zone secondary |
+| Forms | Profile moved to `/vendor/settings/profile`; hub is navigation, not a mega-form |
+| Hierarchy | Workspace Health first, then section cards |
+| Empty / loading | Health checklist covers incomplete states; Support open-requests empty is calm |
+| Nav | Jump nav + shell Settings item; Support is its own shell product |
+| A11y | Jump nav labelled; checklist SR prefixes; 44px targets; reduced motion in SCSS |
+
+Residual inconsistency (not VX2-10 blockers): card header treatments still vary across live-ops vs hub cards (D-M02).
+
+## Stage 1C — Design debt closed here
+
+See Closed table (D-H05, D-H06, D-L01). No new Critical debt introduced.
+
+## Stage 1D — Launch readiness (Settings slice)
+
+| Area | Status |
+| --- | --- |
+| Settings hub | **NEEDS WORK** — spine Ready; manual QA / a11y sign-off open |
+| Support hub | **NEEDS WORK** — same |
+| Help Centre redirects | **READY** for language path (`/help/organisers`) |
+| Policies links | **READY** |
+
+## Stage 1E — Workspace Health pattern
+
+Documented in `docs/product-system/MEL_UX_PATTERNS.md` §4A — Health → Issues → Recommended Action. Applied on Settings; mirrored by Payments / Analytics / Marketing hubs.
+
+## Stage 1F — Maturity (Settings contribution)
+
+| Dimension | Score | Note |
+| --- | --- | --- |
+| Product | 8.5 | One Settings + Support mental model |
+| Design | 8.0 | Hub chrome consistent; visual QA open |
+| Interaction | 8.0 | Jump nav + deep links; no unfinished toggles exposed |
+| Accessibility | 7.5 | Patterns shipped; moderated pass open |
+| Trust | 8.0 | Payments not duplicated; refunds owned by Payments |
+| Launch confidence (Settings) | 7.5 | Enter Launch Polish with QA checklist |
+
 ## Explicit non-goals
 
 - No second Stripe configuration UI
