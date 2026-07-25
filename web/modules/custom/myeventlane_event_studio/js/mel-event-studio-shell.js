@@ -208,6 +208,63 @@
     ));
   }
 
+  const MISSION_CONTROL_DETAILS_STORAGE_KEY = 'mel.eventStudio.missionControl.expanded';
+
+  function readMissionControlExpanded() {
+    try {
+      return sessionStorage.getItem(MISSION_CONTROL_DETAILS_STORAGE_KEY) === '1';
+    }
+    catch (e) {
+      return false;
+    }
+  }
+
+  function writeMissionControlExpanded(expanded) {
+    try {
+      sessionStorage.setItem(MISSION_CONTROL_DETAILS_STORAGE_KEY, expanded ? '1' : '0');
+    }
+    catch (e) {
+      // Session persistence is best-effort only.
+    }
+  }
+
+  /**
+   * Session-scoped expand/collapse for Mission Control details.
+   * Default collapsed; once expanded, stays open across Workspace navigations.
+   */
+  function bindMissionControlDetails(shell) {
+    if (!shell) {
+      return;
+    }
+    once('mel-event-studio-mission-control-details', '[data-mel-mc-details]', shell).forEach((details) => {
+      details.open = readMissionControlExpanded();
+      details.addEventListener('toggle', () => {
+        writeMissionControlExpanded(!!details.open);
+      });
+    });
+  }
+
+  function formatMissionControlQualityBadge(quality) {
+    const status = typeof quality.status_label === 'string' ? quality.status_label.trim() : '';
+    const scoreLabel = typeof quality.score_label === 'string' && quality.score_label
+      ? quality.score_label
+      : ((typeof quality.score === 'number' ? quality.score : 0) + '%');
+    if (status) {
+      return status + ' · ' + scoreLabel;
+    }
+    return scoreLabel;
+  }
+
+  function setOptionalText(root, selector, value) {
+    const el = root.querySelector(selector);
+    if (!el) {
+      return;
+    }
+    const text = typeof value === 'string' ? value : '';
+    el.textContent = text;
+    el.hidden = text === '';
+  }
+
   function updateMissionControlChecklist(list, items) {
     const rows = Array.isArray(items) ? items : [];
     list.replaceChildren();
@@ -290,12 +347,17 @@
 
     const next = mc.next_step || {};
     setText(root, '[data-mel-mc-next-title]', next.title || '');
-    const why = root.querySelector('[data-mel-mc-why]');
     const whyText = typeof next.message === 'string' ? next.message : '';
+    const why = root.querySelector('[data-mel-mc-why]');
     if (why) {
-      const whyBody = why.querySelector('[data-mel-mc-why-text]');
+      const whyBody = why.matches('[data-mel-mc-why-text]')
+        ? why
+        : why.querySelector('[data-mel-mc-why-text]');
       if (whyBody) {
         whyBody.textContent = whyText;
+      }
+      else {
+        why.textContent = whyText;
       }
       why.hidden = whyText === '';
     }
@@ -309,9 +371,12 @@
         publishHint.className = 'mel-event-studio-mission-control__publish-hint';
         publishHint.setAttribute('data-mel-mc-publish-hint', '');
         publishHint.textContent = Drupal.t('Use Publish in the header when you are ready.');
-        const nextBlock = root.querySelector('[data-mel-mc-next]');
-        if (nextBlock && cta) {
-          nextBlock.insertBefore(publishHint, cta);
+        if (cta && cta.parentNode) {
+          cta.parentNode.insertBefore(publishHint, cta);
+        }
+        else {
+          const nextBlock = root.querySelector('[data-mel-mc-next]');
+          nextBlock?.appendChild(publishHint);
         }
       }
       publishHint.hidden = false;
@@ -340,17 +405,17 @@
       }
     }
 
+    // Disclosure open state is session-owned — do not reset from ViewModel.
+    const details = root.querySelector('[data-mel-mc-details]');
+    if (details) {
+      details.open = readMissionControlExpanded();
+    }
+
     const improvements = mc.improvements || {};
     const improvementsBlock = root.querySelector('[data-mel-mc-improvements]');
     if (improvementsBlock) {
-      if (improvements.open) {
-        improvementsBlock.setAttribute('open', '');
-      }
-      else {
-        improvementsBlock.removeAttribute('open');
-      }
-      setText(improvementsBlock, '[data-mel-mc-improvements-count]', improvements.complete_label || '');
-      setText(improvementsBlock, '[data-mel-mc-improvements-headline]', improvements.headline || '');
+      setOptionalText(improvementsBlock, '[data-mel-mc-improvements-count]', improvements.complete_label || '');
+      setOptionalText(improvementsBlock, '[data-mel-mc-improvements-headline]', improvements.headline || '');
       const list = improvementsBlock.querySelector('[data-mel-mc-checklist]');
       if (list && improvements.items !== undefined) {
         updateMissionControlChecklist(list, improvements.items);
@@ -358,11 +423,22 @@
     }
 
     const quality = mc.event_quality || {};
+    const visible = !!quality.visible;
+    const ready = !!quality.ready;
+    const badge = root.querySelector('[data-mel-mc-quality-badge]');
+    if (badge) {
+      badge.hidden = !visible;
+      badge.classList.toggle('is-ready', ready);
+      const badgeText = badge.querySelector('[data-mel-mc-quality-badge-text]');
+      if (badgeText) {
+        badgeText.textContent = formatMissionControlQualityBadge(quality);
+      }
+    }
+
     const qualityBlock = root.querySelector('[data-mel-mc-quality]');
     if (qualityBlock) {
-      const visible = !!quality.visible;
       qualityBlock.hidden = !visible;
-      qualityBlock.classList.toggle('is-ready', !!quality.ready);
+      qualityBlock.classList.toggle('is-ready', ready);
       setText(qualityBlock, '[data-mel-mc-quality-score-value]', quality.score_label || ((quality.score || 0) + '%'));
       const bar = qualityBlock.querySelector('[data-mel-mc-quality-bar]');
       const fill = qualityBlock.querySelector('[data-mel-mc-quality-bar-fill]');
@@ -860,6 +936,7 @@
 
       once('mel-event-studio-mobile-priority', '[data-mel-studio-shell]', context).forEach((shell) => {
         applyMobilePriorities(shell);
+        bindMissionControlDetails(shell);
         const handoff = studioSettings().publishHandoff;
         if (handoff) {
           renderPublishSuccessFeedback(shell, handoff);
