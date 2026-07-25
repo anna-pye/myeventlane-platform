@@ -1195,21 +1195,26 @@
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   }
 
+  // Returns true only when execCommand('copy') reports success.
   function fallbackCopyText(text) {
     const input = document.createElement('textarea');
     input.value = text;
     input.setAttribute('readonly', '');
-    input.style.position = 'absolute';
+    input.style.position = 'fixed';
     input.style.left = '-9999px';
     document.body.appendChild(input);
+    input.focus();
     input.select();
+    let ok = false;
     try {
-      document.execCommand('copy');
+      ok = document.execCommand('copy');
     }
     catch (error) {
       console.error('Event Studio copy link failed.', error);
+      ok = false;
     }
     document.body.removeChild(input);
+    return ok;
   }
 
   function renderPublishFeedback(shell, title, messages, restoreUrl) {
@@ -1462,20 +1467,19 @@
         const panel = button.closest('[data-mel-publish-success]');
         const feedback = panel ? panel.querySelector('[data-mel-publish-success-copy-feedback]') : null;
         const copied = Drupal.t('Link copied.');
+        const failed = Drupal.t('Could not copy link.');
         const announce = (ok) => {
           if (feedback) {
-            feedback.textContent = ok ? copied : '';
+            feedback.textContent = ok ? copied : failed;
           }
         };
         if (navigator.clipboard && navigator.clipboard.writeText) {
           navigator.clipboard.writeText(url).then(() => announce(true)).catch(() => {
-            fallbackCopyText(url);
-            announce(true);
+            announce(fallbackCopyText(url));
           });
           return;
         }
-        fallbackCopyText(url);
-        announce(true);
+        announce(fallbackCopyText(url));
       });
     });
   }

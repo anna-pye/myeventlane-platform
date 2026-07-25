@@ -43,8 +43,10 @@ final class EventStudioLaunchSuccessTest extends UnitTestCase {
     $this->assertStringContainsString('share your event', $method);
     $this->assertStringContainsString("\$event_type === 'rsvp'", $method);
     $this->assertStringContainsString("\$event_type === 'paid'", $method);
+    $this->assertStringContainsString("\$event_type === 'external'", $method);
     $this->assertStringContainsString('RSVP or buy tickets', $method);
     $this->assertStringContainsString('buy tickets', $method);
+    $this->assertStringContainsString('follow your external booking link', $method);
   }
 
   public function testWorkspaceTemplateUsesAlternativeAStructure(): void {
@@ -83,6 +85,9 @@ final class EventStudioLaunchSuccessTest extends UnitTestCase {
     $this->assertStringContainsString('prefersReducedMotion()', $js);
     $this->assertStringContainsString('mel-launch-success--enter', $js);
     $this->assertStringContainsString('bindPublishSuccessCopy', $js);
+    $this->assertStringContainsString('input.focus()', $js);
+    $this->assertStringContainsString("announce(fallbackCopyText(url))", $js);
+    $this->assertStringContainsString('Could not copy link.', $js);
     $this->assertStringContainsString("studioSettings().publishHandoff", $js);
     $this->assertStringContainsString('renderPublishSuccessFeedback(shell, handoff)', $js);
     $this->assertStringContainsString('renderPublishSuccessFeedback(shell, result.handoff)', $js);

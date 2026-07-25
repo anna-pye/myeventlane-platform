@@ -290,6 +290,9 @@ final class EventStudioPreprocess {
     elseif ($event_type === 'paid') {
       $participation = (string) $this->t('buy tickets');
     }
+    elseif ($event_type === 'external') {
+      $participation = (string) $this->t('follow your external booking link');
+    }
 
     return [
       (string) $this->t('discover your event'),
