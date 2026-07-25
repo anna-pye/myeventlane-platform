@@ -11,6 +11,7 @@ use Drupal\node\NodeInterface;
  * Launch Centre visibility-only form (no publish controls).
  *
  * Hero owns publish/unpublish. This form answers "Who can find this?" only.
+ * Saves as draft so EventStudioSaveService never applies mel[status].
  */
 final class EventLaunchVisibilityForm extends EventSettingsForm {
 
@@ -37,6 +38,15 @@ final class EventLaunchVisibilityForm extends EventSettingsForm {
 
   /**
    * {@inheritdoc}
+   *
+   * Visibility must never run the publish-form non-draft save path.
+   */
+  protected function isDraftWizardSave(): bool {
+    return TRUE;
+  }
+
+  /**
+   * {@inheritdoc}
    */
   protected function getContinueButtonLabel() {
     return $this->t('Save visibility');
@@ -53,20 +63,29 @@ final class EventLaunchVisibilityForm extends EventSettingsForm {
   /**
    * {@inheritdoc}
    *
-   * Visibility controls only — never the publish action card.
+   * Strip any publish flag before merge/save — Hero owns live state.
+   */
+  protected function persistWizardMel(FormStateInterface $form_state, bool $draft): ?array {
+    $mel = $form_state->getValue('mel');
+    if (is_array($mel)) {
+      unset($mel['status']);
+      $form_state->setValue('mel', $mel);
+    }
+    // Force draft regardless of caller — never mutate publish via this form.
+    return parent::persistWizardMel($form_state, TRUE);
+  }
+
+  /**
+   * {@inheritdoc}
+   *
+   * Visibility controls only — never the publish action card or mel[status].
    */
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
-    $form_state->set('mel_was_published_snapshot', $node->isPublished());
     $this->buildVisibilityControls($form, $node, $melDefaults);
     // Launch Centre summary already labels this band — avoid a second H3.
     if (isset($form['mel']['visibility_section']['title'])) {
       $form['mel']['visibility_section']['title']['#access'] = FALSE;
     }
-    // Preserve publish state without exposing publish/unpublish UI.
-    $form['mel']['status'] = [
-      '#type' => 'hidden',
-      '#default_value' => $node->isPublished() ? '1' : '0',
-    ];
   }
 
 }

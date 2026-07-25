@@ -59,12 +59,14 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
     $this->assertIsString($controller);
     $this->assertStringContainsString('buildLaunchCentreViewModel', $controller);
+    $this->assertStringContainsString('buildDegradedLaunchCentreViewModel', $controller);
     $this->assertStringContainsString("'launch_centre' => \$launch_centre", $controller);
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
-    $this->assertStringContainsString('function updateLaunchCentre(shell, launch)', $js);
-    $this->assertStringContainsString('updateLaunchCentre(shell, result.launch_centre)', $js);
-    $this->assertGreaterThanOrEqual(3, substr_count($js, 'updateLaunchCentre(shell, result.launch_centre)'));
+    $this->assertStringContainsString('function updateLaunchCentre(shell, launch, result)', $js);
+    $this->assertStringContainsString('function applyDegradedLaunchCentre(root, result)', $js);
+    $this->assertStringContainsString('updateLaunchCentre(shell, result.launch_centre, result)', $js);
+    $this->assertGreaterThanOrEqual(3, substr_count($js, 'updateLaunchCentre(shell, result.launch_centre, result)'));
   }
 
   public function testLaunchVisibilityFormOmitsPublishCard(): void {
@@ -76,6 +78,22 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringNotContainsString('data-mel-card-publish-action', $form);
     $this->assertStringNotContainsString('Publish now', $form);
     $this->assertStringContainsString('workspace_publishing', $form);
+    $this->assertStringContainsString('isDraftWizardSave', $form);
+    $this->assertStringContainsString('return TRUE;', $form);
+    $this->assertStringContainsString("unset(\$mel['status'])", $form);
+    $this->assertStringContainsString('parent::persistWizardMel($form_state, TRUE)', $form);
+    $this->assertStringNotContainsString("\$form['mel']['status']", $form);
+  }
+
+  public function testLaunchAfterGuidanceUsesLiveWordingWhenPublished(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $method = $this->extractMethodBody($renderer, 'launchAfterGuidance');
+    $this->assertStringContainsString('While your event is live', $method);
+    $this->assertStringContainsString('Share your event from the header', $method);
+    $this->assertStringContainsString("You'll be able to share your event", $method);
+    $this->assertStringContainsString('After you publish', $method);
+    $this->assertStringNotContainsString("'After publishing'", $method);
   }
 
   public function testLaunchCentreTemplateHasNoPublishButton(): void {

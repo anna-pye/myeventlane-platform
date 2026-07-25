@@ -172,18 +172,29 @@
 
   /**
    * Refreshes Launch Centre from publish AJAX payload (no second Publish control).
+   *
+   * When launch_centre is missing, applies a degraded update from published + readiness
+   * so the Publishing section does not stay on the pre-action narrative.
    */
-  function updateLaunchCentre(shell, launch) {
+  function updateLaunchCentre(shell, launch, result) {
     const root = shell.querySelector('[data-mel-launch-centre]');
-    if (!root || !launch) {
+    if (!root) {
       return;
     }
+    if (!launch) {
+      applyDegradedLaunchCentre(root, result || {});
+      return;
+    }
+    root.removeAttribute('data-mel-launch-stale');
     const state = typeof launch.state === 'string' ? launch.state : 'needs_attention';
     const stateClass = state.replace(/_/g, '-');
     root.className = `mel-launch-centre mel-launch-centre--${stateClass}`;
     root.dataset.melLaunchState = state;
     root.dataset.melLaunchReady = launch.ready ? '1' : '0';
     root.dataset.melLaunchPublished = launch.published ? '1' : '0';
+    if (launch.degraded) {
+      root.dataset.melLaunchStale = '1';
+    }
 
     setText(root, '[data-mel-launch-eyebrow]', launch.eyebrow || '');
     setText(root, '[data-mel-launch-headline]', launch.headline || '');
@@ -200,12 +211,14 @@
 
     const checklist = launch.checklist || {};
     const details = root.querySelector('[data-mel-launch-checklist]');
-    if (details) {
+    if (details && checklist.open !== undefined) {
       details.open = !!checklist.open;
     }
-    setText(root, '[data-mel-launch-checklist-summary]', checklist.summary || '');
+    if (checklist.summary) {
+      setText(root, '[data-mel-launch-checklist-summary]', checklist.summary);
+    }
     const countEl = root.querySelector('[data-mel-launch-checklist-count]');
-    if (countEl) {
+    if (countEl && checklist.total_count !== undefined) {
       const total = Number(checklist.total_count) || 0;
       if (total > 0) {
         countEl.hidden = false;
@@ -232,12 +245,14 @@
 
     const after = launch.after || {};
     const afterRoot = root.querySelector('[data-mel-launch-after]');
-    if (afterRoot) {
+    if (afterRoot && (after.title || Array.isArray(after.items))) {
       const afterItems = Array.isArray(after.items) ? after.items : [];
       afterRoot.hidden = afterItems.length === 0;
-      setText(afterRoot, '[data-mel-launch-after-title]', after.title || '');
+      if (after.title) {
+        setText(afterRoot, '[data-mel-launch-after-title]', after.title);
+      }
       const afterList = afterRoot.querySelector('[data-mel-launch-after-list]');
-      if (afterList) {
+      if (afterList && Array.isArray(after.items)) {
         afterList.replaceChildren();
         afterItems.forEach((line) => {
           const li = document.createElement('li');
@@ -245,6 +260,58 @@
           afterList.appendChild(li);
         });
       }
+    }
+  }
+
+  /**
+   * Last-resort Launch Centre sync when the server omitted launch_centre.
+   */
+  function applyDegradedLaunchCentre(root, result) {
+    const published = !!result.published;
+    const ready = !!(result.readiness && result.readiness.ready);
+    const state = !ready ? 'needs_attention' : (published ? 'live' : 'ready');
+    const stateClass = state.replace(/_/g, '-');
+    root.className = `mel-launch-centre mel-launch-centre--${stateClass}`;
+    root.dataset.melLaunchState = state;
+    root.dataset.melLaunchReady = ready ? '1' : '0';
+    root.dataset.melLaunchPublished = published ? '1' : '0';
+    root.dataset.melLaunchStale = '1';
+
+    const eyebrow = !ready
+      ? Drupal.t('Needs attention')
+      : (published ? Drupal.t('Your event is live') : Drupal.t('Ready to launch'));
+    const headline = !ready
+      ? (published
+        ? Drupal.t('Your event is live — a few things need attention')
+        : Drupal.t('A few things left before launching'))
+      : (published ? Drupal.t('Your event is live') : Drupal.t('Ready to launch'));
+    const heroHint = !ready
+      ? (published
+        ? Drupal.t('Continue setup from the header to fix what needs attention.')
+        : Drupal.t('Publish is unavailable until the checklist is clear. Continue setup from the header.'))
+      : (published
+        ? Drupal.t('Use Share event in the header to spread the word.')
+        : Drupal.t('Use Publish event in the header when you are ready.'));
+
+    setText(root, '[data-mel-launch-eyebrow]', eyebrow);
+    setText(root, '[data-mel-launch-headline]', headline);
+    const explanation = root.querySelector('[data-mel-launch-explanation]');
+    if (explanation) {
+      explanation.textContent = published && ready
+        ? Drupal.t('People can discover your event and RSVP or buy tickets according to your setup. Share from the header when you are ready.')
+        : (!ready
+          ? Drupal.t('Finish the checklist below. We never block without explaining why.')
+          : Drupal.t("You're ready to go live. Guests will be able to discover this event and RSVP or buy tickets according to your setup."));
+      explanation.hidden = false;
+    }
+    const heroHintEl = root.querySelector('[data-mel-launch-hero-hint]');
+    if (heroHintEl) {
+      heroHintEl.textContent = heroHint;
+      heroHintEl.hidden = false;
+    }
+    const details = root.querySelector('[data-mel-launch-checklist]');
+    if (details) {
+      details.open = !ready;
     }
   }
 
@@ -1264,7 +1331,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
-            updateLaunchCentre(shell, result.launch_centre);
+            updateLaunchCentre(shell, result.launch_centre, result);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages
@@ -1335,7 +1402,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
-            updateLaunchCentre(shell, result.launch_centre);
+            updateLaunchCentre(shell, result.launch_centre, result);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages
@@ -1412,7 +1479,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
-            updateLaunchCentre(shell, result.launch_centre);
+            updateLaunchCentre(shell, result.launch_centre, result);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages

@@ -334,6 +334,18 @@ final class EventStudioPublishController {
         '@message' => $e->getMessage(),
       ]);
     }
+    if ($launch_centre === NULL) {
+      try {
+        // Keep Launch Centre narrative aligned with Hero even when full VM fails.
+        $launch_centre = $this->sectionRenderer->buildDegradedLaunchCentreViewModel($node, $publish_result);
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Event Studio Launch Centre degraded AJAX payload failed for event @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
 
     $payload = [
       'ok' => $ok,

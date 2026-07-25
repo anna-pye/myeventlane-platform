@@ -414,6 +414,47 @@ final class EventStudioSectionRenderer {
   }
 
   /**
+   * Minimal Launch Centre payload when the full ViewModel cannot be built.
+   *
+   * Reuses an already-evaluated readiness result — no second eligibility path.
+   * Omits checklist items so shell JS can refresh narrative without wiping the list.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildDegradedLaunchCentreViewModel(NodeInterface $event, EventReadinessResult $readiness): array {
+    $published = $event->isPublished();
+    $ready = $readiness->ready;
+    $remaining = count($readiness->errors);
+    $state = !$ready ? 'needs_attention' : ($published ? 'live' : 'ready');
+
+    return [
+      'state' => $state,
+      'published' => $published,
+      'ready' => $ready,
+      'degraded' => TRUE,
+      'eyebrow' => $this->launchEyebrow($state),
+      'headline' => $this->launchHeadline($ready, $published, $remaining),
+      'explanation' => $this->launchExplanation($readiness, $published),
+      'hero_hint' => $this->launchHeroHint($ready, $published),
+      'checklist' => [
+        'title' => (string) $this->t('Launch checklist'),
+        'open' => !$ready,
+        'summary' => $ready
+          ? (string) $this->t('All required items complete')
+          : (string) $this->formatPlural(
+            $remaining,
+            '1 thing left before you can launch',
+            '@count things left before you can launch',
+          ),
+      ],
+      'visibility' => [
+        'current_label' => $this->currentVisibilityLabel($event),
+      ],
+      'after' => $this->launchAfterGuidance($event, $published),
+    ];
+  }
+
+  /**
    * @return list<array{label: string, complete: bool, tone: string, fix_url: ?string, fix_label: ?string}>
    */
   private function buildLaunchChecklistItems(EventReadinessResult $readiness, int $nid): array {
@@ -618,17 +659,24 @@ final class EventStudioSectionRenderer {
       default => (string) $this->t('People can RSVP'),
     };
 
-    $items = [
-      (string) $this->t('Guests can discover your event'),
-      $join,
-      (string) $this->t("You'll be able to share your event"),
-    ];
+    if ($published) {
+      return [
+        'title' => (string) $this->t('While your event is live'),
+        'items' => [
+          (string) $this->t('Guests can discover your event'),
+          $join,
+          (string) $this->t('Share your event from the header'),
+        ],
+      ];
+    }
 
     return [
-      'title' => $published
-        ? (string) $this->t('After publishing')
-        : (string) $this->t('After you publish'),
-      'items' => $items,
+      'title' => (string) $this->t('After you publish'),
+      'items' => [
+        (string) $this->t('Guests can discover your event'),
+        $join,
+        (string) $this->t("You'll be able to share your event"),
+      ],
     ];
   }
 
