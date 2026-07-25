@@ -66,6 +66,7 @@ Full reading paths: [README.md](README.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 | [13 Event Workspace philosophy](13-event-workspace-philosophy.md) | Workspace specification |
 | [06 Workspace patterns](06-workspace-patterns.md) | Hub composition patterns |
 | [05 Component library](05-component-library.md) | Component contracts |
+| [Workspace component catalogue](../vendor-workspace-v2/23-vendor-component-catalogue.md) | Freeze / status ledger (not a style guide) |
 | [07 Interaction guidelines](07-interaction-guidelines.md) | Behaviour |
 | [08 Mobile guidelines](08-mobile-guidelines.md) | Mobile ops |
 | [19 Anti-patterns](19-anti-patterns.md) | What not to do |

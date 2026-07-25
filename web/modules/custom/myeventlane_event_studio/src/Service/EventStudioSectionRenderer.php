@@ -15,6 +15,8 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event_attendees\Service\EventAttendeeWorkspaceBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\DTO\ReadonlySectionProjection;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
+use Drupal\myeventlane_event_studio\Form\EventLaunchVisibilityForm;
 use Drupal\myeventlane_event_studio\Form\EventSettingsForm;
 use Drupal\myeventlane_event_studio\Form\EventStudioOperationalTicketsForm;
 use Drupal\myeventlane_event_studio\Form\EventStudioTicketsForm;
@@ -323,53 +325,264 @@ final class EventStudioSectionRenderer {
   }
 
   /**
+   * Launch Centre composition for the Publishing section (Sprint 3C.1).
+   *
+   * Presentation only — reuses EventReadinessService. Hero owns publish/unpublish.
+   * Does not embed EventSettingsForm or a second Publish control.
+   *
    * @return array<string, mixed>
    */
   private function buildPublishingHub(NodeInterface $event): array {
     $account = $this->currentUser;
     $readiness = $this->eventReadiness->evaluate($event, $account);
+    $published = $event->isPublished();
+    $ready = $readiness->ready;
     $remaining = count($readiness->errors);
-    $headline = $readiness->ready
-      ? ($event->isPublished()
-        ? (string) $this->t('Your event is live')
-        : (string) $this->t('Ready to publish'))
-      : ($remaining === 1
-        ? (string) $this->t("You're almost there…")
-        : (string) $this->t('A few things left before publishing'));
-    $explanation = $readiness->ready
-      ? (string) $this->t('Everything needed to go live looks good.')
-      : ($remaining === 1 && $readiness->errors !== []
-        ? (string) $this->t('One more thing before publishing: @reason', ['@reason' => $readiness->errors[0]])
-        : (string) $this->t('Finish the checklist below. We never block without explaining why.'));
+    $nid = (int) $event->id();
 
-    $checklist = [];
-    foreach ($readiness->completed as $item) {
-      $checklist[] = ['#markup' => '✔ ' . $this->humanChecklistLabel((string) $item)];
+    $checklist_open = !$ready;
+    $checklist_items = $this->buildLaunchChecklistItems($readiness, $nid);
+    $complete_count = count(array_filter($checklist_items, static fn(array $item): bool => !empty($item['complete'])));
+    $total_count = count($checklist_items);
+
+    $settings_url = NULL;
+    try {
+      $settings_url = Url::fromRoute('myeventlane_event_studio.workspace_settings', ['node' => $nid])->toString();
     }
-    foreach ($readiness->errors as $item) {
-      $checklist[] = ['#markup' => '○ ' . (string) $item];
+    catch (\Throwable) {
+      $settings_url = NULL;
     }
 
     return [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-event-workspace-publishing']],
-      'headline' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h3',
-        '#value' => $headline,
+      '#theme' => 'mel_event_studio_launch_centre',
+      '#launch' => [
+        'state' => $published ? 'live' : ($ready ? 'ready' : 'needs_attention'),
+        'published' => $published,
+        'ready' => $ready,
+        'headline' => $this->launchHeadline($ready, $published, $remaining),
+        'explanation' => $this->launchExplanation($readiness, $published),
+        'hero_hint' => $this->launchHeroHint($ready, $published),
+        'checklist' => [
+          'title' => (string) $this->t('Launch checklist'),
+          'open' => $checklist_open,
+          'summary' => $ready
+            ? (string) $this->t('All required items complete')
+            : (string) $this->formatPlural(
+              $remaining,
+              '1 thing left before you can launch',
+              '@count things left before you can launch',
+            ),
+          'complete_count' => $complete_count,
+          'total_count' => $total_count,
+          'items' => $checklist_items,
+        ],
+        'visibility' => [
+          'summary_label' => (string) $this->t('Who can find this?'),
+          'current_label' => $this->currentVisibilityLabel($event),
+          'open' => FALSE,
+          'settings_url' => $settings_url,
+          'settings_label' => (string) $this->t('More settings'),
+        ],
+        'after' => $this->launchAfterGuidance($event, $published),
       ],
-      'explain' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $explanation,
+      '#visibility_form' => $this->formBuilder->getForm(EventLaunchVisibilityForm::class, $event),
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'tags' => $event->getCacheTags(),
+        'max-age' => 0,
       ],
-      'checklist' => [
-        '#theme' => 'item_list',
-        '#title' => $this->t('Publishing checklist'),
-        '#items' => $checklist,
-      ],
-      'settings' => $this->formBuilder->getForm(EventSettingsForm::class, $event),
     ];
+  }
+
+  /**
+   * @return list<array{label: string, complete: bool, tone: string, fix_url: ?string, fix_label: ?string}>
+   */
+  private function buildLaunchChecklistItems(EventReadinessResult $readiness, int $nid): array {
+    $items = [];
+    foreach ($readiness->errors as $label) {
+      $text = rtrim((string) $label, '.');
+      $fix = $this->resolveLaunchFixLink($text, $nid);
+      $items[] = [
+        'label' => $text,
+        'complete' => FALSE,
+        'tone' => 'attention',
+        'fix_url' => $fix['url'] ?? NULL,
+        'fix_label' => $fix['label'] ?? NULL,
+      ];
+    }
+    foreach ($readiness->warnings as $label) {
+      $text = rtrim((string) $label, '.');
+      $fix = $this->resolveLaunchFixLink($text, $nid);
+      $items[] = [
+        'label' => $text,
+        'complete' => FALSE,
+        'tone' => 'warning',
+        'fix_url' => $fix['url'] ?? NULL,
+        'fix_label' => $fix['label'] ?? NULL,
+      ];
+    }
+    foreach ($readiness->completed as $label) {
+      $items[] = [
+        'label' => $this->humanChecklistLabel((string) $label),
+        'complete' => TRUE,
+        'tone' => 'success',
+        'fix_url' => NULL,
+        'fix_label' => NULL,
+      ];
+    }
+    foreach ($readiness->recommendations as $label) {
+      $text = rtrim((string) $label, '.');
+      $fix = $this->resolveLaunchFixLink($text, $nid);
+      $items[] = [
+        'label' => $text,
+        'complete' => FALSE,
+        'tone' => 'idea',
+        'fix_url' => $fix['url'] ?? NULL,
+        'fix_label' => $fix['label'] ?? NULL,
+      ];
+    }
+    return $items;
+  }
+
+  /**
+   * Presentation-only deep links for checklist blockers (no new eligibility rules).
+   *
+   * @return array{url: ?string, label: ?string}
+   */
+  private function resolveLaunchFixLink(string $label, int $nid): array {
+    $lower = mb_strtolower($label);
+    $route = 'myeventlane_event_studio.workspace_details';
+    $params = ['node' => $nid];
+    $fix_label = (string) $this->t('Fix → Details');
+
+    if (str_contains($lower, 'stripe') || str_contains($lower, 'payment') || str_contains($lower, 'get paid')) {
+      $route = 'myeventlane_vendor.console.payments';
+      $params = [];
+      $fix_label = (string) $this->t('Connect Stripe');
+    }
+    elseif (str_contains($lower, 'organiser') || str_contains($lower, 'terms') || str_contains($lower, 'signed in') || str_contains($lower, 'profile')) {
+      $route = 'myeventlane_vendor.console.settings';
+      $params = [];
+      $fix_label = (string) $this->t('Open account');
+    }
+    elseif (str_contains($lower, 'ticket') || str_contains($lower, 'capacity')) {
+      $route = 'myeventlane_event_studio.workspace_tickets';
+      $fix_label = (string) $this->t('Fix → Tickets');
+    }
+    elseif (str_contains($lower, 'cover') || str_contains($lower, 'image') || str_contains($lower, 'branding')) {
+      $route = 'myeventlane_event_studio.workspace_images';
+      $fix_label = (string) $this->t('Fix → Images');
+    }
+    elseif (str_contains($lower, 'date') || str_contains($lower, 'schedule') || str_contains($lower, 'start') || str_contains($lower, 'end')) {
+      $route = 'myeventlane_event_studio.workspace_schedule';
+      $fix_label = (string) $this->t('Fix → Schedule');
+    }
+    elseif (str_contains($lower, 'question')) {
+      $route = 'myeventlane_event_studio.workspace_questions';
+      $fix_label = (string) $this->t('Fix → Questions');
+    }
+
+    try {
+      return [
+        'url' => Url::fromRoute($route, $params)->toString(),
+        'label' => $fix_label,
+      ];
+    }
+    catch (\Throwable) {
+      if ($route === 'myeventlane_vendor.console.settings') {
+        try {
+          return [
+            'url' => Url::fromRoute('myeventlane_vendor.console.payments')->toString(),
+            'label' => (string) $this->t('Connect Stripe'),
+          ];
+        }
+        catch (\Throwable) {
+          return ['url' => NULL, 'label' => NULL];
+        }
+      }
+      return ['url' => NULL, 'label' => NULL];
+    }
+  }
+
+  private function launchHeadline(bool $ready, bool $published, int $remaining): string {
+    if ($published) {
+      return (string) $this->t('Your event is live');
+    }
+    if ($ready) {
+      return (string) $this->t('Ready to launch');
+    }
+    if ($remaining === 1) {
+      return (string) $this->t("You're almost there");
+    }
+    return (string) $this->t('A few things left before launching');
+  }
+
+  private function launchExplanation(EventReadinessResult $readiness, bool $published): string {
+    if ($published) {
+      return (string) $this->t('People can discover your event and RSVP or buy tickets according to your setup. Share from the header when you are ready.');
+    }
+    if ($readiness->ready) {
+      return (string) $this->t("You're ready to go live. Guests will be able to discover this event and RSVP or buy tickets according to your setup.");
+    }
+    if (count($readiness->errors) === 1) {
+      return (string) $this->t('One more thing before you can launch: @reason', [
+        '@reason' => rtrim($readiness->errors[0], '.'),
+      ]);
+    }
+    return (string) $this->t('Finish the checklist below. We never block without explaining why.');
+  }
+
+  private function launchHeroHint(bool $ready, bool $published): string {
+    if ($published) {
+      return (string) $this->t('Use Share event in the header to spread the word.');
+    }
+    if ($ready) {
+      return (string) $this->t('Use Publish event in the header when you are ready.');
+    }
+    return (string) $this->t('Publish is unavailable until the checklist is clear. Continue setup from the header.');
+  }
+
+  /**
+   * @return array{title: string, items: list<string>}
+   */
+  private function launchAfterGuidance(NodeInterface $event, bool $published): array {
+    $event_type = 'rsvp';
+    if ($event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()) {
+      $event_type = (string) $event->get('field_event_type')->value;
+    }
+
+    $join = match ($event_type) {
+      'paid' => (string) $this->t('People can buy tickets'),
+      'both' => (string) $this->t('People can RSVP or buy tickets'),
+      'external' => (string) $this->t('People can follow your external booking link'),
+      default => (string) $this->t('People can RSVP'),
+    };
+
+    $items = [
+      (string) $this->t('Guests can discover your event'),
+      $join,
+      (string) $this->t("You'll be able to share your event"),
+    ];
+
+    return [
+      'title' => $published
+        ? (string) $this->t('After publishing')
+        : (string) $this->t('After you publish'),
+      'items' => $items,
+    ];
+  }
+
+  private function currentVisibilityLabel(NodeInterface $event): string {
+    $value = PublicEventVisibility::VISIBILITY_PUBLIC;
+    if ($event->hasField('field_event_visibility') && !$event->get('field_event_visibility')->isEmpty()) {
+      $value = (string) $event->get('field_event_visibility')->value;
+    }
+    return match ($value) {
+      PublicEventVisibility::VISIBILITY_UNLISTED => (string) $this->t('Unlisted'),
+      PublicEventVisibility::VISIBILITY_PRIVATE => (string) $this->t('Private'),
+      PublicEventVisibility::VISIBILITY_PASSCODE => (string) $this->t('Passcode protected'),
+      default => (string) $this->t('Public'),
+    };
   }
 
   private function humanChecklistLabel(string $label): string {

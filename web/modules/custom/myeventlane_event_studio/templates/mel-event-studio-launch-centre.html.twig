@@ -1,0 +1,126 @@
+{#
+/**
+ * @file
+ * Launch Centre — Publishing section composition (Sprint 3C.1).
+ *
+ * Hierarchy: Ready to Launch → Checklist → Who can find this? → After you publish.
+ * Hero owns Publish / Unpublish. This template must never render a Publish button.
+ *
+ * Variables:
+ * - launch: presentation ViewModel from EventStudioSectionRenderer::buildPublishingHub().
+ * - visibility_form: slim EventLaunchVisibilityForm render array.
+ */
+#}
+{% set L = launch|default({}) %}
+{% set checklist = L.checklist|default({}) %}
+{% set visibility = L.visibility|default({}) %}
+{% set after = L.after|default({}) %}
+{% set items = checklist.items|default([]) %}
+{% set state = L.state|default('needs_attention') %}
+
+<section
+  class="mel-launch-centre mel-launch-centre--{{ state|clean_class }}"
+  data-mel-launch-centre
+  data-mel-launch-state="{{ state|e('html_attr') }}"
+  data-mel-launch-ready="{{ L.ready|default(false) ? '1' : '0' }}"
+  data-mel-launch-published="{{ L.published|default(false) ? '1' : '0' }}"
+  aria-labelledby="mel-launch-centre-heading"
+  role="region"
+>
+  {# 1. Ready to Launch #}
+  <header class="mel-launch-centre__ready">
+    <p class="mel-launch-centre__eyebrow">{{ 'Ready to launch'|t }}</p>
+    <h2 id="mel-launch-centre-heading" class="mel-launch-centre__headline">{{ L.headline }}</h2>
+    {% if L.explanation %}
+      <p class="mel-launch-centre__explanation">{{ L.explanation }}</p>
+    {% endif %}
+    {% if L.hero_hint %}
+      <p class="mel-launch-centre__hero-hint" data-mel-launch-hero-hint>{{ L.hero_hint }}</p>
+    {% endif %}
+  </header>
+
+  {# 2. Launch checklist — open when blocked, collapsed when ready #}
+  <details
+    class="mel-launch-centre__checklist"
+    data-mel-launch-checklist
+    {% if checklist.open|default(false) %}open{% endif %}
+  >
+    <summary class="mel-launch-centre__checklist-summary">
+      <span class="mel-launch-centre__checklist-title">{{ checklist.title|default('Launch checklist'|t) }}</span>
+      <span class="mel-launch-centre__checklist-meta">
+        {% if checklist.summary %}
+          <span class="mel-launch-centre__checklist-summary-text">{{ checklist.summary }}</span>
+        {% endif %}
+        {% if checklist.total_count|default(0) > 0 %}
+          <span class="mel-launch-centre__checklist-count" aria-hidden="true">
+            {{ checklist.complete_count|default(0) }}/{{ checklist.total_count }}
+          </span>
+        {% endif %}
+      </span>
+    </summary>
+    <ul class="mel-launch-centre__list" role="list">
+      {% for item in items %}
+        {% set tone = item.tone|default('success') %}
+        <li class="mel-launch-centre__item mel-launch-centre__item--{{ tone|clean_class }}{% if item.complete %} is-complete{% endif %}">
+          <span class="mel-launch-centre__mark" aria-hidden="true">
+            {% if item.complete %}✓{% elseif tone == 'attention' %}○{% else %}·{% endif %}
+          </span>
+          <span class="mel-launch-centre__item-label">
+            {% if item.complete %}
+              <span class="visually-hidden">{{ 'Complete:'|t }}</span>
+            {% elseif tone == 'attention' %}
+              <span class="visually-hidden">{{ 'Needs attention:'|t }}</span>
+            {% elseif tone == 'warning' %}
+              <span class="visually-hidden">{{ 'Warning:'|t }}</span>
+            {% else %}
+              <span class="visually-hidden">{{ 'Suggestion:'|t }}</span>
+            {% endif %}
+            {{ item.label }}
+          </span>
+          {% if item.fix_url and not item.complete %}
+            <a
+              class="mel-launch-centre__fix mel-btn mel-btn--ghost"
+              href="{{ item.fix_url }}"
+            >{{ item.fix_label|default('Fix'|t) }}</a>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  </details>
+
+  {# 3. Who can find this? — progressive disclosure #}
+  <details
+    class="mel-launch-centre__visibility"
+    data-mel-launch-visibility
+    {% if visibility.open|default(false) %}open{% endif %}
+  >
+    <summary class="mel-launch-centre__visibility-summary">
+      <span class="mel-launch-centre__visibility-title">{{ visibility.summary_label|default('Who can find this?'|t) }}</span>
+      {% if visibility.current_label %}
+        <span class="mel-launch-centre__visibility-current">{{ visibility.current_label }}</span>
+      {% endif %}
+    </summary>
+    <div class="mel-launch-centre__visibility-body">
+      {% if visibility_form %}
+        {{ visibility_form }}
+      {% endif %}
+      {% if visibility.settings_url %}
+        <p class="mel-launch-centre__settings-link">
+          <a href="{{ visibility.settings_url }}">{{ visibility.settings_label|default('More settings'|t) }}</a>
+        </p>
+      {% endif %}
+    </div>
+  </details>
+
+  {# 4. After you publish — informational only (no Launch Success UI) #}
+  {% if after.items|default([]) %}
+    <aside class="mel-launch-centre__after" aria-labelledby="mel-launch-after-heading">
+      <h3 id="mel-launch-after-heading" class="mel-launch-centre__after-title">{{ after.title }}</h3>
+      <ul class="mel-launch-centre__after-list">
+        {% for line in after.items %}
+          <li>{{ line }}</li>
+        {% endfor %}
+      </ul>
+    </aside>
+  {% endif %}
+</section>

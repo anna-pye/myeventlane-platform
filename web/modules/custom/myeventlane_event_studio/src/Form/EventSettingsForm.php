@@ -11,7 +11,7 @@ use Drupal\node\NodeInterface;
 /**
  * Isolated Event Studio form for publish/settings controls.
  */
-final class EventSettingsForm extends EventStudioPublishForm {
+class EventSettingsForm extends EventStudioPublishForm {
 
   public function getFormId(): string {
     return 'myeventlane_event_studio_settings_form';
@@ -88,9 +88,11 @@ final class EventSettingsForm extends EventStudioPublishForm {
   /**
    * Builds the visibility radio selector and passcode input.
    *
+   * Shared by Settings and Launch Centre (visibility-only) forms.
+   *
    * @param array<string, mixed> $melDefaults
    */
-  private function buildVisibilityControls(array &$form, NodeInterface $node, array $melDefaults): void {
+  protected function buildVisibilityControls(array &$form, NodeInterface $node, array $melDefaults): void {
     $current_visibility = '';
     if ($node->hasField('field_event_visibility') && !$node->get('field_event_visibility')->isEmpty()) {
       $current_visibility = (string) $node->get('field_event_visibility')->value;
