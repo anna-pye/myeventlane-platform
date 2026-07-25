@@ -218,9 +218,8 @@ final class VendorWorkspaceHealthService {
     $notificationsUrl = $this->safeRouteUrl('myeventlane_vendor.console.settings_profile', [], ['fragment' => 'notifications'])
       ?? '/vendor/settings/profile#notifications';
 
-    // Preference fields default to daily digest + booking emails on (same as the
-    // profile form). Without a dedicated “reviewed” flag, those defaults must
-    // not be treated as incomplete — otherwise Workspace Health stays yellow.
+    // Profile form defaults (daily digest + booking emails on) must not read as
+    // incomplete without a dedicated “reviewed” flag, or Health stays yellow.
     return [
       'key' => 'notifications',
       'label' => (string) $this->t('Notification preferences'),
