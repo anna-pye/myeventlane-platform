@@ -1190,6 +1190,33 @@
     });
   }
 
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  // Returns true only when execCommand('copy') reports success.
+  function fallbackCopyText(text) {
+    const input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.left = '-9999px';
+    document.body.appendChild(input);
+    input.focus();
+    input.select();
+    let ok = false;
+    try {
+      ok = document.execCommand('copy');
+    }
+    catch (error) {
+      console.error('Event Studio copy link failed.', error);
+      ok = false;
+    }
+    document.body.removeChild(input);
+    return ok;
+  }
+
   function renderPublishFeedback(shell, title, messages, restoreUrl) {
     const feedback = shell.querySelector('[data-mel-publish-feedback]');
     if (!feedback) {
@@ -1203,7 +1230,7 @@
     if (errorPanel) {
       errorPanel.hidden = false;
     }
-    feedback.classList.remove('is-success');
+    feedback.classList.remove('is-success', 'mel-launch-success--enter');
 
     const list = feedback.querySelector('[data-mel-publish-feedback-list]');
     const heading = feedback.querySelector('[data-mel-publish-feedback-title]');
@@ -1248,7 +1275,7 @@
       errorPanel.hidden = true;
     }
     if (!successPanel) {
-      renderPublishFeedback(shell, handoff.message || Drupal.t('Published successfully'), []);
+      renderPublishFeedback(shell, handoff.message || Drupal.t('Your event is now live'), []);
       return;
     }
 
@@ -1259,20 +1286,108 @@
       }
     };
 
-    setText('[data-mel-publish-success-title]', handoff.title);
-    setText('[data-mel-publish-success-message]', handoff.message);
+    const titleText = handoff.title || Drupal.t('Your event is now live');
+    setText('[data-mel-publish-success-title]', titleText);
+    setText('[data-mel-publish-success-message]', handoff.message || titleText);
+    setText('[data-mel-publish-success-announce]', titleText);
+
+    const peopleWrap = successPanel.querySelector('[data-mel-publish-success-people]');
+    const peopleIntro = successPanel.querySelector('[data-mel-publish-success-people-intro]');
+    const peopleList = successPanel.querySelector('[data-mel-publish-success-people-list]');
+    const peopleCan = Array.isArray(handoff.people_can) ? handoff.people_can : [];
+    if (peopleWrap && peopleList) {
+      peopleList.textContent = '';
+      if (peopleIntro && handoff.people_can_intro) {
+        peopleIntro.textContent = handoff.people_can_intro;
+      }
+      peopleCan.forEach((line) => {
+        if (!line) {
+          return;
+        }
+        const item = document.createElement('li');
+        item.textContent = line;
+        peopleList.appendChild(item);
+      });
+      peopleWrap.hidden = peopleList.childElementCount === 0;
+    }
+
+    const recommended = successPanel.querySelector('[data-mel-publish-success-recommended]');
+    const shareLink = successPanel.querySelector('[data-mel-publish-success-share]');
+    const recommendedEyebrow = successPanel.querySelector('[data-mel-publish-success-recommended-eyebrow]');
+    if (recommendedEyebrow && handoff.recommended_eyebrow) {
+      recommendedEyebrow.textContent = handoff.recommended_eyebrow;
+    }
+    if (shareLink) {
+      const shareHref = handoff.share_workspace_url || '';
+      if (handoff.recommended_label) {
+        shareLink.textContent = handoff.recommended_label;
+      }
+      if (shareHref) {
+        shareLink.href = shareHref;
+        shareLink.hidden = false;
+        if (recommended) {
+          recommended.hidden = false;
+        }
+      }
+      else {
+        shareLink.removeAttribute('href');
+        if (recommended) {
+          recommended.hidden = true;
+        }
+      }
+    }
+
+    const secondary = successPanel.querySelector('[data-mel-publish-success-secondary]');
+    const copyBtn = successPanel.querySelector('[data-mel-publish-success-copy]');
+    const viewLink = successPanel.querySelector('[data-mel-publish-success-view]');
+    let secondaryVisible = false;
+
+    if (copyBtn) {
+      if (handoff.copy_label) {
+        copyBtn.textContent = handoff.copy_label;
+      }
+      if (handoff.view_url) {
+        copyBtn.dataset.melCopyUrl = handoff.view_url;
+        copyBtn.hidden = false;
+        secondaryVisible = true;
+      }
+      else {
+        delete copyBtn.dataset.melCopyUrl;
+        copyBtn.hidden = true;
+      }
+    }
+    if (viewLink) {
+      if (handoff.view_label) {
+        viewLink.textContent = handoff.view_label;
+      }
+      if (handoff.view_url) {
+        viewLink.href = handoff.view_url;
+        viewLink.hidden = false;
+        secondaryVisible = true;
+      }
+      else {
+        viewLink.hidden = true;
+        viewLink.removeAttribute('href');
+      }
+    }
+    if (secondary) {
+      secondary.hidden = !secondaryVisible;
+    }
 
     const boostCard = successPanel.querySelector('[data-mel-publish-success-boost-card]');
     const boostLink = successPanel.querySelector('[data-mel-publish-success-boost]');
-    const viewRow = successPanel.querySelector('[data-mel-publish-success-view-row]');
-    const viewLink = successPanel.querySelector('[data-mel-publish-success-view]');
-    const socialRow = successPanel.querySelector('[data-mel-publish-success-social]');
-
+    const boostEyebrow = successPanel.querySelector('[data-mel-publish-success-boost-eyebrow]');
+    if (boostEyebrow && handoff.boost_eyebrow) {
+      boostEyebrow.textContent = handoff.boost_eyebrow;
+    }
     if (boostCard) {
       if (handoff.boost_url) {
         boostCard.hidden = false;
         if (boostLink) {
           boostLink.href = handoff.boost_url;
+          if (handoff.boost_label) {
+            boostLink.textContent = handoff.boost_label;
+          }
         }
       }
       else {
@@ -1282,16 +1397,8 @@
         }
       }
     }
-    if (viewLink && viewRow) {
-      if (handoff.view_url) {
-        viewLink.href = handoff.view_url;
-        viewRow.hidden = false;
-      }
-      else {
-        viewRow.hidden = true;
-        viewLink.removeAttribute('href');
-      }
-    }
+
+    const socialRow = successPanel.querySelector('[data-mel-publish-success-social]');
     if (socialRow) {
       socialRow.textContent = '';
       const share = handoff.share || {};
@@ -1305,7 +1412,7 @@
           return;
         }
         const link = document.createElement('a');
-        link.className = 'mel-btn mel-btn--secondary';
+        link.className = 'mel-btn mel-btn--ghost mel-launch-success__social-link';
         link.href = share[key];
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
@@ -1317,10 +1424,19 @@
 
     successPanel.hidden = false;
     feedback.classList.add('is-success');
+    feedback.classList.toggle('mel-launch-success--enter', !prefersReducedMotion());
     feedback.hidden = false;
-    if (typeof feedback.focus === 'function') {
-      feedback.setAttribute('tabindex', '-1');
-      feedback.focus({ preventScroll: true });
+
+    const titleEl = successPanel.querySelector('[data-mel-publish-success-title]');
+    if (titleEl && typeof titleEl.focus === 'function') {
+      titleEl.setAttribute('tabindex', '-1');
+      titleEl.focus({ preventScroll: true });
+    }
+    if (typeof feedback.scrollIntoView === 'function') {
+      feedback.scrollIntoView({
+        block: 'nearest',
+        behavior: prefersReducedMotion() ? 'auto' : 'smooth',
+      });
     }
   }
 
@@ -1328,7 +1444,7 @@
     const feedback = shell.querySelector('[data-mel-publish-feedback]');
     if (feedback) {
       feedback.hidden = true;
-      feedback.classList.remove('is-success');
+      feedback.classList.remove('is-success', 'mel-launch-success--enter');
       const errorPanel = feedback.querySelector('[data-mel-publish-error]');
       const successPanel = feedback.querySelector('[data-mel-publish-success]');
       if (errorPanel) {
@@ -1338,6 +1454,34 @@
         successPanel.hidden = true;
       }
     }
+  }
+
+  function bindPublishSuccessCopy(context) {
+    once('mel-publish-success-copy', '[data-mel-publish-success-copy]', context).forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.preventDefault();
+        const url = button.dataset.melCopyUrl || '';
+        if (!url) {
+          return;
+        }
+        const panel = button.closest('[data-mel-publish-success]');
+        const feedback = panel ? panel.querySelector('[data-mel-publish-success-copy-feedback]') : null;
+        const copied = Drupal.t('Link copied.');
+        const failed = Drupal.t('Could not copy link.');
+        const announce = (ok) => {
+          if (feedback) {
+            feedback.textContent = ok ? copied : failed;
+          }
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(url).then(() => announce(true)).catch(() => {
+            announce(fallbackCopyText(url));
+          });
+          return;
+        }
+        announce(fallbackCopyText(url));
+      });
+    });
   }
 
   function bindPublishBoostDismiss(context) {
@@ -1354,6 +1498,7 @@
   Drupal.behaviors.melEventStudioShellAutosave = {
     attach(context) {
       bindPublishBoostDismiss(context);
+      bindPublishSuccessCopy(context);
 
       once('mel-event-studio-mobile-priority', '[data-mel-studio-shell]', context).forEach((shell) => {
         applyMobilePriorities(shell);
@@ -1578,7 +1723,7 @@
               renderPublishSuccessFeedback(shell, result.handoff);
             }
             else {
-              renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
+              renderPublishFeedback(shell, result.message || Drupal.t('Your event is now live'), []);
             }
             setPublishButtonState(button, 'published');
             updatePublishPanels(shell, true);
@@ -1651,7 +1796,7 @@
               renderPublishSuccessFeedback(shell, result.handoff);
             }
             else {
-              renderPublishFeedback(shell, result.message || Drupal.t('Published successfully'), []);
+              renderPublishFeedback(shell, result.message || Drupal.t('Your event is now live'), []);
             }
             updatePublishPanels(shell, true);
             updateFormMetadata(shell, result);

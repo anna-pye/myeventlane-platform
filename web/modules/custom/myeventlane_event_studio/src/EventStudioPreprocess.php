@@ -197,6 +197,10 @@ final class EventStudioPreprocess {
   /**
    * Builds workspace publish-success handoff URLs and copy for a live event.
    *
+   * Alternative A (VL-5A / Sprint 3C.2): calm Launch Success outcome.
+   * Existing keys remain stable; people_can / share_workspace_url / labels are
+   * additive for presentation only.
+   *
    * @return array<string, mixed>|null
    *   Handoff payload, or NULL when the event is not a published event node.
    */
@@ -223,6 +227,10 @@ final class EventStudioPreprocess {
     ]);
 
     $boost_url = $this->celebrateRouteUrl('myeventlane_boost.vendor_event_boost', ['event' => $event_id]);
+    $share_workspace_url = $this->celebrateRouteUrl(
+      'myeventlane_event_studio.workspace_marketing',
+      ['node' => $event_id],
+    );
 
     $calendar_url = NULL;
     if ($node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
@@ -238,9 +246,20 @@ final class EventStudioPreprocess {
       }
     }
 
+    $people_can = $this->buildPublishSuccessPeopleCan($node);
+
     return [
       'title' => (string) $this->t('Your event is now live'),
-      'message' => (string) $this->t('Published successfully'),
+      'message' => (string) $this->t('Your event is now live. Guests can discover it and take part.'),
+      'people_can' => $people_can,
+      'people_can_intro' => (string) $this->t('People can now:'),
+      'recommended_label' => (string) $this->t('Share your event'),
+      'recommended_eyebrow' => (string) $this->t('Recommended next step'),
+      'copy_label' => (string) $this->t('Copy link'),
+      'view_label' => (string) $this->t('View public page'),
+      'boost_eyebrow' => (string) $this->t('Grow later'),
+      'boost_label' => (string) $this->t('Boost visibility (optional)'),
+      'share_workspace_url' => $share_workspace_url,
       'boost_url' => $boost_url,
       'view_url' => $canonical_absolute,
       'share' => [
@@ -249,6 +268,36 @@ final class EventStudioPreprocess {
         'twitter' => 'https://twitter.com/intent/tweet?' . $tweet_q,
       ],
       'calendar_url' => $calendar_url,
+    ];
+  }
+
+  /**
+   * Guest capability lines for Launch Success Alternative A.
+   *
+   * @return list<string>
+   *   Organiser-facing capability bullets (Australian English).
+   */
+  private function buildPublishSuccessPeopleCan(NodeInterface $node): array {
+    $event_type = 'rsvp';
+    if ($node->hasField('field_event_type') && !$node->get('field_event_type')->isEmpty()) {
+      $event_type = (string) $node->get('field_event_type')->value;
+    }
+
+    $participation = (string) $this->t('RSVP or buy tickets');
+    if ($event_type === 'rsvp') {
+      $participation = (string) $this->t('RSVP');
+    }
+    elseif ($event_type === 'paid') {
+      $participation = (string) $this->t('buy tickets');
+    }
+    elseif ($event_type === 'external') {
+      $participation = (string) $this->t('follow your external booking link');
+    }
+
+    return [
+      (string) $this->t('discover your event'),
+      $participation,
+      (string) $this->t('share your event'),
     ];
   }
 

@@ -70,32 +70,70 @@
     </section>
   {% endif %}
 
-  <section class="mel-event-studio-publish-feedback" aria-live="polite" aria-atomic="true" data-mel-publish-feedback hidden>
+  {# Outcome zone — Launch Success Alternative A (VL-5A). Same panel for AJAX + ?mel_celebrate=1. #}
+  <section
+    class="mel-event-studio-publish-feedback mel-launch-success"
+    aria-live="polite"
+    aria-atomic="true"
+    data-mel-publish-feedback
+    data-mel-launch-success
+    hidden
+  >
     <div class="mel-event-studio-publish-feedback__error" data-mel-publish-error hidden>
       <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-feedback-title>{{ 'Cannot publish yet'|t }}</h2>
       <ul class="mel-event-studio-publish-feedback__list" data-mel-publish-feedback-list></ul>
       <a class="mel-event-studio-publish-feedback__restore" href="#" data-mel-publish-restore hidden>{{ 'Restore draft'|t }}</a>
     </div>
-    <div class="mel-event-studio-publish-feedback__success" data-mel-publish-success hidden>
-      <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-success-title></h2>
-      <p class="mel-event-studio-publish-feedback__status" data-mel-publish-success-message></p>
-      <div class="mel-publish-boost-cta" data-mel-publish-success-boost-card hidden role="region" aria-labelledby="mel-publish-success-boost-title">
-        <h3 id="mel-publish-success-boost-title" class="mel-publish-boost-cta__title">{{ 'Boost your event visibility'|t }}</h3>
-        <p class="mel-publish-boost-cta__copy">{{ 'Your event is live. Help more people discover it across MyEventLane.'|t }}</p>
-        <ul class="mel-publish-boost-cta__features" aria-label="{{ 'Boost benefits'|t }}">
-          <li>{{ 'Featured discovery placement'|t }}</li>
-          <li>{{ 'Better category visibility'|t }}</li>
-          <li>{{ 'Higher search visibility'|t }}</li>
-        </ul>
-        <div class="mel-publish-boost-cta__actions">
-          <a class="mel-btn mel-btn--primary" href="#" data-mel-publish-success-boost>{{ 'Boost my event'|t }}</a>
-          <button type="button" class="mel-btn mel-btn--ghost" data-mel-publish-boost-dismiss>{{ 'Maybe later'|t }}</button>
-        </div>
+    <div
+      class="mel-event-studio-publish-feedback__success mel-launch-success__panel"
+      data-mel-publish-success
+      hidden
+      role="region"
+      aria-labelledby="mel-publish-success-title"
+    >
+      <p class="visually-hidden" data-mel-publish-success-announce></p>
+      <h2
+        id="mel-publish-success-title"
+        class="mel-event-studio-publish-feedback__title mel-launch-success__title"
+        data-mel-publish-success-title
+        tabindex="-1"
+      ></h2>
+      <p class="mel-event-studio-publish-feedback__status mel-launch-success__status visually-hidden" data-mel-publish-success-message></p>
+
+      <div class="mel-launch-success__people" data-mel-publish-success-people hidden>
+        <p class="mel-launch-success__people-intro" data-mel-publish-success-people-intro>{{ 'People can now:'|t }}</p>
+        <ul class="mel-launch-success__people-list" data-mel-publish-success-people-list></ul>
       </div>
-      <div class="mel-event-studio-publish-feedback__row" data-mel-publish-success-view-row hidden>
-        <a class="mel-btn mel-btn--secondary" href="#" target="_blank" rel="noopener noreferrer" data-mel-publish-success-view>{{ 'View event'|t }}</a>
+
+      <div class="mel-launch-success__recommended" data-mel-publish-success-recommended hidden>
+        <p class="mel-launch-success__eyebrow" data-mel-publish-success-recommended-eyebrow>{{ 'Recommended next step'|t }}</p>
+        <a class="mel-btn mel-btn--primary mel-launch-success__share" href="#" data-mel-publish-success-share>{{ 'Share your event'|t }}</a>
       </div>
-      <div class="mel-event-studio-publish-feedback__row mel-event-studio-publish-feedback__social" data-mel-publish-success-social hidden role="group" aria-label="{{ 'Share on social'|t }}"></div>
+
+      <div class="mel-event-studio-publish-feedback__row mel-launch-success__secondary" data-mel-publish-success-secondary hidden>
+        <button
+          type="button"
+          class="mel-btn mel-btn--secondary"
+          data-mel-publish-success-copy
+          hidden
+        >{{ 'Copy link'|t }}</button>
+        <a
+          class="mel-btn mel-btn--secondary"
+          href="#"
+          target="_blank"
+          rel="noopener noreferrer"
+          data-mel-publish-success-view
+          hidden
+        >{{ 'View public page'|t }}</a>
+        <span class="mel-launch-success__copy-feedback visually-hidden" data-mel-publish-success-copy-feedback aria-live="polite"></span>
+      </div>
+
+      <div class="mel-event-studio-publish-feedback__row mel-event-studio-publish-feedback__social mel-launch-success__social" data-mel-publish-success-social hidden role="group" aria-label="{{ 'Share on social'|t }}"></div>
+
+      <div class="mel-launch-success__boost" data-mel-publish-success-boost-card hidden>
+        <p class="mel-launch-success__eyebrow" data-mel-publish-success-boost-eyebrow>{{ 'Grow later'|t }}</p>
+        <a class="mel-launch-success__boost-link" href="#" data-mel-publish-success-boost>{{ 'Boost visibility (optional)'|t }}</a>
+      </div>
     </div>
   </section>
 
