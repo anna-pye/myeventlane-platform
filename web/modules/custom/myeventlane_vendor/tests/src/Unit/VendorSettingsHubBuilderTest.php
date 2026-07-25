@@ -46,6 +46,9 @@ final class VendorSettingsHubBuilderTest extends UnitTestCase {
     $this->assertSame(['Brand colour themes'], $section['future']);
   }
 
+  /**
+   * Instantiates the builder without running its service constructor.
+   */
   private function createBuilderWithoutConstructor(): VendorSettingsHubBuilder {
     $reflection = new \ReflectionClass(VendorSettingsHubBuilder::class);
     /** @var \Drupal\myeventlane_vendor\Service\VendorSettingsHubBuilder $builder */

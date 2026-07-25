@@ -469,7 +469,7 @@ class VendorSettingsForm extends FormBase {
       '#default_value' => $vendor->getName(),
       '#required' => TRUE,
       '#maxlength' => 255,
-      '#description' => $this->t('The public name of your organization or business.'),
+      '#description' => $this->t('The public name of your organisation or business.'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__field']],
     ];
 
@@ -508,7 +508,7 @@ class VendorSettingsForm extends FormBase {
         '#default_value' => $desc_value,
         '#format' => $desc_format,
         '#rows' => 10,
-        '#description' => $this->t('Full description of your organization. This appears on your public vendor page.'),
+        '#description' => $this->t('Full description of your organisation. This appears on your public organiser page.'),
       ];
     }
 
@@ -686,7 +686,7 @@ class VendorSettingsForm extends FormBase {
           'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
           'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
         ],
-        '#description' => $this->t('Banner image for your vendor page. Recommended size: 1920×400px.'),
+        '#description' => $this->t('Banner image for your organiser page. Recommended size: 1920×400px.'),
       ];
     }
 
@@ -852,7 +852,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Show website on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_website', FALSE),
-        '#description' => $this->t('Display your website URL on your public vendor profile.'),
+        '#description' => $this->t('Display your website URL on your public organiser profile.'),
       ];
     }
 
@@ -861,7 +861,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Show social media links on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_social_links', FALSE),
-        '#description' => $this->t('Display your social media links on your public vendor profile.'),
+        '#description' => $this->t('Display your social media links on your public organiser profile.'),
       ];
     }
 
@@ -870,7 +870,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Show summary on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_summary', FALSE),
-        '#description' => $this->t('Display your short summary on your public vendor profile.'),
+        '#description' => $this->t('Display your short summary on your public organiser profile.'),
       ];
     }
 
@@ -879,7 +879,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'checkbox',
         '#title' => $this->t('Show description on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_description', FALSE),
-        '#description' => $this->t('Display your full description on your public vendor profile.'),
+        '#description' => $this->t('Display your full description on your public organiser profile.'),
       ];
     }
 
@@ -1188,7 +1188,7 @@ class VendorSettingsForm extends FormBase {
     $user_id = $form_state->getValue(['team', 'add_member']);
 
     if (!$vendor) {
-      $this->messenger()->addError($this->t('Vendor not found.'));
+      $this->messenger()->addError($this->t('Organiser account not found.'));
       return;
     }
 
@@ -1283,10 +1283,10 @@ class VendorSettingsForm extends FormBase {
           : 'missing',
       ]);
       if (isset($form['profile']['name'])) {
-        $form_state->setError($form['profile']['name'], $this->t('Vendor Name field is required.'));
+        $form_state->setError($form['profile']['name'], $this->t('Display name is required.'));
       }
       else {
-        $form_state->setErrorByName('name', $this->t('Vendor Name field is required.'));
+        $form_state->setErrorByName('name', $this->t('Display name is required.'));
       }
     }
 
@@ -1505,7 +1505,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if (!$vendor) {
-      $this->messenger()->addError($this->t('Vendor not found. Unable to save settings. Please refresh the page and try again.'));
+      $this->messenger()->addError($this->t('Organiser account not found. Unable to save settings. Please refresh the page and try again.'));
       return;
     }
 
@@ -1524,7 +1524,7 @@ class VendorSettingsForm extends FormBase {
         '@uid' => (string) $this->currentUser->id(),
         '@vid' => (string) $vendor->id(),
       ]);
-      $this->messenger()->addError($this->t('Vendor Name field is required.'));
+      $this->messenger()->addError($this->t('Display name is required.'));
       return;
     }
     $vendor->setName(trim($name));
