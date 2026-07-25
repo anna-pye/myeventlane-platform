@@ -218,37 +218,17 @@ final class VendorWorkspaceHealthService {
     $notificationsUrl = $this->safeRouteUrl('myeventlane_vendor.console.settings_profile', [], ['fragment' => 'notifications'])
       ?? '/vendor/settings/profile#notifications';
 
-    if ($vendor instanceof Vendor
-      && ($vendor->hasField('field_pref_email_on_order') || $vendor->hasField('field_pref_email_digest'))) {
-      $digest = 'daily';
-      if ($vendor->hasField('field_pref_email_digest') && !$vendor->get('field_pref_email_digest')->isEmpty()) {
-        $digest = (string) $vendor->get('field_pref_email_digest')->value;
-      }
-      $orderOn = TRUE;
-      if ($vendor->hasField('field_pref_email_on_order') && !$vendor->get('field_pref_email_on_order')->isEmpty()) {
-        $orderOn = (bool) $vendor->get('field_pref_email_on_order')->value;
-      }
-      // First-run defaults → invite a calm review (no dedicated “reviewed” flag).
-      if ($digest === 'daily' && $orderOn) {
-        return [
-          'key' => 'notifications',
-          'label' => (string) $this->t('Notification preferences need review'),
-          'tone' => 'attention',
-          'icon' => 'attention',
-          'detail' => (string) $this->t('Confirm booking and digest emails match how you work.'),
-          'next_step' => (string) $this->t('Review email notification preferences.'),
-          'cta_label' => (string) $this->t('Review notifications'),
-          'cta_url' => $notificationsUrl,
-        ];
-      }
-    }
-
+    // Preference fields default to daily digest + booking emails on (same as the
+    // profile form). Without a dedicated “reviewed” flag, those defaults must
+    // not be treated as incomplete — otherwise Workspace Health stays yellow.
     return [
       'key' => 'notifications',
       'label' => (string) $this->t('Notification preferences'),
       'tone' => 'success',
       'icon' => 'success',
-      'detail' => (string) $this->t('Email preferences look intentional.'),
+      'detail' => $vendor instanceof Vendor
+        ? (string) $this->t('Booking and digest emails use your current preferences.')
+        : (string) $this->t('Set booking and digest emails when your organiser profile is ready.'),
       'next_step' => (string) $this->t('Adjust notifications anytime.'),
       'cta_label' => (string) $this->t('Open notifications'),
       'cta_url' => $notificationsUrl,

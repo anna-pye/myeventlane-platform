@@ -57,9 +57,11 @@ final class VendorEscalationController extends ControllerBase {
       return ['#markup' => '<p>' . $this->t('You are not associated with an organiser account.') . '</p>'];
     }
 
+    // Open requests only — resolved/closed must not drive Support health.
     $ids = $this->entityTypeManager()->getStorage('escalation')
       ->getQuery()
       ->condition('vendor_id', $vendor->id())
+      ->condition('status', ['resolved', 'closed'], 'NOT IN')
       ->sort('created', 'DESC')
       ->range(0, 50)
       ->accessCheck(FALSE)
@@ -108,7 +110,7 @@ final class VendorEscalationController extends ControllerBase {
         $this->t('Created'),
       ],
       '#rows' => $rows,
-      '#empty' => $this->t('No support requests are assigned to your organiser account yet.'),
+      '#empty' => $this->t('No open support requests right now.'),
       '#attributes' => ['class' => ['mel-support-table']],
     ];
 

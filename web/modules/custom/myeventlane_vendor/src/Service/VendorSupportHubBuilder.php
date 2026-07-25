@@ -38,14 +38,22 @@ final class VendorSupportHubBuilder {
    * Builds Support hub chrome around existing open requests.
    *
    * @param list<array<string, mixed>> $request_rows
-   *   Pre-built request rows from the portal controller (already access-scoped).
+   *   Pre-built request rows from the portal (already access-scoped).
    *
    * @return array<string, mixed>
    *   Hub view model for Twig.
    */
   public function build(array $request_rows = []): array {
     $vendor = $this->vendorResolver->resolveFromCurrentUser();
-    $openCount = count($request_rows);
+    // Count only non-terminal statuses. Callers may pass mixed history rows.
+    $openRows = array_values(array_filter(
+      $request_rows,
+      static function (array $row): bool {
+        $status = (string) ($row['status'] ?? '');
+        return !in_array($status, ['resolved', 'closed'], TRUE);
+      },
+    ));
+    $openCount = count($openRows);
     $needsAttention = $openCount > 0;
 
     $this->logger->info('support_hub_opened uid=@uid open=@open', [
@@ -110,7 +118,7 @@ final class VendorSupportHubBuilder {
         'empty_title' => (string) $this->t('No open requests'),
         'empty_body' => (string) $this->t('When a guest or our team needs you, it will show up here.'),
         'count' => $openCount,
-        'rows' => $request_rows,
+        'rows' => $openRows,
       ],
       'policies' => [
         'title' => (string) $this->t('Policies'),
