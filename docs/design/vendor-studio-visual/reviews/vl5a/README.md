@@ -1,7 +1,7 @@
 # VL-5A — Launch Success Alternative A
 
 **Date:** 2026-07-25  
-**Status:** ⏳ Ready for Product Owner review (not committed)  
+**Status:** ✅ VL-5A merged via PR #721 · VL-5A.1 conformance correction approved  
 **Scope:** Outcome zone presentation only — Alternative A  
 **Branch:** `feature/vendor-workspace-vl5a-launch-success`
 
@@ -104,4 +104,4 @@ ddev drush cr      # success
 
 - Builder-path celebrate UI in `mel-event-studio.html.twig` (non-workspace) still uses legacy celebrate + Boost card — out of VL-5A Workspace Outcome scope.
 - Secondary social intent links remain available (existing networks only); marketing Share remains the recommended primary.
-- PO review required before commit/push.
+- VL-5A.1 corrects the Outcome zone order and action hierarchy before VL-5B.
