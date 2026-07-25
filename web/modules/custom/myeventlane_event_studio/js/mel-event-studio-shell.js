@@ -312,6 +312,9 @@
   /**
    * Presentation-only deep links — mirrors EventStudioSectionRenderer::resolveLaunchFixLink.
    *
+   * Studio section URLs inherit language prefixes from publishUrl. Vendor console
+   * paths must do the same — never hardcode bare /vendor/... on multilingual sites.
+   *
    * @return {{fix_url: ?string, fix_label: ?string}}
    */
   function resolveLaunchFixLinkClient(label) {
@@ -323,11 +326,11 @@
     let path = '';
     let fixLabel = Drupal.t('Fix → Details');
     if (lower.includes('stripe') || lower.includes('payment') || lower.includes('get paid')) {
-      path = '/vendor/payments';
+      path = vendorConsolePathFromPublishUrl(publishUrl, 'payments');
       fixLabel = Drupal.t('Connect Stripe');
     }
     else if (lower.includes('organiser') || lower.includes('terms') || lower.includes('signed in') || lower.includes('profile')) {
-      path = '/vendor/settings';
+      path = vendorConsolePathFromPublishUrl(publishUrl, 'settings');
       fixLabel = Drupal.t('Open account');
     }
     else if (!studioBase) {
@@ -357,6 +360,29 @@
       fix_url: path,
       fix_label: fixLabel,
     };
+  }
+
+  /**
+   * Builds /vendor/{segment} with the same language prefix as publishUrl.
+   *
+   * publishUrl comes from Url::fromRoute() and already includes path prefixes
+   * (e.g. /en/vendor/events/12/studio/publish). Bare /vendor/payments would skip them.
+   */
+  function vendorConsolePathFromPublishUrl(publishUrl, segment) {
+    const safeSegment = String(segment || '').replace(/^\/+|\/+$/g, '');
+    const url = String(publishUrl || '');
+    const vendorMatch = url.match(/^(.*?)\/vendor\/events\//);
+    if (vendorMatch) {
+      return `${vendorMatch[1]}/vendor/${safeSegment}`;
+    }
+    const pathPrefix = (typeof drupalSettings !== 'undefined'
+      && drupalSettings.path
+      && typeof drupalSettings.path.pathPrefix === 'string')
+      ? drupalSettings.path.pathPrefix.replace(/^\/+|\/+$/g, '')
+      : '';
+    return pathPrefix
+      ? `/${pathPrefix}/vendor/${safeSegment}`
+      : `/vendor/${safeSegment}`;
   }
 
   function isLaunchScheduleFixLabelClient(lower) {

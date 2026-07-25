@@ -69,6 +69,11 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringContainsString('function syncLaunchAfterBand(root, after, published)', $js);
     $this->assertStringContainsString('function collectLaunchFixLinksFromList(list)', $js);
     $this->assertStringContainsString('function resolveLaunchFixLinkClient(label)', $js);
+    $this->assertStringContainsString('function vendorConsolePathFromPublishUrl(publishUrl, segment)', $js);
+    $this->assertStringContainsString('vendorConsolePathFromPublishUrl(publishUrl, \'payments\')', $js);
+    $this->assertStringContainsString('vendorConsolePathFromPublishUrl(publishUrl, \'settings\')', $js);
+    $this->assertStringNotContainsString("path = '/vendor/payments'", $js);
+    $this->assertStringNotContainsString("path = '/vendor/settings'", $js);
     $this->assertStringContainsString('buildLaunchChecklistItemsFromReadiness(readiness, preservedFixLinks)', $js);
     $this->assertStringContainsString('updateLaunchCentre(shell, result.launch_centre, result)', $js);
     $this->assertGreaterThanOrEqual(3, substr_count($js, 'updateLaunchCentre(shell, result.launch_centre, result)'));
