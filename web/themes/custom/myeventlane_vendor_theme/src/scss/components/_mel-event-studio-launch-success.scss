@@ -115,7 +115,7 @@
 }
 
 // ============================================================================
-// RECOMMENDED — Share as sole Outcome primary
+// RECOMMENDED — visually secondary; Hero retains the sole filled primary
 // ============================================================================
 
 .mel-event-studio--workspace .mel-launch-success__eyebrow {
@@ -131,20 +131,20 @@
   margin: 0 0 $spacing-4;
 }
 
-.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-launch-success__share.mel-btn--primary,
-.mel-event-studio--workspace .mel-launch-success__share.mel-btn--primary {
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-launch-success__share.mel-btn--secondary,
+.mel-event-studio--workspace .mel-launch-success__share.mel-btn--secondary {
   min-height: 44px;
-  background-color: $mel-brand-purple;
+  background-color: transparent;
   border-color: $mel-brand-purple;
-  color: #fff;
+  color: $mel-brand-purple;
   font-weight: $font-weight-semibold;
   box-shadow: none;
 
   &:hover,
   &:focus {
-    background-color: #5a38e0;
-    border-color: #5a38e0;
-    color: #fff;
+    background-color: rgba(107, 70, 255, 0.08);
+    border-color: $mel-brand-purple;
+    color: $mel-brand-purple;
   }
 
   &:focus-visible {
@@ -162,7 +162,20 @@
   min-height: 44px;
 }
 
-.mel-event-studio--workspace .mel-launch-success__secondary .mel-btn--secondary:focus-visible,
+.mel-event-studio--workspace .mel-launch-success__copy.mel-btn--ghost {
+  color: $text-secondary;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace .mel-launch-success__copy.mel-btn--ghost:hover,
+.mel-event-studio--workspace .mel-launch-success__copy.mel-btn--ghost:focus {
+  color: $text-primary;
+  background: $mel-brand-surface-soft;
+}
+
+.mel-event-studio--workspace .mel-launch-success__secondary .mel-btn:focus-visible,
 .mel-event-studio--workspace .mel-launch-success__social-link:focus-visible {
   outline: 3px solid $mel-brand-coral;
   outline-offset: 2px;
