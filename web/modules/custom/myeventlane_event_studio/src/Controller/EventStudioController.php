@@ -19,6 +19,7 @@ use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioEmptyStateBuilder;
 use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
+use Drupal\myeventlane_event_studio\Service\EventWorkspaceOverviewBuilder;
 use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
 use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
@@ -54,6 +55,7 @@ final class EventStudioController extends ControllerBase {
     private readonly EventStudioPreprocess $eventStudioPreprocess,
     private readonly BoostStatusService $boostStatusService,
     private readonly EventStudioWorkspacePresentation $workspacePresentation,
+    private readonly EventWorkspaceOverviewBuilder $overviewBuilder,
     private readonly ?BoostExtensionRecommendationService $boostExtensionRecommendation = NULL,
   ) {
     $this->entityTypeManager = $entity_type_manager;
@@ -76,6 +78,7 @@ final class EventStudioController extends ControllerBase {
       $container->get('myeventlane_event_studio.preprocess'),
       $container->get('myeventlane_vendor.service.boost_status'),
       $container->get('myeventlane_event_studio.workspace_presentation'),
+      $container->get('myeventlane_event_studio.overview_builder'),
       $container->get('myeventlane_boost.extension_recommendation'),
     );
   }
@@ -292,7 +295,11 @@ final class EventStudioController extends ControllerBase {
     ]);
 
     $readiness_summary = $this->workspacePresentation->buildReadinessSummary($readiness_bundle, $node);
-    $event_health = $this->workspacePresentation->buildEventHealth($readiness_bundle, $node, $boost);
+    // Event Health retired from non-Home chrome — Mission Control owns next step,
+    // improvements, and Event Quality without a competing status card.
+    $mission_control = $section === 'overview'
+      ? NULL
+      : $this->overviewBuilder->buildMissionControl($node, $account, $section);
 
     return [
       '#theme' => 'mel_event_studio_workspace',
@@ -304,9 +311,10 @@ final class EventStudioController extends ControllerBase {
       '#current_section_metadata' => $sectionMetadata,
       '#section_content' => $sectionContent,
       '#topbar' => $this->buildTopbar($node, $readiness, $section),
-      '#event_health' => $event_health,
+      '#event_health' => NULL,
       '#readiness' => $readiness_summary,
-      '#homepage_readiness' => $this->workspacePresentation->buildHomepageReadinessCard($node, $readiness_bundle, $section),
+      '#mission_control' => $mission_control,
+      '#homepage_readiness' => NULL,
       '#boost' => $boost,
       '#boost_extension_recommendation' => $boost_extension_recommendation,
       '#publish_handoff' => $publish_handoff,
@@ -399,11 +407,26 @@ final class EventStudioController extends ControllerBase {
     $state = ($node->isPublished() && $readiness->ready) ? '' : $operational_state;
     $account = $this->currentUser();
     $isStaff = $account->hasPermission('administer nodes') || (int) $account->id() === 1;
+    $nid = (int) $node->id();
+    $date_label = $this->workspacePresentation->buildTopbarDateLabel($node);
+    $venue_label = $this->workspacePresentation->buildTopbarVenueLabel($node);
+    $status = $this->workspacePresentation->buildTopbarStatus($node);
+    $share_url = $this->safeRouteUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid], $account);
+    $primary_cta = $this->overviewBuilder->resolveAuthoritativePrimaryCta(
+      $readiness,
+      $node->isPublished(),
+      $nid,
+      $share_url,
+    );
 
     return [
       'title' => $node->label(),
+      'date_label' => $date_label,
+      'venue_label' => $venue_label,
+      'context_line' => $this->buildHeroContextLine($date_label, $venue_label),
       'location' => $this->workspacePresentation->buildTopbarLocation($node),
-      'status' => $node->isPublished() ? $this->t('Live') : $this->t('Draft'),
+      'status' => $status['label'],
+      'status_key' => $status['key'],
       'state' => $state,
       'show_last_saved' => FALSE,
       'restore_draft' => $this->autosaveService->hasDraft($node, $section),
@@ -413,9 +436,11 @@ final class EventStudioController extends ControllerBase {
         'query' => ['restore_draft' => '1'],
       ])->toString(),
       'preview_url' => $this->domainDetector->publicUrl(Url::fromRoute('entity.node.canonical', ['node' => $node->id()])->toString()),
+      'share_url' => $share_url,
       'publish_url' => Url::fromRoute('myeventlane_event_studio.publish', ['node' => $node->id()])->toString(),
       'published' => $node->isPublished(),
       'can_publish' => $readiness->ready,
+      'primary_cta' => $primary_cta,
       'current_section' => $section,
       'show_manage_event_link' => $isStaff,
       'manage_event_url' => $isStaff
@@ -425,6 +450,11 @@ final class EventStudioController extends ControllerBase {
       'changed' => $node->getChangedTime(),
       'revision_id' => (int) $node->getRevisionId(),
     ];
+  }
+
+  private function buildHeroContextLine(string $date_label, string $venue_label): string {
+    $parts = array_values(array_filter([$date_label, $venue_label], static fn(string $part): bool => $part !== ''));
+    return implode(' · ', $parts);
   }
 
   /**

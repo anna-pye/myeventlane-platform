@@ -42,6 +42,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
     ],
     'mel_event_studio_overview' => [
       'variables' => [
+        'mission_control' => [],
         'event_ready' => [],
         'next_action' => [],
         'readiness' => [],
@@ -55,6 +56,12 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-overview',
     ],
+    'mel_event_studio_mission_control' => [
+      'variables' => [
+        'mission_control' => [],
+      ],
+      'template' => 'mel-event-studio-mission-control',
+    ],
     'mel_event_studio_workspace' => [
       'variables' => [
         'node' => NULL,
@@ -67,6 +74,7 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'topbar' => [],
         'event_health' => [],
         'readiness' => [],
+        'mission_control' => NULL,
         'homepage_readiness' => NULL,
         'boost' => NULL,
         'boost_extension_recommendation' => NULL,

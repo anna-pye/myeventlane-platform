@@ -1,0 +1,125 @@
+{#
+/**
+ * @file
+ * Shared Mission Control card — Home and non-Home workspace chrome.
+ *
+ * Variables:
+ * - mission_control: ViewModel from EventWorkspaceOverviewBuilder.
+ *
+ * data-mel-mc-* hooks keep publish AJAX in sync without a second card kit.
+ */
+#}
+{% set mc = mission_control|default({}) %}
+{% set next = mc.next_step|default({}) %}
+{% set improvements = mc.improvements|default({}) %}
+{% set quality = mc.event_quality|default({}) %}
+{% set items = improvements.items|default([]) %}
+{% set score = quality.score|default(0) %}
+
+<section
+  class="mel-event-studio-mission-control mel-event-studio-mission-control--{{ mc.tone|default('success')|clean_class }}"
+  aria-labelledby="mel-mc-heading"
+  data-mel-mission-control
+  data-mel-mc-tone="{{ mc.tone|default('success')|e('html_attr') }}"
+  data-mel-mc-section="{{ mc.section|default('')|e('html_attr') }}"
+  role="region"
+>
+  <header class="mel-event-studio-mission-control__header">
+    <h2 id="mel-mc-heading" class="mel-event-studio-mission-control__title">{{ mc.heading|default('Mission Control'|t) }}</h2>
+  </header>
+
+  <div class="mel-event-studio-mission-control__next" data-mel-mc-next>
+    <p class="mel-event-studio-mission-control__eyebrow" data-mel-mc-next-eyebrow>{{ next.eyebrow|default('Next step'|t) }}</p>
+    <h3 class="mel-event-studio-mission-control__next-title" data-mel-mc-next-title>{{ next.title }}</h3>
+    <div class="mel-event-studio-mission-control__why" data-mel-mc-why{% if not next.message %} hidden{% endif %}>
+      <p class="mel-event-studio-mission-control__why-label">{{ next.why_label|default('Why this matters'|t) }}</p>
+      <p class="mel-event-studio-mission-control__why-text" data-mel-mc-why-text>{{ next.message }}</p>
+    </div>
+    {# Hero owns the visual primary. Mission Control mirrors the same action as secondary,
+       except the approved Stripe Connect exception. Publish mode defers to Hero publish control. #}
+    {% set cta_mode = next.mode|default('link') %}
+    {% set cta_key = next.key|default('') %}
+    {% if cta_mode == 'publish' %}
+      <p class="mel-event-studio-mission-control__publish-hint" data-mel-mc-publish-hint>
+        {{ 'Use Publish in the header when you are ready.'|t }}
+      </p>
+      <a class="mel-btn mel-btn--secondary mel-event-studio-mission-control__cta" href="#" data-mel-mc-cta hidden></a>
+    {% elseif next.url and next.action_label %}
+      <a
+        class="mel-btn mel-btn--secondary mel-event-studio-mission-control__cta"
+        href="{{ next.url }}"
+        data-mel-mc-cta
+        data-mel-mc-cta-key="{{ cta_key|e('html_attr') }}"
+        data-mel-mc-mirrors-hero="{{ next.mirrors_hero|default(true) ? '1' : '0' }}"
+      >{{ next.action_label }}</a>
+    {% else %}
+      <a class="mel-btn mel-btn--secondary mel-event-studio-mission-control__cta" href="#" data-mel-mc-cta hidden></a>
+    {% endif %}
+  </div>
+
+  <details
+    class="mel-event-studio-mission-control__improvements"
+    data-mel-mc-improvements
+    {% if improvements.open|default(false) %} open{% endif %}
+  >
+    <summary class="mel-event-studio-mission-control__improvements-summary">
+      <span class="mel-event-studio-mission-control__improvements-main">
+        <strong data-mel-mc-improvements-heading>{{ improvements.heading|default('Other improvements'|t) }}</strong>
+        <span class="mel-event-studio-mission-control__improvements-count" data-mel-mc-improvements-count>{{ improvements.complete_label|default('') }}</span>
+      </span>
+      <span class="mel-event-studio-mission-control__improvements-hint" data-mel-mc-improvements-hint>{{ improvements.hint|default('View checklist'|t) }}</span>
+    </summary>
+    <div class="mel-event-studio-mission-control__improvements-body">
+      {% if improvements.headline|default('') %}
+        <p class="mel-event-studio-mission-control__improvements-headline" data-mel-mc-improvements-headline>{{ improvements.headline }}</p>
+      {% endif %}
+      <ul class="mel-event-studio-mission-control__checklist" data-mel-mc-checklist{% if not items %} hidden{% endif %}>
+        {% for item in items %}
+          <li class="mel-event-studio-mission-control__check mel-event-studio-mission-control__check--{{ item.tone|default('attention')|clean_class }}">
+            <span class="mel-event-studio-mission-control__check-mark" aria-hidden="true">{{ item.complete ? '✔' : (item.tone|default('') in ['warning', 'idea'] ? '◇' : '○') }}</span>
+            <span class="visually-hidden">
+              {% if item.complete %}
+                {{ 'Complete:'|t }}
+              {% elseif item.tone|default('') == 'warning' %}
+                {{ 'Suggested review:'|t }}
+              {% elseif item.tone|default('') == 'idea' %}
+                {{ 'Idea:'|t }}
+              {% else %}
+                {{ 'Required before publishing:'|t }}
+              {% endif %}
+            </span>
+            <span data-mel-mc-check-label>{{ item.label }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </details>
+
+  <div
+    class="mel-event-studio-mission-control__quality{% if quality.ready|default(false) %} is-ready{% endif %}"
+    data-mel-mc-quality
+    {% if not quality.visible|default(false) %} hidden{% endif %}
+    {% if quality.visible|default(false) %}role="group" aria-labelledby="mel-mc-quality-heading"{% endif %}
+  >
+    <div class="mel-event-studio-mission-control__quality-head">
+      <h3 id="mel-mc-quality-heading" class="mel-event-studio-mission-control__quality-title" data-mel-mc-quality-heading>{{ quality.heading|default('Event Quality'|t) }}</h3>
+      <p class="mel-event-studio-mission-control__quality-score" data-mel-mc-quality-score>
+        <span class="visually-hidden">{{ 'Homepage readiness score'|t }}:</span>
+        <strong data-mel-mc-quality-score-value>{{ quality.score_label|default(score ~ '%') }}</strong>
+      </p>
+    </div>
+    <div
+      class="mel-event-studio-mission-control__quality-bar"
+      role="progressbar"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="{{ score }}"
+      aria-label="{{ 'Event quality'|t }}"
+      data-mel-mc-quality-bar
+    >
+      <span class="mel-event-studio-mission-control__quality-bar-fill" data-mel-mc-quality-bar-fill style="width: {{ score }}%;"></span>
+    </div>
+    <p class="mel-event-studio-mission-control__quality-status" data-mel-mc-quality-status{% if not quality.status_label|default('') %} hidden{% endif %}>{{ quality.status_label }}</p>
+    <p class="mel-event-studio-mission-control__quality-explain" data-mel-mc-quality-explain{% if not quality.explanation|default('') %} hidden{% endif %}>{{ quality.explanation }}</p>
+  </div>
+</section>

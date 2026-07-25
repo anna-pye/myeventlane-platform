@@ -4,10 +4,10 @@
  * Event Workspace sidebar navigation.
  */
 #}
-<aside class="mel-event-studio-sidebar" id="mel-event-studio-sidebar" aria-label="{{ 'Event workspace'|t }}">
+<aside class="mel-event-studio-sidebar" id="mel-event-studio-sidebar" aria-label="{{ 'Event Workspace'|t }}">
   <div class="mel-event-studio-sidebar__inner">
     {% for group, items in sections %}
-      <nav class="mel-event-studio-sidebar__group" aria-label="{{ 'Event workspace sections'|t }}">
+      <nav class="mel-event-studio-sidebar__group" aria-label="{{ 'Event Workspace sections'|t }}">
         {% if group and group != 'Workspace' %}
           <h2 class="mel-event-studio-sidebar__heading" id="mel-studio-nav-{{ loop.index }}">{{ group }}</h2>
         {% endif %}

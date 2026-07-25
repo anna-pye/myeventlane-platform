@@ -263,10 +263,13 @@ final class EventStudioPublishController {
     );
     try {
       // Same Stripe + mission-control guide cards as full Home render.
-      $ajax_readiness['home'] = $this->overviewBuilder->buildHomeAjaxGuideSnapshot(
+      $home_snapshot = $this->overviewBuilder->buildHomeAjaxGuideSnapshot(
         $node,
         $this->currentUser,
+        $section !== '' ? $section : 'overview',
       );
+      $ajax_readiness['home'] = $home_snapshot;
+      $ajax_readiness['mission_control'] = $home_snapshot['mission_control'] ?? NULL;
     }
     catch (\Throwable $e) {
       $this->logger->error('Event Workspace Home AJAX guide snapshot failed for event @nid: @message', [
@@ -274,18 +277,19 @@ final class EventStudioPublishController {
         '@message' => $e->getMessage(),
       ]);
     }
-    $homepage_card = $this->workspacePresentation->buildHomepageReadinessCard(
-      $node,
-      $readiness_bundle,
-      $section,
-    );
-    if ($homepage_card !== NULL) {
-      $ajax_readiness['homepage_readiness_html'] = (string) $this->renderer->renderPlain($homepage_card);
-    }
-    else {
-      $ajax_readiness['homepage_readiness_html'] = '';
-    }
+    // Homepage readiness card retired from chrome — Event Quality lives in Mission Control.
+    $ajax_readiness['homepage_readiness_html'] = '';
+    $ajax_readiness['show_homepage_readiness'] = FALSE;
 
+    $topbar_status = $this->workspacePresentation->buildTopbarStatus($node);
+    $nid = (int) $node->id();
+    $share_url = Url::fromRoute('myeventlane_event_studio.workspace_marketing', ['node' => $nid])->toString();
+    $primary_cta = $this->overviewBuilder->resolveAuthoritativePrimaryCta(
+      $publish_result,
+      $node->isPublished(),
+      $nid,
+      $share_url,
+    );
     $payload = [
       'ok' => $ok,
       'state' => $state,
@@ -293,18 +297,23 @@ final class EventStudioPublishController {
       'messages' => $messages,
       'published' => $node->isPublished(),
       'topbar' => [
-        // Match EventStudioController::buildTopbar Sprint 2 organiser copy.
-        'status' => $node->isPublished() ? (string) $this->t('Live') : (string) $this->t('Draft'),
+        // Same authoritative CTA contract as EventStudioController::buildTopbar.
+        'status' => $topbar_status['label'],
+        'status_key' => $topbar_status['key'],
         'state' => ($node->isPublished() && $publish_result->ready)
           ? ''
           : $this->workspacePresentation->operationalState($publish_result),
         'location' => $this->workspacePresentation->buildTopbarLocation($node),
+        'date_label' => $this->workspacePresentation->buildTopbarDateLabel($node),
+        'venue_label' => $this->workspacePresentation->buildTopbarVenueLabel($node),
+        'primary_cta' => $primary_cta,
         'lastSaved' => $node->getChangedTime() > 0 ? (string) $this->t('Last saved @time', [
           '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
         ]) : (string) $this->t('Not saved yet'),
       ],
       'readiness' => $ajax_readiness,
-      'event_health' => $this->workspacePresentation->buildEventHealth($readiness_bundle, $node, $boost),
+      // Event Health chrome retired — Mission Control owns operational summary.
+      'event_health' => NULL,
       'changed' => $node->getChangedTime(),
       'revisionId' => (int) $node->getRevisionId(),
     ];

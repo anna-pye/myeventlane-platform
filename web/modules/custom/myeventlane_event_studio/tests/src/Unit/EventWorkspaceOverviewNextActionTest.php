@@ -31,7 +31,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     );
 
     $this->assertSame('Continue setup', $action['title']);
-    $this->assertSame('Review publishing', $action['action_label']);
+    $this->assertSame('Continue setup', $action['action_label']);
   }
 
   public function testDraftReadyGenericMissionControlYieldsPublishCta(): void {
@@ -48,7 +48,10 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     );
 
     $this->assertSame('Ready when you are', $action['title']);
-    $this->assertSame('Go to publishing', $action['action_label']);
+    $this->assertSame('Publish', $action['action_label']);
+    $this->assertSame('publish', $action['mode']);
+    $this->assertTrue($action['mirrors_hero']);
+    $this->assertNull($action['url']);
   }
 
   public function testLiveIdleLooksReadyYieldsMarketingCta(): void {
@@ -68,7 +71,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     $this->assertSame('Share', $action['action_label']);
   }
 
-  public function testLiveBookingActivityKeepsMissionControlAction(): void {
+  public function testLiveBookingActivityReflectsHeroShareCta(): void {
     $action = $this->resolve(
       [
         'severity' => 'info',
@@ -81,12 +84,13 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
       TRUE,
     );
 
-    $this->assertSame('Manage bookings', $action['title']);
-    $this->assertSame('View attendees', $action['action_label']);
-    $this->assertSame('/vendor/events/1/attendees', $action['url']);
+    // Hero owns Share; booking ops stay in secondary cards — Focus mirrors Hero.
+    $this->assertSame('Share your event', $action['title']);
+    $this->assertSame('Share', $action['action_label']);
+    $this->assertNotSame('View attendees', $action['action_label']);
   }
 
-  public function testUnknownTypeErrorKeepsMissionControlActionOnDraft(): void {
+  public function testUnknownTypeErrorAlignsCtaWithHeroContinueSetup(): void {
     $action = $this->resolve(
       [
         'severity' => 'error',
@@ -100,7 +104,8 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     );
 
     $this->assertSame('Add RSVP or tickets', $action['title']);
-    $this->assertSame('Edit event', $action['action_label']);
+    $this->assertSame('Continue setup', $action['action_label']);
+    $this->assertNotSame('Edit event', $action['action_label']);
   }
 
   public function testPublishBlockersBeatStripeConnectRecommendation(): void {
@@ -122,7 +127,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     );
 
     $this->assertSame('Continue setup', $action['title']);
-    $this->assertSame('Review publishing', $action['action_label']);
+    $this->assertSame('Continue setup', $action['action_label']);
     $this->assertNotSame('Connect Stripe', $action['title']);
   }
 
@@ -146,6 +151,33 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
 
     $this->assertSame('Connect Stripe', $action['title']);
     $this->assertSame('/vendor/payouts', $action['url']);
+    $this->assertFalse($action['mirrors_hero']);
+    $this->assertSame('connect_stripe', $action['key']);
+  }
+
+  public function testAuthoritativePrimaryCtaMatchesMissionControlWhenNotStripe(): void {
+    $translator = $this->createMock(TranslationInterface::class);
+    $translator->method('translateString')->willReturnCallback(
+      static fn (\Drupal\Core\StringTranslation\TranslatableMarkup $markup): string => $markup->getUntranslatedString(),
+    );
+    $builder = (new ReflectionClass(EventWorkspaceOverviewBuilder::class))
+      ->newInstanceWithoutConstructor();
+    (new ReflectionClass(EventWorkspaceOverviewBuilder::class))
+      ->getProperty('stringTranslation')
+      ->setValue($builder, $translator);
+
+    $readiness = EventReadinessResult::create(['Add tickets.']);
+    $hero = (new ReflectionClass(EventWorkspaceOverviewBuilder::class))
+      ->getMethod('resolveAuthoritativePrimaryCta')
+      ->invoke($builder, $readiness, FALSE, 1, '');
+    $mc = (new ReflectionClass(EventWorkspaceOverviewBuilder::class))
+      ->getMethod('resolveNextRecommendedAction')
+      ->invoke($builder, [], $readiness, FALSE, 1, []);
+
+    $this->assertSame($hero['label'], $mc['action_label']);
+    $this->assertSame($hero['key'], $mc['key']);
+    $this->assertSame($hero['mode'], $mc['mode']);
+    $this->assertTrue($mc['mirrors_hero']);
   }
 
   public function testAjaxGuideSnapshotReusesStripeAwareBuilders(): void {
@@ -164,7 +196,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
    * @param array<string, mixed> $stripe
    *   Optional Stripe health payload.
    *
-   * @return array{title: string, message: string, action_label: ?string, url: ?string}
+   * @return array<string, mixed>
    */
   private function resolve(array $next, EventReadinessResult $readiness, bool $published, array $stripe = []): array {
     $translator = $this->createMock(TranslationInterface::class);
@@ -181,7 +213,7 @@ final class EventWorkspaceOverviewNextActionTest extends UnitTestCase {
     $method = (new ReflectionClass(EventWorkspaceOverviewBuilder::class))
       ->getMethod('resolveNextRecommendedAction');
 
-    /** @var array{title: string, message: string, action_label: ?string, url: ?string} $action */
+    /** @var array<string, mixed> $action */
     $action = $method->invoke($builder, $next, $readiness, $published, 1, $stripe);
     return $action;
   }
