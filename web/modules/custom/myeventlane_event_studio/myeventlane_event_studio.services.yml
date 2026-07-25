@@ -524,6 +524,7 @@ services:
       - '@logger.channel.myeventlane_event_studio'
       - '@string_translation'
       - '@myeventlane_event_studio.preprocess'
+      - '@myeventlane_event_studio.section_renderer'
     tags:
       - { name: controller.service_arguments }
 

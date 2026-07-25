@@ -333,6 +333,25 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildPublishingHub(NodeInterface $event): array {
+    $launch = $this->buildLaunchCentreViewModel($event);
+    return [
+      '#theme' => 'mel_event_studio_launch_centre',
+      '#launch' => $launch,
+      '#visibility_form' => $this->formBuilder->getForm(EventLaunchVisibilityForm::class, $event),
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'tags' => $event->getCacheTags(),
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Builds the Launch Centre ViewModel for Twig and publish AJAX refresh.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildLaunchCentreViewModel(NodeInterface $event): array {
     $account = $this->currentUser;
     $readiness = $this->eventReadiness->evaluate($event, $account);
     $published = $event->isPublished();
@@ -340,6 +359,8 @@ final class EventStudioSectionRenderer {
     $remaining = count($readiness->errors);
     $nid = (int) $event->id();
 
+    // Readiness wins over published: live + blockers must mirror Hero Continue setup.
+    $state = !$ready ? 'needs_attention' : ($published ? 'live' : 'ready');
     $checklist_open = !$ready;
     $checklist_items = $this->buildLaunchChecklistItems($readiness, $nid);
     // Progress fraction is required items only (complete + blockers).
@@ -360,43 +381,35 @@ final class EventStudioSectionRenderer {
     }
 
     return [
-      '#theme' => 'mel_event_studio_launch_centre',
-      '#launch' => [
-        'state' => $published ? 'live' : ($ready ? 'ready' : 'needs_attention'),
-        'published' => $published,
-        'ready' => $ready,
-        'headline' => $this->launchHeadline($ready, $published, $remaining),
-        'explanation' => $this->launchExplanation($readiness, $published),
-        'hero_hint' => $this->launchHeroHint($ready, $published),
-        'checklist' => [
-          'title' => (string) $this->t('Launch checklist'),
-          'open' => $checklist_open,
-          'summary' => $ready
-            ? (string) $this->t('All required items complete')
-            : (string) $this->formatPlural(
-              $remaining,
-              '1 thing left before you can launch',
-              '@count things left before you can launch',
-            ),
-          'complete_count' => $complete_count,
-          'total_count' => $total_count,
-          'items' => $checklist_items,
-        ],
-        'visibility' => [
-          'summary_label' => (string) $this->t('Who can find this?'),
-          'current_label' => $this->currentVisibilityLabel($event),
-          'open' => FALSE,
-          'settings_url' => $settings_url,
-          'settings_label' => (string) $this->t('More settings'),
-        ],
-        'after' => $this->launchAfterGuidance($event, $published),
+      'state' => $state,
+      'published' => $published,
+      'ready' => $ready,
+      'eyebrow' => $this->launchEyebrow($state),
+      'headline' => $this->launchHeadline($ready, $published, $remaining),
+      'explanation' => $this->launchExplanation($readiness, $published),
+      'hero_hint' => $this->launchHeroHint($ready, $published),
+      'checklist' => [
+        'title' => (string) $this->t('Launch checklist'),
+        'open' => $checklist_open,
+        'summary' => $ready
+          ? (string) $this->t('All required items complete')
+          : (string) $this->formatPlural(
+            $remaining,
+            '1 thing left before you can launch',
+            '@count things left before you can launch',
+          ),
+        'complete_count' => $complete_count,
+        'total_count' => $total_count,
+        'items' => $checklist_items,
       ],
-      '#visibility_form' => $this->formBuilder->getForm(EventLaunchVisibilityForm::class, $event),
-      '#cache' => [
-        'contexts' => ['user', 'user.permissions'],
-        'tags' => $event->getCacheTags(),
-        'max-age' => 0,
+      'visibility' => [
+        'summary_label' => (string) $this->t('Who can find this?'),
+        'current_label' => $this->currentVisibilityLabel($event),
+        'open' => FALSE,
+        'settings_url' => $settings_url,
+        'settings_label' => (string) $this->t('More settings'),
       ],
+      'after' => $this->launchAfterGuidance($event, $published),
     ];
   }
 
@@ -528,42 +541,65 @@ final class EventStudioSectionRenderer {
     return preg_match('/\bdates?\b/', $lower) === 1;
   }
 
+  private function launchEyebrow(string $state): string {
+    return match ($state) {
+      'live' => (string) $this->t('Your event is live'),
+      'ready' => (string) $this->t('Ready to launch'),
+      default => (string) $this->t('Needs attention'),
+    };
+  }
+
   private function launchHeadline(bool $ready, bool $published, int $remaining): string {
+    // Live + readiness regression: blockers first (align with Hero Continue setup).
+    if (!$ready) {
+      if ($published) {
+        return $remaining === 1
+          ? (string) $this->t('Your event is live — one thing needs attention')
+          : (string) $this->t('Your event is live — a few things need attention');
+      }
+      if ($remaining === 1) {
+        return (string) $this->t("You're almost there");
+      }
+      return (string) $this->t('A few things left before launching');
+    }
     if ($published) {
       return (string) $this->t('Your event is live');
     }
-    if ($ready) {
-      return (string) $this->t('Ready to launch');
-    }
-    if ($remaining === 1) {
-      return (string) $this->t("You're almost there");
-    }
-    return (string) $this->t('A few things left before launching');
+    return (string) $this->t('Ready to launch');
   }
 
   private function launchExplanation(EventReadinessResult $readiness, bool $published): string {
+    if (!$readiness->ready) {
+      if ($published) {
+        return count($readiness->errors) === 1
+          ? (string) $this->t('Guests can still see your event, but fix this so everything works as expected: @reason', [
+            '@reason' => rtrim($readiness->errors[0], '.'),
+          ])
+          : (string) $this->t('Guests can still see your event. Finish the checklist so booking and discovery keep working as expected.');
+      }
+      if (count($readiness->errors) === 1) {
+        return (string) $this->t('One more thing before you can launch: @reason', [
+          '@reason' => rtrim($readiness->errors[0], '.'),
+        ]);
+      }
+      return (string) $this->t('Finish the checklist below. We never block without explaining why.');
+    }
     if ($published) {
       return (string) $this->t('People can discover your event and RSVP or buy tickets according to your setup. Share from the header when you are ready.');
     }
-    if ($readiness->ready) {
-      return (string) $this->t("You're ready to go live. Guests will be able to discover this event and RSVP or buy tickets according to your setup.");
-    }
-    if (count($readiness->errors) === 1) {
-      return (string) $this->t('One more thing before you can launch: @reason', [
-        '@reason' => rtrim($readiness->errors[0], '.'),
-      ]);
-    }
-    return (string) $this->t('Finish the checklist below. We never block without explaining why.');
+    return (string) $this->t("You're ready to go live. Guests will be able to discover this event and RSVP or buy tickets according to your setup.");
   }
 
   private function launchHeroHint(bool $ready, bool $published): string {
+    if (!$ready) {
+      return $published
+        ? (string) $this->t('Continue setup from the header to fix what needs attention.')
+        : (string) $this->t('Publish is unavailable until the checklist is clear. Continue setup from the header.');
+    }
     if ($published) {
       return (string) $this->t('Use Share event in the header to spread the word.');
     }
-    if ($ready) {
-      return (string) $this->t('Use Publish event in the header when you are ready.');
-    }
-    return (string) $this->t('Publish is unavailable until the checklist is clear. Continue setup from the header.');
+    return (string) $this->t('Use Publish event in the header when you are ready.');
   }
 
   /**

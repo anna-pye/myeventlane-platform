@@ -170,6 +170,126 @@
     });
   }
 
+  /**
+   * Refreshes Launch Centre from publish AJAX payload (no second Publish control).
+   */
+  function updateLaunchCentre(shell, launch) {
+    const root = shell.querySelector('[data-mel-launch-centre]');
+    if (!root || !launch) {
+      return;
+    }
+    const state = typeof launch.state === 'string' ? launch.state : 'needs_attention';
+    const stateClass = state.replace(/_/g, '-');
+    root.className = `mel-launch-centre mel-launch-centre--${stateClass}`;
+    root.dataset.melLaunchState = state;
+    root.dataset.melLaunchReady = launch.ready ? '1' : '0';
+    root.dataset.melLaunchPublished = launch.published ? '1' : '0';
+
+    setText(root, '[data-mel-launch-eyebrow]', launch.eyebrow || '');
+    setText(root, '[data-mel-launch-headline]', launch.headline || '');
+    const explanation = root.querySelector('[data-mel-launch-explanation]');
+    if (explanation) {
+      explanation.textContent = launch.explanation || '';
+      explanation.hidden = !launch.explanation;
+    }
+    const heroHint = root.querySelector('[data-mel-launch-hero-hint]');
+    if (heroHint) {
+      heroHint.textContent = launch.hero_hint || '';
+      heroHint.hidden = !launch.hero_hint;
+    }
+
+    const checklist = launch.checklist || {};
+    const details = root.querySelector('[data-mel-launch-checklist]');
+    if (details) {
+      details.open = !!checklist.open;
+    }
+    setText(root, '[data-mel-launch-checklist-summary]', checklist.summary || '');
+    const countEl = root.querySelector('[data-mel-launch-checklist-count]');
+    if (countEl) {
+      const total = Number(checklist.total_count) || 0;
+      if (total > 0) {
+        countEl.hidden = false;
+        countEl.textContent = `${Number(checklist.complete_count) || 0}/${total}`;
+      }
+      else {
+        countEl.hidden = true;
+        countEl.textContent = '';
+      }
+    }
+
+    const list = root.querySelector('[data-mel-launch-checklist-list]');
+    if (list && Array.isArray(checklist.items)) {
+      list.replaceChildren();
+      checklist.items.forEach((item) => {
+        list.appendChild(buildLaunchChecklistItem(item));
+      });
+    }
+
+    const visibilityCurrent = launch.visibility && launch.visibility.current_label;
+    if (visibilityCurrent) {
+      setText(root, '[data-mel-launch-visibility-current]', visibilityCurrent);
+    }
+
+    const after = launch.after || {};
+    const afterRoot = root.querySelector('[data-mel-launch-after]');
+    if (afterRoot) {
+      const afterItems = Array.isArray(after.items) ? after.items : [];
+      afterRoot.hidden = afterItems.length === 0;
+      setText(afterRoot, '[data-mel-launch-after-title]', after.title || '');
+      const afterList = afterRoot.querySelector('[data-mel-launch-after-list]');
+      if (afterList) {
+        afterList.replaceChildren();
+        afterItems.forEach((line) => {
+          const li = document.createElement('li');
+          li.textContent = String(line);
+          afterList.appendChild(li);
+        });
+      }
+    }
+  }
+
+  function buildLaunchChecklistItem(item) {
+    const tone = (item && item.tone) ? String(item.tone) : 'success';
+    const complete = !!(item && item.complete);
+    const li = document.createElement('li');
+    li.className = `mel-launch-centre__item mel-launch-centre__item--${tone.replace(/_/g, '-')}${complete ? ' is-complete' : ''}`;
+
+    const mark = document.createElement('span');
+    mark.className = 'mel-launch-centre__mark';
+    mark.setAttribute('aria-hidden', 'true');
+    mark.textContent = complete ? '✓' : (tone === 'attention' ? '○' : '·');
+    li.appendChild(mark);
+
+    const labelWrap = document.createElement('span');
+    labelWrap.className = 'mel-launch-centre__item-label';
+    const sr = document.createElement('span');
+    sr.className = 'visually-hidden';
+    if (complete) {
+      sr.textContent = Drupal.t('Complete:');
+    }
+    else if (tone === 'attention') {
+      sr.textContent = Drupal.t('Needs attention:');
+    }
+    else if (tone === 'warning') {
+      sr.textContent = Drupal.t('Warning:');
+    }
+    else {
+      sr.textContent = Drupal.t('Suggestion:');
+    }
+    labelWrap.appendChild(sr);
+    labelWrap.appendChild(document.createTextNode(` ${item && item.label ? String(item.label) : ''}`));
+    li.appendChild(labelWrap);
+
+    if (!complete && item && item.fix_url) {
+      const fix = document.createElement('a');
+      fix.className = 'mel-launch-centre__fix mel-btn mel-btn--ghost';
+      fix.href = String(item.fix_url);
+      fix.textContent = item.fix_label ? String(item.fix_label) : Drupal.t('Fix');
+      li.appendChild(fix);
+    }
+    return li;
+  }
+
   function updateFormMetadata(shell, result) {
     if (!result) {
       return;
@@ -1144,6 +1264,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
+            updateLaunchCentre(shell, result.launch_centre);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages
@@ -1214,6 +1335,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
+            updateLaunchCentre(shell, result.launch_centre);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages
@@ -1290,6 +1412,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
+            updateLaunchCentre(shell, result.launch_centre);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages

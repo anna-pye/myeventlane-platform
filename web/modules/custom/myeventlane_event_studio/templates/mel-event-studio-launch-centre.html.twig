@@ -7,7 +7,7 @@
  * Hero owns Publish / Unpublish. This template must never render a Publish button.
  *
  * Variables:
- * - launch: presentation ViewModel from EventStudioSectionRenderer::buildPublishingHub().
+ * - launch: presentation ViewModel from EventStudioSectionRenderer::buildLaunchCentreViewModel().
  * - visibility_form: slim EventLaunchVisibilityForm render array.
  */
 #}
@@ -29,14 +29,10 @@
 >
   {# 1. Ready to Launch #}
   <header class="mel-launch-centre__ready">
-    <p class="mel-launch-centre__eyebrow">{{ 'Ready to launch'|t }}</p>
-    <h2 id="mel-launch-centre-heading" class="mel-launch-centre__headline">{{ L.headline }}</h2>
-    {% if L.explanation %}
-      <p class="mel-launch-centre__explanation">{{ L.explanation }}</p>
-    {% endif %}
-    {% if L.hero_hint %}
-      <p class="mel-launch-centre__hero-hint" data-mel-launch-hero-hint>{{ L.hero_hint }}</p>
-    {% endif %}
+    <p class="mel-launch-centre__eyebrow" data-mel-launch-eyebrow>{{ L.eyebrow|default('Ready to launch'|t) }}</p>
+    <h2 id="mel-launch-centre-heading" class="mel-launch-centre__headline" data-mel-launch-headline>{{ L.headline }}</h2>
+    <p class="mel-launch-centre__explanation" data-mel-launch-explanation{% if not L.explanation %} hidden{% endif %}>{{ L.explanation }}</p>
+    <p class="mel-launch-centre__hero-hint" data-mel-launch-hero-hint{% if not L.hero_hint %} hidden{% endif %}>{{ L.hero_hint }}</p>
   </header>
 
   {# 2. Launch checklist — open when blocked, collapsed when ready #}
@@ -49,16 +45,16 @@
       <span class="mel-launch-centre__checklist-title">{{ checklist.title|default('Launch checklist'|t) }}</span>
       <span class="mel-launch-centre__checklist-meta">
         {% if checklist.summary %}
-          <span class="mel-launch-centre__checklist-summary-text">{{ checklist.summary }}</span>
+          <span class="mel-launch-centre__checklist-summary-text" data-mel-launch-checklist-summary>{{ checklist.summary }}</span>
         {% endif %}
         {% if checklist.total_count|default(0) > 0 %}
-          <span class="mel-launch-centre__checklist-count" aria-hidden="true">
+          <span class="mel-launch-centre__checklist-count" data-mel-launch-checklist-count aria-hidden="true">
             {{ checklist.complete_count|default(0) }}/{{ checklist.total_count }}
           </span>
         {% endif %}
       </span>
     </summary>
-    <ul class="mel-launch-centre__list" role="list">
+    <ul class="mel-launch-centre__list" role="list" data-mel-launch-checklist-list>
       {% for item in items %}
         {% set tone = item.tone|default('success') %}
         <li class="mel-launch-centre__item mel-launch-centre__item--{{ tone|clean_class }}{% if item.complete %} is-complete{% endif %}">
@@ -97,7 +93,7 @@
     <summary class="mel-launch-centre__visibility-summary">
       <span class="mel-launch-centre__visibility-title">{{ visibility.summary_label|default('Who can find this?'|t) }}</span>
       {% if visibility.current_label %}
-        <span class="mel-launch-centre__visibility-current">{{ visibility.current_label }}</span>
+        <span class="mel-launch-centre__visibility-current" data-mel-launch-visibility-current>{{ visibility.current_label }}</span>
       {% endif %}
     </summary>
     <div class="mel-launch-centre__visibility-body">
@@ -113,14 +109,12 @@
   </details>
 
   {# 4. After you publish — informational only (no Launch Success UI) #}
-  {% if after.items|default([]) %}
-    <aside class="mel-launch-centre__after" aria-labelledby="mel-launch-after-heading">
-      <h3 id="mel-launch-after-heading" class="mel-launch-centre__after-title">{{ after.title }}</h3>
-      <ul class="mel-launch-centre__after-list">
-        {% for line in after.items %}
-          <li>{{ line }}</li>
-        {% endfor %}
-      </ul>
-    </aside>
-  {% endif %}
+  <aside class="mel-launch-centre__after" data-mel-launch-after aria-labelledby="mel-launch-after-heading"{% if not after.items|default([]) %} hidden{% endif %}>
+    <h3 id="mel-launch-after-heading" class="mel-launch-centre__after-title" data-mel-launch-after-title>{{ after.title|default('After you publish'|t) }}</h3>
+    <ul class="mel-launch-centre__after-list" data-mel-launch-after-list>
+      {% for line in after.items|default([]) %}
+        <li>{{ line }}</li>
+      {% endfor %}
+    </ul>
+  </aside>
 </section>

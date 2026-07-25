@@ -19,10 +19,31 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $method = $this->extractMethodBody($renderer, 'buildPublishingHub');
     $this->assertStringContainsString('mel_event_studio_launch_centre', $method);
     $this->assertStringContainsString('EventLaunchVisibilityForm::class', $method);
-    $this->assertStringContainsString('$checklist_open = !$ready', $method);
+    $this->assertStringContainsString('buildLaunchCentreViewModel', $method);
     $this->assertStringNotContainsString('EventSettingsForm::class', $method);
     $this->assertStringNotContainsString('data-mel-card-publish-action', $method);
     $this->assertStringNotContainsString('Publish now', $method);
+  }
+
+  public function testLaunchCentreStatePrefersReadinessOverPublished(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $method = $this->extractMethodBody($renderer, 'buildLaunchCentreViewModel');
+    $this->assertStringContainsString("\$state = !\$ready ? 'needs_attention' : (\$published ? 'live' : 'ready')", $method);
+    $this->assertStringNotContainsString("\$published ? 'live' : (\$ready ? 'ready' : 'needs_attention')", $method);
+    $this->assertStringContainsString('$checklist_open = !$ready', $method);
+  }
+
+  public function testLaunchCopyHandlesLivePlusNeedsAttention(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $headline = $this->extractMethodBody($renderer, 'launchHeadline');
+    $this->assertStringContainsString('Your event is live — one thing needs attention', $headline);
+    $this->assertStringContainsString('Your event is live — a few things need attention', $headline);
+    $hint = $this->extractMethodBody($renderer, 'launchHeroHint');
+    $this->assertStringContainsString('Continue setup from the header to fix what needs attention.', $hint);
+    $this->assertStringContainsString('Use Publish event in the header when you are ready.', $hint);
+    $this->assertStringContainsString('Use Share event in the header to spread the word.', $hint);
   }
 
   public function testLaunchHeroHintDefersPublishToHeader(): void {
@@ -32,6 +53,18 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringContainsString('Use Publish event in the header when you are ready.', $method);
     $this->assertStringContainsString('Use Share event in the header to spread the word.', $method);
     $this->assertStringContainsString('Publish is unavailable until the checklist is clear.', $method);
+  }
+
+  public function testPublishAjaxIncludesLaunchCentrePayload(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $this->assertIsString($controller);
+    $this->assertStringContainsString('buildLaunchCentreViewModel', $controller);
+    $this->assertStringContainsString("'launch_centre' => \$launch_centre", $controller);
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
+    $this->assertIsString($js);
+    $this->assertStringContainsString('function updateLaunchCentre(shell, launch)', $js);
+    $this->assertStringContainsString('updateLaunchCentre(shell, result.launch_centre)', $js);
+    $this->assertGreaterThanOrEqual(3, substr_count($js, 'updateLaunchCentre(shell, result.launch_centre)'));
   }
 
   public function testLaunchVisibilityFormOmitsPublishCard(): void {
@@ -50,6 +83,8 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertIsString($twig);
     $this->assertStringContainsString('mel-launch-centre', $twig);
     $this->assertStringContainsString('data-mel-launch-hero-hint', $twig);
+    $this->assertStringContainsString('data-mel-launch-eyebrow', $twig);
+    $this->assertStringContainsString('data-mel-launch-headline', $twig);
     $this->assertStringContainsString('Who can find this?', $twig);
     $this->assertStringContainsString('After you publish', $twig);
     $this->assertStringContainsString('data-mel-launch-checklist', $twig);
@@ -99,7 +134,7 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
   public function testLaunchChecklistProgressCountsRequiredItemsOnly(): void {
     $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
     $this->assertIsString($renderer);
-    $method = $this->extractMethodBody($renderer, 'buildPublishingHub');
+    $method = $this->extractMethodBody($renderer, 'buildLaunchCentreViewModel');
     $this->assertStringContainsString("in_array(\$item['tone'] ?? '', ['success', 'attention'], TRUE)", $method);
     $this->assertStringContainsString('required_items', $method);
   }
