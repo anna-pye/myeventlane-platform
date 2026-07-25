@@ -75,4 +75,21 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
     $this->assertStringContainsString('assembleMissionControl', $builder);
   }
 
+  public function testNonHomeMissionControlReusesReadinessAndSkipsWorkspaceVm(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($controller);
+    $this->assertIsString($builder);
+    $this->assertStringContainsString(
+      'buildMissionControl($node, $account, $section, $readiness_bundle)',
+      $controller,
+    );
+    $this->assertStringContainsString('?array $readiness_bundle = NULL', $builder);
+    $this->assertStringContainsString('bool $include_workspace_model = TRUE', $builder);
+    $this->assertStringContainsString(
+      'buildGuideCardState($event, $account, $readiness_bundle, FALSE)',
+      $builder,
+    );
+  }
+
 }

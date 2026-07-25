@@ -82,10 +82,26 @@ final class EventWorkspaceOverviewBuilder {
    * Presentation-only — reuses guide next_action, facade checklist, and
    * existing homepage readiness score. No new scoring.
    *
+   * Non-Home shell callers should pass the readiness bundle already evaluated
+   * for the workspace render. That path skips
+   * VendorEventWorkspaceViewModelBuilder (Home ops cards / sales / RSVP) and
+   * does not re-run EventReadinessFacade.
+   *
+   * @param array<string, mixed>|null $readiness_bundle
+   *   Optional facade payload from the current request.
+   *
    * @return array<string, mixed>
    */
-  public function buildMissionControl(NodeInterface $event, AccountInterface $account, string $section): array {
-    return $this->assembleMissionControl($this->buildGuideCardState($event, $account), $section);
+  public function buildMissionControl(
+    NodeInterface $event,
+    AccountInterface $account,
+    string $section,
+    ?array $readiness_bundle = NULL,
+  ): array {
+    return $this->assembleMissionControl(
+      $this->buildGuideCardState($event, $account, $readiness_bundle, FALSE),
+      $section,
+    );
   }
 
   /**
@@ -122,7 +138,13 @@ final class EventWorkspaceOverviewBuilder {
   }
 
   /**
-   * Shared guide-row state for full Home and AJAX (Stripe + mission-control).
+   * Shared guide-row state for full Home, AJAX, and shell Mission Control.
+   *
+   * @param array<string, mixed>|null $readiness_bundle
+   *   Optional facade payload; when set, skips a second evaluate().
+   * @param bool $include_workspace_model
+   *   When FALSE (non-Home shell), skips VendorEventWorkspaceViewModelBuilder.
+   *   Stripe booking type then comes from the event entity field fallback.
    *
    * @return array{
    *   workspace: array<string, mixed>,
@@ -134,19 +156,27 @@ final class EventWorkspaceOverviewBuilder {
    *   published: bool
    * }
    */
-  private function buildGuideCardState(NodeInterface $event, AccountInterface $account): array {
-    try {
-      $workspace = $this->workspaceViewModel->build($event, $account);
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Event Workspace home model failed for event @nid: @message', [
-        '@nid' => (string) $event->id(),
-        '@message' => $e->getMessage(),
-      ]);
-      $workspace = [];
+  private function buildGuideCardState(
+    NodeInterface $event,
+    AccountInterface $account,
+    ?array $readiness_bundle = NULL,
+    bool $include_workspace_model = TRUE,
+  ): array {
+    $workspace = [];
+    if ($include_workspace_model) {
+      try {
+        $workspace = $this->workspaceViewModel->build($event, $account);
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Event Workspace home model failed for event @nid: @message', [
+          '@nid' => (string) $event->id(),
+          '@message' => $e->getMessage(),
+        ]);
+        $workspace = [];
+      }
     }
 
-    $bundle = $this->readinessFacade->evaluate($event, $account);
+    $bundle = $readiness_bundle ?? $this->readinessFacade->evaluate($event, $account);
     $readiness = $bundle['publish'];
     $recommended = is_array($bundle['recommended'] ?? NULL) ? $bundle['recommended'] : [];
     $nid = (int) $event->id();

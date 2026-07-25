@@ -297,9 +297,11 @@ final class EventStudioController extends ControllerBase {
     $readiness_summary = $this->workspacePresentation->buildReadinessSummary($readiness_bundle, $node);
     // Event Health retired from non-Home chrome — Mission Control owns next step,
     // improvements, and Event Quality without a competing status card.
+    // Reuse the readiness bundle already evaluated above; do not rebuild the
+    // Home workspace view-model (sales/RSVP/ops cards) on every section page.
     $mission_control = $section === 'overview'
       ? NULL
-      : $this->overviewBuilder->buildMissionControl($node, $account, $section);
+      : $this->overviewBuilder->buildMissionControl($node, $account, $section, $readiness_bundle);
 
     return [
       '#theme' => 'mel_event_studio_workspace',
