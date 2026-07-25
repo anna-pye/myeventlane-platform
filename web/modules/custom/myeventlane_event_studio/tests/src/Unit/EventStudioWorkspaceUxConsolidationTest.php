@@ -75,7 +75,7 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
     $this->assertStringContainsString('assembleMissionControl', $builder);
   }
 
-  public function testNonHomeMissionControlReusesReadinessAndSkipsWorkspaceVm(): void {
+  public function testNonHomeMissionControlReusesReadinessAndSharesHomeGuide(): void {
     $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
     $this->assertIsString($controller);
@@ -86,10 +86,18 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
     );
     $this->assertStringContainsString('?array $readiness_bundle = NULL', $builder);
     $this->assertStringContainsString('bool $include_workspace_model = TRUE', $builder);
-    $this->assertStringContainsString(
-      'buildGuideCardState($event, $account, $readiness_bundle, FALSE)',
-      $builder,
-    );
+    // Shared Mission Control contract: default includes workspace VM like Home.
+    $this->assertStringContainsString('function resolveGuidePublicationStatus', $builder);
+    $this->assertStringContainsString('function isEventEnded', $builder);
+  }
+
+  public function testPublishAjaxFallsBackToMissionControlWhenHomeSnapshotFails(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $this->assertIsString($publish);
+    $this->assertStringContainsString("ajax_readiness['mission_control'] = NULL", $publish);
+    $this->assertStringContainsString('buildMissionControl(', $publish);
+    $this->assertStringContainsString('FALSE,', $publish);
+    $this->assertStringContainsString('Mission Control AJAX fallback failed', $publish);
   }
 
 }

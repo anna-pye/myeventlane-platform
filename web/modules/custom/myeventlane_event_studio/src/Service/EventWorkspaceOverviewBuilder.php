@@ -82,10 +82,12 @@ final class EventWorkspaceOverviewBuilder {
    * Presentation-only — reuses guide next_action, facade checklist, and
    * existing homepage readiness score. No new scoring.
    *
-   * Non-Home shell callers should pass the readiness bundle already evaluated
-   * for the workspace render. That path skips
-   * VendorEventWorkspaceViewModelBuilder (Home ops cards / sales / RSVP) and
-   * does not re-run EventReadinessFacade.
+   * Default path matches Home (workspace view-model + Stripe + next-action).
+   * Callers should pass the readiness bundle already evaluated for the request
+   * to avoid a second EventReadinessFacade evaluation.
+   *
+   * Set $include_workspace_model FALSE only for degraded AJAX fallback when the
+   * full Home snapshot fails — still Hero-aligned status + facade checklist.
    *
    * @param array<string, mixed>|null $readiness_bundle
    *   Optional facade payload from the current request.
@@ -97,9 +99,10 @@ final class EventWorkspaceOverviewBuilder {
     AccountInterface $account,
     string $section,
     ?array $readiness_bundle = NULL,
+    bool $include_workspace_model = TRUE,
   ): array {
     return $this->assembleMissionControl(
-      $this->buildGuideCardState($event, $account, $readiness_bundle, FALSE),
+      $this->buildGuideCardState($event, $account, $readiness_bundle, $include_workspace_model),
       $section,
     );
   }
@@ -210,8 +213,11 @@ final class EventWorkspaceOverviewBuilder {
       $nextRecommended['message'] = trim($nextRecommended['message'] . ' ' . (string) ($celebration['message'] ?? ''));
     }
 
-    $statusLabel = (string) ($eventMeta['status_label'] ?? ($published ? $this->t('Live') : $this->t('Draft')));
-    $statusKey = (string) ($eventMeta['status'] ?? ($published ? 'live' : 'draft'));
+    // Align Mission Control status copy with Hero (Draft · Live · Past).
+    // Do not trust published→live alone — ended events must use Past.
+    $guideStatus = $this->resolveGuidePublicationStatus($event, $eventMeta);
+    $statusLabel = $guideStatus['label'];
+    $statusKey = $guideStatus['key'];
 
     return [
       'workspace' => $workspace,
@@ -241,6 +247,51 @@ final class EventWorkspaceOverviewBuilder {
       'promotion_ready' => (bool) ($bundle['promotion_ready'] ?? FALSE),
       'published' => $published,
     ];
+  }
+
+  /**
+   * Hero-aligned publication status for Mission Control copy.
+   *
+   * Same Draft / Live / Past rules as
+   * EventStudioWorkspacePresentation::buildTopbarStatus() — entity end date
+   * wins over a naive published→live fallback when the workspace VM is absent.
+   *
+   * @param array<string, mixed> $eventMeta
+   *
+   * @return array{label: string, key: string}
+   */
+  private function resolveGuidePublicationStatus(NodeInterface $event, array $eventMeta): array {
+    if (!$event->isPublished()) {
+      return [
+        'label' => (string) ($eventMeta['status_label'] ?? $this->t('Draft')),
+        'key' => 'draft',
+      ];
+    }
+    if ($this->isEventEnded($event)) {
+      return [
+        'label' => (string) $this->t('Past'),
+        'key' => 'past',
+      ];
+    }
+    // Normalise VM "published" key to Hero "live" for Event Ready copy.
+    return [
+      'label' => (string) ($eventMeta['status_label'] ?? $this->t('Live')),
+      'key' => 'live',
+    ];
+  }
+
+  /**
+   * True when field_event_end is set and before now (Hero / workspace VM rule).
+   */
+  private function isEventEnded(NodeInterface $event): bool {
+    if ($event->bundle() !== 'event' || !$event->hasField('field_event_end') || $event->get('field_event_end')->isEmpty()) {
+      return FALSE;
+    }
+    $item = $event->get('field_event_end')->first();
+    if ($item === NULL || !isset($item->date) || !$item->date) {
+      return FALSE;
+    }
+    return (int) $item->date->getTimestamp() < time();
   }
 
   /**

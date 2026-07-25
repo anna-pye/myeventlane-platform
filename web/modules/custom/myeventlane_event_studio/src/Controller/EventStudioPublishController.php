@@ -261,12 +261,16 @@ final class EventStudioPublishController {
       $readiness_bundle,
       $node,
     );
+    $ajax_section = $section !== '' ? $section : 'overview';
+    // Always initialise so shell JS never keeps a stale Mission Control card
+    // when the Home snapshot path fails after a successful publish.
+    $ajax_readiness['mission_control'] = NULL;
     try {
       // Same Stripe + mission-control guide cards as full Home render.
       $home_snapshot = $this->overviewBuilder->buildHomeAjaxGuideSnapshot(
         $node,
         $this->currentUser,
-        $section !== '' ? $section : 'overview',
+        $ajax_section,
       );
       $ajax_readiness['home'] = $home_snapshot;
       $ajax_readiness['mission_control'] = $home_snapshot['mission_control'] ?? NULL;
@@ -276,6 +280,23 @@ final class EventStudioPublishController {
         '@nid' => (string) $node->id(),
         '@message' => $e->getMessage(),
       ]);
+      try {
+        // Degraded path: reuse readiness bundle, skip Home VM so shell still
+        // refreshes next-step / checklist after publish when snapshot fails.
+        $ajax_readiness['mission_control'] = $this->overviewBuilder->buildMissionControl(
+          $node,
+          $this->currentUser,
+          $ajax_section,
+          $readiness_bundle,
+          FALSE,
+        );
+      }
+      catch (\Throwable $fallback) {
+        $this->logger->error('Event Workspace Mission Control AJAX fallback failed for event @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $fallback->getMessage(),
+        ]);
+      }
     }
     // Homepage readiness card retired from chrome — Event Quality lives in Mission Control.
     $ajax_readiness['homepage_readiness_html'] = '';
