@@ -170,6 +170,427 @@
     });
   }
 
+  /**
+   * Refreshes Launch Centre from publish AJAX payload (no second Publish control).
+   *
+   * When launch_centre is missing, applies a degraded update from published + readiness
+   * so the Publishing section does not stay on the pre-action narrative.
+   */
+  function updateLaunchCentre(shell, launch, result) {
+    const root = shell.querySelector('[data-mel-launch-centre]');
+    if (!root) {
+      return;
+    }
+    if (!launch) {
+      applyDegradedLaunchCentre(root, result || {});
+      return;
+    }
+    root.removeAttribute('data-mel-launch-stale');
+    const state = typeof launch.state === 'string' ? launch.state : 'needs_attention';
+    const stateClass = state.replace(/_/g, '-');
+    root.className = `mel-launch-centre mel-launch-centre--${stateClass}`;
+    root.dataset.melLaunchState = state;
+    root.dataset.melLaunchReady = launch.ready ? '1' : '0';
+    root.dataset.melLaunchPublished = launch.published ? '1' : '0';
+    if (launch.degraded) {
+      root.dataset.melLaunchStale = '1';
+    }
+
+    setText(root, '[data-mel-launch-eyebrow]', launch.eyebrow || '');
+    setText(root, '[data-mel-launch-headline]', launch.headline || '');
+    const explanation = root.querySelector('[data-mel-launch-explanation]');
+    if (explanation) {
+      explanation.textContent = launch.explanation || '';
+      explanation.hidden = !launch.explanation;
+    }
+    const heroHint = root.querySelector('[data-mel-launch-hero-hint]');
+    if (heroHint) {
+      heroHint.textContent = launch.hero_hint || '';
+      heroHint.hidden = !launch.hero_hint;
+    }
+
+    const checklist = launch.checklist || {};
+    const details = root.querySelector('[data-mel-launch-checklist]');
+    if (details && checklist.open !== undefined) {
+      details.open = !!checklist.open;
+    }
+    if (checklist.summary) {
+      setText(root, '[data-mel-launch-checklist-summary]', checklist.summary);
+    }
+    const countEl = root.querySelector('[data-mel-launch-checklist-count]');
+    if (countEl && checklist.total_count !== undefined) {
+      const total = Number(checklist.total_count) || 0;
+      if (total > 0) {
+        countEl.hidden = false;
+        countEl.textContent = `${Number(checklist.complete_count) || 0}/${total}`;
+      }
+      else {
+        countEl.hidden = true;
+        countEl.textContent = '';
+      }
+    }
+
+    const list = root.querySelector('[data-mel-launch-checklist-list]');
+    if (list) {
+      syncLaunchChecklistList(list, checklist, result && result.readiness, !!launch.ready);
+    }
+
+    const visibilityCurrent = launch.visibility && launch.visibility.current_label;
+    if (visibilityCurrent) {
+      setText(root, '[data-mel-launch-visibility-current]', visibilityCurrent);
+    }
+
+    syncLaunchAfterBand(root, launch.after || null, !!launch.published);
+  }
+
+  /**
+   * Rebuilds checklist rows from payload items, or from readiness when items are omitted.
+   *
+   * Prevents “All required items complete” while stale blocker rows remain.
+   * When rebuilding from readiness, preserves Fix links from the current DOM and
+   * resolves missing ones client-side so blockers do not lose “Fix → …” CTAs.
+   */
+  function syncLaunchChecklistList(list, checklist, readiness, ready) {
+    if (Array.isArray(checklist.items)) {
+      list.replaceChildren();
+      checklist.items.forEach((item) => {
+        list.appendChild(buildLaunchChecklistItem(item));
+      });
+      return;
+    }
+    if (readiness) {
+      const preservedFixLinks = collectLaunchFixLinksFromList(list);
+      list.replaceChildren();
+      buildLaunchChecklistItemsFromReadiness(readiness, preservedFixLinks).forEach((item) => {
+        list.appendChild(buildLaunchChecklistItem(item));
+      });
+      return;
+    }
+    if (ready) {
+      // Last resort: drop attention blockers so summary cannot contradict the list.
+      list.querySelectorAll('.mel-launch-centre__item--attention').forEach((item) => {
+        item.remove();
+      });
+    }
+  }
+
+  function normalizeLaunchChecklistLabel(label) {
+    return String(label || '').replace(/\.$/, '').trim().toLowerCase();
+  }
+
+  /**
+   * Snapshots Fix links already rendered in Launch Centre before a readiness rebuild.
+   *
+   * @return {Object<string, {fix_url: string, fix_label: ?string}>}
+   */
+  function collectLaunchFixLinksFromList(list) {
+    const map = {};
+    list.querySelectorAll('.mel-launch-centre__item').forEach((li) => {
+      const labelEl = li.querySelector('.mel-launch-centre__item-label');
+      const fix = li.querySelector('a.mel-launch-centre__fix');
+      if (!labelEl || !fix) {
+        return;
+      }
+      const href = fix.getAttribute('href');
+      if (!href) {
+        return;
+      }
+      const clone = labelEl.cloneNode(true);
+      clone.querySelectorAll('.visually-hidden').forEach((el) => el.remove());
+      const key = normalizeLaunchChecklistLabel(clone.textContent);
+      if (!key) {
+        return;
+      }
+      map[key] = {
+        fix_url: href,
+        fix_label: (fix.textContent || '').trim() || null,
+      };
+    });
+    return map;
+  }
+
+  /**
+   * Presentation-only deep links — mirrors EventStudioSectionRenderer::resolveLaunchFixLink.
+   *
+   * Studio section URLs inherit language prefixes from publishUrl. Vendor console
+   * paths must do the same — never hardcode bare /vendor/... on multilingual sites.
+   *
+   * @return {{fix_url: ?string, fix_label: ?string}}
+   */
+  function resolveLaunchFixLinkClient(label) {
+    const lower = String(label || '').toLowerCase();
+    const publishUrl = String(studioSettings().publishUrl || '');
+    const studioMatch = publishUrl.match(/^(.*\/studio)\/publish\/?(\?.*)?$/);
+    const studioBase = studioMatch ? studioMatch[1] : '';
+
+    let path = '';
+    let fixLabel = Drupal.t('Fix → Details');
+    if (lower.includes('stripe') || lower.includes('payment') || lower.includes('get paid')) {
+      path = vendorConsolePathFromPublishUrl(publishUrl, 'payments');
+      fixLabel = Drupal.t('Connect Stripe');
+    }
+    else if (lower.includes('organiser') || lower.includes('terms') || lower.includes('signed in') || lower.includes('profile')) {
+      path = vendorConsolePathFromPublishUrl(publishUrl, 'settings');
+      fixLabel = Drupal.t('Open account');
+    }
+    else if (!studioBase) {
+      return { fix_url: null, fix_label: null };
+    }
+    else if (lower.includes('ticket') || lower.includes('capacity')) {
+      path = `${studioBase}/tickets`;
+      fixLabel = Drupal.t('Fix → Tickets');
+    }
+    else if (lower.includes('cover') || lower.includes('image') || lower.includes('branding')) {
+      path = `${studioBase}/images`;
+      fixLabel = Drupal.t('Fix → Images');
+    }
+    else if (isLaunchScheduleFixLabelClient(lower)) {
+      path = `${studioBase}/schedule`;
+      fixLabel = Drupal.t('Fix → Schedule');
+    }
+    else if (lower.includes('question')) {
+      path = `${studioBase}/questions`;
+      fixLabel = Drupal.t('Fix → Questions');
+    }
+    else {
+      path = `${studioBase}/details`;
+    }
+
+    return {
+      fix_url: path,
+      fix_label: fixLabel,
+    };
+  }
+
+  /**
+   * Builds /vendor/{segment} with the same language prefix as publishUrl.
+   *
+   * publishUrl comes from Url::fromRoute() and already includes path prefixes
+   * (e.g. /en/vendor/events/12/studio/publish). Bare /vendor/payments would skip them.
+   */
+  function vendorConsolePathFromPublishUrl(publishUrl, segment) {
+    const safeSegment = String(segment || '').replace(/^\/+|\/+$/g, '');
+    const url = String(publishUrl || '');
+    const vendorMatch = url.match(/^(.*?)\/vendor\/events\//);
+    if (vendorMatch) {
+      return `${vendorMatch[1]}/vendor/${safeSegment}`;
+    }
+    const pathPrefix = (typeof drupalSettings !== 'undefined'
+      && drupalSettings.path
+      && typeof drupalSettings.path.pathPrefix === 'string')
+      ? drupalSettings.path.pathPrefix.replace(/^\/+|\/+$/g, '')
+      : '';
+    return pathPrefix
+      ? `/${pathPrefix}/vendor/${safeSegment}`
+      : `/vendor/${safeSegment}`;
+  }
+
+  function isLaunchScheduleFixLabelClient(lower) {
+    if (lower.includes('schedule')) {
+      return true;
+    }
+    if (lower.includes('start date') || lower.includes('end date')) {
+      return true;
+    }
+    return /\bdates?\b/.test(lower);
+  }
+
+  function buildLaunchChecklistItemsFromReadiness(readiness, preservedFixLinks) {
+    const items = [];
+    const trimDot = (label) => String(label || '').replace(/\.$/, '');
+    const preserved = preservedFixLinks || {};
+    const attachFix = (item) => {
+      if (item.complete) {
+        return item;
+      }
+      const key = normalizeLaunchChecklistLabel(item.label);
+      if (preserved[key] && preserved[key].fix_url) {
+        return {
+          ...item,
+          fix_url: preserved[key].fix_url,
+          fix_label: preserved[key].fix_label || item.fix_label || null,
+        };
+      }
+      const resolved = resolveLaunchFixLinkClient(item.label);
+      return {
+        ...item,
+        fix_url: resolved.fix_url,
+        fix_label: resolved.fix_label,
+      };
+    };
+
+    (Array.isArray(readiness.errors) ? readiness.errors : []).forEach((label) => {
+      items.push(attachFix({
+        label: trimDot(label),
+        complete: false,
+        tone: 'attention',
+      }));
+    });
+    (Array.isArray(readiness.warnings) ? readiness.warnings : []).forEach((label) => {
+      items.push(attachFix({
+        label: trimDot(label),
+        complete: false,
+        tone: 'warning',
+      }));
+    });
+    (Array.isArray(readiness.completed) ? readiness.completed : []).forEach((label) => {
+      items.push({
+        label: trimDot(label),
+        complete: true,
+        tone: 'success',
+      });
+    });
+    (Array.isArray(readiness.recommendations) ? readiness.recommendations : []).forEach((label) => {
+      items.push(attachFix({
+        label: trimDot(label),
+        complete: false,
+        tone: 'idea',
+      }));
+    });
+    return items;
+  }
+
+  /**
+   * Updates the aftercare band so live events do not keep pre-launch copy.
+   */
+  function syncLaunchAfterBand(root, after, published) {
+    const afterRoot = root.querySelector('[data-mel-launch-after]');
+    if (!afterRoot) {
+      return;
+    }
+    let title = after && after.title ? String(after.title) : '';
+    let afterItems = after && Array.isArray(after.items) ? after.items : null;
+    if (!title || !afterItems) {
+      title = published
+        ? Drupal.t('While your event is live')
+        : Drupal.t('After you publish');
+      afterItems = [
+        Drupal.t('Guests can discover your event'),
+        Drupal.t('People can RSVP or buy tickets according to your setup'),
+        published
+          ? Drupal.t('Share your event from the header')
+          : Drupal.t("You'll be able to share your event"),
+      ];
+    }
+    afterRoot.hidden = afterItems.length === 0;
+    setText(afterRoot, '[data-mel-launch-after-title]', title);
+    const afterList = afterRoot.querySelector('[data-mel-launch-after-list]');
+    if (afterList) {
+      afterList.replaceChildren();
+      afterItems.forEach((line) => {
+        const li = document.createElement('li');
+        li.textContent = String(line);
+        afterList.appendChild(li);
+      });
+    }
+  }
+
+  /**
+   * Last-resort Launch Centre sync when the server omitted launch_centre.
+   */
+  function applyDegradedLaunchCentre(root, result) {
+    const published = !!result.published;
+    const ready = !!(result.readiness && result.readiness.ready);
+    const state = !ready ? 'needs_attention' : (published ? 'live' : 'ready');
+    const stateClass = state.replace(/_/g, '-');
+    root.className = `mel-launch-centre mel-launch-centre--${stateClass}`;
+    root.dataset.melLaunchState = state;
+    root.dataset.melLaunchReady = ready ? '1' : '0';
+    root.dataset.melLaunchPublished = published ? '1' : '0';
+    root.dataset.melLaunchStale = '1';
+
+    const eyebrow = !ready
+      ? Drupal.t('Needs attention')
+      : (published ? Drupal.t('Your event is live') : Drupal.t('Ready to launch'));
+    const headline = !ready
+      ? (published
+        ? Drupal.t('Your event is live — a few things need attention')
+        : Drupal.t('A few things left before launching'))
+      : (published ? Drupal.t('Your event is live') : Drupal.t('Ready to launch'));
+    const heroHint = !ready
+      ? (published
+        ? Drupal.t('Continue setup from the header to fix what needs attention.')
+        : Drupal.t('Publish is unavailable until the checklist is clear. Continue setup from the header.'))
+      : (published
+        ? Drupal.t('Use Share event in the header to spread the word.')
+        : Drupal.t('Use Publish event in the header when you are ready.'));
+
+    setText(root, '[data-mel-launch-eyebrow]', eyebrow);
+    setText(root, '[data-mel-launch-headline]', headline);
+    const explanation = root.querySelector('[data-mel-launch-explanation]');
+    if (explanation) {
+      explanation.textContent = published && ready
+        ? Drupal.t('People can discover your event and RSVP or buy tickets according to your setup. Share from the header when you are ready.')
+        : (!ready
+          ? Drupal.t('Finish the checklist below. We never block without explaining why.')
+          : Drupal.t("You're ready to go live. Guests will be able to discover this event and RSVP or buy tickets according to your setup."));
+      explanation.hidden = false;
+    }
+    const heroHintEl = root.querySelector('[data-mel-launch-hero-hint]');
+    if (heroHintEl) {
+      heroHintEl.textContent = heroHint;
+      heroHintEl.hidden = false;
+    }
+
+    const details = root.querySelector('[data-mel-launch-checklist]');
+    if (details) {
+      details.open = !ready;
+    }
+    const summary = ready
+      ? Drupal.t('All required items complete')
+      : Drupal.t('Finish the checklist before you can launch');
+    setText(root, '[data-mel-launch-checklist-summary]', summary);
+
+    const list = root.querySelector('[data-mel-launch-checklist-list]');
+    if (list) {
+      syncLaunchChecklistList(list, {}, result.readiness || null, ready);
+    }
+
+    syncLaunchAfterBand(root, null, published);
+  }
+
+  function buildLaunchChecklistItem(item) {
+    const tone = (item && item.tone) ? String(item.tone) : 'success';
+    const complete = !!(item && item.complete);
+    const li = document.createElement('li');
+    li.className = `mel-launch-centre__item mel-launch-centre__item--${tone.replace(/_/g, '-')}${complete ? ' is-complete' : ''}`;
+
+    const mark = document.createElement('span');
+    mark.className = 'mel-launch-centre__mark';
+    mark.setAttribute('aria-hidden', 'true');
+    mark.textContent = complete ? '✓' : (tone === 'attention' ? '○' : '·');
+    li.appendChild(mark);
+
+    const labelWrap = document.createElement('span');
+    labelWrap.className = 'mel-launch-centre__item-label';
+    const sr = document.createElement('span');
+    sr.className = 'visually-hidden';
+    if (complete) {
+      sr.textContent = Drupal.t('Complete:');
+    }
+    else if (tone === 'attention') {
+      sr.textContent = Drupal.t('Needs attention:');
+    }
+    else if (tone === 'warning') {
+      sr.textContent = Drupal.t('Warning:');
+    }
+    else {
+      sr.textContent = Drupal.t('Suggestion:');
+    }
+    labelWrap.appendChild(sr);
+    labelWrap.appendChild(document.createTextNode(` ${item && item.label ? String(item.label) : ''}`));
+    li.appendChild(labelWrap);
+
+    if (!complete && item && item.fix_url) {
+      const fix = document.createElement('a');
+      fix.className = 'mel-launch-centre__fix mel-btn mel-btn--ghost';
+      fix.href = String(item.fix_url);
+      fix.textContent = item.fix_label ? String(item.fix_label) : Drupal.t('Fix');
+      li.appendChild(fix);
+    }
+    return li;
+  }
+
   function updateFormMetadata(shell, result) {
     if (!result) {
       return;
@@ -1144,6 +1565,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
+            updateLaunchCentre(shell, result.launch_centre, result);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages
@@ -1214,6 +1636,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
+            updateLaunchCentre(shell, result.launch_centre, result);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages
@@ -1290,6 +1713,7 @@
             const result = await response.json().catch(() => ({}));
             updateTopbar(shell, result);
             updateReadiness(shell, result.readiness);
+            updateLaunchCentre(shell, result.launch_centre, result);
             if (!response.ok || !result.ok) {
               const messages = result.messages && result.messages.length
                 ? result.messages

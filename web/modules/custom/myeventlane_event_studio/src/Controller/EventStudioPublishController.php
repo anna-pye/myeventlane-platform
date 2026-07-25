@@ -17,6 +17,7 @@ use Drupal\myeventlane_event_studio\Service\EventReadinessFacade;
 use Drupal\myeventlane_event_studio\Service\EventReadinessService;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_event_studio\Service\EventStudioSectionRenderer;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\myeventlane_event_studio\Service\EventWorkspaceOverviewBuilder;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
@@ -51,6 +52,7 @@ final class EventStudioPublishController {
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
     private readonly EventStudioPreprocess $eventStudioPreprocess,
+    private readonly EventStudioSectionRenderer $sectionRenderer,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -321,6 +323,30 @@ final class EventStudioPublishController {
         $ajax_section,
       );
     }
+    $launch_centre = NULL;
+    try {
+      // Same ViewModel as Publishing section render — refresh Launch Centre after AJAX.
+      $launch_centre = $this->sectionRenderer->buildLaunchCentreViewModel($node);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event Studio Launch Centre AJAX payload failed for event @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+    }
+    if ($launch_centre === NULL) {
+      try {
+        // Keep Launch Centre narrative aligned with Hero even when full VM fails.
+        $launch_centre = $this->sectionRenderer->buildDegradedLaunchCentreViewModel($node, $publish_result);
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Event Studio Launch Centre degraded AJAX payload failed for event @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
     $payload = [
       'ok' => $ok,
       'state' => $state,
@@ -345,6 +371,7 @@ final class EventStudioPublishController {
       'readiness' => $ajax_readiness,
       // Event Health chrome retired — Mission Control owns operational summary.
       'event_health' => NULL,
+      'launch_centre' => $launch_centre,
       'changed' => $node->getChangedTime(),
       'revisionId' => (int) $node->getRevisionId(),
     ];

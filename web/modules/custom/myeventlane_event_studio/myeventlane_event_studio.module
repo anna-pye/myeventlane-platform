@@ -62,6 +62,13 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
       ],
       'template' => 'mel-event-studio-mission-control',
     ],
+    'mel_event_studio_launch_centre' => [
+      'variables' => [
+        'launch' => [],
+        'visibility_form' => NULL,
+      ],
+      'template' => 'mel-event-studio-launch-centre',
+    ],
     'mel_event_studio_workspace' => [
       'variables' => [
         'node' => NULL,

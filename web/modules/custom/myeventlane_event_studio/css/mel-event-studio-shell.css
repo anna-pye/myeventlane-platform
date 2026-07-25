@@ -6824,3 +6824,244 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
     flex: 1 1 auto;
   }
 }
+
+/* -------------------------------------------------------------------------
+ * Launch Centre (Publishing section) — Sprint 3C.1 composition only.
+ * Hero owns Publish. No competing Publish controls in this surface.
+ * ---------------------------------------------------------------------- */
+
+.mel-launch-centre {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 42rem;
+  margin: 0;
+  padding: 0 0 1.5rem;
+}
+
+.mel-launch-centre__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--mel-text-muted, #5c5a66);
+}
+
+.mel-launch-centre__headline {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  line-height: 1.25;
+  font-weight: 700;
+  color: var(--mel-text, #1c1a22);
+}
+
+.mel-launch-centre__explanation,
+.mel-launch-centre__hero-hint {
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--mel-text, #1c1a22);
+}
+
+.mel-launch-centre__hero-hint {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: var(--mel-surface-soft, #f6f4fa);
+  border: 1px solid var(--mel-border-soft, #e6e2ef);
+  font-weight: 560;
+}
+
+.mel-launch-centre__checklist,
+.mel-launch-centre__visibility {
+  border: 1px solid var(--mel-border-soft, #e6e2ef);
+  border-radius: 0.75rem;
+  background: var(--mel-surface, #fff);
+  padding: 0;
+}
+
+.mel-launch-centre__checklist-summary,
+.mel-launch-centre__visibility-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  list-style: none;
+  cursor: pointer;
+  padding: 0.875rem 1rem;
+  min-height: 44px;
+  font-weight: 600;
+}
+
+.mel-launch-centre__checklist-summary::-webkit-details-marker,
+.mel-launch-centre__visibility-summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-launch-centre__checklist-summary:focus-visible,
+.mel-launch-centre__visibility-summary:focus-visible,
+.mel-launch-centre__fix:focus-visible,
+.mel-launch-centre__settings-link a:focus-visible {
+  outline: 2px solid var(--mel-focus, #5b4db8);
+  outline-offset: 2px;
+}
+
+.mel-launch-centre__checklist-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--mel-text-muted, #5c5a66);
+  font-size: 0.875rem;
+}
+
+.mel-launch-centre__checklist-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: var(--mel-surface-soft, #f6f4fa);
+  font-variant-numeric: tabular-nums;
+}
+
+.mel-launch-centre__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 1rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mel-launch-centre__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--mel-border-soft, #eeeaf5);
+  min-height: 44px;
+}
+
+.mel-launch-centre__item:first-child {
+  border-top: 0;
+}
+
+.mel-launch-centre__mark {
+  flex: 0 0 1.25rem;
+  text-align: center;
+  font-weight: 700;
+}
+
+.mel-launch-centre__item--attention .mel-launch-centre__mark,
+.mel-launch-centre__item--attention .mel-launch-centre__item-label {
+  color: var(--mel-attention, #8a4b00);
+}
+
+.mel-launch-centre__item--success .mel-launch-centre__mark {
+  color: var(--mel-success, #1f6b3a);
+}
+
+.mel-launch-centre__item-label {
+  flex: 1 1 12rem;
+  line-height: 1.4;
+}
+
+.mel-launch-centre__fix {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem 0.85rem;
+  text-decoration: none;
+}
+
+.mel-launch-centre__visibility-current {
+  font-weight: 500;
+  color: var(--mel-text-muted, #5c5a66);
+  font-size: 0.875rem;
+}
+
+.mel-launch-centre__visibility-body {
+  padding: 0 1rem 1rem;
+}
+
+.mel-launch-centre__visibility-body .mel-visibility-section {
+  margin-top: 0.25rem;
+}
+
+.mel-launch-centre__settings-link {
+  margin: 0.75rem 0 0;
+  font-size: 0.9375rem;
+}
+
+.mel-launch-centre__settings-link a {
+  color: var(--mel-link, #3d34a0);
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mel-launch-centre__after {
+  padding: 1rem 1.1rem;
+  border-radius: 0.75rem;
+  background: var(--mel-surface-soft, #f6f4fa);
+  border: 1px solid var(--mel-border-soft, #e6e2ef);
+}
+
+.mel-launch-centre__after-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mel-launch-centre__after-list {
+  margin: 0;
+  padding-left: 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  line-height: 1.45;
+}
+
+.mel-launch-centre--ready .mel-launch-centre__hero-hint {
+  border-color: var(--mel-success-border, #b7dfc4);
+  background: var(--mel-success-soft, #eef8f1);
+}
+
+.mel-launch-centre--live .mel-launch-centre__hero-hint {
+  border-color: var(--mel-border-soft, #e6e2ef);
+}
+
+@media (max-width: 47.99rem) {
+  .mel-launch-centre {
+    max-width: none;
+    gap: 1rem;
+  }
+
+  .mel-launch-centre__headline {
+    font-size: 1.35rem;
+  }
+
+  .mel-launch-centre__item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mel-launch-centre__fix {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-launch-centre * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
