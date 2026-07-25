@@ -445,6 +445,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       'dashboard_kpis' => $this->buildDashboardKpis($kpis),
       'dashboard_action_cards' => $this->buildDashboardActionCards(),
       'dashboard_activity_items' => $this->buildDashboardActivity($userEvents, $events),
+      'dashboard_overnight_booking_count' => $this->countOvernightBookings($userEvents),
       'dashboard_alerts' => $this->buildDashboardAlerts($stripeStatusFormatted, $eventNodes),
       'dashboard_event_performance' => array_slice($events, 0, 4),
       // Legacy dashboard template compatibility (myeventlane_theme).
@@ -2468,6 +2469,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $items[] = [
           'timestamp' => (int) ($order->getCompletedTime() ?? $order->getChangedTime()),
           'type' => 'success',
+          'kind' => 'ticket_purchase',
           'message' => (string) $this->t('New ticket purchase for @event.', [
             '@event' => $eventTitles[$eventId] ?? $this->t('your event'),
           ]),
@@ -2499,6 +2501,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           $items[] = [
             'timestamp' => (int) ($rsvp->hasField('created') ? $rsvp->get('created')->value : time()),
             'type' => 'info',
+            'kind' => 'rsvp',
             'message' => (string) $this->t('New RSVP confirmed for @event.', [
               '@event' => $eventTitles[$eventId] ?? $this->t('your event'),
             ]),
@@ -2535,6 +2538,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $items[] = [
           'timestamp' => $edited->changed,
           'type' => 'neutral',
+          'kind' => 'event_update',
           'message' => (string) $this->t('Recent event update: @event.', [
             '@event' => $edited->title,
           ]),
@@ -2563,6 +2567,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
           $items[] = [
             'timestamp' => (int) ($ticket->hasField('checked_in_at') ? $ticket->get('checked_in_at')->value : time()),
             'type' => 'success',
+            'kind' => 'check_in',
             'message' => (string) $this->t('Recent check-in for @event.', [
               '@event' => $eventTitles[$eventId] ?? $this->t('your event'),
             ]),
@@ -2578,6 +2583,99 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     usort($items, static fn(array $a, array $b): int => ((int) ($b['timestamp'] ?? 0)) <=> ((int) ($a['timestamp'] ?? 0)));
 
     return array_slice($items, 0, 6);
+  }
+
+  /**
+   * Counts overnight ticket purchases + confirmed RSVPs for Daily Brief.
+   *
+   * Uses the same Commerce/RSVP sources as activity rows, but is not limited to
+   * the six-item recent-activity feed (which can be crowded by edits/check-ins).
+   *
+   * @param array<int, int|string> $eventIds
+   *   Vendor event node IDs.
+   *
+   * @return int
+   *   Booking count in the viewer-local overnight window.
+   */
+  private function countOvernightBookings(array $eventIds): int {
+    $eventIds = $this->entityIdNormalizer->normalizeNodeIds(array_values($eventIds));
+    if ($eventIds === []) {
+      return 0;
+    }
+
+    [$overnightStart, $overnightEnd] = $this->viewerOvernightWindow();
+    $count = 0;
+
+    try {
+      $orderItems = $this->entityTypeManager
+        ->getStorage('commerce_order_item')
+        ->loadByProperties(['field_target_event' => $eventIds]);
+      foreach ($orderItems as $orderItem) {
+        if (!$orderItem instanceof OrderItemInterface) {
+          continue;
+        }
+        $order = $this->getOrderFromItem($orderItem);
+        if (!$order || $order->getState()->getId() !== 'completed') {
+          continue;
+        }
+        $ts = (int) ($order->getCompletedTime() ?? $order->getChangedTime());
+        if ($ts >= $overnightStart && $ts <= $overnightEnd) {
+          $count++;
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      $this->melDebugLogger->warning('Overnight ticket count failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    try {
+      if ($this->entityTypeManager->hasDefinition('rsvp_submission')) {
+        $rsvpStorage = $this->entityTypeManager->getStorage('rsvp_submission');
+        $rsvpIds = $rsvpStorage->getQuery()
+          ->accessCheck(FALSE)
+          ->condition('event_id', $eventIds, 'IN')
+          ->condition('status', 'confirmed')
+          ->condition('created', $overnightStart, '>=')
+          ->condition('created', $overnightEnd, '<=')
+          ->execute();
+        $count += count($rsvpIds);
+      }
+    }
+    catch (\Throwable $e) {
+      $this->melDebugLogger->warning('Overnight RSVP count failed: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
+    return $count;
+  }
+
+  /**
+   * Viewer-local overnight window: 18:00 previous day → 06:00 today.
+   *
+   * @return array{0: int, 1: int}
+   *   Start and end unix timestamps.
+   */
+  private function viewerOvernightWindow(): array {
+    $now = time();
+    $tzName = trim((string) $this->currentUser->getTimeZone());
+    if ($tzName === '' && $this->configFactory) {
+      $tzName = (string) ($this->configFactory->get('system.date')->get('timezone.default') ?: 'UTC');
+    }
+    if ($tzName === '') {
+      $tzName = 'UTC';
+    }
+    try {
+      $tz = new \DateTimeZone($tzName);
+    }
+    catch (\Exception) {
+      $tz = new \DateTimeZone('UTC');
+    }
+    $localNow = (new \DateTimeImmutable('@' . $now))->setTimezone($tz);
+    $startOfToday = $localNow->setTime(0, 0, 0)->getTimestamp();
+    return [$startOfToday - (6 * 3600), $startOfToday + (6 * 3600)];
   }
 
   /**

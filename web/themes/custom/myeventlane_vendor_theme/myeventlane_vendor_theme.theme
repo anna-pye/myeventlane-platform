@@ -1345,6 +1345,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'mel_top_boost_opportunity' => NULL,
         'daily_brief' => NULL,
         'dashboard_activity_groups' => [],
+        'dashboard_overnight_booking_count' => 0,
         'show_todays_event' => FALSE,
         'todays_event_heading' => NULL,
         'current_event_in_session' => FALSE,
@@ -2094,9 +2095,6 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
   $account = is_array($variables['account'] ?? NULL) ? $variables['account'] : [];
   $name = trim((string) ($account['display_name'] ?? ''));
   $current = is_array($model['current_event'] ?? NULL) ? $model['current_event'] : NULL;
-  $activity = is_array($variables['dashboard_activity_items'] ?? NULL)
-    ? $variables['dashboard_activity_items']
-    : [];
 
   $now = (int) \Drupal::time()->getRequestTime();
   $tz = _myeventlane_vendor_theme_dashboard_viewer_timezone();
@@ -2120,8 +2118,6 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
   }
 
   $lines = [];
-  $event_today_label = (string) t('Event today');
-  $reasons = is_array($current['attention_reasons'] ?? NULL) ? $current['attention_reasons'] : [];
   // Near-term only — never treat distant upcoming as operational brief facts.
   $is_operational = _myeventlane_vendor_theme_dashboard_event_is_near_term($current, $now);
 
@@ -2131,22 +2127,21 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
       $title = (string) t('Your event');
     }
     $doors = trim((string) ($current['doors_open_label'] ?? ''));
-    if ($doors !== '') {
-      if (str_starts_with($doors, 'Opens in')) {
-        $lines[] = (string) t('@title @timing.', [
-          '@title' => $title,
-          '@timing' => mb_strtolower($doors),
-        ]);
-      }
-      elseif ($doors === (string) t('Doors open') || in_array($event_today_label, $reasons, TRUE)) {
-        $lines[] = (string) t('@title is on today.', ['@title' => $title]);
-      }
-    }
-    elseif (in_array($event_today_label, $reasons, TRUE)
-      || _myeventlane_vendor_theme_dashboard_event_is_in_session($current, $now)) {
+    $start = isset($current['start_timestamp']) ? (int) $current['start_timestamp'] : 0;
+    $in_session = _myeventlane_vendor_theme_dashboard_event_is_in_session($current, $now);
+    $doors_open = _myeventlane_vendor_theme_dashboard_doors_are_open($current);
+
+    // Prefer timestamps over English label prefixes so translated doors labels work.
+    if ($in_session || $doors_open) {
       $lines[] = (string) t('@title is on today.', ['@title' => $title]);
     }
-    elseif (!empty($current['date_label'])) {
+    elseif ($start > $now && $doors !== '') {
+      $lines[] = (string) t('@title @timing.', [
+        '@title' => $title,
+        '@timing' => mb_strtolower($doors),
+      ]);
+    }
+    elseif ($start > $now && !empty($current['date_label'])) {
       $lines[] = (string) t('@title is coming up — @when.', [
         '@title' => $title,
         '@when' => (string) $current['date_label'],
@@ -2154,27 +2149,8 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
     }
   }
 
-  // Overnight bookings/RSVPs using the viewer's local calendar day.
-  $start_of_today = $local_now->setTime(0, 0, 0)->getTimestamp();
-  $overnight_start = $start_of_today - (6 * 3600);
-  $overnight_end = $start_of_today + (6 * 3600);
-  $overnight_bookings = 0;
-  foreach ($activity as $item) {
-    if (!is_array($item) || empty($item['timestamp'])) {
-      continue;
-    }
-    $ts = (int) $item['timestamp'];
-    if ($ts < $overnight_start || $ts > $overnight_end) {
-      continue;
-    }
-    $message = (string) ($item['message'] ?? '');
-    if (
-      str_contains($message, 'ticket purchase')
-      || str_contains($message, 'RSVP')
-    ) {
-      $overnight_bookings++;
-    }
-  }
+  // Overnight bookings from dedicated controller count (not the capped activity feed).
+  $overnight_bookings = (int) ($variables['dashboard_overnight_booking_count'] ?? 0);
   if ($overnight_bookings > 0) {
     $lines[] = (string) \Drupal::translation()->formatPlural(
       $overnight_bookings,
