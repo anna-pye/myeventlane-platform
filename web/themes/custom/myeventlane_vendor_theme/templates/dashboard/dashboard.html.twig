@@ -35,14 +35,10 @@
 {% set support_action = organiser_actions|filter(item => item.key|default('') == 'support')|first|default(null) %}
 {% set stripe_panel = stripe|default(stripe_status|default({})) %}
 {% set has_current_event = current_event is not null %}
-{% set event_in_session_label = 'Event today'|t %}
-{% set current_event_in_session = current_event and current_event.status|default('') == 'upcoming' and event_in_session_label in current_event.attention_reasons|default([]) %}
-{# PDS "Today's focus": show only when live / doors open / opens within the next day — not any distant upcoming. #}
-{% set doors_label = current_event.doors_open_label|default('') %}
-{% set opens_within_day = doors_label and ('minute' in doors_label or 'hour' in doors_label) %}
-{% set is_doors_open = doors_label == 'Doors open'|t %}
-{% set show_todays_event = current_event and current_event.status|default('') == 'upcoming' and (current_event_in_session or is_doors_open or opens_within_day) %}
-{% set todays_event_heading = (current_event_in_session or is_doors_open) ? ("Today's event"|t) : ('Next up'|t) %}
+{# Near-term focus flags come from preprocess (start_timestamp ≤ ~24h / in-session). #}
+{% set current_event_in_session = current_event_in_session|default(false) %}
+{% set show_todays_event = show_todays_event|default(false) %}
+{% set todays_event_heading = todays_event_heading|default("Today's event"|t) %}
 {% set create_url = create_action.url|default(empty_state.url|default(null)) %}
 {% set create_label = create_action.label|default('Create event'|t) %}
 {% set events_url = path('myeventlane_vendor.console.events') %}

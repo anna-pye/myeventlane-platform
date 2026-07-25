@@ -1345,6 +1345,9 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'mel_top_boost_opportunity' => NULL,
         'daily_brief' => NULL,
         'dashboard_activity_groups' => [],
+        'show_todays_event' => FALSE,
+        'todays_event_heading' => NULL,
+        'current_event_in_session' => FALSE,
       ],
       'template' => 'dashboard/dashboard',
     ],
@@ -1936,7 +1939,100 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_dashboard(array 
       ? $variables['dashboard_activity_items']
       : []
   );
+
+  $model = is_array($variables['vendor_dashboard_view_model'] ?? NULL)
+    ? $variables['vendor_dashboard_view_model']
+    : [];
+  $current = is_array($model['current_event'] ?? NULL) ? $model['current_event'] : NULL;
+  $now = (int) \Drupal::time()->getRequestTime();
+  $near_term = _myeventlane_vendor_theme_dashboard_event_is_near_term($current, $now);
+  $in_session = _myeventlane_vendor_theme_dashboard_event_is_in_session($current, $now);
+
+  $variables['show_todays_event'] = $near_term;
+  $variables['current_event_in_session'] = $in_session;
+  $variables['todays_event_heading'] = $near_term
+    ? ($in_session || _myeventlane_vendor_theme_dashboard_doors_are_open($current)
+      ? (string) t("Today's event")
+      : (string) t('Next up'))
+    : NULL;
+
   $variables['daily_brief'] = _myeventlane_vendor_theme_dashboard_daily_brief($variables);
+}
+
+/**
+ * Viewer timezone for dashboard day-boundary logic (matches timezone cache context).
+ */
+function _myeventlane_vendor_theme_dashboard_viewer_timezone(): \DateTimeZone {
+  $name = trim((string) \Drupal::currentUser()->getTimeZone());
+  if ($name === '') {
+    $name = (string) (\Drupal::config('system.date')->get('timezone.default') ?: 'UTC');
+  }
+  try {
+    return new \DateTimeZone($name);
+  }
+  catch (\Exception) {
+    return new \DateTimeZone('UTC');
+  }
+}
+
+/**
+ * Whether doors_open_label means the event is currently in door/session state.
+ *
+ * @param array<string, mixed>|null $event
+ *   Dashboard event row.
+ */
+function _myeventlane_vendor_theme_dashboard_doors_are_open(?array $event): bool {
+  if ($event === NULL) {
+    return FALSE;
+  }
+  $doors = trim((string) ($event['doors_open_label'] ?? ''));
+  return $doors === (string) t('Doors open');
+}
+
+/**
+ * Whether the event is live / in-session from attention reasons or timestamps.
+ *
+ * @param array<string, mixed>|null $event
+ *   Dashboard event row.
+ */
+function _myeventlane_vendor_theme_dashboard_event_is_in_session(?array $event, int $now): bool {
+  if ($event === NULL || (string) ($event['status'] ?? '') !== 'upcoming') {
+    return FALSE;
+  }
+  $reasons = is_array($event['attention_reasons'] ?? NULL) ? $event['attention_reasons'] : [];
+  if (in_array((string) t('Event today'), $reasons, TRUE)) {
+    return TRUE;
+  }
+  $start = isset($event['start_timestamp']) ? (int) $event['start_timestamp'] : 0;
+  $end = isset($event['end_timestamp']) ? (int) $event['end_timestamp'] : 0;
+  if ($start > 0 && $start <= $now && ($end === 0 || $end >= $now)) {
+    return TRUE;
+  }
+  return _myeventlane_vendor_theme_dashboard_doors_are_open($event);
+}
+
+/**
+ * Near-term operational event: live, doors open, or starts within ~24 hours.
+ *
+ * Shared by Today's focus and Daily Brief so distant upcoming events do not
+ * surface as operational facts.
+ *
+ * @param array<string, mixed>|null $event
+ *   Dashboard event row.
+ */
+function _myeventlane_vendor_theme_dashboard_event_is_near_term(?array $event, int $now): bool {
+  if ($event === NULL || (string) ($event['status'] ?? '') !== 'upcoming') {
+    return FALSE;
+  }
+  if (_myeventlane_vendor_theme_dashboard_event_is_in_session($event, $now)) {
+    return TRUE;
+  }
+  $start = isset($event['start_timestamp']) ? (int) $event['start_timestamp'] : 0;
+  if ($start <= $now) {
+    return FALSE;
+  }
+  // Inclusive ~24h window so "Opens in 1 day" at exactly 86400s still qualifies.
+  return ($start - $now) <= 86400;
 }
 
 /**
@@ -2002,11 +2098,11 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
     ? $variables['dashboard_activity_items']
     : [];
 
-  $hour = (int) \Drupal::service('date.formatter')->format(
-    (int) \Drupal::time()->getRequestTime(),
-    'custom',
-    'G'
-  );
+  $now = (int) \Drupal::time()->getRequestTime();
+  $tz = _myeventlane_vendor_theme_dashboard_viewer_timezone();
+  $local_now = (new \DateTimeImmutable('@' . $now))->setTimezone($tz);
+  $hour = (int) $local_now->format('G');
+
   if ($hour < 12) {
     $greeting = $name !== ''
       ? (string) t('Good morning @name.', ['@name' => $name])
@@ -2025,19 +2121,17 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
 
   $lines = [];
   $event_today_label = (string) t('Event today');
-  $status = is_array($current) ? (string) ($current['status'] ?? '') : '';
   $reasons = is_array($current['attention_reasons'] ?? NULL) ? $current['attention_reasons'] : [];
-  $is_operational = is_array($current)
-    && ($status === 'upcoming' || in_array($event_today_label, $reasons, TRUE));
+  // Near-term only — never treat distant upcoming as operational brief facts.
+  $is_operational = _myeventlane_vendor_theme_dashboard_event_is_near_term($current, $now);
 
-  if ($is_operational) {
+  if ($is_operational && is_array($current)) {
     $title = trim((string) ($current['title'] ?? ''));
     if ($title === '') {
       $title = (string) t('Your event');
     }
     $doors = trim((string) ($current['doors_open_label'] ?? ''));
     if ($doors !== '') {
-      // Prefer doors label when it is a countdown; otherwise state the event.
       if (str_starts_with($doors, 'Opens in')) {
         $lines[] = (string) t('@title @timing.', [
           '@title' => $title,
@@ -2048,7 +2142,8 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
         $lines[] = (string) t('@title is on today.', ['@title' => $title]);
       }
     }
-    elseif (in_array($event_today_label, $reasons, TRUE)) {
+    elseif (in_array($event_today_label, $reasons, TRUE)
+      || _myeventlane_vendor_theme_dashboard_event_is_in_session($current, $now)) {
       $lines[] = (string) t('@title is on today.', ['@title' => $title]);
     }
     elseif (!empty($current['date_label'])) {
@@ -2059,9 +2154,8 @@ function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?arr
     }
   }
 
-  // Overnight bookings/RSVPs from existing activity timestamps only (local day).
-  $now = (int) \Drupal::time()->getRequestTime();
-  $start_of_today = (int) strtotime('today', $now);
+  // Overnight bookings/RSVPs using the viewer's local calendar day.
+  $start_of_today = $local_now->setTime(0, 0, 0)->getTimestamp();
   $overnight_start = $start_of_today - (6 * 3600);
   $overnight_end = $start_of_today + (6 * 3600);
   $overnight_bookings = 0;
