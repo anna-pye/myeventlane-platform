@@ -311,6 +311,16 @@ final class EventStudioPublishController {
       $nid,
       $share_url,
     );
+    // Last resort: never leave mission_control null after Hero CTA is known.
+    // Presentation-only assembly — no VM / Stripe — so shell JS can refresh.
+    if (($ajax_readiness['mission_control'] ?? NULL) === NULL) {
+      $ajax_readiness['mission_control'] = $this->workspacePresentation->buildDegradedMissionControlPayload(
+        $ajax_readiness,
+        $primary_cta,
+        $node->isPublished(),
+        $ajax_section,
+      );
+    }
     $payload = [
       'ok' => $ok,
       'state' => $state,

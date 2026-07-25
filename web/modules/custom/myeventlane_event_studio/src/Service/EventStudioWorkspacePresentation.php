@@ -292,6 +292,109 @@ final class EventStudioWorkspacePresentation {
     ];
   }
 
+  /**
+   * Last-resort Mission Control payload when Home snapshot + overview fallback fail.
+   *
+   * Uses only AJAX readiness fields and the authoritative Hero CTA — no view
+   * model or Stripe gate calls — so publish/unpublish responses can still
+   * refresh the card instead of leaving stale next-step copy.
+   *
+   * @param array<string, mixed> $ajax_readiness
+   * @param array{
+   *   key: string,
+   *   mode: string,
+   *   label: string,
+   *   url: string,
+   *   publish_is_primary: bool
+   * } $primary_cta
+   *
+   * @return array<string, mixed>
+   */
+  public function buildDegradedMissionControlPayload(
+    array $ajax_readiness,
+    array $primary_cta,
+    bool $published,
+    string $section = '',
+  ): array {
+    $ready = (bool) ($ajax_readiness['ready'] ?? FALSE);
+    $checklist = is_array($ajax_readiness['checklist'] ?? NULL)
+      ? $ajax_readiness['checklist']
+      : [];
+    $complete_count = count(array_filter(
+      $checklist,
+      static fn(mixed $item): bool => is_array($item) && !empty($item['complete']),
+    ));
+    $total_count = count($checklist);
+    if ($total_count < 1) {
+      $total_count = 1;
+    }
+    $tone = $ready ? 'success' : 'attention';
+    $headline = (string) ($ajax_readiness['strip_title'] ?? '');
+    $message = (string) ($ajax_readiness['strip_explanation'] ?? '');
+    $mode = (string) ($primary_cta['mode'] ?? 'link');
+    $key = (string) ($primary_cta['key'] ?? '');
+    $label = (string) ($primary_cta['label'] ?? '');
+    $url = (string) ($primary_cta['url'] ?? '');
+    $publish_is_primary = (bool) ($primary_cta['publish_is_primary'] ?? FALSE);
+
+    if (!$ready) {
+      $title = (string) $this->t('Continue setup');
+    }
+    elseif (!$published) {
+      $title = (string) $this->t('Ready when you are');
+      $message = $message !== ''
+        ? $message
+        : (string) $this->t('Your event looks ready. Publish when you want guests to find it.');
+    }
+    else {
+      $title = (string) $this->t('Share your event');
+      $message = $message !== ''
+        ? $message
+        : (string) $this->t('Your event is live. Share the page or message your attendees.');
+    }
+
+    return [
+      'heading' => (string) $this->t('Mission Control'),
+      'tone' => $tone,
+      'section' => $section,
+      'degraded' => TRUE,
+      'next_step' => [
+        'eyebrow' => (string) $this->t('Next step'),
+        'title' => $title,
+        'why_label' => (string) $this->t('Why this matters'),
+        'message' => $message,
+        'action_label' => $mode === 'publish' ? NULL : ($label !== '' ? $label : NULL),
+        'url' => $mode === 'publish' ? NULL : ($url !== '' ? $url : NULL),
+        'key' => $key,
+        'mode' => $mode,
+        'mirrors_hero' => TRUE,
+        'publish_is_primary' => $publish_is_primary,
+      ],
+      'improvements' => [
+        'heading' => (string) $this->t('Other improvements'),
+        'headline' => $headline,
+        'complete_count' => $complete_count,
+        'total_count' => $total_count,
+        'complete_label' => (string) $this->t('@done of @total complete', [
+          '@done' => $complete_count,
+          '@total' => $total_count,
+        ]),
+        'items' => $checklist,
+        'open' => count($checklist) <= 4,
+        'hint' => (string) $this->t('View checklist'),
+      ],
+      'event_quality' => [
+        'visible' => FALSE,
+        'heading' => (string) $this->t('Event Quality'),
+        'score' => 0,
+        'score_label' => (string) $this->t('@score%', ['@score' => 0]),
+        'status_label' => '',
+        'explanation' => '',
+        'ready' => FALSE,
+      ],
+    ];
+  }
+
   public function shouldShowHomepageReadinessCard(bool $promotion_ready, bool $published): bool {
     return !$promotion_ready || !$published;
   }

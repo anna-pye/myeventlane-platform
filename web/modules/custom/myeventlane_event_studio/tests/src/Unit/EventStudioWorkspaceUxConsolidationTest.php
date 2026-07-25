@@ -93,11 +93,19 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
 
   public function testPublishAjaxFallsBackToMissionControlWhenHomeSnapshotFails(): void {
     $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($publish);
+    $this->assertIsString($presentation);
+    $this->assertIsString($js);
     $this->assertStringContainsString("ajax_readiness['mission_control'] = NULL", $publish);
     $this->assertStringContainsString('buildMissionControl(', $publish);
     $this->assertStringContainsString('FALSE,', $publish);
     $this->assertStringContainsString('Mission Control AJAX fallback failed', $publish);
+    $this->assertStringContainsString('buildDegradedMissionControlPayload', $publish);
+    $this->assertStringContainsString('function buildDegradedMissionControlPayload', $presentation);
+    $this->assertStringContainsString('function buildDegradedMissionControl', $js);
+    $this->assertStringContainsString('buildDegradedMissionControl(shell, readiness)', $js);
   }
 
 }

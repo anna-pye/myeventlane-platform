@@ -257,14 +257,21 @@
    * Applies Mission Control ViewModel (Home body or non-Home chrome).
    * CTA mirrors Hero except approved Stripe Connect exception; publish mode
    * defers to Hero publish control.
+   *
+   * When the server could not attach mission_control, synthesise a degraded
+   * card from readiness checklist / strip fields so Hero and Mission Control
+   * do not diverge after publish or unpublish.
    */
   function updateMissionControl(shell, readiness) {
     if (!readiness) {
       return;
     }
-    const mc = readiness.mission_control
+    let mc = readiness.mission_control
       || (readiness.home && readiness.home.mission_control)
       || null;
+    if (!mc) {
+      mc = buildDegradedMissionControl(shell, readiness);
+    }
     if (!mc) {
       return;
     }
@@ -379,6 +386,84 @@
         explain.hidden = explanation === '';
       }
     }
+  }
+
+  /**
+   * Client-side Mission Control when readiness.mission_control is null.
+   */
+  function buildDegradedMissionControl(shell, readiness) {
+    if (!shell || !shell.querySelector('[data-mel-mission-control]')) {
+      return null;
+    }
+    const published = readiness.published === true || shell.dataset.melPublished === '1';
+    const ready = !!readiness.ready;
+    const checklist = Array.isArray(readiness.checklist) ? readiness.checklist : [];
+    const complete = checklist.filter((item) => item && item.complete).length;
+    const total = Math.max(1, checklist.length);
+    const stripTitle = typeof readiness.strip_title === 'string' ? readiness.strip_title : '';
+    let message = typeof readiness.strip_explanation === 'string' ? readiness.strip_explanation : '';
+    let title;
+    let mode = 'link';
+    let key = 'continue_setup';
+    let actionLabel = null;
+    let url = null;
+
+    if (!ready) {
+      title = Drupal.t('Continue setup');
+      key = 'continue_setup';
+      const publishingLink = shell.querySelector('a[href*="/studio/publishing"]');
+      if (publishingLink && publishingLink.getAttribute('href')) {
+        actionLabel = Drupal.t('Continue setup');
+        url = publishingLink.getAttribute('href');
+      }
+    }
+    else if (!published) {
+      title = Drupal.t('Ready when you are');
+      mode = 'publish';
+      key = 'publish';
+      if (!message) {
+        message = Drupal.t('Your event looks ready. Publish when you want guests to find it.');
+      }
+    }
+    else {
+      title = Drupal.t('Share your event');
+      key = 'share';
+      if (!message) {
+        message = Drupal.t('Your event is live. Share the page or message your attendees.');
+      }
+      const shareLink = shell.querySelector('[data-mel-primary-cta][data-mel-cta-key="share"], a[href*="/studio/marketing"]');
+      if (shareLink && shareLink.getAttribute('href')) {
+        actionLabel = Drupal.t('Share');
+        url = shareLink.getAttribute('href');
+      }
+    }
+
+    return {
+      tone: ready ? 'success' : 'attention',
+      degraded: true,
+      next_step: {
+        title: title,
+        message: message,
+        mode: mode,
+        key: key,
+        action_label: actionLabel,
+        url: url,
+        mirrors_hero: true,
+        publish_is_primary: mode === 'publish',
+      },
+      improvements: {
+        open: checklist.length <= 4,
+        complete_label: Drupal.t('@done of @total complete', {
+          '@done': complete,
+          '@total': total,
+        }),
+        headline: stripTitle,
+        items: checklist,
+      },
+      event_quality: {
+        visible: false,
+      },
+    };
   }
 
   function updateReadiness(shell, readiness) {
