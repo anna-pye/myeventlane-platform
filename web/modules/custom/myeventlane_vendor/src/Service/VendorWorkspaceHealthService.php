@@ -170,22 +170,28 @@ final class VendorWorkspaceHealthService {
   /**
    * Builds the branding checklist item.
    *
+   * Configured only when a logo or an explicit Messages from-name is set.
+   * Organisation display name alone must not count — runtime mail may fall
+   * back to getName(), but Health should not imply brand defaults are ready.
+   *
    * @return array<string, mixed>
    *   Checklist item payload.
    */
   private function brandingItem(?Vendor $vendor): array {
     $configured = FALSE;
     if ($vendor instanceof Vendor) {
-      $hasLogo = $vendor->hasField('field_vendor_logo')
-        && !$vendor->get('field_vendor_logo')->isEmpty();
-      $from = '';
+      $hasLogo = FALSE;
+      foreach (['field_vendor_logo', 'field_msg_logo', 'field_logo_image'] as $logoField) {
+        if ($vendor->hasField($logoField) && !$vendor->get($logoField)->isEmpty()) {
+          $hasLogo = TRUE;
+          break;
+        }
+      }
+      $hasFromName = FALSE;
       if ($vendor->hasField('field_msg_from_name') && !$vendor->get('field_msg_from_name')->isEmpty()) {
-        $from = trim((string) $vendor->get('field_msg_from_name')->value);
+        $hasFromName = trim((string) $vendor->get('field_msg_from_name')->value) !== '';
       }
-      if ($from === '') {
-        $from = trim((string) ($vendor->getName() ?? ''));
-      }
-      $configured = $hasLogo || $from !== '';
+      $configured = $hasLogo || $hasFromName;
     }
 
     $brandUrl = $this->safeRouteUrl('myeventlane_vendor.console.messaging_brand')

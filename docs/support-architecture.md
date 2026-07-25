@@ -46,6 +46,7 @@ Reference for the MyEventLane support subsystem. **No new features** — stabili
 | Route | Permission | Module |
 |-------|------------|--------|
 | `/vendor/support` | view vendor escalations | myeventlane_escalations_portal |
+| `/vendor/support/add` | view vendor escalations | myeventlane_escalations_portal |
 | `/vendor/support/{escalation}` | view vendor escalations | myeventlane_escalations_portal |
 | `/vendor/support/{escalation}/resolve` | resolve vendor escalations | myeventlane_escalations_portal |
 | `/vendor/support/{escalation}/ai` | use vendor ai assistant | myeventlane_vendor_ai (custom access: vendor-scoped escalation) |

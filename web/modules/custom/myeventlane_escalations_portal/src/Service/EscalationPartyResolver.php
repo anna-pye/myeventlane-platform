@@ -35,15 +35,9 @@ final class EscalationPartyResolver {
   public function resolve(AccountInterface $account, EntityInterface $escalation): string {
     $uid = (int) $account->id();
 
-    // Check if this user is the customer who submitted the escalation.
-    if ($escalation->hasField('user_id') && !$escalation->get('user_id')->isEmpty()) {
-      $customer_uid = (int) $escalation->get('user_id')->target_id;
-      if ($uid === $customer_uid) {
-        return 'customer';
-      }
-    }
-
-    // Check if this user belongs to the vendor assigned to the escalation.
+    // Vendor membership wins over submitter identity. Organiser-created
+    // requests set both user_id and vendor_id on the same person; they must
+    // act as vendor on /vendor/support (view, reply, resolve).
     if ($escalation->hasField('vendor_id') && !$escalation->get('vendor_id')->isEmpty()) {
       $escalation_vendor_id = (int) $escalation->get('vendor_id')->target_id;
       $user_vendor = $this->vendorResolver->resolveFromUser($account);
@@ -52,7 +46,13 @@ final class EscalationPartyResolver {
       }
     }
 
-    // Check if user has staff/admin permissions.
+    if ($escalation->hasField('user_id') && !$escalation->get('user_id')->isEmpty()) {
+      $customer_uid = (int) $escalation->get('user_id')->target_id;
+      if ($uid === $customer_uid) {
+        return 'customer';
+      }
+    }
+
     if ($account->hasPermission('administer escalations') || $account->hasPermission('access administration pages')) {
       return 'staff';
     }
@@ -79,6 +79,25 @@ final class EscalationPartyResolver {
    */
   public function isStaff(AccountInterface $account): bool {
     return $account->hasPermission('administer escalations') || $account->hasPermission('access administration pages');
+  }
+
+  /**
+   * Whether the escalation submitter is also the assigned organiser.
+   *
+   * Used so organiser-created requests wait on staff (not a phantom customer).
+   */
+  public function submitterIsAssignedVendor(EntityInterface $escalation): bool {
+    if (!$escalation->hasField('user_id') || $escalation->get('user_id')->isEmpty()) {
+      return FALSE;
+    }
+    if (!$escalation->hasField('vendor_id') || $escalation->get('vendor_id')->isEmpty()) {
+      return FALSE;
+    }
+    $submitter = $escalation->get('user_id')->entity;
+    if (!$submitter instanceof AccountInterface) {
+      return FALSE;
+    }
+    return $this->isVendor($submitter, $escalation);
   }
 
 }

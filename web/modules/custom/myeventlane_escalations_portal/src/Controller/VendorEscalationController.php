@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_escalations\Entity\Escalation;
 use Drupal\myeventlane_escalations_portal\Form\EscalationReplyForm;
+use Drupal\myeventlane_escalations_portal\Form\VendorEscalationForm;
 use Drupal\myeventlane_escalations_portal\Service\EscalationMailer;
 use Drupal\myeventlane_escalations_portal\Service\EscalationPartyResolver;
 use Drupal\myeventlane_escalations_portal\Service\EscalationThreadRenderer;
@@ -126,6 +127,28 @@ final class VendorEscalationController extends ControllerBase {
           'myeventlane_vendor_theme/global-styling',
         ],
       ],
+      '#cache' => [
+        'contexts' => ['user', 'user.permissions'],
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Organiser contact form — creates escalations with vendor_id set.
+   */
+  public function add(): array {
+    $vendor = $this->vendorResolver->resolveFromUser($this->currentUser());
+    if (!$vendor) {
+      return ['#markup' => '<p>' . $this->t('You are not associated with an organiser account.') . '</p>'];
+    }
+
+    $form = $this->formBuilder()->getForm(VendorEscalationForm::class);
+    return [
+      '#theme' => 'mel_support_layout',
+      '#title' => $this->t('Contact Support'),
+      '#intro' => $this->t('Tell us what’s going on — we’ll reply by email.'),
+      '#content' => $form,
       '#cache' => [
         'contexts' => ['user', 'user.permissions'],
         'max-age' => 0,

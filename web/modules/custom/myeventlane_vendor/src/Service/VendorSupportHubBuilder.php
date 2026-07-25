@@ -107,16 +107,15 @@ final class VendorSupportHubBuilder {
         'title' => (string) $this->t('Contact Support'),
         'body' => (string) $this->t('Start a request when you need a human. We’ll keep the tone warm and the next step clear.'),
         'cta_label' => (string) $this->t('Contact Support'),
-        // Customer create path; organiser may also receive assigned cases.
-        'cta_url' => $this->safeRouteUrl('myeventlane_escalations_portal.customer_add')
-        ?? $this->safeRouteUrl('myeventlane_escalations_portal.customer_support')
-        ?? '/my/support',
+        // Organiser create path stamps vendor_id so the case appears in Open requests.
+        'cta_url' => $this->safeRouteUrl('myeventlane_escalations_portal.vendor_add')
+        ?? '/vendor/support/add',
       ],
       'requests' => [
         'title' => (string) $this->t('Open requests'),
-        'body' => (string) $this->t('Requests assigned to your organiser account.'),
+        'body' => (string) $this->t('Requests for your organiser account — including ones you start here.'),
         'empty_title' => (string) $this->t('No open requests'),
-        'empty_body' => (string) $this->t('When a guest or our team needs you, it will show up here.'),
+        'empty_body' => (string) $this->t('When you contact us, or a guest needs you, it will show up here.'),
         'count' => $openCount,
         'rows' => $openRows,
       ],
