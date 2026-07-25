@@ -342,8 +342,14 @@ final class EventStudioSectionRenderer {
 
     $checklist_open = !$ready;
     $checklist_items = $this->buildLaunchChecklistItems($readiness, $nid);
-    $complete_count = count(array_filter($checklist_items, static fn(array $item): bool => !empty($item['complete'])));
-    $total_count = count($checklist_items);
+    // Progress fraction is required items only (complete + blockers).
+    // Warnings/ideas stay visible but must not contradict "All required items complete".
+    $required_items = array_values(array_filter(
+      $checklist_items,
+      static fn(array $item): bool => in_array($item['tone'] ?? '', ['success', 'attention'], TRUE),
+    ));
+    $complete_count = count(array_filter($required_items, static fn(array $item): bool => !empty($item['complete'])));
+    $total_count = count($required_items);
 
     $settings_url = NULL;
     try {
@@ -473,7 +479,7 @@ final class EventStudioSectionRenderer {
       $route = 'myeventlane_event_studio.workspace_images';
       $fix_label = (string) $this->t('Fix → Images');
     }
-    elseif (str_contains($lower, 'date') || str_contains($lower, 'schedule') || str_contains($lower, 'start') || str_contains($lower, 'end')) {
+    elseif ($this->isLaunchScheduleFixLabel($lower)) {
       $route = 'myeventlane_event_studio.workspace_schedule';
       $fix_label = (string) $this->t('Fix → Schedule');
     }
@@ -489,19 +495,37 @@ final class EventStudioSectionRenderer {
       ];
     }
     catch (\Throwable) {
+      // Organiser/terms blockers must not fall through to Stripe Connect.
       if ($route === 'myeventlane_vendor.console.settings') {
-        try {
-          return [
-            'url' => Url::fromRoute('myeventlane_vendor.console.payments')->toString(),
-            'label' => (string) $this->t('Connect Stripe'),
-          ];
-        }
-        catch (\Throwable) {
-          return ['url' => NULL, 'label' => NULL];
+        foreach (['myeventlane_vendor.console.settings_profile'] as $fallback) {
+          try {
+            return [
+              'url' => Url::fromRoute($fallback)->toString(),
+              'label' => $fix_label,
+            ];
+          }
+          catch (\Throwable) {
+            // Try next fallback.
+          }
         }
       }
       return ['url' => NULL, 'label' => NULL];
     }
+  }
+
+  /**
+   * True when a readiness label is about event schedule dates (not "attendee").
+   */
+  private function isLaunchScheduleFixLabel(string $lower): bool {
+    if (str_contains($lower, 'schedule')) {
+      return TRUE;
+    }
+    // Prefer explicit phrases used by EventReadinessService.
+    if (str_contains($lower, 'start date') || str_contains($lower, 'end date')) {
+      return TRUE;
+    }
+    // Word-boundary "date"/"dates" — avoids "update", keeps "Event dates are invalid".
+    return preg_match('/\bdates?\b/', $lower) === 1;
   }
 
   private function launchHeadline(bool $ready, bool $published, int $remaining): string {

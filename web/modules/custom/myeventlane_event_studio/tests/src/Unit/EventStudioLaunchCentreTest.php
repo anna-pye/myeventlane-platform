@@ -83,6 +83,41 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringContainsString('VendorPublishRequirementsGate', $eligibility);
   }
 
+  public function testLaunchFixLinkDoesNotMatchEndInsideAttendee(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $method = $this->extractMethodBody($renderer, 'resolveLaunchFixLink');
+    $this->assertStringNotContainsString("str_contains(\$lower, 'end')", $method);
+    $this->assertStringNotContainsString("str_contains(\$lower, 'start')", $method);
+    $this->assertStringContainsString('isLaunchScheduleFixLabel', $method);
+    $schedule = $this->extractMethodBody($renderer, 'isLaunchScheduleFixLabel');
+    $this->assertStringContainsString('start date', $schedule);
+    $this->assertStringContainsString('end date', $schedule);
+    $this->assertStringContainsString('\\bdates?\\b', $schedule);
+  }
+
+  public function testLaunchChecklistProgressCountsRequiredItemsOnly(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $method = $this->extractMethodBody($renderer, 'buildPublishingHub');
+    $this->assertStringContainsString("in_array(\$item['tone'] ?? '', ['success', 'attention'], TRUE)", $method);
+    $this->assertStringContainsString('required_items', $method);
+  }
+
+  public function testOrganiserFixFallbackIsNotConnectStripe(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $method = $this->extractMethodBody($renderer, 'resolveLaunchFixLink');
+    $this->assertStringContainsString('settings_profile', $method);
+    $this->assertStringContainsString('Organiser/terms blockers must not fall through to Stripe Connect', $method);
+    // Catch block must keep the Open account label, never rebadge as Connect Stripe.
+    $catchPos = strpos($method, 'catch (\Throwable)');
+    $this->assertNotFalse($catchPos);
+    $catchBody = substr($method, $catchPos);
+    $this->assertStringNotContainsString('Connect Stripe', $catchBody);
+    $this->assertStringNotContainsString('console.payments', $catchBody);
+  }
+
   private function extractMethodBody(string $source, string $methodName): string {
     $pattern = '/(?:private|public|protected) function ' . preg_quote($methodName, '/') . '\(/';
     if (!preg_match($pattern, $source, $match, PREG_OFFSET_CAPTURE)) {
