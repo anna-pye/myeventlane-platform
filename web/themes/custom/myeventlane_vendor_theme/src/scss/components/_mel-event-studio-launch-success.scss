@@ -115,7 +115,7 @@
 }
 
 // ============================================================================
-// RECOMMENDED — Share as sole Outcome primary
+// RECOMMENDED — Share as a strong secondary; Hero retains the sole primary
 // ============================================================================
 
 .mel-event-studio--workspace .mel-launch-success__eyebrow {
@@ -131,20 +131,20 @@
   margin: 0 0 $spacing-4;
 }
 
-.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-launch-success__share.mel-btn--primary,
-.mel-event-studio--workspace .mel-launch-success__share.mel-btn--primary {
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-launch-success__share.mel-btn--secondary,
+.mel-event-studio--workspace .mel-launch-success__share.mel-btn--secondary {
   min-height: 44px;
-  background-color: $mel-brand-purple;
-  border-color: $mel-brand-purple;
-  color: #fff;
+  background-color: $mel-ws-purple-tint;
+  border-color: $mel-ws-purple-border;
+  color: $mel-brand-purple;
   font-weight: $font-weight-semibold;
   box-shadow: none;
 
   &:hover,
   &:focus {
-    background-color: #5a38e0;
-    border-color: #5a38e0;
-    color: #fff;
+    background-color: $mel-ws-lavender;
+    border-color: $mel-brand-lavender;
+    color: $text-primary;
   }
 
   &:focus-visible {
@@ -163,6 +163,7 @@
 }
 
 .mel-event-studio--workspace .mel-launch-success__secondary .mel-btn--secondary:focus-visible,
+.mel-event-studio--workspace .mel-launch-success__secondary .mel-btn--ghost:focus-visible,
 .mel-event-studio--workspace .mel-launch-success__social-link:focus-visible {
   outline: 3px solid $mel-brand-coral;
   outline-offset: 2px;
