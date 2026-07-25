@@ -8,6 +8,20 @@ Versioning follows the Versioning Policy in [README.md](README.md#versioning-pol
 
 ---
 
+## [1.0.1] — 2026-07-25 — Foundation governance
+
+### Accepted
+
+- **DDR-008** — Canonical Event Workspace (path & shell): organiser product on `mel_event_studio_workspace`; transitional `/studio` paths; path unification deferred; Mission Control + Hero CTA contract documented against shipped Foundation.
+- **DDR-009** — Workspace Navigation: `EventStudioSectionManager` sole organiser nav source; Attendees before Orders; Door Mode under Attendees (direction); Home/Details/Images labels match runtime.
+
+### Notes
+
+- PDS design philosophy remains **1.0 FROZEN**; this entry records accepted DDRs for Vendor Workspace Foundation merge preparation.
+- Path rename (`/vendor/events/{id}` without `/studio`) and Door Mode chrome nesting remain post-Foundation work.
+
+---
+
 ## [1.0] — 2026-07-25 — FROZEN
 
 ### Declared

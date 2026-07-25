@@ -51,7 +51,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $summary = $this->presentation->buildReadinessSummary($bundle, $node);
 
     $this->assertTrue($summary['show_publish_strip']);
-    $this->assertSame("You're almost there…", $summary['strip_title']);
+    $this->assertSame('Almost ready', $summary['strip_title']);
     $this->assertStringContainsString('One more thing before publishing', $summary['strip_explanation']);
     $this->assertNotEmpty($summary['checklist']);
   }
@@ -62,7 +62,7 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $summary = $this->presentation->buildReadinessSummary($bundle, $node);
 
     $this->assertFalse($summary['show_publish_strip']);
-    $this->assertSame('Published and ready', $summary['strip_title']);
+    $this->assertSame('Live and ready', $summary['strip_title']);
   }
 
   public function testPublishedPromotionIssueShowsHomepageCard(): void {
@@ -232,48 +232,35 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     }
   }
 
-  public function testWorkspaceTemplateIncludesEventHealthBeforePublishStrip(): void {
+  public function testWorkspaceTemplateIncludesMissionControlWithoutEventHealth(): void {
     $workspace = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-workspace.html.twig');
     $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
     $this->assertIsString($workspace);
     $this->assertIsString($publish);
-    $this->assertStringContainsString('mel-event-studio-event-health', $workspace);
-    $healthPos = strpos($workspace, 'mel-event-studio-event-health');
-    $stripPos = strpos($workspace, 'mel-event-studio-readiness-strip');
-    $this->assertNotFalse($healthPos);
-    $this->assertNotFalse($stripPos);
-    $this->assertLessThan($stripPos, $healthPos);
-    $this->assertStringContainsString("'event_health'", $publish);
+    $this->assertStringContainsString('mel-event-studio-mission-control', $workspace);
+    $this->assertStringNotContainsString('mel-event-studio-event-health', $workspace);
     $this->assertStringContainsString('buildAjaxReadinessPayloadFromBundle', $publish);
     $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
+    $this->assertStringContainsString('mission_control', $publish);
+    $this->assertStringContainsString('resolveAuthoritativePrimaryCta', $publish);
   }
 
-  public function testShellJsUpdatesEventHealthAfterPublish(): void {
+  public function testShellJsUpdatesMissionControlAfterPublish(): void {
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
-    $this->assertStringContainsString('function updateEventHealth', $js);
-    $this->assertStringContainsString('result.event_health', $js);
-    $this->assertStringContainsString('ensureReadinessStrip', $js);
+    $this->assertStringContainsString('function updateMissionControl', $js);
     $this->assertStringContainsString('isHomeShell', $js);
     $this->assertStringContainsString('mel-event-studio--home', $js);
-    $this->assertStringContainsString('updateHomepageReadiness', $js);
-    $this->assertStringContainsString('updateHomeDashboard', $js);
-    $this->assertStringContainsString('data-mel-home-dashboard', $js);
+    $this->assertStringContainsString('data-mel-mission-control', $js);
     $this->assertStringContainsString('readiness.home', $js);
-    $this->assertStringContainsString('updateReadinessChecklist', $js);
-    $this->assertStringContainsString('strip_explanation', $js);
-    $this->assertStringContainsString('data-mel-readiness-explain', $js);
-    // Count-mode copy must match mel-event-studio-workspace.html.twig.
-    $this->assertStringContainsString("@count to finish", $js);
-    $this->assertStringContainsString("@count to review", $js);
-    $this->assertStringNotContainsString('blocker(s)', $js);
+    $this->assertStringContainsString('mission_control', $js);
     $this->assertStringContainsString("tone === 'idea'", $js);
-    $this->assertStringContainsString("Drupal.t('Idea')", $js);
+    $this->assertStringNotContainsString('function ensureReadinessStrip', $js);
+    $this->assertStringNotContainsString('function updateHomepageReadiness', $js);
     $twig = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-overview.html.twig');
     $this->assertIsString($twig);
     $this->assertStringContainsString('data-mel-home-dashboard', $twig);
-    $this->assertStringContainsString('data-mel-home-event-ready', $twig);
-    $this->assertStringContainsString('data-mel-home-readiness-checklist', $twig);
+    $this->assertStringContainsString('mel-event-studio-mission-control.html.twig', $twig);
   }
 
   /**

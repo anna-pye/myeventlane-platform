@@ -103,10 +103,12 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
     $services = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.services.yml');
     $twig = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-overview.html.twig');
+    $mission = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-mission-control.html.twig');
     $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.module');
     $this->assertIsString($builder);
     $this->assertIsString($services);
     $this->assertIsString($twig);
+    $this->assertIsString($mission);
     $this->assertIsString($module);
 
     $this->assertStringContainsString('EventReadinessFacade $readinessFacade', $builder);
@@ -114,8 +116,9 @@ final class EventWorkspaceOverviewChecklistTest extends UnitTestCase {
     $this->assertStringContainsString('$recommended', $builder);
     $this->assertStringContainsString("'@myeventlane_event_studio.readiness_facade'", $services);
     $this->assertStringContainsString('mel-event-workspace-home', $twig);
-    $this->assertStringContainsString('event_ready', $module);
-    $this->assertStringContainsString('View checklist', $twig);
+    $this->assertStringContainsString('mission_control', $module);
+    $this->assertStringContainsString('mel-event-studio-mission-control.html.twig', $twig);
+    $this->assertStringContainsString('View checklist', $mission);
   }
 
   public function testActivityOrderIdSortIsTableQualified(): void {

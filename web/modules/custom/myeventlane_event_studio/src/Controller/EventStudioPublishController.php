@@ -261,31 +261,66 @@ final class EventStudioPublishController {
       $readiness_bundle,
       $node,
     );
+    $ajax_section = $section !== '' ? $section : 'overview';
+    // Always initialise so shell JS never keeps a stale Mission Control card
+    // when the Home snapshot path fails after a successful publish.
+    $ajax_readiness['mission_control'] = NULL;
     try {
       // Same Stripe + mission-control guide cards as full Home render.
-      $ajax_readiness['home'] = $this->overviewBuilder->buildHomeAjaxGuideSnapshot(
+      $home_snapshot = $this->overviewBuilder->buildHomeAjaxGuideSnapshot(
         $node,
         $this->currentUser,
+        $ajax_section,
       );
+      $ajax_readiness['home'] = $home_snapshot;
+      $ajax_readiness['mission_control'] = $home_snapshot['mission_control'] ?? NULL;
     }
     catch (\Throwable $e) {
       $this->logger->error('Event Workspace Home AJAX guide snapshot failed for event @nid: @message', [
         '@nid' => (string) $node->id(),
         '@message' => $e->getMessage(),
       ]);
+      try {
+        // Degraded path: reuse readiness bundle, skip Home VM so shell still
+        // refreshes next-step / checklist after publish when snapshot fails.
+        $ajax_readiness['mission_control'] = $this->overviewBuilder->buildMissionControl(
+          $node,
+          $this->currentUser,
+          $ajax_section,
+          $readiness_bundle,
+          FALSE,
+        );
+      }
+      catch (\Throwable $fallback) {
+        $this->logger->error('Event Workspace Mission Control AJAX fallback failed for event @nid: @message', [
+          '@nid' => (string) $node->id(),
+          '@message' => $fallback->getMessage(),
+        ]);
+      }
     }
-    $homepage_card = $this->workspacePresentation->buildHomepageReadinessCard(
-      $node,
-      $readiness_bundle,
-      $section,
-    );
-    if ($homepage_card !== NULL) {
-      $ajax_readiness['homepage_readiness_html'] = (string) $this->renderer->renderPlain($homepage_card);
-    }
-    else {
-      $ajax_readiness['homepage_readiness_html'] = '';
-    }
+    // Homepage readiness card retired from chrome — Event Quality lives in Mission Control.
+    $ajax_readiness['homepage_readiness_html'] = '';
+    $ajax_readiness['show_homepage_readiness'] = FALSE;
 
+    $topbar_status = $this->workspacePresentation->buildTopbarStatus($node);
+    $nid = (int) $node->id();
+    $share_url = Url::fromRoute('myeventlane_event_studio.workspace_marketing', ['node' => $nid])->toString();
+    $primary_cta = $this->overviewBuilder->resolveAuthoritativePrimaryCta(
+      $publish_result,
+      $node->isPublished(),
+      $nid,
+      $share_url,
+    );
+    // Last resort: never leave mission_control null after Hero CTA is known.
+    // Presentation-only assembly — no VM / Stripe — so shell JS can refresh.
+    if (($ajax_readiness['mission_control'] ?? NULL) === NULL) {
+      $ajax_readiness['mission_control'] = $this->workspacePresentation->buildDegradedMissionControlPayload(
+        $ajax_readiness,
+        $primary_cta,
+        $node->isPublished(),
+        $ajax_section,
+      );
+    }
     $payload = [
       'ok' => $ok,
       'state' => $state,
@@ -293,18 +328,23 @@ final class EventStudioPublishController {
       'messages' => $messages,
       'published' => $node->isPublished(),
       'topbar' => [
-        // Match EventStudioController::buildTopbar Sprint 2 organiser copy.
-        'status' => $node->isPublished() ? (string) $this->t('Live') : (string) $this->t('Draft'),
+        // Same authoritative CTA contract as EventStudioController::buildTopbar.
+        'status' => $topbar_status['label'],
+        'status_key' => $topbar_status['key'],
         'state' => ($node->isPublished() && $publish_result->ready)
           ? ''
           : $this->workspacePresentation->operationalState($publish_result),
         'location' => $this->workspacePresentation->buildTopbarLocation($node),
+        'date_label' => $this->workspacePresentation->buildTopbarDateLabel($node),
+        'venue_label' => $this->workspacePresentation->buildTopbarVenueLabel($node),
+        'primary_cta' => $primary_cta,
         'lastSaved' => $node->getChangedTime() > 0 ? (string) $this->t('Last saved @time', [
           '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
         ]) : (string) $this->t('Not saved yet'),
       ],
       'readiness' => $ajax_readiness,
-      'event_health' => $this->workspacePresentation->buildEventHealth($readiness_bundle, $node, $boost),
+      // Event Health chrome retired — Mission Control owns operational summary.
+      'event_health' => NULL,
       'changed' => $node->getChangedTime(),
       'revisionId' => (int) $node->getRevisionId(),
     ];

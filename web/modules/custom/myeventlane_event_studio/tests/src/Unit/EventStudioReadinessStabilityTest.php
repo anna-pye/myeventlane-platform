@@ -65,7 +65,8 @@ final class EventStudioReadinessStabilityTest extends UnitTestCase {
     $this->assertStringContainsString('myeventlane_event_studio.readiness_facade', $services);
     $this->assertStringContainsString('EventReadinessFacade', $controller);
     $this->assertStringContainsString('workspacePresentation', $controller);
-    $this->assertStringContainsString('buildHomepageReadinessCard', $controller);
+    $this->assertStringContainsString('overviewBuilder', $controller);
+    $this->assertStringContainsString('buildMissionControl', $controller);
     $this->assertStringContainsString('buildChecklistCardFromPresentation', $presentation);
   }
 

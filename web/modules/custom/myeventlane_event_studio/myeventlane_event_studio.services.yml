@@ -17,6 +17,7 @@ services:
       - '@myeventlane_event_studio.preprocess'
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_event_studio.workspace_presentation'
+      - '@myeventlane_event_studio.overview_builder'
       - '@myeventlane_boost.extension_recommendation'
     tags:
       - { name: controller.service_arguments }

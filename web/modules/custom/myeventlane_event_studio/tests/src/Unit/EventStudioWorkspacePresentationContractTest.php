@@ -125,7 +125,44 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertIsString($presentation);
     $this->assertStringContainsString('data-mel-topbar-location', $topbar);
     $this->assertStringContainsString('buildTopbarLocation', $presentation);
+    $this->assertStringContainsString('buildTopbarDateLabel', $presentation);
+    $this->assertStringContainsString('buildTopbarVenueLabel', $presentation);
+    $this->assertStringContainsString('buildTopbarStatus', $presentation);
+    $this->assertStringContainsString('data-mel-hero-primary-key', $topbar);
     $this->assertStringContainsString('eventCardViewModel', $presentation);
+  }
+
+  public function testTopbarStatusPastWhenEventEndPassed(): void {
+    $past = $this->createMock(NodeInterface::class);
+    $past->method('isPublished')->willReturn(TRUE);
+    $past->method('bundle')->willReturn('event');
+    $past->method('hasField')->willReturnCallback(static fn(string $field): bool => $field === 'field_event_end');
+    $pastDate = new \DateTimeImmutable('2020-01-01T12:00:00');
+    $endItem = new class($pastDate) {
+      public object $date;
+      public function __construct(object $date) {
+        $this->date = $date;
+      }
+    };
+    $endField = $this->createMock(\Drupal\Core\Field\FieldItemListInterface::class);
+    $endField->method('isEmpty')->willReturn(FALSE);
+    $endField->method('first')->willReturn($endItem);
+    $past->method('get')->willReturnCallback(static function (string $field) use ($endField) {
+      return $field === 'field_event_end' ? $endField : NULL;
+    });
+
+    $status = $this->presentation->buildTopbarStatus($past);
+    $this->assertSame('Past', $status['label']);
+    $this->assertSame('past', $status['key']);
+  }
+
+  public function testTopbarStatusDraftWhenUnpublished(): void {
+    $draft = $this->node(FALSE, 301);
+    $draft->method('bundle')->willReturn('event');
+    $draft->method('hasField')->willReturn(FALSE);
+    $status = $this->presentation->buildTopbarStatus($draft);
+    $this->assertSame('Draft', $status['label']);
+    $this->assertSame('draft', $status['key']);
   }
 
   public function testPublishControllerUsesFacadeBundleForAjaxPayload(): void {
@@ -133,20 +170,21 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertIsString($publish);
     $this->assertStringContainsString('readinessFacade->evaluate', $publish);
     $this->assertStringContainsString('buildAjaxReadinessPayloadFromBundle', $publish);
-    $this->assertStringContainsString('buildEventHealth($readiness_bundle', $publish);
+    $this->assertStringContainsString('resolveAuthoritativePrimaryCta', $publish);
+    $this->assertStringContainsString('mission_control', $publish);
     $this->assertStringContainsString('homepage_readiness_html', $publish);
     $this->assertStringNotContainsString('buildAjaxReadinessPayload(', $publish);
-    // Topbar badge must match Sprint 2 full-page copy after in-place publish.
-    $this->assertStringContainsString("\$this->t('Live')", $publish);
+    // Topbar badge uses presentation status (Draft / Live / Past) — not hardcoded Live-only.
+    $this->assertStringContainsString('buildTopbarStatus', $publish);
     $this->assertStringNotContainsString("'status' => \$node->isPublished() ? (string) \$this->t('Published')", $publish);
   }
 
-  public function testShellJsSyncsHomepageReadinessVisibility(): void {
+  public function testShellJsSyncsMissionControlAfterPublish(): void {
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
-    $this->assertStringContainsString('updateHomepageReadiness', $js);
-    $this->assertStringContainsString('homepage_readiness_html', $js);
-    $this->assertStringContainsString('show_homepage_readiness', $js);
+    $this->assertStringContainsString('updateMissionControl', $js);
+    $this->assertStringContainsString('mission_control', $js);
+    $this->assertStringContainsString('data-mel-mc-quality', $js);
   }
 
   public function testPublishControllerUsesOverviewBuilderForHomeAjax(): void {
@@ -161,6 +199,7 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('buildHomeAjaxGuideSnapshot', $publish);
     $this->assertStringContainsString('overviewBuilder', $publish);
     $this->assertStringContainsString("ajax_readiness['home']", $publish);
+    $this->assertStringContainsString("ajax_readiness['mission_control']", $publish);
     $this->assertStringContainsString('@myeventlane_event_studio.overview_builder', $services);
     $this->assertStringContainsString('function buildHomeAjaxGuideSnapshot', $overview);
     $this->assertStringContainsString('buildStripeHealth', $overview);
@@ -170,12 +209,13 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringNotContainsString('buildHomeNextAction', $presentation);
   }
 
-  public function testShellJsAppliesHomeDashboardAfterPublish(): void {
+  public function testShellJsAppliesMissionControlAfterPublish(): void {
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
-    $this->assertStringContainsString('function updateHomeDashboard', $js);
-    $this->assertStringContainsString('updateHomeDashboard(shell, readiness)', $js);
+    $this->assertStringContainsString('function updateMissionControl', $js);
+    $this->assertStringContainsString('updateMissionControl(shell, readiness)', $js);
     $this->assertStringContainsString('readiness.home', $js);
+    $this->assertStringContainsString('mission_control', $js);
   }
 
   /**

@@ -208,182 +208,7 @@
     ));
   }
 
-  function ensureReadinessStrip(shell) {
-    let strip = shell.querySelector('[data-mel-readiness-strip]');
-    if (strip) {
-      return strip;
-    }
-    // Do not invent a strip on Home — prepend would land above the topbar.
-    if (isHomeShell(shell)) {
-      return null;
-    }
-    strip = document.createElement('section');
-    strip.className = 'mel-event-studio-readiness-strip needs-attention';
-    strip.setAttribute('aria-label', Drupal.t('Publish readiness'));
-    strip.setAttribute('data-mel-readiness-strip', '');
-    strip.innerHTML = [
-      '<div class="mel-event-studio-readiness-strip__summary">',
-      '<strong data-mel-readiness-title></strong>',
-      '<span data-mel-readiness-state></span>',
-      '<p class="mel-event-studio-readiness-strip__explain" data-mel-readiness-explain hidden></p>',
-      '</div>',
-      '<ul class="mel-event-studio-readiness-strip__checklist" data-mel-readiness-checklist hidden></ul>',
-      '<div class="mel-event-studio-readiness-strip__counts" data-mel-readiness-counts>',
-      '<span data-mel-readiness-errors-count></span>',
-      '<span data-mel-readiness-warnings-count></span>',
-      '<span data-mel-readiness-recommendations-count></span>',
-      '<span data-mel-readiness-completed-count></span>',
-      '</div>',
-    ].join('');
-    const health = shell.querySelector('[data-mel-event-health]');
-    if (health) {
-      health.insertAdjacentElement('afterend', strip);
-    }
-    else {
-      const topbar = shell.querySelector('.mel-event-studio-topbar, [data-mel-studio-topbar]');
-      if (topbar) {
-        topbar.insertAdjacentElement('afterend', strip);
-      }
-      else {
-        shell.prepend(strip);
-      }
-    }
-    return strip;
-  }
-
-  function ensureReadinessExplain(strip) {
-    let explain = strip.querySelector('[data-mel-readiness-explain]');
-    if (explain) {
-      return explain;
-    }
-    const summary = strip.querySelector('.mel-event-studio-readiness-strip__summary');
-    if (!summary) {
-      return null;
-    }
-    explain = document.createElement('p');
-    explain.className = 'mel-event-studio-readiness-strip__explain';
-    explain.setAttribute('data-mel-readiness-explain', '');
-    summary.appendChild(explain);
-    return explain;
-  }
-
-  function ensureReadinessChecklist(strip) {
-    let list = strip.querySelector('[data-mel-readiness-checklist]');
-    if (list) {
-      return list;
-    }
-    list = document.createElement('ul');
-    list.className = 'mel-event-studio-readiness-strip__checklist';
-    list.setAttribute('data-mel-readiness-checklist', '');
-    const counts = strip.querySelector('[data-mel-readiness-counts], .mel-event-studio-readiness-strip__counts');
-    if (counts) {
-      counts.insertAdjacentElement('beforebegin', list);
-    }
-    else {
-      strip.appendChild(list);
-    }
-    return list;
-  }
-
-  function ensureReadinessCounts(strip) {
-    let counts = strip.querySelector('[data-mel-readiness-counts], .mel-event-studio-readiness-strip__counts');
-    if (counts) {
-      return counts;
-    }
-    counts = document.createElement('div');
-    counts.className = 'mel-event-studio-readiness-strip__counts';
-    counts.setAttribute('data-mel-readiness-counts', '');
-    counts.innerHTML = [
-      '<span data-mel-readiness-errors-count></span>',
-      '<span data-mel-readiness-warnings-count></span>',
-      '<span data-mel-readiness-recommendations-count></span>',
-      '<span data-mel-readiness-completed-count></span>',
-    ].join('');
-    strip.appendChild(counts);
-    return counts;
-  }
-
-  function updateReadinessChecklist(strip, checklist) {
-    const list = ensureReadinessChecklist(strip);
-    const counts = ensureReadinessCounts(strip);
-    const items = Array.isArray(checklist) ? checklist : [];
-    if (items.length === 0) {
-      list.hidden = true;
-      list.replaceChildren();
-      counts.hidden = false;
-      return;
-    }
-    counts.hidden = true;
-    list.hidden = false;
-    list.replaceChildren();
-    items.forEach((item) => {
-      if (!item || typeof item.label !== 'string') {
-        return;
-      }
-      const complete = !!item.complete;
-      const tone = typeof item.tone === 'string' ? item.tone : '';
-      const li = document.createElement('li');
-      li.className = 'mel-event-studio-readiness-strip__check'
-        + (complete ? ' is-complete' : '')
-        + (tone ? ` mel-event-studio-readiness-strip__check--${tone}` : '');
-      const mark = document.createElement('span');
-      mark.setAttribute('aria-hidden', 'true');
-      mark.textContent = complete ? '✔' : ((tone === 'warning' || tone === 'idea') ? '◇' : '○');
-      const sr = document.createElement('span');
-      sr.className = 'visually-hidden';
-      if (complete) {
-        sr.textContent = Drupal.t('Complete');
-      }
-      else if (tone === 'warning') {
-        sr.textContent = Drupal.t('Suggested review');
-      }
-      else if (tone === 'idea') {
-        sr.textContent = Drupal.t('Idea');
-      }
-      else {
-        sr.textContent = Drupal.t('Outstanding');
-      }
-      const label = document.createTextNode(' ' + item.label);
-      li.appendChild(mark);
-      li.appendChild(sr);
-      li.appendChild(label);
-      list.appendChild(li);
-    });
-  }
-
-  function ensureHomepageReadinessWrapper(shell) {
-    let wrapper = shell.querySelector('.mel-event-studio-homepage-readiness');
-    if (wrapper) {
-      return wrapper;
-    }
-    if (isHomeShell(shell)) {
-      return null;
-    }
-    wrapper = document.createElement('div');
-    wrapper.className = 'mel-event-studio-homepage-readiness';
-    const strip = shell.querySelector('[data-mel-readiness-strip]');
-    if (strip) {
-      strip.insertAdjacentElement('afterend', wrapper);
-    }
-    else {
-      const health = shell.querySelector('[data-mel-event-health]');
-      if (health) {
-        health.insertAdjacentElement('afterend', wrapper);
-      }
-      else {
-        const topbar = shell.querySelector('.mel-event-studio-topbar, [data-mel-studio-topbar]');
-        if (topbar) {
-          topbar.insertAdjacentElement('afterend', wrapper);
-        }
-        else {
-          shell.appendChild(wrapper);
-        }
-      }
-    }
-    return wrapper;
-  }
-
-  function updateHomeChecklist(list, items) {
+  function updateMissionControlChecklist(list, items) {
     const rows = Array.isArray(items) ? items : [];
     list.replaceChildren();
     if (rows.length === 0) {
@@ -398,10 +223,10 @@
       const complete = !!item.complete;
       const tone = typeof item.tone === 'string' ? item.tone : '';
       const li = document.createElement('li');
-      li.className = 'mel-event-workspace-home__check'
-        + (tone ? ` mel-event-workspace-home__check--${tone}` : '');
+      li.className = 'mel-event-studio-mission-control__check'
+        + (tone ? ` mel-event-studio-mission-control__check--${tone}` : '');
       const mark = document.createElement('span');
-      mark.className = 'mel-event-workspace-home__check-mark';
+      mark.className = 'mel-event-studio-mission-control__check-mark';
       mark.setAttribute('aria-hidden', 'true');
       mark.textContent = complete ? '✔' : ((tone === 'warning' || tone === 'idea') ? '◇' : '○');
       const sr = document.createElement('span');
@@ -418,87 +243,92 @@
       else {
         sr.textContent = Drupal.t('Required before publishing:');
       }
+      const label = document.createElement('span');
+      label.setAttribute('data-mel-mc-check-label', '');
+      label.textContent = item.label;
       li.appendChild(mark);
       li.appendChild(sr);
-      li.appendChild(document.createTextNode(' ' + item.label));
+      li.appendChild(label);
       list.appendChild(li);
     });
   }
 
   /**
-   * Applies AJAX readiness.home to Event Ready / checklist / next action.
-   * Home chrome has no readiness strip — this is the in-place dashboard updater.
+   * Applies Mission Control ViewModel (Home body or non-Home chrome).
+   * CTA mirrors Hero except approved Stripe Connect exception; publish mode
+   * defers to Hero publish control.
+   *
+   * When the server could not attach mission_control, synthesise a degraded
+   * card from readiness checklist / strip fields so Hero and Mission Control
+   * do not diverge after publish or unpublish.
    */
-  function updateHomeDashboard(shell, readiness) {
-    if (!readiness || !readiness.home) {
+  function updateMissionControl(shell, readiness) {
+    if (!readiness) {
       return;
     }
-    const home = readiness.home;
-    const dashboard = shell.querySelector('[data-mel-home-dashboard]');
-    if (!dashboard) {
+    let mc = readiness.mission_control
+      || (readiness.home && readiness.home.mission_control)
+      || null;
+    if (!mc) {
+      mc = buildDegradedMissionControl(shell, readiness);
+    }
+    if (!mc) {
+      return;
+    }
+    const root = shell.querySelector('[data-mel-mission-control]');
+    if (!root) {
       return;
     }
 
-    const readyCard = dashboard.querySelector('[data-mel-home-event-ready]');
-    const eventReady = home.event_ready || {};
-    if (readyCard && eventReady) {
-      const tone = typeof eventReady.tone === 'string' ? eventReady.tone : 'success';
-      readyCard.classList.remove(
-        'mel-event-workspace-home__card--attention',
-        'mel-event-workspace-home__card--success',
-      );
-      readyCard.classList.add(`mel-event-workspace-home__card--${tone}`);
-      readyCard.setAttribute('data-mel-home-tone', tone);
-      const mark = readyCard.querySelector('[data-mel-home-ready-mark]');
-      if (mark) {
-        mark.textContent = tone === 'attention' ? '⚠' : '✔';
-      }
-      setText(readyCard, '[data-mel-home-ready-headline]', eventReady.headline || '');
-      setText(readyCard, '[data-mel-home-ready-detail]', eventReady.detail || '');
-      setText(readyCard, '[data-mel-home-ready-complete]', eventReady.complete_label || '');
+    const tone = typeof mc.tone === 'string' ? mc.tone : 'success';
+    root.classList.remove(
+      'mel-event-studio-mission-control--attention',
+      'mel-event-studio-mission-control--success',
+    );
+    root.classList.add(`mel-event-studio-mission-control--${tone}`);
+    root.setAttribute('data-mel-mc-tone', tone);
 
-      const pill = readyCard.querySelector('[data-mel-home-status-pill]');
-      if (pill) {
-        const statusKey = typeof eventReady.status_key === 'string' ? eventReady.status_key : 'draft';
-        pill.className = `mel-event-workspace-home__pill mel-event-workspace-home__pill--${statusKey}`;
-        pill.setAttribute('data-mel-home-status-key', statusKey);
-        pill.textContent = eventReady.status_label || '';
+    const next = mc.next_step || {};
+    setText(root, '[data-mel-mc-next-title]', next.title || '');
+    const why = root.querySelector('[data-mel-mc-why]');
+    const whyText = typeof next.message === 'string' ? next.message : '';
+    if (why) {
+      const whyBody = why.querySelector('[data-mel-mc-why-text]');
+      if (whyBody) {
+        whyBody.textContent = whyText;
       }
-
-      const updated = readyCard.querySelector('[data-mel-home-updated]');
-      if (updated) {
-        const label = typeof eventReady.updated_label === 'string' ? eventReady.updated_label : '';
-        updated.textContent = label;
-        updated.hidden = label === '';
-      }
+      why.hidden = whyText === '';
     }
 
-    const readinessBlock = dashboard.querySelector('[data-mel-home-readiness]');
-    const homeReadiness = home.readiness || {};
-    if (readinessBlock && homeReadiness) {
-      setText(readinessBlock, '[data-mel-home-readiness-headline]', homeReadiness.headline || '');
-      setText(readinessBlock, '[data-mel-home-readiness-count]', homeReadiness.complete_label || '');
-      setText(readinessBlock, '[data-mel-home-readiness-explain]', homeReadiness.explanation || '');
-      const list = readinessBlock.querySelector('[data-mel-home-readiness-checklist]');
-      if (list && homeReadiness.items !== undefined) {
-        updateHomeChecklist(list, homeReadiness.items);
+    const mode = typeof next.mode === 'string' ? next.mode : 'link';
+    const cta = root.querySelector('[data-mel-mc-cta]');
+    let publishHint = root.querySelector('[data-mel-mc-publish-hint]');
+    if (mode === 'publish') {
+      if (!publishHint) {
+        publishHint = document.createElement('p');
+        publishHint.className = 'mel-event-studio-mission-control__publish-hint';
+        publishHint.setAttribute('data-mel-mc-publish-hint', '');
+        publishHint.textContent = Drupal.t('Use Publish in the header when you are ready.');
+        const nextBlock = root.querySelector('[data-mel-mc-next]');
+        if (nextBlock && cta) {
+          nextBlock.insertBefore(publishHint, cta);
+        }
+      }
+      publishHint.hidden = false;
+      if (cta) {
+        cta.hidden = true;
       }
     }
-
-    const nextCard = dashboard.querySelector('[data-mel-home-next-action]');
-    const next = home.next_action || {};
-    if (nextCard && next) {
-      setText(nextCard, '[data-mel-home-next-title]', next.title || '');
-      const message = nextCard.querySelector('[data-mel-home-next-message]');
-      if (message) {
-        const text = typeof next.message === 'string' ? next.message : '';
-        message.textContent = text;
-        message.hidden = text === '';
+    else {
+      if (publishHint) {
+        publishHint.hidden = true;
       }
-      const cta = nextCard.querySelector('[data-mel-home-next-cta]');
       if (cta) {
         const label = typeof next.action_label === 'string' ? next.action_label : '';
         const url = typeof next.url === 'string' ? next.url : '';
+        const key = typeof next.key === 'string' ? next.key : '';
+        cta.setAttribute('data-mel-mc-cta-key', key);
+        cta.setAttribute('data-mel-mc-mirrors-hero', next.mirrors_hero === false ? '0' : '1');
         if (label && url) {
           cta.textContent = label;
           cta.setAttribute('href', url);
@@ -509,107 +339,142 @@
         }
       }
     }
+
+    const improvements = mc.improvements || {};
+    const improvementsBlock = root.querySelector('[data-mel-mc-improvements]');
+    if (improvementsBlock) {
+      if (improvements.open) {
+        improvementsBlock.setAttribute('open', '');
+      }
+      else {
+        improvementsBlock.removeAttribute('open');
+      }
+      setText(improvementsBlock, '[data-mel-mc-improvements-count]', improvements.complete_label || '');
+      setText(improvementsBlock, '[data-mel-mc-improvements-headline]', improvements.headline || '');
+      const list = improvementsBlock.querySelector('[data-mel-mc-checklist]');
+      if (list && improvements.items !== undefined) {
+        updateMissionControlChecklist(list, improvements.items);
+      }
+    }
+
+    const quality = mc.event_quality || {};
+    const qualityBlock = root.querySelector('[data-mel-mc-quality]');
+    if (qualityBlock) {
+      const visible = !!quality.visible;
+      qualityBlock.hidden = !visible;
+      qualityBlock.classList.toggle('is-ready', !!quality.ready);
+      setText(qualityBlock, '[data-mel-mc-quality-score-value]', quality.score_label || ((quality.score || 0) + '%'));
+      const bar = qualityBlock.querySelector('[data-mel-mc-quality-bar]');
+      const fill = qualityBlock.querySelector('[data-mel-mc-quality-bar-fill]');
+      const score = typeof quality.score === 'number' ? quality.score : 0;
+      if (bar) {
+        bar.setAttribute('aria-valuenow', String(score));
+      }
+      if (fill) {
+        fill.style.width = score + '%';
+      }
+      const status = qualityBlock.querySelector('[data-mel-mc-quality-status]');
+      if (status) {
+        const statusLabel = typeof quality.status_label === 'string' ? quality.status_label : '';
+        status.textContent = statusLabel;
+        status.hidden = statusLabel === '';
+      }
+      const explain = qualityBlock.querySelector('[data-mel-mc-quality-explain]');
+      if (explain) {
+        const explanation = typeof quality.explanation === 'string' ? quality.explanation : '';
+        explain.textContent = explanation;
+        explain.hidden = explanation === '';
+      }
+    }
+  }
+
+  /**
+   * Client-side Mission Control when readiness.mission_control is null.
+   */
+  function buildDegradedMissionControl(shell, readiness) {
+    if (!shell || !shell.querySelector('[data-mel-mission-control]')) {
+      return null;
+    }
+    const published = readiness.published === true || shell.dataset.melPublished === '1';
+    const ready = !!readiness.ready;
+    const checklist = Array.isArray(readiness.checklist) ? readiness.checklist : [];
+    const complete = checklist.filter((item) => item && item.complete).length;
+    const total = Math.max(1, checklist.length);
+    const stripTitle = typeof readiness.strip_title === 'string' ? readiness.strip_title : '';
+    let message = typeof readiness.strip_explanation === 'string' ? readiness.strip_explanation : '';
+    let title;
+    let mode = 'link';
+    let key = 'continue_setup';
+    let actionLabel = null;
+    let url = null;
+
+    if (!ready) {
+      title = Drupal.t('Continue setup');
+      key = 'continue_setup';
+      const publishingLink = shell.querySelector('a[href*="/studio/publishing"]');
+      if (publishingLink && publishingLink.getAttribute('href')) {
+        actionLabel = Drupal.t('Continue setup');
+        url = publishingLink.getAttribute('href');
+      }
+    }
+    else if (!published) {
+      title = Drupal.t('Ready when you are');
+      mode = 'publish';
+      key = 'publish';
+      if (!message) {
+        message = Drupal.t('Your event looks ready. Publish when you want guests to find it.');
+      }
+    }
+    else {
+      title = Drupal.t('Share your event');
+      key = 'share';
+      if (!message) {
+        message = Drupal.t('Your event is live. Share the page or message your attendees.');
+      }
+      const shareLink = shell.querySelector('[data-mel-primary-cta][data-mel-cta-key="share"], a[href*="/studio/marketing"]');
+      if (shareLink && shareLink.getAttribute('href')) {
+        actionLabel = Drupal.t('Share');
+        url = shareLink.getAttribute('href');
+      }
+    }
+
+    return {
+      tone: ready ? 'success' : 'attention',
+      degraded: true,
+      next_step: {
+        title: title,
+        message: message,
+        mode: mode,
+        key: key,
+        action_label: actionLabel,
+        url: url,
+        mirrors_hero: true,
+        publish_is_primary: mode === 'publish',
+      },
+      improvements: {
+        open: checklist.length <= 4,
+        complete_label: Drupal.t('@done of @total complete', {
+          '@done': complete,
+          '@total': total,
+        }),
+        headline: stripTitle,
+        items: checklist,
+      },
+      event_quality: {
+        visible: false,
+      },
+    };
   }
 
   function updateReadiness(shell, readiness) {
     if (!readiness) {
       return;
     }
-    // Home: apply inline Event Ready / checklist — never invent the strip.
-    if (isHomeShell(shell)) {
-      updateHomeDashboard(shell, readiness);
-      return;
-    }
-    const published = shell.dataset.melPublished === '1' || !!studioSettings().published;
-    const hasBlockers = (readiness.errors || []).length > 0 || (readiness.warnings || []).length > 0;
-    const showStrip = readiness.show_publish_strip !== undefined
-      ? !!readiness.show_publish_strip
-      : (!published || !readiness.ready || hasBlockers);
-    const strip = ensureReadinessStrip(shell);
-    if (!strip) {
-      return;
-    }
-    strip.hidden = !showStrip;
-    if (!showStrip) {
-      return;
-    }
-    strip.classList.toggle('is-ready', !!readiness.ready);
-    strip.classList.toggle('needs-attention', !readiness.ready);
-    const title = readiness.strip_title
-      || (readiness.ready
-        ? (published ? Drupal.t('Published and ready') : Drupal.t('Ready to publish'))
-        : Drupal.t('Needs attention'));
-    setText(strip, '[data-mel-readiness-title]', title);
-    setText(strip, '[data-mel-readiness-state]', readiness.state || '');
-
-    const explain = ensureReadinessExplain(strip);
-    if (explain) {
-      const explanation = typeof readiness.strip_explanation === 'string'
-        ? readiness.strip_explanation
-        : '';
-      explain.textContent = explanation;
-      explain.hidden = explanation === '';
-    }
-
-    if (readiness.checklist !== undefined) {
-      updateReadinessChecklist(strip, readiness.checklist);
-    }
-
-    // Match server-rendered strip counts (mel-event-studio-workspace.html.twig).
-    setText(strip, '[data-mel-readiness-errors-count]', Drupal.t('@count to finish', { '@count': (readiness.errors || []).length }));
-    setText(strip, '[data-mel-readiness-warnings-count]', Drupal.t('@count to review', { '@count': (readiness.warnings || []).length }));
-    setText(strip, '[data-mel-readiness-recommendations-count]', Drupal.t('@count idea(s)', { '@count': (readiness.recommendations || []).length }));
-    setText(strip, '[data-mel-readiness-completed-count]', Drupal.t('@count complete', { '@count': (readiness.completed || []).length }));
+    updateMissionControl(shell, readiness);
   }
 
-  function updateHomepageReadiness(shell, readiness) {
-    if (!readiness || readiness.show_homepage_readiness === undefined || isHomeShell(shell)) {
-      return;
-    }
-    const wrapper = ensureHomepageReadinessWrapper(shell);
-    if (!wrapper) {
-      return;
-    }
-    if (readiness.homepage_readiness_html !== undefined) {
-      wrapper.innerHTML = readiness.homepage_readiness_html;
-    }
-    wrapper.hidden = readiness.show_homepage_readiness === false
-      || wrapper.innerHTML.trim() === '';
-  }
-
-  function updateEventHealth(shell, health) {
-    if (!health || !Array.isArray(health.items)) {
-      return;
-    }
-    const panel = shell.querySelector('[data-mel-event-health]');
-    if (!panel) {
-      return;
-    }
-    if (health.last_updated) {
-      setText(panel, '[data-mel-event-health-updated]', health.last_updated);
-    }
-    health.items.forEach((item) => {
-      if (!item || !item.key) {
-        return;
-      }
-      setText(panel, `[data-mel-event-health-value="${item.key}"]`, item.value || '');
-      const detailEl = panel.querySelector(`[data-mel-event-health-detail="${item.key}"]`);
-      if (detailEl) {
-        if (item.detail) {
-          detailEl.textContent = item.detail;
-          detailEl.hidden = false;
-        }
-        else {
-          detailEl.textContent = '';
-          detailEl.hidden = true;
-        }
-      }
-      const row = panel.querySelector(`[data-mel-event-health-row="${item.key}"]`);
-      if (row && item.tone) {
-        row.className = `mel-event-studio-event-health__item mel-event-studio-event-health__item--${item.tone}`;
-        row.setAttribute('data-mel-event-health-row', item.key);
-      }
-    });
+  function updateEventHealth() {
+    // Event Health chrome retired — Mission Control owns the operational summary.
   }
 
   function syncTopbarState(shell, stateText) {
@@ -706,6 +571,13 @@
       shell.dataset.melPublished = result.published ? '1' : '0';
     }
     setText(shell, '[data-mel-publish-status]', result.topbar.status || '');
+    const statusBadge = shell.querySelector('[data-mel-publish-status]');
+    if (statusBadge) {
+      const statusKey = typeof result.topbar.status_key === 'string'
+        ? result.topbar.status_key
+        : (result.published ? 'live' : 'draft');
+      statusBadge.className = `mel-event-studio-topbar__badge mel-event-studio-topbar__badge--${statusKey}`;
+    }
     syncTopbarState(shell, result.topbar.state || '');
     setText(shell, '[data-mel-publish-last-saved]', result.topbar.lastSaved || '');
     if (result.topbar.location) {
@@ -730,11 +602,82 @@
     if (button) {
       setPublishButtonState(button, result.published ? 'published' : 'idle');
     }
-    if (result.event_health) {
-      updateEventHealth(shell, result.event_health);
+    if (result.topbar && result.topbar.primary_cta) {
+      syncHeroPrimaryCta(shell, result.topbar.primary_cta, !!result.published);
     }
-    if (result.readiness) {
-      updateHomepageReadiness(shell, result.readiness);
+    else if (result.published) {
+      syncHeroPrimaryCta(shell, { key: 'share', mode: 'link', publish_is_primary: false }, true);
+    }
+  }
+
+  /**
+   * Keeps Workspace Hero to one primary CTA after publish AJAX.
+   */
+  function syncHeroPrimaryCta(shell, primaryCta, published) {
+    const key = (primaryCta && typeof primaryCta.key === 'string')
+      ? primaryCta.key
+      : (published ? 'share' : 'publish');
+    shell.querySelector('[data-mel-studio-topbar]')?.setAttribute('data-mel-hero-primary-key', key);
+
+    const share = shell.querySelector('[data-mel-hero-share]');
+    const primaryLink = shell.querySelector('[data-mel-hero-primary-link]');
+    const publish = shell.querySelector('[data-mel-publish-action]');
+
+    const setPrimaryClass = (el, isPrimary) => {
+      if (!el) {
+        return;
+      }
+      el.classList.toggle('mel-btn--primary', isPrimary);
+      el.classList.toggle('mel-btn--ghost', !isPrimary);
+      if (isPrimary) {
+        el.setAttribute('data-mel-hero-primary', '1');
+      }
+      else {
+        el.removeAttribute('data-mel-hero-primary');
+      }
+    };
+
+    if (key === 'share') {
+      setPrimaryClass(share, true);
+      if (primaryLink) {
+        primaryLink.hidden = true;
+        primaryLink.removeAttribute('data-mel-hero-primary');
+        primaryLink.classList.remove('mel-btn', 'mel-btn--primary', 'mel-btn--ghost');
+      }
+      if (publish) {
+        setPrimaryClass(publish, false);
+        publish.classList.remove('mel-btn--ghost');
+        publish.classList.add('mel-event-studio-topbar__status-action');
+      }
+      return;
+    }
+
+    if (key === 'continue_setup') {
+      if (primaryLink && primaryCta && primaryCta.url && primaryCta.label) {
+        primaryLink.hidden = false;
+        primaryLink.setAttribute('href', primaryCta.url);
+        primaryLink.textContent = primaryCta.label;
+        primaryLink.classList.add('mel-btn');
+        setPrimaryClass(primaryLink, true);
+      }
+      setPrimaryClass(share, false);
+      if (publish) {
+        setPrimaryClass(publish, false);
+        publish.classList.remove('mel-event-studio-topbar__status-action');
+      }
+      return;
+    }
+
+    // publish
+    if (primaryLink) {
+      primaryLink.hidden = true;
+      primaryLink.removeAttribute('data-mel-hero-primary');
+      primaryLink.classList.remove('mel-btn', 'mel-btn--primary', 'mel-btn--ghost');
+    }
+    setPrimaryClass(share, false);
+    if (publish) {
+      setPrimaryClass(publish, true);
+      publish.classList.remove('mel-event-studio-topbar__status-action');
     }
   }
 

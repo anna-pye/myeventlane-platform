@@ -1,10 +1,17 @@
 {#
 /**
  * @file
- * Event Workspace top bar.
+ * Event Workspace Hero (event chrome).
+ *
+ * Identity · status · date/venue · one primary CTA · View / Share secondary.
+ * Publish control always keeps data-mel-publish-action for shell JS.
  */
 #}
-<header class="mel-event-studio-topbar" role="banner">
+{% set primary = topbar.primary_cta|default({}) %}
+{% set primary_key = primary.key|default(topbar.published ? 'share' : 'publish') %}
+{% set publish_is_primary = primary.publish_is_primary|default(primary_key == 'publish') %}
+{% set share_url = topbar.share_url|default('') %}
+<header class="mel-event-studio-topbar" role="banner" data-mel-studio-topbar data-mel-hero-primary-key="{{ primary_key|e('html_attr') }}">
   <div class="mel-event-studio-topbar__primary">
     <nav class="mel-event-studio-topbar__breadcrumb" aria-label="{{ 'Event breadcrumb'|t }}">
       <a class="mel-event-studio-topbar__breadcrumb-link" href="{{ topbar.events_url|default('/vendor/events') }}">{{ 'Events'|t }}</a>
@@ -12,9 +19,21 @@
       <span class="mel-event-studio-topbar__breadcrumb-current">{{ topbar.title }}</span>
     </nav>
     <p class="mel-event-studio-topbar__eyebrow">{{ 'Event Workspace'|t }}</p>
-    <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
+    <div class="mel-event-studio-topbar__identity">
+      <h1 class="mel-event-studio-topbar__title">{{ topbar.title }}</h1>
+      <span class="mel-event-studio-topbar__badge mel-event-studio-topbar__badge--{{ topbar.status_key|default(topbar.published ? 'live' : 'draft')|clean_class }}" data-mel-publish-status>{{ topbar.status }}</span>
+    </div>
+    {% if topbar.context_line|default('') %}
+      <p class="mel-event-studio-topbar__context" data-mel-hero-context>{{ topbar.context_line }}</p>
+    {% elseif topbar.date_label|default('') or topbar.venue_label|default('') %}
+      <p class="mel-event-studio-topbar__context" data-mel-hero-context>
+        {% if topbar.date_label|default('') %}<span data-mel-hero-date>{{ topbar.date_label }}</span>{% endif %}
+        {% if topbar.date_label|default('') and topbar.venue_label|default('') %}<span aria-hidden="true"> · </span>{% endif %}
+        {% if topbar.venue_label|default('') %}<span data-mel-hero-venue>{{ topbar.venue_label }}</span>{% endif %}
+      </p>
+    {% endif %}
     {% set location = topbar.location|default({}) %}
-    <div class="mel-event-studio-topbar__location" data-mel-topbar-location role="status" aria-live="polite">
+    <div class="mel-event-studio-topbar__location" data-mel-topbar-location role="status" aria-live="polite"{% if topbar.venue_label|default('') and location.configured|default(false) %} hidden{% endif %}>
       {% if location.configured|default(false) %}
         {% if location.primary_line|default('') %}
           <p class="mel-event-studio-topbar__location-line mel-event-studio-topbar__location-line--primary">
@@ -34,8 +53,7 @@
         </p>
       {% endif %}
     </div>
-    <div class="mel-event-studio-topbar__meta" aria-label="{{ 'Event status'|t }}">
-      <span class="mel-event-studio-topbar__badge" data-mel-publish-status>{{ topbar.status }}</span>
+    <div class="mel-event-studio-topbar__meta" role="group" aria-label="{{ 'Event status'|t }}">
       {% if topbar.state %}
         <span class="mel-event-studio-topbar__state" data-mel-publish-state>{{ topbar.state }}</span>
       {% endif %}
@@ -49,19 +67,38 @@
       </span>
     </div>
   </div>
-  <div class="mel-event-studio-topbar__actions">
+  <div class="mel-event-studio-topbar__actions" data-mel-hero-actions>
     {% if topbar.show_manage_event_link %}
       <a class="mel-btn mel-btn--secondary mel-event-studio-topbar__manage-event" href="{{ topbar.manage_event_url }}">{{ 'Staff Overview'|t }}</a>
     {% endif %}
-    <a class="mel-btn mel-btn--ghost" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>
+    <a class="mel-btn mel-btn--ghost mel-event-studio-topbar__view" href="{{ topbar.preview_url }}" target="_blank" rel="noopener noreferrer">{{ 'View'|t }}</a>
+    {% if share_url %}
+      <a
+        class="mel-btn mel-event-studio-topbar__share{% if primary_key == 'share' %} mel-btn--primary{% else %} mel-btn--ghost{% endif %}"
+        href="{{ share_url }}"
+        data-mel-hero-share
+        {% if primary_key == 'share' %}data-mel-hero-primary="1"{% endif %}
+      >{{ 'Share'|t }}</a>
+    {% endif %}
+    {% if primary_key == 'continue_setup' and primary.url|default('') %}
+      <a
+        class="mel-btn mel-btn--primary mel-event-studio-topbar__primary-link"
+        href="{{ primary.url }}"
+        data-mel-hero-primary-link
+        data-mel-hero-primary="1"
+      >{{ primary.label }}</a>
+    {% else %}
+      <a class="mel-event-studio-topbar__primary-link" href="#" data-mel-hero-primary-link hidden aria-hidden="true" tabindex="-1"></a>
+    {% endif %}
     <button
-      class="mel-btn{% if topbar.published %} mel-btn--ghost mel-event-studio-topbar__status-action{% else %} mel-btn--primary{% endif %}"
+      class="mel-btn mel-event-studio-topbar__publish{% if publish_is_primary %} mel-btn--primary{% elseif topbar.published %} mel-event-studio-topbar__status-action{% else %} mel-btn--ghost{% endif %}"
       type="button"
       data-mel-publish-action
       data-mel-publish-url="{{ topbar.publish_url|e('html_attr') }}"
       data-mel-current-section="{{ topbar.current_section|e('html_attr') }}"
       data-mel-node-changed="{{ topbar.changed }}"
       data-mel-node-revision="{{ topbar.revision_id }}"
+      {% if publish_is_primary %}data-mel-hero-primary="1"{% endif %}
       {% if topbar.published %}disabled aria-disabled="true" aria-label="{{ 'Event is published'|t }}"{% endif %}
     >{{ topbar.published ? 'Published'|t : 'Publish'|t }}</button>
   </div>

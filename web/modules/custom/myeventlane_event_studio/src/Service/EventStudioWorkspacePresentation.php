@@ -178,12 +178,12 @@ final class EventStudioWorkspacePresentation {
   public function readinessStripTitle(EventReadinessResult $result, bool $published): string {
     if (!$result->ready) {
       if (count($result->errors) === 1) {
-        return (string) $this->t("You're almost there…");
+        return (string) $this->t('Almost ready');
       }
       return (string) $this->t('A few things left before publishing');
     }
     if ($published) {
-      return (string) $this->t('Published and ready');
+      return (string) $this->t('Live and ready');
     }
     return (string) $this->t('Ready to publish');
   }
@@ -191,9 +191,9 @@ final class EventStudioWorkspacePresentation {
   public function readinessStripExplanation(EventReadinessResult $result): string {
     if ($result->ready) {
       if ($result->warnings !== []) {
-        return (string) $this->t('You can publish now. Optional suggestions are still worth a quick look.');
+        return (string) $this->t('You can publish when you are ready. Optional suggestions are still worth a quick look.');
       }
-      return (string) $this->t('Everything needed to go live looks good.');
+      return (string) $this->t('Everything needed for guests to find and book looks good.');
     }
     if (count($result->errors) === 1) {
       return (string) $this->t('One more thing before publishing: @reason', [
@@ -201,7 +201,7 @@ final class EventStudioWorkspacePresentation {
       ]);
     }
     if ($result->errors !== []) {
-      return (string) $this->t('Finish the items below so guests can find and book your event.');
+      return (string) $this->t('Finish the required items below so guests can find and book your event.');
     }
     return (string) $this->t('Review the suggestions below to make your event page stronger.');
   }
@@ -277,6 +277,124 @@ final class EventStudioWorkspacePresentation {
     return !$published || !$result->ready || $result->errors !== [] || $result->warnings !== [];
   }
 
+  /**
+   * Theme wrapper for the shared Mission Control component.
+   *
+   * @param array<string, mixed> $mission_control
+   *   ViewModel from EventWorkspaceOverviewBuilder::buildMissionControl().
+   *
+   * @return array<string, mixed>
+   */
+  public function buildMissionControlRender(array $mission_control): array {
+    return [
+      '#theme' => 'mel_event_studio_mission_control',
+      '#mission_control' => $mission_control,
+    ];
+  }
+
+  /**
+   * Last-resort Mission Control payload when Home snapshot + overview fallback fail.
+   *
+   * Uses only AJAX readiness fields and the authoritative Hero CTA — no view
+   * model or Stripe gate calls — so publish/unpublish responses can still
+   * refresh the card instead of leaving stale next-step copy.
+   *
+   * @param array<string, mixed> $ajax_readiness
+   * @param array{
+   *   key: string,
+   *   mode: string,
+   *   label: string,
+   *   url: string,
+   *   publish_is_primary: bool
+   * } $primary_cta
+   *
+   * @return array<string, mixed>
+   */
+  public function buildDegradedMissionControlPayload(
+    array $ajax_readiness,
+    array $primary_cta,
+    bool $published,
+    string $section = '',
+  ): array {
+    $ready = (bool) ($ajax_readiness['ready'] ?? FALSE);
+    $checklist = is_array($ajax_readiness['checklist'] ?? NULL)
+      ? $ajax_readiness['checklist']
+      : [];
+    $complete_count = count(array_filter(
+      $checklist,
+      static fn(mixed $item): bool => is_array($item) && !empty($item['complete']),
+    ));
+    $total_count = count($checklist);
+    if ($total_count < 1) {
+      $total_count = 1;
+    }
+    $tone = $ready ? 'success' : 'attention';
+    $headline = (string) ($ajax_readiness['strip_title'] ?? '');
+    $message = (string) ($ajax_readiness['strip_explanation'] ?? '');
+    $mode = (string) ($primary_cta['mode'] ?? 'link');
+    $key = (string) ($primary_cta['key'] ?? '');
+    $label = (string) ($primary_cta['label'] ?? '');
+    $url = (string) ($primary_cta['url'] ?? '');
+    $publish_is_primary = (bool) ($primary_cta['publish_is_primary'] ?? FALSE);
+
+    if (!$ready) {
+      $title = (string) $this->t('Continue setup');
+    }
+    elseif (!$published) {
+      $title = (string) $this->t('Ready when you are');
+      $message = $message !== ''
+        ? $message
+        : (string) $this->t('Your event looks ready. Publish when you want guests to find it.');
+    }
+    else {
+      $title = (string) $this->t('Share your event');
+      $message = $message !== ''
+        ? $message
+        : (string) $this->t('Your event is live. Share the page or message your attendees.');
+    }
+
+    return [
+      'heading' => (string) $this->t('Mission Control'),
+      'tone' => $tone,
+      'section' => $section,
+      'degraded' => TRUE,
+      'next_step' => [
+        'eyebrow' => (string) $this->t('Next step'),
+        'title' => $title,
+        'why_label' => (string) $this->t('Why this matters'),
+        'message' => $message,
+        'action_label' => $mode === 'publish' ? NULL : ($label !== '' ? $label : NULL),
+        'url' => $mode === 'publish' ? NULL : ($url !== '' ? $url : NULL),
+        'key' => $key,
+        'mode' => $mode,
+        'mirrors_hero' => TRUE,
+        'publish_is_primary' => $publish_is_primary,
+      ],
+      'improvements' => [
+        'heading' => (string) $this->t('Other improvements'),
+        'headline' => $headline,
+        'complete_count' => $complete_count,
+        'total_count' => $total_count,
+        'complete_label' => (string) $this->t('@done of @total complete', [
+          '@done' => $complete_count,
+          '@total' => $total_count,
+        ]),
+        'items' => $checklist,
+        'open' => count($checklist) <= 4,
+        'hint' => (string) $this->t('View checklist'),
+      ],
+      'event_quality' => [
+        'visible' => FALSE,
+        'heading' => (string) $this->t('Event Quality'),
+        'score' => 0,
+        'score_label' => (string) $this->t('@score%', ['@score' => 0]),
+        'status_label' => '',
+        'explanation' => '',
+        'ready' => FALSE,
+      ],
+    ];
+  }
+
   public function shouldShowHomepageReadinessCard(bool $promotion_ready, bool $published): bool {
     return !$promotion_ready || !$published;
   }
@@ -318,6 +436,78 @@ final class EventStudioWorkspacePresentation {
     return (string) $this->t('Last updated @time', [
       '@time' => $this->dateFormatter->format($node->getChangedTime(), 'short'),
     ]);
+  }
+
+  /**
+   * Formats event start for Workspace Hero (same field as vendor workspace VM).
+   *
+   * Display-only — does not invent schedule rules or readiness.
+   */
+  public function buildTopbarDateLabel(NodeInterface $node): string {
+    if ($node->bundle() !== 'event' || !$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
+      return '';
+    }
+    $item = $node->get('field_event_start')->first();
+    if ($item === NULL || !isset($item->date) || !$item->date) {
+      return '';
+    }
+    return $this->dateFormatter->format((int) $item->date->getTimestamp(), 'medium');
+  }
+
+  /**
+   * Hero / Health operational status label (Draft · Live · Past).
+   *
+   * Mirrors VendorEventWorkspaceViewModelBuilder::resolvePublicationStatus
+   * presentation rules without calling the full ViewModel or readiness facade.
+   *
+   * @return array{label: string, key: string}
+   */
+  public function buildTopbarStatus(NodeInterface $node): array {
+    if (!$node->isPublished()) {
+      return [
+        'label' => (string) $this->t('Draft'),
+        'key' => 'draft',
+      ];
+    }
+    if ($this->isEventPast($node)) {
+      return [
+        'label' => (string) $this->t('Past'),
+        'key' => 'past',
+      ];
+    }
+    return [
+      'label' => (string) $this->t('Live'),
+      'key' => 'live',
+    ];
+  }
+
+  /**
+   * True when field_event_end is set and before now (same field as workspace VM).
+   */
+  public function isEventPast(NodeInterface $node): bool {
+    if ($node->bundle() !== 'event' || !$node->hasField('field_event_end') || $node->get('field_event_end')->isEmpty()) {
+      return FALSE;
+    }
+    $item = $node->get('field_event_end')->first();
+    if ($item === NULL || !isset($item->date) || !$item->date) {
+      return FALSE;
+    }
+    return (int) $item->date->getTimestamp() < time();
+  }
+
+  /**
+   * Short venue line for Hero context (reuses topbar location primary).
+   */
+  public function buildTopbarVenueLabel(NodeInterface $node): string {
+    $location = $this->buildTopbarLocation($node);
+    if (!$location['configured']) {
+      return '';
+    }
+    $primary = trim((string) ($location['primary_line'] ?? ''));
+    if ($primary !== '' && $primary !== (string) $this->t('One-off venue')) {
+      return $primary;
+    }
+    return trim((string) ($location['secondary_line'] ?? $primary));
   }
 
   /**

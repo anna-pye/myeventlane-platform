@@ -13,30 +13,28 @@ use Drupal\Tests\UnitTestCase;
  */
 final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
 
-  public function testWorkspaceShellOrdersStatusBeforeBoost(): void {
+  public function testWorkspaceShellOrdersMissionControlBeforeBoost(): void {
     $workspace = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-workspace.html.twig');
     $this->assertIsString($workspace);
-    $healthPos = strpos($workspace, 'mel-event-studio-event-health');
-    $readinessPos = strpos($workspace, 'mel-event-studio-readiness-strip');
-    $homepagePos = strpos($workspace, 'mel-event-studio-homepage-readiness');
+    $missionPos = strpos($workspace, 'mel-event-studio-mission-control');
     $boostPos = strpos($workspace, 'mel-boost-active-banner');
-    $this->assertNotFalse($healthPos);
-    $this->assertNotFalse($readinessPos);
-    $this->assertNotFalse($homepagePos);
+    $this->assertNotFalse($missionPos);
     $this->assertNotFalse($boostPos);
-    $this->assertLessThan($readinessPos, $healthPos);
-    $this->assertLessThan($boostPos, $readinessPos);
-    $this->assertLessThan($boostPos, $homepagePos);
+    $this->assertLessThan($boostPos, $missionPos);
+    $this->assertStringNotContainsString('mel-event-studio-event-health', $workspace);
+    $this->assertStringNotContainsString('mel-event-studio-readiness-strip', $workspace);
+    $this->assertStringNotContainsString('mel-event-studio-homepage-readiness', $workspace);
   }
 
-  public function testWorkspaceHidesPublishStripWhenConfigured(): void {
-    $workspace = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-workspace.html.twig');
-    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
-    $this->assertIsString($workspace);
-    $this->assertIsString($presentation);
-    $this->assertStringContainsString('readiness.show_publish_strip', $workspace);
-    $this->assertStringContainsString('shouldShowPublishStrip', $presentation);
-    $this->assertStringContainsString('readinessStripTitle', $presentation);
+  public function testMissionControlThemeIsRegistered(): void {
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.module');
+    $template = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-mission-control.html.twig');
+    $this->assertIsString($module);
+    $this->assertIsString($template);
+    $this->assertStringContainsString('mel_event_studio_mission_control', $module);
+    $this->assertStringContainsString('data-mel-mission-control', $template);
+    $this->assertStringContainsString('Event Quality', $template);
+    $this->assertStringContainsString('Other improvements', $template);
   }
 
   public function testHomepageReadinessSupportsSummaryOnlyDisplay(): void {
@@ -58,12 +56,56 @@ final class EventStudioWorkspaceUxConsolidationTest extends UnitTestCase {
     $this->assertStringNotContainsString('What lives here', $renderer);
   }
 
-  public function testShellJsHidesReadinessStripForPublishedReadyEvents(): void {
+  public function testShellJsUpdatesMissionControlAfterPublish(): void {
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
-    $this->assertStringContainsString('Published and ready', $js);
-    $this->assertStringContainsString('strip.hidden = !showStrip', $js);
+    $this->assertStringContainsString('function updateMissionControl', $js);
+    $this->assertStringContainsString('updateMissionControl(shell, readiness)', $js);
+    $this->assertStringContainsString('data-mel-mission-control', $js);
     $this->assertStringContainsString('dataset.melPublished', $js);
+  }
+
+  public function testOverviewIncludesSharedMissionControl(): void {
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio-overview.html.twig');
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($overview);
+    $this->assertIsString($builder);
+    $this->assertStringContainsString('mel-event-studio-mission-control.html.twig', $overview);
+    $this->assertStringContainsString('function buildMissionControl', $builder);
+    $this->assertStringContainsString('assembleMissionControl', $builder);
+  }
+
+  public function testNonHomeMissionControlReusesReadinessAndSharesHomeGuide(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioController.php');
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventWorkspaceOverviewBuilder.php');
+    $this->assertIsString($controller);
+    $this->assertIsString($builder);
+    $this->assertStringContainsString(
+      'buildMissionControl($node, $account, $section, $readiness_bundle)',
+      $controller,
+    );
+    $this->assertStringContainsString('?array $readiness_bundle = NULL', $builder);
+    $this->assertStringContainsString('bool $include_workspace_model = TRUE', $builder);
+    // Shared Mission Control contract: default includes workspace VM like Home.
+    $this->assertStringContainsString('function resolveGuidePublicationStatus', $builder);
+    $this->assertStringContainsString('function isEventEnded', $builder);
+  }
+
+  public function testPublishAjaxFallsBackToMissionControlWhenHomeSnapshotFails(): void {
+    $publish = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/EventStudioPublishController.php');
+    $presentation = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioWorkspacePresentation.php');
+    $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
+    $this->assertIsString($publish);
+    $this->assertIsString($presentation);
+    $this->assertIsString($js);
+    $this->assertStringContainsString("ajax_readiness['mission_control'] = NULL", $publish);
+    $this->assertStringContainsString('buildMissionControl(', $publish);
+    $this->assertStringContainsString('FALSE,', $publish);
+    $this->assertStringContainsString('Mission Control AJAX fallback failed', $publish);
+    $this->assertStringContainsString('buildDegradedMissionControlPayload', $publish);
+    $this->assertStringContainsString('function buildDegradedMissionControlPayload', $presentation);
+    $this->assertStringContainsString('function buildDegradedMissionControl', $js);
+    $this->assertStringContainsString('buildDegradedMissionControl(shell, readiness)', $js);
   }
 
 }

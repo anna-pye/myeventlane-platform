@@ -61,6 +61,8 @@ final class EventWorkspaceOverviewBuilder {
 
     return [
       '#theme' => 'mel_event_studio_overview',
+      '#mission_control' => $this->assembleMissionControl($guide, 'overview'),
+      // Legacy keys retained for AJAX/tests that still read guide snapshots.
       '#event_ready' => $guide['event_ready'],
       '#next_action' => $guide['next_action'],
       '#readiness' => $guide['readiness'],
@@ -75,6 +77,37 @@ final class EventWorkspaceOverviewBuilder {
   }
 
   /**
+   * Mission Control ViewModel for Home and non-Home shell (same component).
+   *
+   * Presentation-only — reuses guide next_action, facade checklist, and
+   * existing homepage readiness score. No new scoring.
+   *
+   * Default path matches Home (workspace view-model + Stripe + next-action).
+   * Callers should pass the readiness bundle already evaluated for the request
+   * to avoid a second EventReadinessFacade evaluation.
+   *
+   * Set $include_workspace_model FALSE only for degraded AJAX fallback when the
+   * full Home snapshot fails — still Hero-aligned status + facade checklist.
+   *
+   * @param array<string, mixed>|null $readiness_bundle
+   *   Optional facade payload from the current request.
+   *
+   * @return array<string, mixed>
+   */
+  public function buildMissionControl(
+    NodeInterface $event,
+    AccountInterface $account,
+    string $section,
+    ?array $readiness_bundle = NULL,
+    bool $include_workspace_model = TRUE,
+  ): array {
+    return $this->assembleMissionControl(
+      $this->buildGuideCardState($event, $account, $readiness_bundle, $include_workspace_model),
+      $section,
+    );
+  }
+
+  /**
    * Home Event Ready / readiness / next action for publish AJAX refresh.
    *
    * Same Stripe + mission-control rules as full Home render — not a simplified
@@ -86,7 +119,7 @@ final class EventWorkspaceOverviewBuilder {
    *   next_action: array<string, mixed>
    * }
    */
-  public function buildHomeAjaxGuideSnapshot(NodeInterface $event, AccountInterface $account): array {
+  public function buildHomeAjaxGuideSnapshot(NodeInterface $event, AccountInterface $account, string $section = 'overview'): array {
     $guide = $this->buildGuideCardState($event, $account);
     $event_ready = $guide['event_ready'];
     $readiness = $guide['readiness'];
@@ -96,37 +129,57 @@ final class EventWorkspaceOverviewBuilder {
     ]);
     $event_ready['complete_label'] = $complete_label;
     $readiness['complete_label'] = $complete_label;
+    $mission_control = $this->assembleMissionControl($guide, $section);
+    $mission_control['improvements']['complete_label'] = $complete_label;
 
     return [
       'event_ready' => $event_ready,
       'readiness' => $readiness,
       'next_action' => $guide['next_action'],
+      'mission_control' => $mission_control,
     ];
   }
 
   /**
-   * Shared guide-row state for full Home and AJAX (Stripe + mission-control).
+   * Shared guide-row state for full Home, AJAX, and shell Mission Control.
+   *
+   * @param array<string, mixed>|null $readiness_bundle
+   *   Optional facade payload; when set, skips a second evaluate().
+   * @param bool $include_workspace_model
+   *   When FALSE (non-Home shell), skips VendorEventWorkspaceViewModelBuilder.
+   *   Stripe booking type then comes from the event entity field fallback.
    *
    * @return array{
    *   workspace: array<string, mixed>,
    *   event_ready: array<string, mixed>,
    *   next_action: array<string, mixed>,
-   *   readiness: array<string, mixed>
+   *   readiness: array<string, mixed>,
+   *   promotion: array<string, mixed>,
+   *   promotion_ready: bool,
+   *   published: bool
    * }
    */
-  private function buildGuideCardState(NodeInterface $event, AccountInterface $account): array {
-    try {
-      $workspace = $this->workspaceViewModel->build($event, $account);
-    }
-    catch (\Throwable $e) {
-      $this->logger->error('Event Workspace home model failed for event @nid: @message', [
-        '@nid' => (string) $event->id(),
-        '@message' => $e->getMessage(),
-      ]);
-      $workspace = [];
+  private function buildGuideCardState(
+    NodeInterface $event,
+    AccountInterface $account,
+    ?array $readiness_bundle = NULL,
+    bool $include_workspace_model = TRUE,
+  ): array {
+    $workspace = [];
+    if ($include_workspace_model) {
+      try {
+        $workspace = $this->workspaceViewModel->build($event, $account);
+      }
+      catch (\Throwable $e) {
+        $this->logger->error('Event Workspace home model failed for event @nid: @message', [
+          '@nid' => (string) $event->id(),
+          '@message' => $e->getMessage(),
+        ]);
+        $workspace = [];
+      }
     }
 
-    $bundle = $this->readinessFacade->evaluate($event, $account);
+    $bundle = $readiness_bundle ?? $this->readinessFacade->evaluate($event, $account);
     $readiness = $bundle['publish'];
     $recommended = is_array($bundle['recommended'] ?? NULL) ? $bundle['recommended'] : [];
     $nid = (int) $event->id();
@@ -160,8 +213,11 @@ final class EventWorkspaceOverviewBuilder {
       $nextRecommended['message'] = trim($nextRecommended['message'] . ' ' . (string) ($celebration['message'] ?? ''));
     }
 
-    $statusLabel = (string) ($eventMeta['status_label'] ?? ($published ? $this->t('Live') : $this->t('Draft')));
-    $statusKey = (string) ($eventMeta['status'] ?? ($published ? 'live' : 'draft'));
+    // Align Mission Control status copy with Hero (Draft · Live · Past).
+    // Do not trust published→live alone — ended events must use Past.
+    $guideStatus = $this->resolveGuidePublicationStatus($event, $eventMeta);
+    $statusLabel = $guideStatus['label'];
+    $statusKey = $guideStatus['key'];
 
     return [
       'workspace' => $workspace,
@@ -187,7 +243,158 @@ final class EventWorkspaceOverviewBuilder {
         'headline' => $this->readinessHeadline($readiness->ready, $published, $remainingErrors),
         'explanation' => $this->readinessExplanation($readiness),
       ],
+      'promotion' => is_array($bundle['promotion'] ?? NULL) ? $bundle['promotion'] : [],
+      'promotion_ready' => (bool) ($bundle['promotion_ready'] ?? FALSE),
+      'published' => $published,
     ];
+  }
+
+  /**
+   * Hero-aligned publication status for Mission Control copy.
+   *
+   * Same Draft / Live / Past rules as
+   * EventStudioWorkspacePresentation::buildTopbarStatus() — entity end date
+   * wins over a naive published→live fallback when the workspace VM is absent.
+   *
+   * @param array<string, mixed> $eventMeta
+   *
+   * @return array{label: string, key: string}
+   */
+  private function resolveGuidePublicationStatus(NodeInterface $event, array $eventMeta): array {
+    if (!$event->isPublished()) {
+      return [
+        'label' => (string) ($eventMeta['status_label'] ?? $this->t('Draft')),
+        'key' => 'draft',
+      ];
+    }
+    if ($this->isEventEnded($event)) {
+      return [
+        'label' => (string) $this->t('Past'),
+        'key' => 'past',
+      ];
+    }
+    // Normalise VM "published" key to Hero "live" for Event Ready copy.
+    return [
+      'label' => (string) ($eventMeta['status_label'] ?? $this->t('Live')),
+      'key' => 'live',
+    ];
+  }
+
+  /**
+   * True when field_event_end is set and before now (Hero / workspace VM rule).
+   */
+  private function isEventEnded(NodeInterface $event): bool {
+    if ($event->bundle() !== 'event' || !$event->hasField('field_event_end') || $event->get('field_event_end')->isEmpty()) {
+      return FALSE;
+    }
+    $item = $event->get('field_event_end')->first();
+    if ($item === NULL || !isset($item->date) || !$item->date) {
+      return FALSE;
+    }
+    return (int) $item->date->getTimestamp() < time();
+  }
+
+  /**
+   * Maps existing guide + homepage readiness presentation into one card model.
+   *
+   * @param array<string, mixed> $guide
+   *
+   * @return array<string, mixed>
+   */
+  private function assembleMissionControl(array $guide, string $section): array {
+    $next = is_array($guide['next_action'] ?? NULL) ? $guide['next_action'] : [];
+    $readiness = is_array($guide['readiness'] ?? NULL) ? $guide['readiness'] : [];
+    $event_ready = is_array($guide['event_ready'] ?? NULL) ? $guide['event_ready'] : [];
+    $promotion = is_array($guide['promotion'] ?? NULL) ? $guide['promotion'] : [];
+    $promotion_ready = (bool) ($guide['promotion_ready'] ?? FALSE);
+    $published = (bool) ($guide['published'] ?? FALSE);
+    $tone = (string) ($event_ready['tone'] ?? 'success');
+    $items = is_array($readiness['items'] ?? NULL) ? $readiness['items'] : [];
+    $item_count = count($items);
+    $attention = $tone === 'attention';
+    $section_open = $this->sectionSuggestsOpenChecklist($section, $next);
+    // Collapse when long so Mission Control stays scannable; section context
+    // may still open the checklist when the CTA targets this section.
+    $improvements_open = $section_open || $item_count <= 4;
+
+    $why = trim((string) ($next['message'] ?? ''));
+    if ($why === '') {
+      $why = trim((string) ($readiness['explanation'] ?? ''));
+    }
+    if ($why === '') {
+      $why = trim((string) ($event_ready['detail'] ?? ''));
+    }
+
+    $complete_count = (int) ($readiness['complete_count'] ?? 0);
+    $total_count = (int) ($readiness['total_count'] ?? 1);
+    if ($total_count < 1) {
+      $total_count = 1;
+    }
+
+    $show_quality = (!$promotion_ready || !$published)
+      && !($section !== 'overview' && $promotion_ready);
+
+    $score = (int) ($promotion['score'] ?? 0);
+    $quality_status = (string) ($promotion['short_status_label'] ?? $promotion['status_label'] ?? '');
+    $quality_explain = $promotion_ready
+      ? (string) $this->t('Your event meets the basics for homepage promotion.')
+      : (string) $this->t('Improve event quality to unlock homepage promotion.');
+
+    return [
+      'heading' => (string) $this->t('Mission Control'),
+      'tone' => $tone,
+      'section' => $section,
+      'next_step' => [
+        'eyebrow' => (string) $this->t('Next step'),
+        'title' => (string) ($next['title'] ?? ''),
+        'why_label' => (string) $this->t('Why this matters'),
+        'message' => $why,
+        'action_label' => $next['action_label'] ?? NULL,
+        'url' => $next['url'] ?? NULL,
+        'key' => (string) ($next['key'] ?? ''),
+        'mode' => (string) ($next['mode'] ?? 'link'),
+        'mirrors_hero' => (bool) ($next['mirrors_hero'] ?? TRUE),
+        'publish_is_primary' => (bool) ($next['publish_is_primary'] ?? FALSE),
+      ],
+      'improvements' => [
+        'heading' => (string) $this->t('Other improvements'),
+        'headline' => (string) ($readiness['headline'] ?? ''),
+        'complete_count' => $complete_count,
+        'total_count' => $total_count,
+        'complete_label' => (string) $this->t('@done of @total complete', [
+          '@done' => $complete_count,
+          '@total' => $total_count,
+        ]),
+        'items' => $items,
+        'open' => $improvements_open,
+        'hint' => (string) ($event_ready['checklist_label'] ?? $this->t('View checklist')),
+      ],
+      'event_quality' => [
+        'visible' => $show_quality,
+        'heading' => (string) $this->t('Event Quality'),
+        'score' => $score,
+        'score_label' => (string) $this->t('@score%', ['@score' => $score]),
+        'status_label' => $quality_status,
+        'explanation' => $quality_explain,
+        'ready' => $promotion_ready,
+      ],
+    ];
+  }
+
+  /**
+   * Presentation-only: open checklist when CTA already targets this section.
+   *
+   * @param array<string, mixed> $next
+   */
+  private function sectionSuggestsOpenChecklist(string $section, array $next): bool {
+    if ($section === '' || $section === 'overview') {
+      return FALSE;
+    }
+    $url = (string) ($next['url'] ?? '');
+    if ($url === '') {
+      return FALSE;
+    }
+    return str_contains($url, '/' . $section) || str_contains($url, 'workspace_' . $section);
   }
 
   /**
@@ -230,8 +437,15 @@ final class EventWorkspaceOverviewBuilder {
     $headline = (string) $this->t('Ready to publish');
     $detail = (string) $this->t('Everything looks good.');
     if ($published && $readiness->ready) {
-      $headline = (string) $this->t('Live and healthy');
-      $detail = (string) $this->t('Your event is published and ready for guests.');
+      // status_key from workspace VM (past | published | draft) — presentation only.
+      if ($statusKey === 'past') {
+        $headline = (string) $this->t('Event completed');
+        $detail = (string) $this->t('This event has ended. Review activity and bookings below.');
+      }
+      else {
+        $headline = (string) $this->t('Live and healthy');
+        $detail = (string) $this->t('Your event is published and ready for guests.');
+      }
     }
     elseif (!$readiness->ready) {
       $tone = 'attention';
@@ -246,10 +460,15 @@ final class EventWorkspaceOverviewBuilder {
     if (($stripe['tone'] ?? '') === 'attention' && in_array($this->resolveEventBookingType($event, $eventMeta), ['paid', 'both'], TRUE)) {
       $tone = 'attention';
       if ($readiness->ready) {
-        // Published events stay Live on the status pill — never claim "Almost ready".
-        $headline = $published
-          ? (string) $this->t('Live — payments need attention')
-          : (string) $this->t('Almost ready');
+        // Published events stay Live/Past on the status pill — never claim "Almost ready".
+        if ($published) {
+          $headline = $statusKey === 'past'
+            ? (string) $this->t('Past — payments need attention')
+            : (string) $this->t('Live — payments need attention');
+        }
+        else {
+          $headline = (string) $this->t('Almost ready');
+        }
         $detail = (string) ($stripe['detail'] ?? $detail);
       }
     }
@@ -913,10 +1132,75 @@ final class EventWorkspaceOverviewBuilder {
   }
 
   /**
+   * Authoritative Workspace primary CTA (Hero + Mission Control share this).
+   *
+   * Lifecycle only: Continue setup → Publish → Share. Does not evaluate Stripe.
+   * Mission Control may apply the approved Stripe Connect exception separately.
+   *
+   * @return array{
+   *   key: string,
+   *   mode: string,
+   *   label: string,
+   *   url: string,
+   *   publish_is_primary: bool
+   * }
+   */
+  public function resolveAuthoritativePrimaryCta(
+    EventReadinessResult $readiness,
+    bool $published,
+    int $nid,
+    string $share_url = '',
+  ): array {
+    if (!$readiness->ready) {
+      return [
+        'key' => 'continue_setup',
+        'mode' => 'link',
+        'label' => (string) $this->t('Continue setup'),
+        'url' => (string) ($this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid]) ?? ''),
+        'publish_is_primary' => FALSE,
+      ];
+    }
+    if (!$published) {
+      return [
+        'key' => 'publish',
+        'mode' => 'publish',
+        'label' => (string) $this->t('Publish'),
+        'url' => '',
+        'publish_is_primary' => TRUE,
+      ];
+    }
+    $share = $share_url !== ''
+      ? $share_url
+      : (string) ($this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]) ?? '');
+    return [
+      'key' => 'share',
+      'mode' => 'link',
+      'label' => (string) $this->t('Share'),
+      'url' => $share,
+      'publish_is_primary' => FALSE,
+    ];
+  }
+
+  /**
+   * Mission Control next-action narrative + CTA.
+   *
+   * CTA label/destination match {@see resolveAuthoritativePrimaryCta()} except the
+   * approved Stripe Connect exception (Mission Control may surface Connect while
+   * Hero keeps Publish/Share).
+   *
    * @param array<string, mixed> $next
    * @param array<string, mixed> $stripe
    *
-   * @return array{title: string, message: string, action_label: ?string, url: ?string}
+   * @return array{
+   *   title: string,
+   *   message: string,
+   *   action_label: ?string,
+   *   url: ?string,
+   *   key: string,
+   *   mode: string,
+   *   mirrors_hero: bool,
+   *   publish_is_primary: bool
+   * }
    */
   private function resolveNextRecommendedAction(
     array $next,
@@ -925,39 +1209,49 @@ final class EventWorkspaceOverviewBuilder {
     int $nid,
     array $stripe = [],
   ): array {
-    $title = trim((string) ($next['title'] ?? ''));
-    $severity = (string) ($next['severity'] ?? '');
-
-    if ($title !== '' && ($severity === 'error' || ($published && $severity === 'info'))) {
-      return [
-        'title' => $title,
-        'message' => (string) ($next['message'] ?? ''),
-        'action_label' => isset($next['action_label']) ? (string) $next['action_label'] : NULL,
-        'url' => isset($next['url']) && $next['url'] instanceof Url
-          ? $next['url']->toString()
-          : (isset($next['url']) ? (string) $next['url'] : NULL),
-      ];
-    }
+    $vmTitle = trim((string) ($next['title'] ?? ''));
+    $vmSeverity = (string) ($next['severity'] ?? '');
+    $vmMessage = (string) ($next['message'] ?? '');
+    $hero = $this->resolveAuthoritativePrimaryCta($readiness, $published, $nid);
 
     // Publish blockers win over Stripe Connect — never push payouts while
-    // checklist items (tickets, schedule, etc.) remain unresolved.
+    // checklist items remain unresolved.
     if (!$readiness->ready) {
+      $title = (string) $this->t('Continue setup');
+      $message = isset($readiness->errors[0])
+        ? $this->humaniseChecklistLabel($readiness->errors[0])
+        : (string) $this->t('Finish the readiness checklist so you can publish.');
+      // Keep a specific VM blocker title/message when present (e.g. Add RSVP).
+      if ($vmTitle !== '' && $vmSeverity === 'error') {
+        $title = $vmTitle;
+        if ($vmMessage !== '') {
+          $message = $vmMessage;
+        }
+      }
       return [
-        'title' => (string) $this->t('Continue setup'),
-        'message' => isset($readiness->errors[0])
-          ? $this->humaniseChecklistLabel($readiness->errors[0])
-          : (string) $this->t('Finish the readiness checklist so you can publish.'),
-        'action_label' => (string) $this->t('Review publishing'),
-        'url' => $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
+        'title' => $title,
+        'message' => $message,
+        'action_label' => $hero['label'],
+        'url' => $hero['url'] !== '' ? $hero['url'] : NULL,
+        'key' => $hero['key'],
+        'mode' => $hero['mode'],
+        'mirrors_hero' => TRUE,
+        'publish_is_primary' => $hero['publish_is_primary'],
       ];
     }
 
+    // Approved exception: Mission Control may prioritise Connect Stripe while
+    // Hero keeps Publish/Share as the chrome primary.
     if (($stripe['tone'] ?? '') === 'attention' && ($stripe['url'] ?? NULL)) {
       return [
         'title' => (string) $this->t('Connect Stripe'),
         'message' => (string) ($stripe['detail'] ?? $this->t('Connect payments so you can get paid.')),
         'action_label' => (string) $this->t('Connect Stripe'),
         'url' => (string) $stripe['url'],
+        'key' => 'connect_stripe',
+        'mode' => 'link',
+        'mirrors_hero' => FALSE,
+        'publish_is_primary' => FALSE,
       ];
     }
 
@@ -965,15 +1259,24 @@ final class EventWorkspaceOverviewBuilder {
       return [
         'title' => (string) $this->t('Ready when you are'),
         'message' => (string) $this->t('Your event looks ready. Publish when you want guests to find it.'),
-        'action_label' => (string) $this->t('Go to publishing'),
-        'url' => $this->safeUrl('myeventlane_event_studio.workspace_publishing', ['node' => $nid]),
+        'action_label' => $hero['label'],
+        'url' => NULL,
+        'key' => $hero['key'],
+        'mode' => $hero['mode'],
+        'mirrors_hero' => TRUE,
+        'publish_is_primary' => $hero['publish_is_primary'],
       ];
     }
+
     return [
       'title' => (string) $this->t('Share your event'),
       'message' => (string) $this->t('Your event is live. Share the page or message your attendees.'),
-      'action_label' => (string) $this->t('Share'),
-      'url' => $this->safeUrl('myeventlane_event_studio.workspace_marketing', ['node' => $nid]),
+      'action_label' => $hero['label'],
+      'url' => $hero['url'] !== '' ? $hero['url'] : NULL,
+      'key' => $hero['key'],
+      'mode' => $hero['mode'],
+      'mirrors_hero' => TRUE,
+      'publish_is_primary' => $hero['publish_is_primary'],
     ];
   }
 

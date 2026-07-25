@@ -156,6 +156,8 @@ Role-based paths: [CONTRIBUTING.md](CONTRIBUTING.md).
 | [DDR-005](decisions/DDR-005-mobile-first.md) | Mobile as first-class ops surface |
 | [DDR-006](decisions/DDR-006-payments-hub.md) | Payments hub |
 | [DDR-007](decisions/DDR-007-marketing-analytics-separation.md) | Marketing separate from Analytics |
+| [DDR-008](decisions/DDR-008-canonical-event-workspace.md) | Canonical Event Workspace shell · transitional `/studio` |
+| [DDR-009](decisions/DDR-009-workspace-navigation.md) | Workspace section nav · Attendees before Orders |
 
 ### Appendices
 
