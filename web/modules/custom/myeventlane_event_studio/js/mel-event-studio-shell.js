@@ -231,11 +231,8 @@
     }
 
     const list = root.querySelector('[data-mel-launch-checklist-list]');
-    if (list && Array.isArray(checklist.items)) {
-      list.replaceChildren();
-      checklist.items.forEach((item) => {
-        list.appendChild(buildLaunchChecklistItem(item));
-      });
+    if (list) {
+      syncLaunchChecklistList(list, checklist, result && result.readiness, !!launch.ready);
     }
 
     const visibilityCurrent = launch.visibility && launch.visibility.current_label;
@@ -243,23 +240,103 @@
       setText(root, '[data-mel-launch-visibility-current]', visibilityCurrent);
     }
 
-    const after = launch.after || {};
+    syncLaunchAfterBand(root, launch.after || null, !!launch.published);
+  }
+
+  /**
+   * Rebuilds checklist rows from payload items, or from readiness when items are omitted.
+   *
+   * Prevents “All required items complete” while stale blocker rows remain.
+   */
+  function syncLaunchChecklistList(list, checklist, readiness, ready) {
+    if (Array.isArray(checklist.items)) {
+      list.replaceChildren();
+      checklist.items.forEach((item) => {
+        list.appendChild(buildLaunchChecklistItem(item));
+      });
+      return;
+    }
+    if (readiness) {
+      list.replaceChildren();
+      buildLaunchChecklistItemsFromReadiness(readiness).forEach((item) => {
+        list.appendChild(buildLaunchChecklistItem(item));
+      });
+      return;
+    }
+    if (ready) {
+      // Last resort: drop attention blockers so summary cannot contradict the list.
+      list.querySelectorAll('.mel-launch-centre__item--attention').forEach((item) => {
+        item.remove();
+      });
+    }
+  }
+
+  function buildLaunchChecklistItemsFromReadiness(readiness) {
+    const items = [];
+    const trimDot = (label) => String(label || '').replace(/\.$/, '');
+    (Array.isArray(readiness.errors) ? readiness.errors : []).forEach((label) => {
+      items.push({
+        label: trimDot(label),
+        complete: false,
+        tone: 'attention',
+      });
+    });
+    (Array.isArray(readiness.warnings) ? readiness.warnings : []).forEach((label) => {
+      items.push({
+        label: trimDot(label),
+        complete: false,
+        tone: 'warning',
+      });
+    });
+    (Array.isArray(readiness.completed) ? readiness.completed : []).forEach((label) => {
+      items.push({
+        label: trimDot(label),
+        complete: true,
+        tone: 'success',
+      });
+    });
+    (Array.isArray(readiness.recommendations) ? readiness.recommendations : []).forEach((label) => {
+      items.push({
+        label: trimDot(label),
+        complete: false,
+        tone: 'idea',
+      });
+    });
+    return items;
+  }
+
+  /**
+   * Updates the aftercare band so live events do not keep pre-launch copy.
+   */
+  function syncLaunchAfterBand(root, after, published) {
     const afterRoot = root.querySelector('[data-mel-launch-after]');
-    if (afterRoot && (after.title || Array.isArray(after.items))) {
-      const afterItems = Array.isArray(after.items) ? after.items : [];
-      afterRoot.hidden = afterItems.length === 0;
-      if (after.title) {
-        setText(afterRoot, '[data-mel-launch-after-title]', after.title);
-      }
-      const afterList = afterRoot.querySelector('[data-mel-launch-after-list]');
-      if (afterList && Array.isArray(after.items)) {
-        afterList.replaceChildren();
-        afterItems.forEach((line) => {
-          const li = document.createElement('li');
-          li.textContent = String(line);
-          afterList.appendChild(li);
-        });
-      }
+    if (!afterRoot) {
+      return;
+    }
+    let title = after && after.title ? String(after.title) : '';
+    let afterItems = after && Array.isArray(after.items) ? after.items : null;
+    if (!title || !afterItems) {
+      title = published
+        ? Drupal.t('While your event is live')
+        : Drupal.t('After you publish');
+      afterItems = [
+        Drupal.t('Guests can discover your event'),
+        Drupal.t('People can RSVP or buy tickets according to your setup'),
+        published
+          ? Drupal.t('Share your event from the header')
+          : Drupal.t("You'll be able to share your event"),
+      ];
+    }
+    afterRoot.hidden = afterItems.length === 0;
+    setText(afterRoot, '[data-mel-launch-after-title]', title);
+    const afterList = afterRoot.querySelector('[data-mel-launch-after-list]');
+    if (afterList) {
+      afterList.replaceChildren();
+      afterItems.forEach((line) => {
+        const li = document.createElement('li');
+        li.textContent = String(line);
+        afterList.appendChild(li);
+      });
     }
   }
 
@@ -309,10 +386,22 @@
       heroHintEl.textContent = heroHint;
       heroHintEl.hidden = false;
     }
+
     const details = root.querySelector('[data-mel-launch-checklist]');
     if (details) {
       details.open = !ready;
     }
+    const summary = ready
+      ? Drupal.t('All required items complete')
+      : Drupal.t('Finish the checklist before you can launch');
+    setText(root, '[data-mel-launch-checklist-summary]', summary);
+
+    const list = root.querySelector('[data-mel-launch-checklist-list]');
+    if (list) {
+      syncLaunchChecklistList(list, {}, result.readiness || null, ready);
+    }
+
+    syncLaunchAfterBand(root, null, published);
   }
 
   function buildLaunchChecklistItem(item) {

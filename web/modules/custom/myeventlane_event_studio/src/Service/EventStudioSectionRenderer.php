@@ -417,7 +417,8 @@ final class EventStudioSectionRenderer {
    * Minimal Launch Centre payload when the full ViewModel cannot be built.
    *
    * Reuses an already-evaluated readiness result — no second eligibility path.
-   * Omits checklist items so shell JS can refresh narrative without wiping the list.
+   * Still includes checklist items so AJAX refresh cannot leave stale blockers
+   * under an “All required items complete” summary.
    *
    * @return array<string, mixed>
    */
@@ -425,7 +426,15 @@ final class EventStudioSectionRenderer {
     $published = $event->isPublished();
     $ready = $readiness->ready;
     $remaining = count($readiness->errors);
+    $nid = (int) $event->id();
     $state = !$ready ? 'needs_attention' : ($published ? 'live' : 'ready');
+    $checklist_items = $this->buildLaunchChecklistItems($readiness, $nid);
+    $required_items = array_values(array_filter(
+      $checklist_items,
+      static fn(array $item): bool => in_array($item['tone'] ?? '', ['success', 'attention'], TRUE),
+    ));
+    $complete_count = count(array_filter($required_items, static fn(array $item): bool => !empty($item['complete'])));
+    $total_count = count($required_items);
 
     return [
       'state' => $state,
@@ -446,6 +455,9 @@ final class EventStudioSectionRenderer {
             '1 thing left before you can launch',
             '@count things left before you can launch',
           ),
+        'complete_count' => $complete_count,
+        'total_count' => $total_count,
+        'items' => $checklist_items,
       ],
       'visibility' => [
         'current_label' => $this->currentVisibilityLabel($event),

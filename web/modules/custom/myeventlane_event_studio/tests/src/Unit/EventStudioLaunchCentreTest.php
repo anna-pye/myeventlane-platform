@@ -65,8 +65,21 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertIsString($js);
     $this->assertStringContainsString('function updateLaunchCentre(shell, launch, result)', $js);
     $this->assertStringContainsString('function applyDegradedLaunchCentre(root, result)', $js);
+    $this->assertStringContainsString('function syncLaunchChecklistList(list, checklist, readiness, ready)', $js);
+    $this->assertStringContainsString('function syncLaunchAfterBand(root, after, published)', $js);
     $this->assertStringContainsString('updateLaunchCentre(shell, result.launch_centre, result)', $js);
     $this->assertGreaterThanOrEqual(3, substr_count($js, 'updateLaunchCentre(shell, result.launch_centre, result)'));
+    $this->assertStringContainsString('While your event is live', $js);
+    $this->assertStringContainsString('Share your event from the header', $js);
+  }
+
+  public function testDegradedLaunchCentreIncludesChecklistItems(): void {
+    $renderer = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioSectionRenderer.php');
+    $this->assertIsString($renderer);
+    $method = $this->extractMethodBody($renderer, 'buildDegradedLaunchCentreViewModel');
+    $this->assertStringContainsString('buildLaunchChecklistItems', $method);
+    $this->assertStringContainsString("'items' => \$checklist_items", $method);
+    $this->assertStringNotContainsString('Omits checklist items', $method);
   }
 
   public function testLaunchVisibilityFormOmitsPublishCard(): void {
