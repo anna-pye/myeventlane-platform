@@ -634,13 +634,35 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       }
     }
 
+    // Relative doors / Daily Brief copy must expire. Preserve max-age 0 when the
+    // one-shot Pro welcome already forced an uncacheable render.
+    if (!isset($pageVars['#cache']['max-age']) || (int) $pageVars['#cache']['max-age'] !== 0) {
+      $pageVars['#cache']['max-age'] = 300;
+    }
+
     // Pro state is per-user (subscription-derived) and role-derived, so vary the
     // dashboard cache on both. The route is vendor-only (authenticated), so these
     // contexts do not affect anonymous page caching.
+    // timezone: Today’s Event / doors-open labels depend on local calendar day.
     $pageVars['#cache']['contexts'] = array_values(array_unique(array_merge(
       $pageVars['#cache']['contexts'] ?? [],
-      ['user', 'user.roles'],
+      ['user', 'user.roles', 'timezone'],
     )));
+
+    // Safe invalidation only — no payload behaviour change.
+    $cacheTags = $pageVars['#cache']['tags'] ?? [];
+    $cacheTags[] = 'node_list';
+    $cacheTags[] = 'commerce_order_list';
+    if ($vendor && $vendor->id()) {
+      $cacheTags[] = 'myeventlane_vendor:' . $vendor->id();
+    }
+    foreach ($userEvents as $eventId) {
+      $nid = (int) $eventId;
+      if ($nid > 0) {
+        $cacheTags[] = 'node:' . $nid;
+      }
+    }
+    $pageVars['#cache']['tags'] = array_values(array_unique($cacheTags));
 
     return $this->buildVendorPage('myeventlane_vendor_dashboard', $pageVars);
   }

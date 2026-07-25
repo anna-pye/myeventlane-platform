@@ -1343,6 +1343,8 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'show_pro_welcome' => FALSE,
         'growth_cards' => [],
         'mel_top_boost_opportunity' => NULL,
+        'daily_brief' => NULL,
+        'dashboard_activity_groups' => [],
       ],
       'template' => 'dashboard/dashboard',
     ],
@@ -1910,22 +1912,193 @@ function myeventlane_vendor_theme_preprocess_myeventlane_vendor_event_settings_p
  *
  * Adds relative timestamp labels for real activity rows using the MEL date
  * formatter (formatTimeDiffSince). Twig falls back to format_date('short').
+ *
+ * Slice 2 also assembles Daily Brief + grouped activity from existing payloads
+ * only — never invents unread counts, overnight stats, or countdown values.
  */
 function myeventlane_vendor_theme_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
-  if (empty($variables['dashboard_activity_items']) || !is_array($variables['dashboard_activity_items'])) {
-    return;
+  if (!empty($variables['dashboard_activity_items']) && is_array($variables['dashboard_activity_items'])) {
+    if (\Drupal::hasService('myeventlane_core.date_formatter')) {
+      /** @var \Drupal\myeventlane_core\Service\DateFormatter $formatter */
+      $formatter = \Drupal::service('myeventlane_core.date_formatter');
+      foreach ($variables['dashboard_activity_items'] as &$item) {
+        if (!is_array($item) || empty($item['timestamp'])) {
+          continue;
+        }
+        $item['timestamp_label'] = $formatter->formatRelative((int) $item['timestamp']);
+      }
+      unset($item);
+    }
   }
-  if (!\Drupal::hasService('myeventlane_core.date_formatter')) {
-    return;
+
+  $variables['dashboard_activity_groups'] = _myeventlane_vendor_theme_dashboard_activity_groups(
+    is_array($variables['dashboard_activity_items'] ?? NULL)
+      ? $variables['dashboard_activity_items']
+      : []
+  );
+  $variables['daily_brief'] = _myeventlane_vendor_theme_dashboard_daily_brief($variables);
+}
+
+/**
+ * Groups similar recent-activity rows for calmer scanning (Slice 2).
+ *
+ * @param list<array<string, mixed>> $items
+ *   Activity rows from the controller.
+ *
+ * @return list<array<string, mixed>>
+ *   Grouped rows with optional count.
+ */
+function _myeventlane_vendor_theme_dashboard_activity_groups(array $items): array {
+  $groups = [];
+  foreach (array_slice($items, 0, 8) as $item) {
+    if (!is_array($item)) {
+      continue;
+    }
+    $message = trim((string) ($item['message'] ?? ''));
+    if ($message === '') {
+      continue;
+    }
+    $type = (string) ($item['type'] ?? 'info');
+    $last = $groups !== [] ? $groups[array_key_last($groups)] : NULL;
+    if (is_array($last) && ($last['type'] ?? '') === $type && ($last['message'] ?? '') === $message) {
+      $groups[array_key_last($groups)]['count'] = (int) ($last['count'] ?? 1) + 1;
+      if (!empty($item['timestamp_label'])) {
+        $groups[array_key_last($groups)]['timestamp_label'] = $item['timestamp_label'];
+      }
+      if (!empty($item['timestamp'])) {
+        $groups[array_key_last($groups)]['timestamp'] = $item['timestamp'];
+      }
+      continue;
+    }
+    $groups[] = [
+      'type' => $type,
+      'message' => $message,
+      'url' => $item['url'] ?? NULL,
+      'timestamp' => $item['timestamp'] ?? NULL,
+      'timestamp_label' => $item['timestamp_label'] ?? NULL,
+      'count' => 1,
+    ];
   }
-  /** @var \Drupal\myeventlane_core\Service\DateFormatter $formatter */
-  $formatter = \Drupal::service('myeventlane_core.date_formatter');
-  foreach ($variables['dashboard_activity_items'] as &$item) {
+  return array_slice($groups, 0, 5);
+}
+
+/**
+ * Builds Daily Brief lines from existing runtime data only.
+ *
+ * @param array<string, mixed> $variables
+ *   Dashboard preprocess variables.
+ *
+ * @return array{greeting: string, lines: list<string>}|null
+ *   Brief payload, or NULL when insufficient factual data exists.
+ */
+function _myeventlane_vendor_theme_dashboard_daily_brief(array $variables): ?array {
+  $model = is_array($variables['vendor_dashboard_view_model'] ?? NULL)
+    ? $variables['vendor_dashboard_view_model']
+    : [];
+  $account = is_array($variables['account'] ?? NULL) ? $variables['account'] : [];
+  $name = trim((string) ($account['display_name'] ?? ''));
+  $current = is_array($model['current_event'] ?? NULL) ? $model['current_event'] : NULL;
+  $activity = is_array($variables['dashboard_activity_items'] ?? NULL)
+    ? $variables['dashboard_activity_items']
+    : [];
+
+  $hour = (int) \Drupal::service('date.formatter')->format(
+    (int) \Drupal::time()->getRequestTime(),
+    'custom',
+    'G'
+  );
+  if ($hour < 12) {
+    $greeting = $name !== ''
+      ? (string) t('Good morning @name.', ['@name' => $name])
+      : (string) t('Good morning.');
+  }
+  elseif ($hour < 17) {
+    $greeting = $name !== ''
+      ? (string) t('Good afternoon @name.', ['@name' => $name])
+      : (string) t('Good afternoon.');
+  }
+  else {
+    $greeting = $name !== ''
+      ? (string) t('Good evening @name.', ['@name' => $name])
+      : (string) t('Good evening.');
+  }
+
+  $lines = [];
+  $event_today_label = (string) t('Event today');
+  $status = is_array($current) ? (string) ($current['status'] ?? '') : '';
+  $reasons = is_array($current['attention_reasons'] ?? NULL) ? $current['attention_reasons'] : [];
+  $is_operational = is_array($current)
+    && ($status === 'upcoming' || in_array($event_today_label, $reasons, TRUE));
+
+  if ($is_operational) {
+    $title = trim((string) ($current['title'] ?? ''));
+    if ($title === '') {
+      $title = (string) t('Your event');
+    }
+    $doors = trim((string) ($current['doors_open_label'] ?? ''));
+    if ($doors !== '') {
+      // Prefer doors label when it is a countdown; otherwise state the event.
+      if (str_starts_with($doors, 'Opens in')) {
+        $lines[] = (string) t('@title @timing.', [
+          '@title' => $title,
+          '@timing' => mb_strtolower($doors),
+        ]);
+      }
+      elseif ($doors === (string) t('Doors open') || in_array($event_today_label, $reasons, TRUE)) {
+        $lines[] = (string) t('@title is on today.', ['@title' => $title]);
+      }
+    }
+    elseif (in_array($event_today_label, $reasons, TRUE)) {
+      $lines[] = (string) t('@title is on today.', ['@title' => $title]);
+    }
+    elseif (!empty($current['date_label'])) {
+      $lines[] = (string) t('@title is coming up — @when.', [
+        '@title' => $title,
+        '@when' => (string) $current['date_label'],
+      ]);
+    }
+  }
+
+  // Overnight bookings/RSVPs from existing activity timestamps only (local day).
+  $now = (int) \Drupal::time()->getRequestTime();
+  $start_of_today = (int) strtotime('today', $now);
+  $overnight_start = $start_of_today - (6 * 3600);
+  $overnight_end = $start_of_today + (6 * 3600);
+  $overnight_bookings = 0;
+  foreach ($activity as $item) {
     if (!is_array($item) || empty($item['timestamp'])) {
       continue;
     }
-    $item['timestamp_label'] = $formatter->formatRelative((int) $item['timestamp']);
+    $ts = (int) $item['timestamp'];
+    if ($ts < $overnight_start || $ts > $overnight_end) {
+      continue;
+    }
+    $message = (string) ($item['message'] ?? '');
+    if (
+      str_contains($message, 'ticket purchase')
+      || str_contains($message, 'RSVP')
+    ) {
+      $overnight_bookings++;
+    }
   }
+  if ($overnight_bookings > 0) {
+    $lines[] = (string) \Drupal::translation()->formatPlural(
+      $overnight_bookings,
+      'One booking was received overnight.',
+      '@count bookings were received overnight.'
+    );
+  }
+
+  // Unread organiser messages are not in the dashboard payload — never invent.
+
+  if ($lines === []) {
+    return NULL;
+  }
+
+  return [
+    'greeting' => $greeting,
+    'lines' => $lines,
+  ];
 }
 
 /**
