@@ -57,6 +57,41 @@ If the organiser cannot answer **“What should I do next?”** within five seco
 
 ---
 
+## How we build (v1 stack order)
+
+Future Vendor Studio work is considered in this order — not “design a page then code”:
+
+```text
+1. Product Design System (PDS)
+        ↓
+2. Workspace Zones          ← composition / design test
+        ↓
+3. Visual Language (B.5)
+        ↓
+4. Component Catalogue
+        ↓
+5. Implementation
+```
+
+**Workspace Zones** (Identity → Guidance → Work → Outcome) are a **first-class design principle**, not a footnote inside the visual language. Spec: [`../vendor-studio-visual/07-workspace-zones.md`](../vendor-studio-visual/07-workspace-zones.md).
+
+### Zone Test (every Workspace page)
+
+| Zone | Question |
+| --- | --- |
+| Identity | Where am I? |
+| Guidance | What should I do next? |
+| Work | How do I do it? |
+| Outcome | What happened? |
+
+If a page cannot answer these clearly, it is not finished.
+
+### Zone Gate
+
+Every new Workspace PR must open with a **zone map** (Identity / Guidance / Work / Outcome) **before** screenshots. No map → not designed yet.
+
+---
+
 ## Product Personality
 
 **Warm · Capable · Local · Calm · Honest**

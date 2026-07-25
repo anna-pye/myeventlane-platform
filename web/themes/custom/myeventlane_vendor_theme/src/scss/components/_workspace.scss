@@ -23,7 +23,7 @@
   margin-inline: auto;
   display: flex;
   flex-direction: column;
-  gap: $mel-spacing-lg;
+  gap: $mel-zone-gap-sm;
   padding: $mel-spacing-md;
   min-width: 0;
 
@@ -35,7 +35,7 @@
 
   @include respond-to(md) {
     padding: $mel-spacing-lg;
-    gap: $mel-spacing-xl;
+    gap: $mel-zone-gap-md;
   }
 }
 

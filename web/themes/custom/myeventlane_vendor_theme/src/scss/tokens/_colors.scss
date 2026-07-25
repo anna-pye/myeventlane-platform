@@ -14,10 +14,19 @@ $ml-vendor-navy:        #0D1520;
 $ml-vendor-slate:       #637185;
 $ml-vendor-text-dark:   #1A1A1A;
 
-// Background Colors (MEL warm shell — aligned with myeventlane_theme base/_tokens.scss)
-$ml-vendor-bg:          #fff9f5;
+// Background Colors — Vendor Studio Visual Language B.5 (VL-1)
+// Brand Warm Cream canvas (docs/brand/design-tokens.md · B.5).
+$mel-brand-warm-cream:  #FFF7EE;
+$mel-brand-soft-sky:    #EAF4FF;
+$mel-brand-lavender:    #CDBDFF;
+$mel-brand-purple:      #6B46FF;
+$mel-brand-coral:       #FF6B4A;
+$mel-brand-gold:        #FFC83D; // rare in Studio — success spark only
+
+$ml-vendor-bg:          $mel-brand-warm-cream;
 $ml-vendor-card:        #FFFFFF;
-$ml-vendor-border:      #e9e3de;
+$ml-vendor-surface-soft: #FFFBF6; // lifted cream soft panel
+$ml-vendor-border:      #E9E3DE;
 
 // Accent Colors
 $ml-accent-coral:       #FF8A8A;
@@ -101,31 +110,35 @@ $border-color-dark:  $gray-300;
 // MEL BRAND + WORKSPACE PALETTE (myeventlane_theme base/_tokens.scss)
 // ============================================================================
 
-$mel-brand-bg: #fff9f5;
+$mel-brand-bg: $mel-brand-warm-cream;
 $mel-brand-border: #e9e3de;
 $mel-brand-primary-hover: #e55c49;
 $mel-brand-primary-active: #cf4f3d;
-$mel-brand-surface-soft: #fdf1ec;
+$mel-brand-surface-soft: $ml-vendor-surface-soft;
 
 // Authoritative workspace palette (Overview / Tickets / RSVPs / Analytics / Settings).
-$mel-ws-coral: #f26d5b;
-$mel-ws-purple: #6e7ef2;
-$mel-ws-bg-warm: #fef5ec;
+// VL-1: canvas + brand purple aligned to B.5; filled primary buttons remain coral until VL-2.
+$mel-ws-coral: $mel-brand-coral;
+$mel-ws-purple: $mel-brand-purple;
+$mel-ws-bg-warm: $mel-brand-warm-cream;
 $mel-ws-navy: #2c3e50;
 $mel-ws-border-soft: rgba(44, 62, 80, 0.08);
-$mel-ws-shadow-soft: rgba(0, 0, 0, 0.06);
-$mel-ws-purple-tint: rgba(110, 126, 242, 0.12);
-$mel-ws-purple-border: rgba(110, 126, 242, 0.2);
+$mel-ws-shadow-soft: rgba(36, 48, 58, 0.05);
+$mel-ws-purple-tint: rgba(107, 70, 255, 0.1);
+$mel-ws-purple-border: rgba(107, 70, 255, 0.22);
+$mel-ws-soft-sky: $mel-brand-soft-sky;
+$mel-ws-lavender: $mel-brand-lavender;
 
 // VendorShell surfaces (layout/page.html.twig + workspace.scss grid).
 $mel-shell-page-bg: $mel-brand-bg;
 $mel-shell-surface: $ml-vendor-card;
 $mel-shell-border: $mel-brand-border;
 
-// Interactive States — MEL coral primary (replaces console blue SC-1).
+// Interactive States — coral remains momentum/primary fill in VL-1 (Hero purple in VL-2).
 $primary: $mel-ws-coral;
 $primary-dark: $mel-brand-primary-hover;
 $primary-light: $wizard-coral;
+$mel-focus-ring: $mel-brand-coral;
 
 // Status Colors
 $success:       $ml-accent-green;

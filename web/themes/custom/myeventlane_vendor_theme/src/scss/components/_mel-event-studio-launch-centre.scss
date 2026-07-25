@@ -1,0 +1,517 @@
+/**
+ * @file
+ * VL-4 — Launch Centre (Work zone) visual refresh.
+ *
+ * Presentation only. Does not change Launch Centre band order, ViewModel,
+ * Twig structure, visibility form behaviour, checklist open/collapsed logic,
+ * Hero CTA ownership, or eligibility.
+ *
+ * Authority: B.5 · Workspace Zones Work · Sprint 3C.1 composition · VL-4
+ *
+ * Loaded under `.mel-vendor` (see main.scss). Selectors include workspace
+ * ancestors where needed to beat module shell card chrome for checklist /
+ * visibility / aftercare without !important.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+// ============================================================================
+// PUBLISHING SECTION CHROME — flatten module .mel-es-card wrap
+// Module wraps every Studio section in .mel-event-studio-section.mel-es-card
+// (cool border + slate shadow). That reads as an admin card wall around Work.
+// Narrow override mirrors branding section flatten pattern — publishing only.
+// ============================================================================
+
+.mel-event-studio--workspace[data-current-section-id='publishing'] .mel-event-studio-section.mel-es-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.mel-event-studio--workspace[data-current-section-id='publishing'] .mel-event-studio-section__header {
+  margin: 0 0 $spacing-4;
+  padding: 0;
+  border: 0;
+}
+
+.mel-event-studio--workspace[data-current-section-id='publishing'] .mel-event-studio-section__title {
+  margin: 0;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-secondary;
+}
+
+.mel-event-studio--workspace[data-current-section-id='publishing'] .mel-event-studio-section__body {
+  gap: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+// ============================================================================
+// WORK COLUMN — editorial narrative width; flat on Warm Cream canvas
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-centre,
+.mel-launch-centre {
+  display: flex;
+  flex-direction: column;
+  gap: $mel-zone-gap-work-internal;
+  max-width: 42rem; // Reading width for narrative + ops
+  width: min(100%, 42rem);
+  margin: 0;
+  padding: 0 0 $spacing-6;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+@include respond-to(md) {
+  .mel-event-studio--workspace .mel-launch-centre,
+  .mel-launch-centre {
+    gap: $mel-zone-gap-work-internal-lg;
+    padding-bottom: $spacing-8;
+  }
+}
+
+// ============================================================================
+// 1. READY NARRATIVE — flat editorial band (no card)
+// ============================================================================
+
+.mel-launch-centre__ready {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  max-width: 40rem;
+}
+
+.mel-launch-centre__eyebrow {
+  margin: 0 0 $spacing-2;
+  @include meta-text;
+  font-weight: $font-weight-semibold;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-secondary;
+}
+
+.mel-event-studio--workspace .mel-launch-centre__headline,
+.mel-launch-centre__headline {
+  margin: 0 0 $spacing-3;
+  @include band-title;
+  color: $text-primary;
+}
+
+.mel-launch-centre__explanation {
+  margin: 0;
+  @include body-text;
+  color: $text-primary;
+  max-width: 38rem;
+}
+
+.mel-launch-centre__hero-hint {
+  margin-top: $spacing-4;
+  padding: $spacing-3 $spacing-4;
+  border-radius: $mel-radius-sm;
+  background: $mel-brand-soft-sky;
+  border: 1px solid rgba(36, 48, 58, 0.06);
+  box-shadow: none;
+  @include body-text;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+}
+
+.mel-launch-centre--ready .mel-launch-centre__hero-hint {
+  background: $mel-brand-soft-sky;
+  border-color: rgba(36, 48, 58, 0.06);
+}
+
+.mel-launch-centre--live .mel-launch-centre__hero-hint {
+  background: transparent;
+  border: 0;
+  padding: $spacing-2 0 0;
+  color: $text-secondary;
+  @include meta-text;
+  font-weight: $font-weight-normal;
+}
+
+// ============================================================================
+// 2. LAUNCH CHECKLIST — one restrained soft panel
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-centre__checklist,
+.mel-launch-centre__checklist {
+  margin: 0;
+  padding: 0;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: $radius-workspace-card;
+  background: $mel-shell-surface;
+  box-shadow: $shadow-sm;
+  overflow: clip;
+}
+
+.mel-launch-centre__checklist-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-2 $spacing-4;
+  list-style: none;
+  cursor: pointer;
+  padding: $spacing-4 $spacing-5;
+  min-height: 44px;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  background: transparent;
+}
+
+.mel-launch-centre__checklist-title {
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+}
+
+.mel-launch-centre__checklist-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: $spacing-2;
+  @include meta-text;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+}
+
+.mel-launch-centre__checklist-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.5rem;
+  padding: 0.15rem $spacing-2;
+  border-radius: $radius-full;
+  background: $mel-brand-surface-soft;
+  border: 1px solid $mel-ws-border-soft;
+  font-variant-numeric: tabular-nums;
+  color: $text-secondary;
+}
+
+// Ready / live: collapsed summary stays calm — no empty-panel theatre
+.mel-launch-centre--ready .mel-launch-centre__checklist:not([open]),
+.mel-launch-centre--live .mel-launch-centre__checklist:not([open]) {
+  box-shadow: none;
+  background: transparent;
+  border-color: rgba(36, 48, 58, 0.08);
+}
+
+.mel-launch-centre--ready .mel-launch-centre__checklist:not([open]) .mel-launch-centre__checklist-summary,
+.mel-launch-centre--live .mel-launch-centre__checklist:not([open]) .mel-launch-centre__checklist-summary {
+  padding-block: $spacing-3;
+}
+
+.mel-launch-centre__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 $spacing-5 $spacing-4;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.mel-launch-centre__item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-2 $spacing-3;
+  padding: $spacing-3 0;
+  border-top: 1px solid rgba(36, 48, 58, 0.06);
+  min-height: 44px;
+}
+
+.mel-launch-centre__item:first-child {
+  border-top: 0;
+}
+
+.mel-launch-centre__mark {
+  flex: 0 0 1.25rem;
+  text-align: center;
+  font-weight: $font-weight-bold;
+  color: $text-secondary;
+}
+
+.mel-launch-centre__item--attention .mel-launch-centre__mark,
+.mel-launch-centre__item--attention .mel-launch-centre__item-label {
+  color: #92400e; // labelled + amber text — not colour-only
+  font-weight: $font-weight-semibold;
+}
+
+.mel-launch-centre__item--success .mel-launch-centre__mark {
+  color: #15803d;
+}
+
+.mel-launch-centre__item-label {
+  flex: 1 1 12rem;
+  @include body-text;
+  color: $text-primary;
+}
+
+// Completed rows visibly quieter — solid muted ink (AA on white), no opacity fade
+.mel-launch-centre__item.is-complete .mel-launch-centre__item-label,
+.mel-launch-centre__item--success .mel-launch-centre__item-label {
+  color: $text-secondary; // #5b6670 family — quieter than body, ≥4.5:1 on white
+  font-weight: $font-weight-normal;
+}
+
+.mel-launch-centre__item.is-complete .mel-launch-centre__mark {
+  color: #15803d;
+  opacity: 1;
+}
+
+// Fix actions — tertiary / ghost; never match Hero purple primary
+.mel-event-studio--workspace .mel-launch-centre__fix.mel-btn,
+.mel-launch-centre__fix.mel-btn,
+.mel-launch-centre__fix {
+  flex: 0 0 auto;
+  min-height: 44px;
+  min-width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-2 $spacing-3;
+  text-decoration: none;
+  font-weight: $font-weight-medium;
+  color: $mel-brand-purple;
+  background: transparent;
+  border: 1px solid transparent;
+  box-shadow: none;
+  border-radius: $radius-button;
+}
+
+.mel-event-studio--workspace .mel-launch-centre__fix.mel-btn:hover,
+.mel-launch-centre__fix.mel-btn:hover,
+.mel-launch-centre__fix:hover {
+  background: rgba(107, 70, 255, 0.06);
+  border-color: rgba(107, 70, 255, 0.18);
+  color: $mel-brand-purple;
+}
+
+// ============================================================================
+// 3. WHO CAN FIND THIS? — quiet flat tertiary disclosure
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-centre__visibility,
+.mel-launch-centre__visibility {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid rgba(36, 48, 58, 0.08);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-launch-centre__visibility-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-2 $spacing-4;
+  list-style: none;
+  cursor: pointer;
+  padding: $spacing-4 0;
+  min-height: 44px;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+  background: transparent;
+}
+
+.mel-launch-centre__visibility-title {
+  font-size: $font-size-label;
+  font-weight: $font-weight-semibold;
+}
+
+.mel-launch-centre__visibility-current {
+  @include meta-text;
+  font-weight: $font-weight-medium;
+  color: $text-secondary;
+}
+
+.mel-launch-centre__visibility-body {
+  padding: 0 0 $spacing-4;
+}
+
+// Visibility form reuses wizard form classes, so Event-steps nav renders here.
+// Hide that chrome in Launch Centre only — keeps progressive disclosure quiet
+// and prevents a coral “Publish” nav link competing with Hero primary.
+.mel-launch-centre__visibility-body .mel-event-studio-wizard-nav,
+.mel-launch-centre__visibility-body nav.mel-wizard-nav {
+  display: none;
+}
+
+.mel-launch-centre__visibility-body .mel-visibility-section {
+  margin-top: $spacing-1;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-launch-centre__settings-link {
+  margin: $spacing-3 0 0;
+  @include meta-text;
+}
+
+.mel-launch-centre__settings-link a {
+  color: $text-secondary;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-weight: $font-weight-medium;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mel-launch-centre__settings-link a:hover {
+  color: $mel-brand-purple;
+}
+
+// ============================================================================
+// 4. AFTER YOU PUBLISH — Soft Sky supporting band (not Launch Success)
+// ============================================================================
+
+.mel-event-studio--workspace .mel-launch-centre__after,
+.mel-launch-centre__after {
+  margin: 0;
+  padding: $spacing-4 $spacing-5;
+  border-radius: $mel-radius-sm;
+  background: $mel-brand-soft-sky;
+  border: 1px solid rgba(36, 48, 58, 0.06);
+  box-shadow: none;
+}
+
+.mel-launch-centre__after-title {
+  margin: 0 0 $spacing-2;
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-semibold;
+  line-height: $line-height-tight;
+  color: $text-primary;
+}
+
+.mel-launch-centre__after-list {
+  margin: 0;
+  padding-left: $spacing-5;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+  @include body-text;
+  color: $text-primary;
+}
+
+.mel-launch-centre__after-list a {
+  color: $mel-brand-purple;
+  font-weight: $font-weight-medium;
+}
+
+// Live: aftercare leads; checklist stays recessed when closed
+.mel-launch-centre--live .mel-launch-centre__after {
+  order: 0;
+}
+
+// ============================================================================
+// FOCUS — brand coral (B.5), visible, not clipped
+// ============================================================================
+
+.mel-launch-centre__checklist-summary:focus,
+.mel-launch-centre__visibility-summary:focus {
+  outline: none;
+}
+
+.mel-event-studio--workspace .mel-launch-centre__checklist-summary:focus-visible,
+.mel-event-studio--workspace .mel-launch-centre__visibility-summary:focus-visible,
+.mel-event-studio--workspace .mel-launch-centre__fix:focus-visible,
+.mel-event-studio--workspace .mel-launch-centre__settings-link a:focus-visible,
+.mel-launch-centre__checklist-summary:focus-visible,
+.mel-launch-centre__visibility-summary:focus-visible,
+.mel-launch-centre__fix:focus-visible,
+.mel-launch-centre__settings-link a:focus-visible {
+  outline: 2px solid $mel-brand-coral;
+  outline-offset: 2px;
+  box-shadow: $shadow-focus;
+}
+
+.mel-launch-centre__visibility-body :focus-visible {
+  outline: 2px solid $mel-brand-coral;
+  outline-offset: 2px;
+}
+
+// ============================================================================
+// DETAILS MARKERS
+// ============================================================================
+
+.mel-launch-centre__checklist-summary::-webkit-details-marker,
+.mel-launch-centre__visibility-summary::-webkit-details-marker {
+  display: none;
+}
+
+// ============================================================================
+// MOBILE — 390 baseline
+// ============================================================================
+
+@media (max-width: 767px) {
+  .mel-event-studio--workspace .mel-launch-centre,
+  .mel-launch-centre {
+    max-width: none;
+    width: 100%;
+    gap: $spacing-5;
+    padding-bottom: $spacing-5;
+  }
+
+  .mel-launch-centre__headline {
+    font-size: $font-size-band-title;
+  }
+
+  .mel-launch-centre__checklist-summary,
+  .mel-launch-centre__visibility-summary {
+    padding-inline: $spacing-4;
+  }
+
+  .mel-launch-centre__visibility-summary {
+    padding-inline: 0;
+  }
+
+  .mel-launch-centre__list {
+    padding-inline: $spacing-4;
+  }
+
+  .mel-launch-centre__item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mel-launch-centre__fix.mel-btn,
+  .mel-launch-centre__fix {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .mel-launch-centre__after {
+    padding: $spacing-4;
+  }
+}
+
+// ============================================================================
+// REDUCED MOTION
+// ============================================================================
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-launch-centre,
+  .mel-launch-centre * {
+    transition: none;
+    animation: none;
+  }
+}

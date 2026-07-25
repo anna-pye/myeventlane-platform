@@ -2,46 +2,47 @@
  * @file
  * Shadow tokens for MyEventLane Vendor Theme.
  *
- * Subtle shadows for depth and hierarchy.
+ * VL-1 / B.5 elevation budget:
+ * 0 flat default · 1 soft panels · 2 overlays · 3 sticky bars / modals.
+ * Soft, warm-tinted shadows — avoid cool admin grey depth.
  */
 
 @use 'colors' as *;
 
 // ============================================================================
-// SHADOW SCALE
+// SHADOW SCALE (elevation 0–3)
 // ============================================================================
 
-$shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-$shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
-$shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-$shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.05);
+$shadow-xs: 0 1px 2px 0 rgba(36, 48, 58, 0.04);
+$shadow-sm: 0 1px 2px rgba(36, 48, 58, 0.04), 0 2px 8px rgba(36, 48, 58, 0.03);
+$shadow: 0 2px 6px -1px rgba(36, 48, 58, 0.05), 0 4px 12px -2px rgba(36, 48, 58, 0.04);
+$shadow-md: 0 4px 12px -2px rgba(36, 48, 58, 0.06), 0 2px 6px -2px rgba(36, 48, 58, 0.04);
+$shadow-lg: 0 10px 24px -4px rgba(36, 48, 58, 0.08), 0 4px 10px -4px rgba(36, 48, 58, 0.04);
+$shadow-xl: 0 16px 32px -6px rgba(36, 48, 58, 0.1), 0 8px 12px -6px rgba(36, 48, 58, 0.05);
+$shadow-2xl: 0 24px 48px -12px rgba(36, 48, 58, 0.14);
+$shadow-inner: inset 0 2px 4px 0 rgba(36, 48, 58, 0.04);
 $shadow-none: 0 0 #0000;
 
 // ============================================================================
 // COMPONENT-SPECIFIC SHADOWS
 // ============================================================================
 
-$shadow-card: $shadow-sm;
+$shadow-card: $shadow-sm; // elevation 1 — soft panels
 $shadow-card-hover: $shadow-md;
-$shadow-dropdown: $shadow-lg;
-$shadow-modal: $shadow-xl;
-$shadow-sidebar: 2px 0 8px rgba(0, 0, 0, 0.08);
-$shadow-header: 0 1px 3px rgba(0, 0, 0, 0.08);
+$shadow-dropdown: $shadow-md; // elevation 2
+$shadow-modal: $shadow-lg; // elevation 3
+$shadow-sidebar: 2px 0 10px rgba(36, 48, 58, 0.04);
+$shadow-header: 0 1px 2px rgba(36, 48, 58, 0.04);
 
 // ============================================================================
-// FOCUS SHADOWS
+// FOCUS SHADOWS — brand coral (B.5), distinct from purple fill
 // ============================================================================
 
-$shadow-focus: 0 0 0 3px rgba(242, 109, 91, 0.25);
+$shadow-focus: 0 0 0 3px rgba(255, 107, 74, 0.28);
 $shadow-focus-danger: 0 0 0 3px rgba(255, 138, 138, 0.25);
 $shadow-focus-success: 0 0 0 3px rgba(92, 201, 139, 0.25);
 
-// MEL event workspace — soft, airy depth
-$shadow-workspace-surface: 0 8px 24px $mel-ws-shadow-soft;
-$shadow-workspace-header: 0 10px 30px rgba(0, 0, 0, 0.04);
-$shadow-workspace-lift: 0 6px 18px rgba(0, 0, 0, 0.05);
-
+// MEL event workspace — soft, airy depth (elevation 1)
+$shadow-workspace-surface: 0 4px 16px $mel-ws-shadow-soft;
+$shadow-workspace-header: 0 2px 8px rgba(36, 48, 58, 0.03);
+$shadow-workspace-lift: 0 4px 14px rgba(36, 48, 58, 0.045);

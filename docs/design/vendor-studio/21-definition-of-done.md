@@ -39,11 +39,13 @@ Copy into the PR. Check each applicable gate.
 
 ### Design and product
 
+- [ ] **Zone Gate** — Event Workspace PRs include Identity / Guidance / Work / Outcome map **before screenshots**; Zone Test questions answerable ([Workspace Zones](../vendor-studio-visual/07-workspace-zones.md) · [16](16-design-review-checklist.md))
 - [ ] **Design review** — Design Authority (or delegate) reviewed experience against OS docs cited in the PR
 - [ ] **Information Architecture** — Fits [02](02-information-architecture.md); no Studio/Manager fork; organiser labels
 - [ ] **Three Question Framework** — Where am I? What needs me? What is the next useful action? ([01](01-vendor-studio-vision.md))
 - [ ] **Golden Rule** — Next step clear within five seconds ([01](01-vendor-studio-vision.md))
-- [ ] **Component Library compliance** — Extends [05](05-component-library.md); no parallel component names ([DDR-004](decisions/DDR-004-component-philosophy.md))
+- [ ] **Visual Language B.5** — Presentation aligns with [B.5](../vendor-studio-visual/03-option-b5.md) when touching Studio look (VL phases)
+- [ ] **Component Library compliance** — Extends [05](05-component-library.md); no parallel component names ([DDR-004](decisions/DDR-004-component-philosophy.md)); catalogue freeze respected
 - [ ] **Design Tokens compliance** — Spacing, type, colour, intents per [11](11-design-tokens.md) / [03](03-layout-system.md)
 
 ### Accessibility and interaction

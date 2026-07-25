@@ -31,6 +31,34 @@ Authors and reviewers of Vendor Studio PRs (product, design, theme, module).
 
 ---
 
+## Zone Gate (Workspace PRs — first)
+
+**Authority:** [Workspace Zones](../vendor-studio-visual/07-workspace-zones.md) · PO decision 2026-07-25  
+
+Every new **Event Workspace** PR must begin with a zone map **before any screenshots**. If the author cannot produce the map, the page has not been designed yet.
+
+```text
+Zone map
+Identity
+Guidance
+Work
+Outcome
+```
+
+| # | Check | YES / NO | Rationale |
+| --- | --- | --- | --- |
+| ZG1 | Zone map present at top of PR (before screenshots) | | |
+| ZG2 | Identity answers “Where am I?” (Hero / chrome only — no work) | | |
+| ZG3 | Guidance answers “What should I do next?” with **at most one** recommendation (or explicit omission) | | |
+| ZG4 | Work answers “How do I do it?” as the dominant section purpose | | |
+| ZG5 | Outcome answers “What happened?” only when appropriate (success / error / empty / aftercare) | | |
+| ZG6 | No component competition across zones (e.g. no second Publish in Work) | | |
+| ZG7 | Page does not read as equal Card · Card · Card · Card | | |
+
+N/A only for PRs with **zero** Event Workspace UI impact (rationale required).
+
+---
+
 ## Information Architecture
 
 | # | Check | YES / NO | Rationale |

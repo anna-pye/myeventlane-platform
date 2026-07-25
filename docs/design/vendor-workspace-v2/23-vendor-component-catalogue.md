@@ -1,6 +1,6 @@
 # Vendor Workspace — Component Catalogue
 
-**Status:** Living catalogue (Product Owner endorsed 2026-07-25)  
+**Status:** 🔒 Freeze ledger (Product Owner endorsed 2026-07-25; VS1.1 Zones + B.5 frozen)  
 **Authority:** Status & freeze board for Event Workspace / Vendor Studio surfaces  
 **Not:** A style guide, token book, or second PDS component library  
 
@@ -49,10 +49,22 @@
 
 | When | What | Decision |
 | --- | --- | --- |
-| Phase A / Foundation | Shell + Hero CTA ownership | Frozen |
-| Phase 2B | Mission Control compact progressive disclosure | Frozen |
-| Sprint 3C.1 | Launch Centre composition | Frozen (composition) |
-| Sprint 3C.2 (approved) | Launch Success Alternative A | In progress → freeze on PO accept |
+| Phase A / Foundation | Shell + Hero CTA ownership | 🔒 Frozen |
+| Phase 2B | Mission Control compact progressive disclosure | 🔒 Frozen |
+| Sprint 3C.1 | Launch Centre composition | 🔒 Frozen (composition) |
+| Sprint 3C.2 (approved) | Launch Success Alternative A | 🚧 In progress → freeze on PO accept |
+| VS1 / VS1.1 (PO 2026-07-25) | **Visual Language B.5** + **Workspace Zones** | 🔒 Frozen — no further design expansion; VL implementation next |
+| VS1.1 governance | **Zone Gate** on Workspace PRs | 🔒 Required — zone map before screenshots |
+| **VL-1** (PO 2026-07-25) | Global canvas, spacing, typography, elevation, zone rhythm | ✅ Approved — theme tokens + `layout/_zones.scss` |
+| **VL-2** (PO 2026-07-25) | Hero (Identity) visual refresh | ✅ Approved — `components/_mel-event-studio-hero.scss` |
+| **VL-3** (PO 2026-07-25) | Mission Control (Guidance) visual expression | 🔒 Frozen — `components/_mel-event-studio-mission-control.scss` |
+| **VL-3 supporting** (PO 2026-07-25) | Hero specificity · mobile sticky &lt;768 off · Workspace Boost visual demotion | 🔒 Frozen as presentation corrections — does **not** reopen VL-2 · Boost business logic unchanged |
+| **VL-4** (PO 2026-07-25) | Launch Centre (Work) visual expression | 🔒 Frozen — `components/_mel-event-studio-launch-centre.scss` |
+| **VL-4 approved set** | Warm Cream narrative · one checklist surface · flat visibility · Soft Sky aftercare · wizard-nav suppress in LC · Hero sole dominant publish action | 🔒 Frozen with VL-4 — do not reopen presentation |
+
+**Also frozen (PO):** Workspace Foundation · Mission Control structure · Launch Centre Composition · this Catalogue · Visual Language · Workspace Zones · **VL-1** · **VL-2** · **VL-3** · **VL-4** presentation baselines (Hero behaviour remains VL-2; MC structure/ViewModel remain frozen; LC composition remains frozen).
+
+**VL-4 tech debt (non-blocking — do not reopen VL-4):** Remove obsolete wizard presentation classes from `EventLaunchVisibilityForm`; nested/duplicate landmarks Twig a11y; product revisit of aftercare preview while blocked (ViewModel/content).
 
 ---
 
@@ -78,14 +90,21 @@
 
 | Action | Owner |
 | --- | --- |
-| Implement Sprint **3C.2** Launch Success (Alternative A only) | Engineering (when PO says start) |
+| **VL-1** approved — baseline locked | — |
+| **VL-2** approved — Hero presentation locked | — |
+| **VL-3** Mission Control presentation — 🔒 Frozen | — |
+| **VL-4** Launch Centre presentation — 🔒 Frozen | — |
+| **VL-5** open — start with Launch Success Alternative A + shared outcome-state presentation (not a broad forms polish) | Engineering (when PO says start) |
+| Implement Sprint **3C.2** Launch Success (Alternative A) within VL-5 boundary | Engineering (when PO says start) |
 | On 3C.2 accept → set Launch Success to 🔒 Frozen | Catalogue update in same PR |
-| After 3C.2 → promote Success Panel / Error Panel design if still needed | Product + design |
+| After VL phases → polish only; **no new design packs** without DDR + PO | All |
 
 ---
 
 ## Related
 
+- [Workspace Zones](../vendor-studio-visual/07-workspace-zones.md) — first-class composition · Zone Gate  
+- [Visual Language B.5](../vendor-studio-visual/03-option-b5.md) — look  
 - [20-launch-success-experience.md](20-launch-success-experience.md) — Alternative A (approved for 3C.2)  
 - [22-sprint-3c1-launch-centre-implementation.md](22-sprint-3c1-launch-centre-implementation.md)  
 - [PDS 05 Component Library](../vendor-studio/05-component-library.md) — behavioural contracts  
