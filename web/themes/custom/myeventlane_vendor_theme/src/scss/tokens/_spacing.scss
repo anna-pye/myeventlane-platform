@@ -99,8 +99,18 @@ $card-padding: $spacing-6;              // 24px
 $card-padding-sm: $spacing-4;           // 16px
 $card-gap: $spacing-6;                  // 24px
 
-$section-gap: $spacing-8;               // 32px
+// VL-1 / B.5 — editorial breath between page sections (zone transitions)
+$section-gap: $spacing-10;              // 40px mobile section / zone breath
 $section-gap-lg: $spacing-12;           // 48px
+$section-gap-xl: $spacing-16;           // 64px desktop major breaks
+
+// Workspace Zones rhythm (Identity → Guidance → Work → Outcome)
+$mel-zone-gap-sm: $spacing-6;           // 24px — Identity → Guidance (390)
+$mel-zone-gap-md: $spacing-8;           // 32px — Work → Outcome / Identity → Guidance (desktop)
+$mel-zone-gap-lg: $spacing-10;          // 40px — Guidance → Work primary breath (390)
+$mel-zone-gap-xl: $spacing-12;          // 48px — Guidance → Work primary breath (desktop)
+$mel-zone-gap-work-internal: $spacing-6; // 24px — bands inside Work
+$mel-zone-gap-work-internal-lg: $spacing-8; // 32px desktop
 
 // ============================================================================
 // GRID GAPS

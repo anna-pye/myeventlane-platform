@@ -1,0 +1,171 @@
+/**
+ * @file
+ * VL-1 — Workspace Zones page rhythm + global Studio canvas polish.
+ *
+ * Presentation only. Does not change Hero CTA, Mission Control structure,
+ * Launch Centre composition, or eligibility behaviour.
+ *
+ * Authority: docs/design/vendor-studio-visual/07-workspace-zones.md · B.5
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/breakpoints' as *;
+
+// ============================================================================
+// GLOBAL CANVAS
+// ============================================================================
+
+.mel-vendor-shell__main {
+  background: $mel-shell-page-bg;
+}
+
+.mel-vendor-shell__content,
+.mel-vendor-main,
+.mel-vendor-console__content {
+  background: transparent;
+}
+
+// Cool admin header wash → warm cream / soft surface (Identity chrome breath)
+.mel-shell-header {
+  background: rgba(255, 247, 238, 0.92);
+  border-bottom-color: $mel-ws-border-soft;
+}
+
+.mel-shell-header__subtitle,
+.mel-console__meta {
+  @include meta-text;
+  color: $text-secondary;
+}
+
+.mel-console__title {
+  @include page-title;
+}
+
+// Soft panel default (elevation 1) — cards earn stronger chrome elsewhere
+.mel-panel,
+.mel-card:not(.mel-card--nested) {
+  box-shadow: $shadow-sm;
+}
+
+// ============================================================================
+// ZONE RHYTHM UTILITIES
+// Optional classes for future Twig; also applied via known Workspace selectors.
+// ============================================================================
+
+.mel-zone {
+  min-width: 0;
+}
+
+.mel-zone + .mel-zone {
+  margin-block-start: var(--mel-zone-gap-md, #{$mel-zone-gap-md});
+}
+
+.mel-zone--identity + .mel-zone--guidance {
+  margin-block-start: var(--mel-zone-gap-sm, #{$mel-zone-gap-sm});
+
+  @include respond-to(md) {
+    margin-block-start: var(--mel-zone-gap-md, #{$mel-zone-gap-md});
+  }
+}
+
+.mel-zone--guidance + .mel-zone--work {
+  margin-block-start: var(--mel-zone-gap-lg, #{$mel-zone-gap-lg});
+
+  @include respond-to(md) {
+    margin-block-start: var(--mel-zone-gap-xl, #{$mel-zone-gap-xl});
+  }
+}
+
+.mel-zone--work + .mel-zone--outcome {
+  margin-block-start: var(--mel-zone-gap-md, #{$mel-zone-gap-md});
+}
+
+.mel-zone__band-title {
+  @include band-title;
+  margin: 0 0 $spacing-3;
+  color: $text-primary;
+}
+
+.mel-zone__meta {
+  @include meta-text;
+  margin: 0;
+  color: $text-secondary;
+}
+
+// Soft Sky guidance / aftercare strip (inside a panel — not a nested card)
+.mel-zone__next,
+.mel-zone__sky {
+  padding: $spacing-3 $spacing-4;
+  border-radius: 12px;
+  background: $mel-brand-soft-sky;
+  border: 1px solid rgba(36, 48, 58, 0.06);
+}
+
+// ============================================================================
+// EVENT WORKSPACE — apply zone breath to existing structure (no Twig change)
+// ============================================================================
+
+// Home stack: Guidance (MC) → light Work snapshots
+.mel-event-workspace-home {
+  gap: $mel-zone-gap-lg;
+
+  @include respond-to(md) {
+    gap: $mel-zone-gap-xl;
+  }
+}
+
+// Mission Control presentation lives in components/_mel-event-studio-mission-control.scss (VL-3).
+
+// Studio section stack — Work internal rhythm
+.mel-event-studio {
+  --mel-es-panel-radius: 20px;
+  --mel-es-panel-border: #{$mel-ws-border-soft};
+  --mel-es-panel-shadow: #{$shadow-sm};
+  --mel-es-panel-bg: #{$mel-shell-surface};
+  --mel-es-panel-gap: #{$mel-zone-gap-work-internal};
+  --mel-es-panel-padding: #{$spacing-6};
+}
+
+@include respond-to(md) {
+  .mel-event-studio {
+    --mel-es-panel-gap: #{$mel-zone-gap-work-internal-lg};
+    --mel-es-panel-padding: #{$spacing-8};
+  }
+}
+
+// Workspace product shell — cream canvas continuity
+.mel-workspace--surface {
+  background: $mel-ws-bg-warm;
+  box-shadow: $shadow-workspace-surface;
+  border-color: $mel-ws-border-soft;
+}
+
+.mel-workspace {
+  gap: $mel-zone-gap-sm;
+
+  @include respond-to(md) {
+    gap: $mel-zone-gap-md;
+  }
+}
+
+// Console pages — editorial section breath
+.mel-console--workspace-body,
+.mel-console--dashboard {
+  gap: $section-gap;
+
+  @include respond-to(md) {
+    gap: $section-gap-lg;
+  }
+}
+
+// Soften dense uppercase chrome labels toward quieter meta (Identity calm)
+.mel-section-title {
+  font-size: $font-size-xs;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: $text-secondary;
+  font-weight: $font-weight-semibold;
+}

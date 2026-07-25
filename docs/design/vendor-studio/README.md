@@ -46,6 +46,8 @@ This standard is **frozen**.
 - Compatible clarifications may ship as **1.x** with Design Authority approval
 - Breaking philosophy/IA changes require **2.0** and Product Owner approval
 
+**v1 complete design stack (PO 2026-07-25):** PDS → [Workspace Zones](../vendor-studio-visual/07-workspace-zones.md) → [Visual Language B.5](../vendor-studio-visual/03-option-b5.md) → [Component Catalogue](../vendor-workspace-v2/23-vendor-component-catalogue.md) → Implementation. **No further design expansion** — next work is VL-1…VL-6. **Zone Gate** required on Workspace PRs.
+
 ---
 
 ## Mandatory PR references

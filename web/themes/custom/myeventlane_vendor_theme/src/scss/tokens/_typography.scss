@@ -17,15 +17,19 @@ $font-family-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 
 // FONT SIZES
 // ============================================================================
 
-// Page titles: 28-32px semi-bold
-$font-size-page-title: 1.75rem;      // 28px
-$font-size-page-title-lg: 2rem;      // 32px
+// Page / band titles — B.5 editorial scale (VL-1)
+$font-size-page-title: 1.75rem;      // 28px mobile H1
+$font-size-page-title-lg: 2.25rem;   // 36px desktop H1
+$font-size-band-title: 1.5rem;       // 24px Work band H2 mobile
+$font-size-band-title-lg: 1.875rem;  // 30px desktop H2
 
-// Section titles: 20px medium
+// Panel / section titles: 20–24px semibold (ops clarity)
 $font-size-section-title: 1.25rem;   // 20px
+$font-size-section-title-lg: 1.5rem; // 24px
 
-// Body: 16px
+// Body: 16px · Meta: 14px quiet
 $font-size-body: 1rem;               // 16px
+$font-size-meta: 0.875rem;           // 14px
 
 // Labels: 15px medium
 $font-size-label: 0.9375rem;         // 15px
@@ -83,25 +87,48 @@ $letter-spacing-wider: 0.05em;
 @mixin page-title {
   font-family: $font-family-sans;
   font-size: $font-size-page-title;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  letter-spacing: $letter-spacing-tight;
+
+  @media (min-width: 768px) {
+    font-size: $font-size-page-title-lg;
+  }
+}
+
+@mixin band-title {
+  font-family: $font-family-sans;
+  font-size: $font-size-band-title;
   font-weight: $font-weight-semibold;
   line-height: $line-height-tight;
   letter-spacing: $letter-spacing-tight;
-  
+
   @media (min-width: 768px) {
-    font-size: $font-size-page-title-lg;
+    font-size: $font-size-band-title-lg;
   }
 }
 
 @mixin section-title {
   font-family: $font-family-sans;
   font-size: $font-size-section-title;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
   line-height: $line-height-tight;
+
+  @media (min-width: 768px) {
+    font-size: $font-size-section-title-lg;
+  }
 }
 
 @mixin body-text {
   font-family: $font-family-sans;
   font-size: $font-size-body;
+  font-weight: $font-weight-normal;
+  line-height: $line-height-normal;
+}
+
+@mixin meta-text {
+  font-family: $font-family-sans;
+  font-size: $font-size-meta;
   font-weight: $font-weight-normal;
   line-height: $line-height-normal;
 }

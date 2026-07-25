@@ -8,6 +8,30 @@ Versioning follows the Versioning Policy in [README.md](README.md#versioning-pol
 
 ---
 
+## [1.0.2] — 2026-07-25 — Workspace Zones + Visual Language freeze
+
+### Accepted (Product Owner)
+
+- **Workspace Zones** elevated to a **first-class** Vendor Studio design principle ([`../vendor-studio-visual/07-workspace-zones.md`](../vendor-studio-visual/07-workspace-zones.md)).
+- **Visual Language B.5** approved and frozen as Vendor Studio Visual Language v1.
+- **Zone Gate** — every Event Workspace PR must include Identity / Guidance / Work / Outcome map **before screenshots** ([16](16-design-review-checklist.md) · [21](21-definition-of-done.md)).
+- Build order: PDS → Workspace Zones → Visual Language → Component Catalogue → Implementation ([DESIGN_PRINCIPLES_POSTER.md](DESIGN_PRINCIPLES_POSTER.md) · [INDEX.md](INDEX.md)).
+- **VL-1 approved** — global canvas, spacing, typography, elevation, zone rhythm (`myeventlane_vendor_theme` tokens + `layout/_zones.scss`).
+- **VL-2 approved** — Hero Identity presentation (`components/_mel-event-studio-hero.scss`).
+- **VL-3 approved · frozen** — Mission Control Guidance presentation (`components/_mel-event-studio-mission-control.scss`). Supporting presentation corrections (do not reopen VL-2; Boost business logic unchanged): Hero primary specificity; mobile sticky disabled below 768px; Workspace Boost banner/CTA demotion + hidden sidebar overlay correction.
+- **VL-4 approved · frozen** — Launch Centre Work presentation (`components/_mel-event-studio-launch-centre.scss`): Warm Cream editorial narrative; one checklist surface; flattened visibility; Soft Sky aftercare; wizard-step nav suppress in LC; Hero sole visually dominant publish action. Wizard-class cleanup on visibility form = tech debt (non-blocking).
+- **VL-5 may open** — start with Launch Success Alternative A + shared outcome-state presentation; then forms/tables/empty/error panels. Must not reopen Hero CTA, Mission Control, Launch Centre composition, eligibility, Commerce, or routes.
+
+### Freeze set (no further design expansion)
+
+Workspace Foundation · Mission Control structure · Launch Centre Composition · Component Catalogue · Visual Language B.5 · Workspace Zones · VL-1 baseline · VL-2 Hero presentation · VL-3 Mission Control presentation · VL-4 Launch Centre presentation.
+
+### Notes
+
+- Compatible governance clarification under PDS **1.0** freeze (implementation governance). Next work is **VL-5…VL-6** presentation implementation only, within PO VL-5 boundary.
+
+---
+
 ## [1.0.1] — 2026-07-25 — Foundation governance
 
 ### Accepted

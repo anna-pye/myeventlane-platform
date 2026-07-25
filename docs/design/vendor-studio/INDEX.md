@@ -31,6 +31,24 @@ Full reading paths: [README.md](README.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
+## Complete design system (v1 — FROZEN)
+
+PO-approved stack. **No further design expansion** — implement against this stack (VL phases).
+
+| Order | Layer | Role | Home |
+| --- | --- | --- | --- |
+| 1 | **Product Design System** | What the product is · behaviour · IA | This pack (`docs/design/vendor-studio/`) |
+| 2 | **Workspace Zones** | How pages are composed (design test) | [`../vendor-studio-visual/07-workspace-zones.md`](../vendor-studio-visual/07-workspace-zones.md) |
+| 3 | **Visual Language (B.5)** | How it looks | [`../vendor-studio-visual/03-option-b5.md`](../vendor-studio-visual/03-option-b5.md) |
+| 4 | **Component Catalogue** | What may change | [`../vendor-workspace-v2/23-vendor-component-catalogue.md`](../vendor-workspace-v2/23-vendor-component-catalogue.md) |
+| 5 | **Implementation** | Faithful delivery (VL-1…VL-6) | [`../vendor-studio-visual/06-implementation-guide.md`](../vendor-studio-visual/06-implementation-guide.md) |
+
+**Build rule:** Choose zone → reuse component → apply B.5 → implement.
+
+**Zone Gate:** Workspace PRs must include a zone map before screenshots ([16](16-design-review-checklist.md) · [21](21-definition-of-done.md)).
+
+---
+
 ## Document categories
 
 ### Governance
@@ -67,6 +85,8 @@ Full reading paths: [README.md](README.md) · [CONTRIBUTING.md](CONTRIBUTING.md)
 | [06 Workspace patterns](06-workspace-patterns.md) | Hub composition patterns |
 | [05 Component library](05-component-library.md) | Component contracts |
 | [Workspace component catalogue](../vendor-workspace-v2/23-vendor-component-catalogue.md) | Freeze / status ledger (not a style guide) |
+| [Workspace Zones](../vendor-studio-visual/07-workspace-zones.md) | **First-class** composition · Identity → Guidance → Work → Outcome |
+| [Visual Language B.5](../vendor-studio-visual/03-option-b5.md) | Vendor Studio look · FROZEN with Zones |
 | [07 Interaction guidelines](07-interaction-guidelines.md) | Behaviour |
 | [08 Mobile guidelines](08-mobile-guidelines.md) | Mobile ops |
 | [19 Anti-patterns](19-anti-patterns.md) | What not to do |

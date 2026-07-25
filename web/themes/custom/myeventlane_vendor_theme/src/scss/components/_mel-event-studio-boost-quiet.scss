@@ -1,0 +1,171 @@
+/**
+ * @file
+ * VL-3 remediation — quiet Boost presentation between Identity and Guidance.
+ *
+ * Presentation only. Does not change Boost eligibility, purchase, Twig, or
+ * analytics routes. Goal: page still reads Identity → Guidance → Work.
+ *
+ * Loaded under `.mel-vendor` (see main.scss).
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+
+// ============================================================================
+// ACTIVE BANNER — status strip, not a second Hero / Guidance card
+// ============================================================================
+
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace > .mel-boost-active-banner,
+.mel-event-studio--workspace > .mel-boost-active-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-2 $spacing-4;
+  margin: 0 0 $mel-zone-gap-sm;
+  padding: $spacing-3 $spacing-4;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 12px;
+  background: $mel-brand-surface-soft;
+  box-shadow: none;
+  color: $text-primary;
+}
+
+.mel-event-studio--workspace .mel-boost-active-banner__title {
+  margin: 0;
+  font-size: $font-size-meta;
+  font-weight: $font-weight-semibold;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: $text-secondary;
+}
+
+.mel-event-studio--workspace .mel-boost-active-banner__subtitle {
+  margin: 0.15rem 0 0;
+  font-size: $font-size-meta;
+  font-weight: $font-weight-normal;
+  color: $text-secondary;
+}
+
+.mel-event-studio--workspace .mel-boost-active-banner__remaining {
+  margin: 0.15rem 0 0;
+  font-size: $font-size-meta;
+  font-weight: $font-weight-medium;
+  color: $text-primary;
+}
+
+.mel-event-studio--workspace .mel-boost-active-banner__cta.mel-btn--secondary,
+.mel-event-studio--workspace .mel-boost-active-banner__cta {
+  min-height: 40px;
+  min-width: 0;
+  padding-inline: $spacing-4;
+  background: transparent;
+  border-color: $mel-ws-border-soft;
+  color: $text-primary;
+  font-weight: $font-weight-medium;
+  box-shadow: none;
+
+  &:hover,
+  &:focus {
+    background: $mel-shell-surface;
+    border-color: rgba(36, 48, 58, 0.14);
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 3px solid $mel-brand-coral;
+    outline-offset: 2px;
+  }
+}
+
+.mel-event-studio--workspace > .mel-boost-active-banner--recommendation-only {
+  background: rgba(234, 244, 255, 0.55);
+  border-color: rgba(36, 48, 58, 0.08);
+}
+
+// ============================================================================
+// “BOOST MY EVENT” / EXTENSION CTAs — secondary/tertiary only
+// Beat module workspace coral primary (0,6,0) without !important.
+// ============================================================================
+
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-publish-boost-cta__actions .mel-btn.mel-btn--primary,
+.mel-event-studio--workspace .mel-publish-boost-cta__actions .mel-btn.mel-btn--primary,
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-boost-extension-card__cta.mel-btn--primary,
+.mel-event-studio--workspace .mel-boost-extension-card__cta.mel-btn--primary,
+.mel-event-studio--workspace .mel-boost-extension-card__cta {
+  background-color: transparent;
+  border: 1px solid $mel-ws-border-soft;
+  color: $text-primary;
+  font-weight: $font-weight-semibold;
+  box-shadow: none;
+
+  &:hover,
+  &:focus,
+  &:focus-visible {
+    background-color: $mel-brand-surface-soft;
+    border-color: rgba(36, 48, 58, 0.14);
+    color: $text-primary;
+  }
+
+  &:focus-visible {
+    outline: 3px solid $mel-brand-coral;
+    outline-offset: 2px;
+  }
+}
+
+// Quiet the publish-boost card chrome so it does not read as a Work primary
+.mel-event-studio--workspace .mel-publish-boost-cta {
+  margin: 0 0 $spacing-4;
+  padding: $spacing-3 $spacing-4;
+  border-radius: 12px;
+  border: 1px solid $mel-ws-border-soft;
+  background: $mel-brand-surface-soft;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace .mel-publish-boost-cta__title {
+  font-size: 1rem;
+  font-weight: $font-weight-semibold;
+  color: $text-primary;
+}
+
+.mel-event-studio--workspace .mel-publish-boost-cta__copy {
+  font-size: $font-size-meta;
+  color: $text-secondary;
+}
+
+.mel-event-studio--workspace .mel-publish-boost-cta__features {
+  background: rgba(234, 244, 255, 0.45);
+  border-color: rgba(36, 48, 58, 0.06);
+  box-shadow: none;
+}
+
+@media (max-width: 640px) {
+  .mel-event-studio--workspace > .mel-boost-active-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mel-event-studio--workspace .mel-boost-active-banner__cta {
+    width: 100%;
+  }
+}
+
+// ============================================================================
+// SIDEBAR OVERLAY — must not paint a coral strip when closed
+// Global `.mel-vendor button` primary fill was winning over [hidden], leaving a
+// coral bar between Boost and Work. Keep closed overlay fully out of flow.
+// ============================================================================
+
+.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-event-studio-sidebar-overlay[hidden],
+.mel-event-studio--workspace .mel-event-studio-sidebar-overlay[hidden] {
+  display: none;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  pointer-events: none;
+}

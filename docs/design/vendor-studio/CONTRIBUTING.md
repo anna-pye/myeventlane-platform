@@ -29,14 +29,33 @@ Designers, engineers, product managers, reviewers.
 
 Start at [INDEX.md](INDEX.md) or follow this order:
 
-1. [DESIGN_PRINCIPLES_POSTER.md](DESIGN_PRINCIPLES_POSTER.md) — culture  
+1. [DESIGN_PRINCIPLES_POSTER.md](DESIGN_PRINCIPLES_POSTER.md) — culture · **build stack order** · Zone Test  
 2. [01-vendor-studio-vision.md](01-vendor-studio-vision.md) — mission, principles, Golden Rule  
-3. [ARCHITECTURE.md](ARCHITECTURE.md) — product shape  
-4. [QUICK_REFERENCE.md](QUICK_REFERENCE.md) — day-to-day aid  
-5. [appendices/A01-glossary.md](appendices/A01-glossary.md) — vocabulary  
-6. Then deep-dive by role (IA, tokens, Drupal mapping, etc.)
+3. [Workspace Zones](../vendor-studio-visual/07-workspace-zones.md) — **first-class** composition (Identity → Guidance → Work → Outcome)  
+4. [Visual Language B.5](../vendor-studio-visual/03-option-b5.md) — look  
+5. [Component Catalogue](../vendor-workspace-v2/23-vendor-component-catalogue.md) — freeze ledger  
+6. [ARCHITECTURE.md](ARCHITECTURE.md) — product shape  
+7. [QUICK_REFERENCE.md](QUICK_REFERENCE.md) — day-to-day aid  
+8. [appendices/A01-glossary.md](appendices/A01-glossary.md) — vocabulary  
+9. Then deep-dive by role (IA, tokens, Drupal mapping, etc.)
 
 You do **not** need prior MEL tribal knowledge if you follow this path and the glossary.
+
+**Implementation order for new features:** Choose Workspace Zone → Reuse Component → Apply B.5 → Implement. Do not invent a new page composition from scratch.
+
+### Zone Gate (Workspace PRs)
+
+Before screenshots, every Event Workspace PR must include:
+
+```text
+Zone map
+Identity
+Guidance
+Work
+Outcome
+```
+
+No map → not designed yet. Detail: [16-design-review-checklist.md](16-design-review-checklist.md).
 
 ---
 

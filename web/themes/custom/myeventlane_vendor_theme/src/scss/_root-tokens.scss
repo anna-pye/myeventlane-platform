@@ -3,28 +3,34 @@
  * MyEventLane v2 CSS custom properties for vendor theme.
  * Scoped to .mel-vendor (body) to avoid leaking when assets are mis-attached.
  *
- * Values aligned with myeventlane_theme base/_tokens.scss and tokens/_colors.scss.
- * VX2-02A adds organiser layout intent custom properties.
+ * VL-1: Vendor Studio Visual Language B.5 — Warm Cream canvas, soft elevation,
+ * coral focus, brand purple available, zone spacing custom properties.
  */
 
 .mel-vendor {
-  --mel-bg: #fff9f5;
+  /* Canvas + surfaces (B.5) */
+  --mel-bg: #fff7ee;
   --mel-surface: #ffffff;
-  --mel-surface-2: #fdf1ec;
+  --mel-surface-2: #fffbf6;
+  --mel-soft-sky: #eaf4ff;
+  --mel-lavender: #cdbdff;
   --mel-text: #24303a;
   --mel-muted: #5b6670;
   --mel-border: 1px solid #e9e3de;
-  --mel-focus: #f26d5b;
-  --mel-coral: #f26d5b;
-  --mel-accent: #7c83fd;
+  --mel-border-soft: rgba(36, 48, 58, 0.08);
+  --mel-focus: #ff6b4a;
+  --mel-coral: #ff6b4a;
+  --mel-accent: #6b46ff;
+  --mel-brand-purple: #6b46ff;
 
   --mel-radius-1: 8px;
   --mel-radius-2: 14px;
   --mel-radius-3: 20px;
   --mel-radius-pill: 999px;
 
-  --mel-shadow-1: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-  --mel-shadow-2: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  /* Elevation 1–2 (restrained) */
+  --mel-shadow-1: 0 1px 2px rgba(36, 48, 58, 0.04), 0 2px 8px rgba(36, 48, 58, 0.03);
+  --mel-shadow-2: 0 4px 12px -2px rgba(36, 48, 58, 0.06), 0 2px 6px -2px rgba(36, 48, 58, 0.04);
 
   --mel-space-1: 4px;
   --mel-space-2: 8px;
@@ -32,6 +38,15 @@
   --mel-space-4: 16px;
   --mel-space-5: 24px;
   --mel-space-6: 32px;
+  --mel-space-8: 40px;
+  --mel-space-10: 48px;
+  --mel-space-12: 64px;
+
+  /* Zone rhythm (Identity → Guidance → Work → Outcome) */
+  --mel-zone-gap-sm: 24px;
+  --mel-zone-gap-md: 32px;
+  --mel-zone-gap-lg: 40px;
+  --mel-zone-gap-xl: 48px;
 
   /* Organiser layout intents (VX2-02A) — shell stays full width */
   --mel-layout-form: 800px;
@@ -49,4 +64,12 @@
   --mel-max: var(--mel-layout-dashboard);
   --mel-header-bg: var(--mel-surface);
   --mel-footer-bg: var(--mel-bg);
+
+  /* Event Studio panel vars — theme owns presentation; module owns layout */
+  --mel-es-panel-radius: 20px;
+  --mel-es-panel-border: rgba(36, 48, 58, 0.08);
+  --mel-es-panel-shadow: 0 1px 2px rgba(36, 48, 58, 0.04), 0 4px 16px rgba(36, 48, 58, 0.03);
+  --mel-es-panel-bg: #ffffff;
+  --mel-es-panel-gap: 24px;
+  --mel-es-panel-padding: 24px;
 }
