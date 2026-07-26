@@ -220,8 +220,9 @@ Treat the customer journey as one cross-area outcome. Do not authorise isolated 
 Current record:
 
 - [Customer Experience Acceptance Refresh](product/initiatives/TRACE-NOW-03-customer-experience-acceptance.md)
+- [Customer Experience Acceptance Evidence — 27 July 2026](launch/customer-verification/2026-07-27-customer-experience-acceptance-refresh.md)
 
-The brief is approved for bounded evidence collection. It does not authorise implementation.
+The Product Owner designated the canonical RSVP path and required verifiable confirmation context. Controlled guest evidence then found failed anonymous synchronisation to the organiser attendee mirror and did not demonstrate confirmation-message delivery. Further investigation decisions are required. No implementation is authorised.
 
 ## TRACE-NOW-04 — Checkout
 
