@@ -62,6 +62,7 @@ Every new permanent governance document should state its status, owner, version,
 - [Repository governance](GOVERNANCE.md)
 - [Document register](document-register.md)
 - [Governance baseline audit](governance-audit.md)
+- [Product delivery traceability](product-delivery-traceability.md)
 - [Product decision template](templates/product-decision-record.md)
 - [Initiative brief template](templates/initiative-brief.md)
 - [Repository contribution guide](../CONTRIBUTING.md)
