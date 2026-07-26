@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | Initiative | TRACE-NOW-02 — Vendor Studio acceptance and catalogue closure |
-| Status | Browser acceptance matrix complete; device and assistive-technology evidence pending |
-| Product Owner approval | Approved to proceed with this bounded next step |
+| Status | VL-5 accepted; not frozen |
+| Product Owner approval | Accepted on 26 July 2026; freeze explicitly withheld |
 | Date | 2026-07-26 |
 
 ## Product surface
@@ -129,11 +129,12 @@ This is an acceptance initiative, not an implementation authority. If a defect i
 | Decision | Name | Date | Evidence |
 | --- | --- | --- | --- |
 | Proceed with bounded acceptance and catalogue reconciliation | Product Owner | 2026-07-26 | Direction to use the recommended organiser-experience next step |
+| Accept VL-5 without freezing it | Product Owner | 2026-07-26 | Explicit Product Owner direction |
 
-This approval does not authorise implementation, redesign or automatic freeze.
+These approvals do not authorise implementation, redesign or automatic freeze.
 
 ## Current evidence
 
 The [VL-5 Acceptance Review](../../design/vendor-studio-visual/reviews/vl5/README.md) records conditional success for paid-ticket, free RSVP and external-booking publish outcomes, responsive layouts, keyboard order, reduced motion, controlled ticket creation, protected removal and archive.
 
-Final freeze remains pending because real screen-reader use and physical-device behaviour were not confirmed.
+VL-5 is accepted but remains unfrozen. Real screen-reader use and physical-device behaviour remain open assurance evidence. Completing them does not automatically freeze VL-5; freeze requires a separate explicit Product Owner decision.

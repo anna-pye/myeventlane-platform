@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Browser acceptance matrix complete; device and assistive-technology evidence pending |
+| Status | Product Owner accepted; not frozen |
 | Date | 2026-07-26 |
 | Environment | Local DDEV |
 | Branch | `docs/governance-baseline` |
@@ -15,6 +15,12 @@
 ## Decision boundary
 
 This is an acceptance record, not implementation authority. It does not freeze a component, approve a redesign or authorise defect remediation.
+
+## Product Owner decision
+
+On 26 July 2026, the Product Owner accepted VL-5 and explicitly directed that it must not be frozen.
+
+Acceptance confirms that the reviewed organiser experience is suitable to retain. It does not lock the component contracts, remove the remaining evidence gaps or authorise further implementation. A future freeze requires a separate explicit Product Owner decision.
 
 ## Scope reviewed
 
@@ -96,15 +102,15 @@ No confirmed implementation defect was found within the tested path. No defect b
 
 The unconfirmed variants above are evidence gaps, not presumed defects.
 
-## Acceptance recommendation
+## Acceptance outcome
 
-Accept the browser-tested Launch Success and ticket workspace paths as conditionally satisfactory across all three booking models. Do not freeze VL-5A, VL-5B or the ticket workspace refinement until the remaining assistive-technology and physical-device evidence is recorded, unless the Product Owner explicitly accepts those evidence gaps as recorded conditions.
+The Product Owner has accepted the browser-tested Launch Success and ticket workspace paths across all three booking models. VL-5A, VL-5B and the ticket workspace refinement remain unfrozen.
 
-The smallest safe continuation is:
+The remaining assurance work is:
 
 1. complete a real screen-reader pass;
 2. complete a physical mobile-device pass;
 3. record any defects as bounded briefs; and
-4. ask the Product Owner to accept, conditionally accept or reject each Catalogue item.
+4. return to the Product Owner only if a defect requires remediation or a later freeze is proposed.
 
 No implementation is authorised by this recommendation.
