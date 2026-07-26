@@ -1,0 +1,117 @@
+/**
+ * @file
+ * VL-5C.2A — Details form grouping and field hierarchy.
+ *
+ * Presentation only. Form fields, validation, save behaviour, autosave,
+ * location handling, and section ownership remain unchanged.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group {
+  margin: 0;
+  padding: 0 0 $spacing-8;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group
+  + .mel-es-field-group {
+  padding-top: $spacing-8;
+  border-top: 1px solid $mel-ws-border-soft;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group:last-child {
+  padding-bottom: 0;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group__header {
+  margin: 0 0 $spacing-5;
+  padding: 0;
+  border: 0;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group__title {
+  color: $text-primary;
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  letter-spacing: $letter-spacing-tight;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group__hint {
+  max-width: 38rem;
+  margin-top: $spacing-2;
+  color: $text-secondary;
+  font-size: $font-size-meta;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group__body {
+  gap: $spacing-5;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-field-group__body--datetime {
+  column-gap: $spacing-6;
+}
+
+.mel-event-studio--workspace
+  [data-mel-event-studio-section='information']
+  .mel-es-location-summary {
+  margin-bottom: $spacing-2;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 14px;
+  background: $mel-ws-soft-sky;
+  box-shadow: none;
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio--workspace
+    [data-mel-event-studio-section='information']
+    .mel-es-field-group {
+    padding-bottom: $spacing-6;
+  }
+
+  .mel-event-studio--workspace
+    [data-mel-event-studio-section='information']
+    .mel-es-field-group
+    + .mel-es-field-group {
+    padding-top: $spacing-6;
+  }
+
+  .mel-event-studio--workspace
+    [data-mel-event-studio-section='information']
+    .mel-es-field-group__header {
+    margin-bottom: $spacing-4;
+  }
+
+  .mel-event-studio--workspace
+    [data-mel-event-studio-section='information']
+    .mel-es-field-group__body,
+  .mel-event-studio--workspace
+    [data-mel-event-studio-section='information']
+    .mel-es-field-group__body--datetime {
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-4;
+  }
+}
