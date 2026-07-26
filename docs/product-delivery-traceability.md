@@ -217,6 +217,12 @@ The June 2026 verification found no remaining P0 blocker but retained accessibil
 
 Treat the customer journey as one cross-area outcome. Do not authorise isolated page work without showing continuity through confirmation and ticket access.
 
+Current record:
+
+- [Customer Experience Acceptance Refresh](product/initiatives/TRACE-NOW-03-customer-experience-acceptance.md)
+
+The brief is approved for bounded evidence collection. It does not authorise implementation.
+
 ## TRACE-NOW-04 — Checkout
 
 ### Human outcome
@@ -272,6 +278,12 @@ I cannot confirm a single approved checkout-specific design authority equivalent
 ### Current decision
 
 Preserve the accepted checkout and payment architecture. Discovery may test comprehension and identify bounded problems; no architecture change is authorised.
+
+Current record:
+
+- [Checkout Acceptance Refresh](product/initiatives/TRACE-NOW-04-checkout-acceptance.md)
+
+The brief is approved for bounded evidence collection. It does not authorise production payment movement or implementation.
 
 ## TRACE-NOW-05 — Operations
 
