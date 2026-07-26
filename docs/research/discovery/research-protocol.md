@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Draft protocol; recruitment not authorised |
+| Status | Deferred draft; recruitment not authorised |
 | Initiative | [TRACE-NOW-01](../../product/initiatives/TRACE-NOW-01-discovery-research.md) |
 | Owner | Product Owner |
 | Version | 0.1 |
@@ -14,6 +14,8 @@
 This protocol defines how MyEventLane will learn what organisers and attendees need from public event discovery without presuming a feature or treating technical behaviour as user evidence.
 
 It governs moderated research planning. It does not authorise recruitment, analytics changes, implementation or collection of personal information before the outstanding operational decisions are completed.
+
+Further work under this protocol was deferred by the Product Owner on 26 July 2026 to prioritise the organiser experience. Preserve this document as a reusable draft; do not treat it as an active delivery commitment.
 
 ## Research objectives
 
@@ -255,4 +257,3 @@ No output authorises implementation without the initiative delivery gate.
 | Data storage | Unknown |
 | Retention and deletion period | Unknown |
 | Accessibility accommodations process | Unknown |
-

@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Draft plan; collection not started |
+| Status | Deferred draft; collection not started |
 | Protocol | [Public Discovery Research Protocol](research-protocol.md) |
 | Initiative | [TRACE-NOW-01](../../product/initiatives/TRACE-NOW-01-discovery-research.md) |
 | Date | 2026-07-26 |
@@ -10,6 +10,8 @@
 ## Purpose
 
 This plan defines what evidence to collect, how to distinguish sources and what is required before a discovery problem is ready for a product decision.
+
+Collection was deferred by the Product Owner on 26 July 2026 to prioritise the organiser experience. No recruitment or evidence collection is authorised by this document.
 
 ## Evidence sources
 
@@ -284,4 +286,3 @@ Raw research data remains outside Git in the approved research-data system.
 | Analytics definitions and privacy review | Unknown |
 
 Evidence collection must not start until the required operational gates are resolved.
-

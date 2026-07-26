@@ -8,6 +8,8 @@
 | Site URI | `https://myeventlane.ddev.site` |
 | Code changes | None |
 
+Further public discovery research was subsequently deferred by the Product Owner to prioritise the organiser experience. This completed record remains technical evidence; it is not an active initiative or implementation authority.
+
 ## Scope
 
 This record refreshes technical evidence for public discovery. It does not establish user need, approve a design direction or authorise implementation.

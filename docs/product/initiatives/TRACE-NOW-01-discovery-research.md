@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | Initiative | TRACE-NOW-01 — Discovery and research |
-| Status | Approved for discovery and evidence refresh only |
-| Product Owner approval | Approved for documentation-only discovery; implementation not authorised |
+| Status | Deferred after evidence refresh |
+| Product Owner approval | Evidence refresh completed; further research deferred to prioritise the organiser experience |
 | Date | 2026-07-26 |
 
 ## Product surface
@@ -143,3 +143,7 @@ Discovery must present price and availability truthfully, but this initiative do
 | Approved for discovery and evidence refresh only | Product Owner | 2026-07-26 | Direction to proceed to the next governed step |
 
 This approval does not authorise implementation.
+
+## Deferral note
+
+On 26 July 2026, the Product Owner deferred further public discovery research planning because it is not part of the current organiser-experience scope. The completed technical evidence refresh remains valid repository evidence. Recruitment, research collection and implementation remain unauthorised.

@@ -88,12 +88,14 @@ I cannot confirm a single approved public-discovery design authority beyond the 
 
 ### Current decision
 
-Proceed with discovery research and evidence refresh only. Do not treat identified route or ranking gaps as authorised implementation.
+The technical evidence refresh is complete. Further public discovery research is deferred to prioritise the organiser experience. Do not treat the research drafts, identified route gaps or ranking gaps as an active delivery commitment or authorised implementation.
 
 Current records:
 
 - [Discovery and research initiative brief](product/initiatives/TRACE-NOW-01-discovery-research.md)
 - [Discovery evidence refresh — 26 July 2026](research/discovery/2026-07-26-evidence-refresh.md)
+- [Deferred research protocol](research/discovery/research-protocol.md)
+- [Deferred evidence-collection plan](research/discovery/evidence-collection-plan.md)
 
 ## TRACE-NOW-02 — Vendor Studio
 
@@ -139,6 +141,8 @@ These authorities must not be silently redesigned.
 - [Organiser Experience Acceptance Programme](launch/organiser-acceptance/organiser-acceptance.md) verified the canonical Event Studio paths in DDEV and found no P0 organiser launch blocker.
 - [Launch Certification Sign-off](launch/launch-certification/launch-signoff.md) records launch readiness with conditions.
 - The Component Catalogue records freeze and implementation states for Workspace components.
+- [Vendor Studio Current-State and Catalogue Reconciliation](design/vendor-workspace-v2/24-current-state-catalogue-reconciliation.md) distinguishes frozen authority, implemented work and outstanding acceptance.
+- [Vendor Studio Acceptance and Catalogue Closure](product/initiatives/TRACE-NOW-02-vendor-studio-acceptance.md) defines the bounded next organiser-experience slice.
 
 ### Evidence gaps before implementation
 
@@ -150,7 +154,7 @@ These authorities must not be silently redesigned.
 
 ### Current decision
 
-Use the frozen design stack and existing ownership. Do not start a broad Vendor Studio initiative. Any future work must be a bounded traceable slice with explicit catalogue status.
+Use the frozen design stack and existing ownership. The next bounded slice is acceptance and catalogue closure for Launch Success and the merged ticket workspace refinement. This does not authorise redesign or further implementation. Defects found during acceptance require separate, bounded approval.
 
 ## TRACE-NOW-03 — Customer experience
 
