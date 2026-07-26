@@ -32,8 +32,8 @@
 | **Hero** (event chrome + primary CTA) | 🔒 Frozen | Workspace shell | `09` · `03` · PDS 05 §1 | `mel-event-studio-topbar` · `resolveAuthoritativePrimaryCta` |
 | **Mission Control** | 🔒 Frozen | Overview / chrome card | `10` · `04` · Phase 2B | `mel-event-studio-mission-control` · `EventWorkspaceOverviewBuilder` |
 | **Launch Centre** | 🔒 Frozen (composition) | Publishing section | `18` · `22` · Sprint 3C.1 | `mel-event-studio-launch-centre` · `buildPublishingHub` |
-| **Launch Success** | ✅ Implemented; acceptance pending | Post-publish handoff | `20` Alternative A · Sprint 3C.2 | `buildPublishSuccessHandoff` · shell feedback |
-| **Ticket workspace hierarchy** | ✅ Implemented; acceptance pending | Tickets section | PDS · Workspace Zones · B.5 | ticket forms and app · `TicketTierDeletionGuard` · ticket hierarchy SCSS |
+| **Launch Success** | ✅ Implemented; conditional evidence recorded | Post-publish handoff | `20` Alternative A · Sprint 3C.2 · [VL-5 review](../vendor-studio-visual/reviews/vl5/README.md) | `buildPublishSuccessHandoff` · shell feedback |
+| **Ticket workspace hierarchy** | ✅ Implemented; conditional evidence recorded | Tickets section | PDS · Workspace Zones · B.5 · [VL-5 review](../vendor-studio-visual/reviews/vl5/README.md) | ticket forms and app · `TicketTierDeletionGuard` · ticket hierarchy SCSS |
 | **Launch checklist** | 🔒 Reusable | Launch Centre (and aligned lists) | `18` · `17` | Launch Centre checklist band; readiness items from facade/service |
 | **Workspace section header** | 🔒 Reusable | Section chrome | PDS 05 · `09` | `mel_event_studio_section` / workspace section wrappers |
 | **Empty state** | 🔒 Reusable | Any section | PDS 05 · empty-state builder | `EventStudioEmptyStateBuilder` |
@@ -63,9 +63,9 @@
 | **VL-3 supporting** (PO 2026-07-25) | Hero specificity · mobile sticky &lt;768 off · Workspace Boost visual demotion | 🔒 Frozen as presentation corrections — does **not** reopen VL-2 · Boost business logic unchanged |
 | **VL-4** (PO 2026-07-25) | Launch Centre (Work) visual expression | 🔒 Frozen — `components/_mel-event-studio-launch-centre.scss` |
 | **VL-4 approved set** | Warm Cream narrative · one checklist surface · flat visibility · Soft Sky aftercare · wizard-nav suppress in LC · Hero sole dominant publish action | 🔒 Frozen with VL-4 — do not reopen presentation |
-| **VL-5A** | Launch Success Alternative A | ✅ Implemented; visual, mobile and assistive-technology acceptance pending |
-| **VL-5B** | Shared outcome-state presentation | ✅ Implemented; acceptance pending |
-| **Ticket workspace refinement** | Ticket hierarchy and protected tier deletion | ✅ Merged in `0be717f24`; organiser-experience acceptance pending |
+| **VL-5A** | Launch Success Alternative A | ✅ Conditional evidence recorded; AJAX, variant and assistive-technology acceptance pending |
+| **VL-5B** | Shared outcome-state presentation | ✅ Conditional evidence recorded; final acceptance pending |
+| **Ticket workspace refinement** | Ticket hierarchy and protected tier deletion | ✅ Paid-ticket path reviewed; mutation, assistive-technology and physical-device evidence pending |
 
 **Also frozen (PO):** Workspace Foundation · Mission Control structure · Launch Centre Composition · this Catalogue · Visual Language · Workspace Zones · **VL-1** · **VL-2** · **VL-3** · **VL-4** presentation baselines (Hero behaviour remains VL-2; MC structure/ViewModel remain frozen; LC composition remains frozen).
 
@@ -100,7 +100,7 @@
 | **VL-3** Mission Control presentation — 🔒 Frozen | — |
 | **VL-4** Launch Centre presentation — 🔒 Frozen | — |
 | Complete bounded acceptance for Launch Success, shared outcome states and the ticket workspace refinement | Product Owner + review |
-| Record desktop, mobile, keyboard, reduced-motion and relevant assistive-technology evidence | Review |
+| Complete AJAX, free RSVP, external-booking, screen-reader and physical-device evidence | Review |
 | On Product Owner accept → set accepted rows to 🔒 Frozen | Catalogue update |
 | If acceptance identifies a defect → create a bounded defect brief; do not redesign in the acceptance pass | Product + Engineering |
 | After VL phases → polish only; **no new design packs** without DDR + PO | All |
@@ -114,5 +114,6 @@
 - [20-launch-success-experience.md](20-launch-success-experience.md) — Alternative A (approved for 3C.2)  
 - [22-sprint-3c1-launch-centre-implementation.md](22-sprint-3c1-launch-centre-implementation.md)  
 - [24-current-state-catalogue-reconciliation.md](24-current-state-catalogue-reconciliation.md)
+- [VL-5 Acceptance Review](../vendor-studio-visual/reviews/vl5/README.md)
 - [Vendor Studio acceptance initiative](../../product/initiatives/TRACE-NOW-02-vendor-studio-acceptance.md)
 - [PDS 05 Component Library](../vendor-studio/05-component-library.md) — behavioural contracts  

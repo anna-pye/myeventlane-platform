@@ -143,6 +143,7 @@ These authorities must not be silently redesigned.
 - The Component Catalogue records freeze and implementation states for Workspace components.
 - [Vendor Studio Current-State and Catalogue Reconciliation](design/vendor-workspace-v2/24-current-state-catalogue-reconciliation.md) distinguishes frozen authority, implemented work and outstanding acceptance.
 - [Vendor Studio Acceptance and Catalogue Closure](product/initiatives/TRACE-NOW-02-vendor-studio-acceptance.md) defines the bounded next organiser-experience slice.
+- [VL-5 Acceptance Review](design/vendor-studio-visual/reviews/vl5/README.md) records conditional evidence and the remaining gates.
 
 ### Evidence gaps before implementation
 
