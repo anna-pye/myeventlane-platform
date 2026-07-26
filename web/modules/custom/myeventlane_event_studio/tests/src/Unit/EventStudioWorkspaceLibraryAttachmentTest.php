@@ -66,6 +66,17 @@ final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
     $this->assertStringContainsString('if (!_myeventlane_event_studio_is_workspace_route())', $form);
   }
 
+  public function testSuccessfulQuestionSaveRedirectsToEventScopedWorkspace(): void {
+    $form = file_get_contents($this->moduleRoot . '/src/Form/EventCheckoutQuestionsForm.php');
+    $this->assertIsString($form);
+    $this->assertStringContainsString(
+      "\$form_state->setRedirect('myeventlane_event_studio.workspace_questions'",
+      $form,
+    );
+    $this->assertStringContainsString("'node' => \$event->id()", $form);
+    $this->assertStringNotContainsString('$form_state->setRebuild(TRUE);', $form);
+  }
+
   public function testWorkspaceControllerStillAttachesShellOnly(): void {
     $controller = file_get_contents($this->moduleRoot . '/src/Controller/EventStudioController.php');
     $this->assertIsString($controller);

@@ -137,6 +137,13 @@ services:
       - '@logger.factory'
       - '@myeventlane_vendor.event_access_checker'
       - '@database'
+      - '@myeventlane_event.ticket_tier_deletion_guard'
+
+  myeventlane_event.ticket_tier_deletion_guard:
+    class: Drupal\myeventlane_event\Service\TicketTierDeletionGuard
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.factory'
 
   myeventlane_event.booking_flow_resolver:
     class: Drupal\myeventlane_event\Service\BookingFlowResolver

@@ -40,6 +40,78 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringNotContainsString('SKU', $form);
   }
 
+  public function testSuccessfulTicketSaveReloadsTheCompleteWorkspace(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString("'Tickets saved and synced.'", $form);
+    $this->assertStringContainsString(
+      "\$form_state->setRedirect('myeventlane_event_studio.workspace_tickets'",
+      $form,
+    );
+    $this->assertStringNotContainsString('$form_state->setRebuild(TRUE);', $form);
+  }
+
+  public function testTicketJourneyProgressesFromSavedBookingChoice(): void {
+    $ticketsForm = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioTicketsForm.php');
+    $renderer = file_get_contents($this->moduleRoot() . '/src/Service/EventStudioSectionRenderer.php');
+
+    $this->assertNotFalse($ticketsForm);
+    $this->assertStringContainsString("return \$this->t('Save booking settings')", $ticketsForm);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_tickets'", $ticketsForm);
+    $this->assertStringContainsString("'Booking settings saved.'", $ticketsForm);
+    $this->assertStringNotContainsString("'#title' => \$this->t('Collect extra attendee details')", $ticketsForm);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_questions'", $ticketsForm);
+    $this->assertStringContainsString('Manage attendee questions', $ticketsForm);
+    $this->assertStringContainsString('Collection turns on automatically when an active question is saved.', $ticketsForm);
+
+    $this->assertNotFalse($renderer);
+    $this->assertStringContainsString("\$uses_ticket_types = in_array(\$event_type, ['paid', 'both'], TRUE)", $renderer);
+    $this->assertStringContainsString('if ($uses_ticket_types)', $renderer);
+    $this->assertStringContainsString('if ($preview_ready && $this->eventTicketPreviewBuilder', $renderer);
+    $this->assertStringContainsString('if ($uses_ticket_types && $has_ticket_setup)', $renderer);
+  }
+
+  public function testOptionalSettingsAndSalesWindowResetAreFunctional(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $javascript = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+
+    $this->assertNotFalse($form);
+    $optionalSettings = strpos($form, "'advanced' => [");
+    $bestValue = strpos($form, "'#title' => \$this->t('Highlight as best value')");
+    $this->assertNotFalse($optionalSettings);
+    $this->assertNotFalse($bestValue);
+    $this->assertGreaterThan($optionalSettings, $bestValue);
+    $this->assertStringContainsString("'#value' => \$this->t('Clear sales window')", $form);
+    $this->assertStringContainsString('data-mel-reset-sales-window', $form);
+    $this->assertStringContainsString("'type' => 'button'", $form);
+    $this->assertStringContainsString('mel-event-studio-ticket-card__reset-status', $form);
+
+    $this->assertNotFalse($javascript);
+    $this->assertStringContainsString('function resetSalesWindow(button)', $javascript);
+    $this->assertStringContainsString("field.value = ''", $javascript);
+    $this->assertStringContainsString("field.defaultValue = ''", $javascript);
+    $this->assertStringContainsString("field.removeAttribute('value')", $javascript);
+    $this->assertStringContainsString("field.setAttribute('autocomplete', 'off')", $javascript);
+    $this->assertStringContainsString("new Event('input', { bubbles: true })", $javascript);
+    $this->assertStringContainsString('field.blur()', $javascript);
+    $this->assertStringNotContainsString('firstField.focus()', $javascript);
+    $this->assertStringContainsString('Sales window cleared. Save tickets to keep this change.', $javascript);
+  }
+
+  public function testBestValueHighlightIsOptional(): void {
+    $lifecycle = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierLifecycleService.php');
+    $manager = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTypeManager.php');
+
+    $this->assertNotFalse($lifecycle);
+    $this->assertStringNotContainsString('BEST_VALUE_REQUIRED_MESSAGE', $lifecycle);
+    $this->assertStringNotContainsString('Choose one Best value ticket', $lifecycle);
+    $this->assertStringNotContainsString('validateBestValueSelectionForRows', $lifecycle);
+
+    $this->assertNotFalse($manager);
+    $this->assertStringContainsString('normalizeBestValueTicketSelection', $manager);
+  }
+
   public function testDuplicateAppliesSameRequestEditsBeforeCopy(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);
@@ -111,12 +183,45 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString("getTicketKind() === 'rsvp'", $form);
   }
 
-  public function testDuplicateAndArchiveAreMutuallyExclusive(): void {
+  public function testTicketActionsAreMutuallyExclusive(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);
-    $this->assertStringContainsString('Choose either Duplicate ticket or Archive ticket, not both.', $form);
-    $this->assertStringContainsString("!empty(\$row['archive']) && !empty(\$row['duplicate'])", $form);
+    $this->assertStringContainsString('Choose only one ticket action: Duplicate, Archive, or permanently delete.', $form);
+    $this->assertStringContainsString("'delete' => !empty(\$row['delete'])", $form);
+    $this->assertStringContainsString('if (count($selected_actions) > 1)', $form);
     $this->assertStringContainsString("!empty(\$row['archive']) && empty(\$row['duplicate'])", $form);
+  }
+
+  public function testPermanentDeletionUsesLifecycleGuard(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $lifecycle = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierLifecycleService.php');
+    $guard = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierDeletionGuard.php');
+
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString('Permanently delete this ticket when I save', $form);
+    $this->assertStringContainsString('evaluateTicketDeletion', $form);
+    $this->assertStringContainsString('deleteTicketOnEvent', $form);
+    $this->assertStringContainsString('ticket_deleted', $form);
+    $this->assertStringContainsString('Choose only one ticket action', $form);
+    $this->assertStringContainsString("'#default_value' => 0", $form);
+
+    $this->assertNotFalse($lifecycle);
+    $this->assertStringContainsString('function evaluateTicketDeletion', $lifecycle);
+    $this->assertStringContainsString('function deleteTicketOnEvent', $lifecycle);
+    $this->assertStringContainsString('$this->archiveTicketOnEvent($event, $ticket)', $lifecycle);
+    $this->assertStringContainsString('$ticket->delete()', $lifecycle);
+
+    $this->assertNotFalse($guard);
+    $this->assertStringContainsString("'commerce_order_item'", $guard);
+    $this->assertStringContainsString("'myeventlane_ticket'", $guard);
+    $this->assertStringContainsString("'mel_ticket_waitlist_entry'", $guard);
+    $this->assertStringContainsString("'mel_access_code'", $guard);
+    $this->assertStringContainsString("'inspection_failed'", $guard);
+
+    $javascript = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+    $this->assertNotFalse($javascript);
+    $this->assertStringContainsString('mel-tickets-delete-safe-default', $javascript);
+    $this->assertStringContainsString('checkbox.checked = false', $javascript);
   }
 
   public function testOperationalFormAttachesTicketsAppLibrary(): void {
