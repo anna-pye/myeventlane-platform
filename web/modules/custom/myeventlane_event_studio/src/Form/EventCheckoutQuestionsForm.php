@@ -248,7 +248,9 @@ final class EventCheckoutQuestionsForm extends FormBase {
 
     $this->studioAutosaveService->clearDraft($event, 'questions');
     $this->messenger()->addStatus($this->t('Guest questions saved.'));
-    $form_state->setRebuild(TRUE);
+    $form_state->setRedirect('myeventlane_event_studio.workspace_questions', [
+      'node' => $event->id(),
+    ]);
   }
 
   /**

@@ -125,6 +125,9 @@
   @include meta.load-css('pages/settings-hub');
   @include meta.load-css('pages/support-hub');
   @include meta.load-css('pages/analytics-hub');
+
+  // Vendor Studio corrections load after shared Event Studio presentation.
+  @include meta.load-css('components/mel-event-studio-ticket-hierarchy');
 }
 
 // Klaro renders at document root (#klaro), outside .mel-vendor — reuse public theme styles.

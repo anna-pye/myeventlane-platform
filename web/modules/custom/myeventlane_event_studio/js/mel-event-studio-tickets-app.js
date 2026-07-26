@@ -35,8 +35,48 @@
     });
   }
 
+  /**
+   * Clears one ticket card's sales window without submitting the form.
+   */
+  function resetSalesWindow(button) {
+    const ticketId = button.dataset.melResetSalesWindow || '';
+    if (!ticketId) {
+      return;
+    }
+
+    const card = button.closest('.mel-event-studio-ticket-card');
+    if (!(card instanceof HTMLElement)) {
+      return;
+    }
+
+    const fields = card.querySelectorAll(
+      '[name^="tickets[' + ticketId + '][sales_window]"]',
+    );
+    fields.forEach((field) => {
+      if (field instanceof HTMLInputElement) {
+        field.value = '';
+        field.defaultValue = '';
+        field.removeAttribute('value');
+        field.setAttribute('autocomplete', 'off');
+        field.dispatchEvent(new Event('input', { bubbles: true }));
+        field.dispatchEvent(new Event('change', { bubbles: true }));
+        field.blur();
+      }
+    });
+
+    const status = document.getElementById('mel-ticket-sales-window-status-' + ticketId);
+    if (status instanceof HTMLElement) {
+      status.textContent = Drupal.t('Sales window cleared. Save tickets to keep this change.');
+    }
+
+  }
+
   Drupal.behaviors.melEventStudioTicketsApp = {
     attach(context) {
+      once('mel-tickets-delete-safe-default', 'input[name$="[actions][delete]"]', context).forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+
       once('mel-tickets-advanced-tools', '.mel-event-studio-advanced-tools', context).forEach((details) => {
         details.addEventListener('toggle', () => {
           if (!details.open) {
@@ -69,6 +109,21 @@
           event.preventDefault();
           openAddTicketPanel(details);
         });
+      });
+
+      once('mel-tickets-reset-sales-window', '[data-mel-reset-sales-window]', context).forEach((button) => {
+        const ticketId = button.dataset.melResetSalesWindow || '';
+        const card = button.closest('.mel-event-studio-ticket-card');
+        if (ticketId && card instanceof HTMLElement) {
+          card.querySelectorAll(
+            '[name^="tickets[' + ticketId + '][sales_window]"]',
+          ).forEach((field) => {
+            if (field instanceof HTMLInputElement) {
+              field.setAttribute('autocomplete', 'off');
+            }
+          });
+        }
+        button.addEventListener('click', () => resetSalesWindow(button));
       });
     },
   };

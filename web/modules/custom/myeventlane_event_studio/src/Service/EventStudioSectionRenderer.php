@@ -794,6 +794,16 @@ final class EventStudioSectionRenderer {
    * @return array<string, mixed>
    */
   private function buildTicketsStack(NodeInterface $event): array {
+    $event_type = $event->hasField('field_event_type') && !$event->get('field_event_type')->isEmpty()
+      ? (string) $event->get('field_event_type')->value
+      : '';
+    $has_external_url = $event->hasField('field_external_url') && !$event->get('field_external_url')->isEmpty();
+    $has_ticket_setup = $event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty();
+    $uses_ticket_types = in_array($event_type, ['paid', 'both'], TRUE);
+    $preview_ready = $event_type === 'rsvp'
+      || ($event_type === 'external' && $has_external_url)
+      || ($uses_ticket_types && $has_ticket_setup);
+
     $build = [
       '#type' => 'container',
       '#attributes' => [
@@ -806,10 +816,12 @@ final class EventStudioSectionRenderer {
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
     ];
 
-    $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
-    $build['operational']['#weight'] = 5;
+    if ($uses_ticket_types) {
+      $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
+      $build['operational']['#weight'] = 5;
+    }
 
-    if ($this->eventTicketPreviewBuilder instanceof EventTicketPreviewBuilder) {
+    if ($preview_ready && $this->eventTicketPreviewBuilder instanceof EventTicketPreviewBuilder) {
       $preview = $this->eventTicketPreviewBuilder->build($event);
       if ($preview !== []) {
         $build['ticket_preview'] = $preview;
@@ -817,8 +829,10 @@ final class EventStudioSectionRenderer {
       }
     }
 
-    $build['advanced'] = $this->buildAdvancedTicketTools($event);
-    $build['advanced']['#weight'] = 20;
+    if ($uses_ticket_types && $has_ticket_setup) {
+      $build['advanced'] = $this->buildAdvancedTicketTools($event);
+      $build['advanced']['#weight'] = 20;
+    }
 
     $support = $this->supportResolver->buildCard($event, 'tickets');
     if ($support !== NULL) {
