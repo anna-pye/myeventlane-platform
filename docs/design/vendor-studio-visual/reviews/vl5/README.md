@@ -2,13 +2,13 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Acceptance evidence recorded; Product Owner decision pending |
+| Status | Browser acceptance matrix complete; device and assistive-technology evidence pending |
 | Date | 2026-07-26 |
 | Environment | Local DDEV |
 | Branch | `docs/governance-baseline` |
 | Commit reviewed | `d0804bca8` |
 | Organiser | Pro vendor, uid 92 |
-| Representative event | Event 1755, published paid-ticket event with existing sales |
+| Representative events | Event 1755 plus archived DDEV acceptance fixtures 1764–1766 |
 | Governing parent | [Organiser Manifesto](../../../../governance/00-organiser-manifesto.md) |
 | Initiative | [TRACE-NOW-02 — Vendor Studio acceptance](../../../../product/initiatives/TRACE-NOW-02-vendor-studio-acceptance.md) |
 
@@ -19,8 +19,11 @@ This is an acceptance record, not implementation authority. It does not freeze a
 ## Scope reviewed
 
 - Launch Success through the `?mel_celebrate=1` return path
+- Launch Success through the AJAX publish path
 - Shared success outcome presentation
+- Paid-ticket, free RSVP and external-booking outcome variants
 - Paid-ticket workspace with two active ticket tiers and existing sales
+- Controlled ticket creation and archive
 - Protected ticket removal disclosure
 - Desktop at 1440 px, tablet at 768 px and mobile at 390 px
 - Keyboard focus order
@@ -32,6 +35,10 @@ This is an acceptance record, not implementation authority. It does not freeze a
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Launch Success return path | Pass | Outcome appears after the Event Workspace and communicates that the event is live |
+| Launch Success AJAX path | Pass | Publishing each controlled draft updated the Hero to Published and rendered the outcome without page navigation |
+| Paid-ticket outcome variant | Pass | “People can now” includes “buy tickets” |
+| Free RSVP outcome variant | Pass | “People can now” includes “RSVP” |
+| External-booking outcome variant | Pass | “People can now” includes “follow your external booking link” |
 | Initial focus | Pass | Focus moves to the `Your event is now live` heading |
 | Keyboard order | Pass | Share event → Copy link → View public page → social links → optional Boost |
 | Primary-action hierarchy | Pass | Hero retains the filled purple action; Launch Success actions remain subordinate as required by VL-5A |
@@ -42,6 +49,8 @@ This is an acceptance record, not implementation authority. It does not freeze a
 | Ticket hierarchy | Pass | Ticket name, price, availability, capacity and sales are presented before advanced settings |
 | Customer preview | Pass | Checkout-visible ticket options and ended-event state are explained within the workspace |
 | Protected removal | Pass | A sold ticket cannot be permanently deleted; the disclosure directs the organiser to archive it |
+| Controlled ticket creation | Pass | `Acceptance Test Tier` saved at A$5.00 with capacity 10 and appeared in the customer preview |
+| Controlled ticket archive | Pass | The tier became inactive with lifecycle status `archived` |
 | Repository contract tests | Pass with notices | 12 tests and 129 assertions passed; two PHPUnit deprecations and a browser-output directory warning were reported |
 
 ## Experience findings
@@ -58,15 +67,25 @@ The revised hierarchy provides useful operational context before advanced config
 
 At 390 px, the form reflows to one column and the reviewed content does not overflow horizontally.
 
+The controlled create-and-archive journey confirmed that an organiser can add a tier, see it reflected in the customer preview and remove it from sale without permanent deletion.
+
+## Controlled test data
+
+The following DDEV-only events were created from existing representative events:
+
+| Event | Booking model | Final state |
+| --- | --- | --- |
+| 1764 — `[MEL ACCEPTANCE] Paid publish path` | Paid | Archived and non-public |
+| 1765 — `[MEL ACCEPTANCE] Free RSVP publish path` | Free RSVP | Archived and non-public |
+| 1766 — `[MEL ACCEPTANCE] External publish path` | External link to `example.test` | Archived and non-public |
+
+Ticket tier 275, `Acceptance Test Tier`, was created only for event 1764 and then archived. It is inactive. No pre-existing ticket tier was edited.
+
 ## Evidence not confirmed
 
 | Evidence gap | Reason | Effect |
 | --- | --- | --- |
-| AJAX publish-success path | Exercising it requires a representative publishable draft and a state-changing publish action | Launch Success cannot be finally frozen |
-| Free RSVP outcome variant | The representative event uses paid tickets | Variant acceptance remains pending |
-| External-booking outcome variant | The representative event uses paid tickets | Variant acceptance remains pending |
 | Real screen-reader use | No screen-reader session was available in this review | Assistive-technology acceptance remains pending |
-| Full ticket create, edit and archive submissions | Submitting forms would change local event and Commerce state | Functional mutation was deliberately not performed |
 | Physical touch-device behaviour | Viewport emulation is not physical-device evidence | On-device assurance remains pending |
 
 Where evidence was not available: **I cannot confirm this.**
@@ -79,14 +98,13 @@ The unconfirmed variants above are evidence gaps, not presumed defects.
 
 ## Acceptance recommendation
 
-Accept the reviewed paid-ticket path and Launch Success return path as conditionally satisfactory. Do not freeze VL-5A, VL-5B or the ticket workspace refinement until the remaining variant and assistive-technology evidence is recorded.
+Accept the browser-tested Launch Success and ticket workspace paths as conditionally satisfactory across all three booking models. Do not freeze VL-5A, VL-5B or the ticket workspace refinement until the remaining assistive-technology and physical-device evidence is recorded, unless the Product Owner explicitly accepts those evidence gaps as recorded conditions.
 
 The smallest safe continuation is:
 
-1. create or identify governed, non-production test events for free RSVP, paid tickets and external booking;
-2. exercise both AJAX and return-query success paths;
-3. complete a real screen-reader and physical mobile-device pass;
-4. record any defects as bounded briefs; and
-5. ask the Product Owner to accept, conditionally accept or reject each Catalogue item.
+1. complete a real screen-reader pass;
+2. complete a physical mobile-device pass;
+3. record any defects as bounded briefs; and
+4. ask the Product Owner to accept, conditionally accept or reject each Catalogue item.
 
 No implementation is authorised by this recommendation.

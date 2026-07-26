@@ -63,9 +63,9 @@
 | **VL-3 supporting** (PO 2026-07-25) | Hero specificity · mobile sticky &lt;768 off · Workspace Boost visual demotion | 🔒 Frozen as presentation corrections — does **not** reopen VL-2 · Boost business logic unchanged |
 | **VL-4** (PO 2026-07-25) | Launch Centre (Work) visual expression | 🔒 Frozen — `components/_mel-event-studio-launch-centre.scss` |
 | **VL-4 approved set** | Warm Cream narrative · one checklist surface · flat visibility · Soft Sky aftercare · wizard-nav suppress in LC · Hero sole dominant publish action | 🔒 Frozen with VL-4 — do not reopen presentation |
-| **VL-5A** | Launch Success Alternative A | ✅ Conditional evidence recorded; AJAX, variant and assistive-technology acceptance pending |
+| **VL-5A** | Launch Success Alternative A | ✅ Browser matrix complete; assistive-technology and physical-device acceptance pending |
 | **VL-5B** | Shared outcome-state presentation | ✅ Conditional evidence recorded; final acceptance pending |
-| **Ticket workspace refinement** | Ticket hierarchy and protected tier deletion | ✅ Paid-ticket path reviewed; mutation, assistive-technology and physical-device evidence pending |
+| **Ticket workspace refinement** | Ticket hierarchy and protected tier deletion | ✅ Create, preview, protected removal and archive reviewed; assistive-technology and physical-device evidence pending |
 
 **Also frozen (PO):** Workspace Foundation · Mission Control structure · Launch Centre Composition · this Catalogue · Visual Language · Workspace Zones · **VL-1** · **VL-2** · **VL-3** · **VL-4** presentation baselines (Hero behaviour remains VL-2; MC structure/ViewModel remain frozen; LC composition remains frozen).
 
@@ -100,7 +100,7 @@
 | **VL-3** Mission Control presentation — 🔒 Frozen | — |
 | **VL-4** Launch Centre presentation — 🔒 Frozen | — |
 | Complete bounded acceptance for Launch Success, shared outcome states and the ticket workspace refinement | Product Owner + review |
-| Complete AJAX, free RSVP, external-booking, screen-reader and physical-device evidence | Review |
+| Complete screen-reader and physical-device evidence | Review |
 | On Product Owner accept → set accepted rows to 🔒 Frozen | Catalogue update |
 | If acceptance identifies a defect → create a bounded defect brief; do not redesign in the acceptance pass | Product + Engineering |
 | After VL phases → polish only; **no new design packs** without DDR + PO | All |

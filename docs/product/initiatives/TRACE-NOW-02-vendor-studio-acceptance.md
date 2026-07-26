@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Initiative | TRACE-NOW-02 — Vendor Studio acceptance and catalogue closure |
-| Status | Acceptance evidence recorded; Product Owner decision pending |
+| Status | Browser acceptance matrix complete; device and assistive-technology evidence pending |
 | Product Owner approval | Approved to proceed with this bounded next step |
 | Date | 2026-07-26 |
 
@@ -134,6 +134,6 @@ This approval does not authorise implementation, redesign or automatic freeze.
 
 ## Current evidence
 
-The [VL-5 Acceptance Review](../../design/vendor-studio-visual/reviews/vl5/README.md) records conditional success for the paid-ticket path, responsive layouts, keyboard order, reduced motion and protected ticket removal.
+The [VL-5 Acceptance Review](../../design/vendor-studio-visual/reviews/vl5/README.md) records conditional success for paid-ticket, free RSVP and external-booking publish outcomes, responsive layouts, keyboard order, reduced motion, controlled ticket creation, protected removal and archive.
 
-Final freeze remains pending because the AJAX publish path, free RSVP and external-booking variants, real screen-reader use and physical-device behaviour were not confirmed.
+Final freeze remains pending because real screen-reader use and physical-device behaviour were not confirmed.
