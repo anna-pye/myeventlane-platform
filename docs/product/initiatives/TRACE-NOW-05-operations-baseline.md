@@ -138,3 +138,7 @@ Refunds, payment failures, disputes, payouts and reconciliation require explicit
 | Approve the operations ownership and verification baseline | Product Owner | 2026-07-26 | Explicit approval of the documented findings and required decisions |
 
 This approval confirms the baseline and its governance boundary. It does not assign accountable people, approve service expectations, authorise implementation or change operational policy.
+
+## Recommended accountability model
+
+The [Operational Accountability Model](../../operations/operational-accountability-model.md) proposes a scale-appropriate role structure, decision rights, channel ownership and separation rules. It remains pending Product Owner approval and named assignments.

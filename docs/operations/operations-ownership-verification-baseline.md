@@ -109,6 +109,8 @@ The Product Owner approved this baseline on 26 July 2026. The decisions below re
 | OPS-PO-06 | Name privacy, security and accessibility intake owners | Trust responsibilities require clear hand-offs |
 | OPS-PO-07 | Name release authority and production verification owner | Staging documentation does not establish production authority |
 
+The recommended resolution for OPS-PO-01 through OPS-PO-07 is documented in the [Operational Accountability Model](operational-accountability-model.md). That model remains pending Product Owner approval and named assignments.
+
 ## Verification backlog
 
 After the Product Owner confirms accountable roles:
