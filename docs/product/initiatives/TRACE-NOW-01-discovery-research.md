@@ -64,6 +64,11 @@ Confirmed repository owners include:
 
 The [dated evidence refresh](../../research/discovery/2026-07-26-evidence-refresh.md) records the current paths and limitations.
 
+Research planning:
+
+- [Public Discovery Research Protocol](../../research/discovery/research-protocol.md)
+- [Public Discovery Evidence-Collection Plan](../../research/discovery/evidence-collection-plan.md)
+
 ## In scope
 
 - Refresh repository ownership evidence

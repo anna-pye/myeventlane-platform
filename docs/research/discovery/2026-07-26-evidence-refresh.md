@@ -167,4 +167,4 @@ This is coverage guidance, not evidence that participants have been recruited.
 
 Technical discovery ownership is sufficiently mapped for research planning. User need and support demand are not sufficiently evidenced for an implementation decision.
 
-The safe next action is to prepare the research protocol and evidence-collection plan. It is not to fix routes, filters, labels or ranking.
+The safe next action is to review and approve the [research protocol](research-protocol.md) and [evidence-collection plan](evidence-collection-plan.md), then resolve their operational gates. It is not to fix routes, filters, labels or ranking.
