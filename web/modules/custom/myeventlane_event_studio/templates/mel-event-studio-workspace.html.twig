@@ -70,6 +70,48 @@
     </section>
   {% endif %}
 
+  <button
+    class="mel-event-studio-sidebar-toggle"
+    type="button"
+    aria-controls="mel-event-studio-sidebar"
+    aria-expanded="false"
+    data-mel-studio-sidebar-toggle
+  >{{ 'Sections'|t }}</button>
+
+  <div class="mel-event-studio-workspace">
+    <button
+      class="mel-event-studio-sidebar-overlay"
+      type="button"
+      aria-label="{{ 'Close sections menu'|t }}"
+      data-mel-studio-sidebar-overlay
+      hidden
+    ></button>
+
+    {{ include('@myeventlane_event_studio/mel-event-studio-sidebar.html.twig', {
+      sections: sections,
+      guidance: sidebar_guidance,
+      current_section: current_section
+    }, with_context = false) }}
+
+    <main
+      class="mel-event-studio-workspace__main"
+      id="mel-event-studio-section"
+      tabindex="-1"
+      data-section-id="{{ current_section_metadata.id|default(current_section) }}"
+      data-section-state="{{ current_section_metadata.section_state|default('active') }}"
+      data-operational-area="{{ current_section_metadata.operational_area|default('event') }}"
+      data-route-fragment="{{ current_section_metadata.route_fragment|default(current_section) }}"
+      data-mobile-priority="{{ current_section_metadata.mobile_priority|default(100) }}"
+      data-mel-section-writable="{{ current_section_metadata.writable|default(true) ? '1' : '0' }}"
+    >
+      {{ include('@myeventlane_event_studio/mel-event-studio-section.html.twig', {
+        label: current_section_label,
+        content: section_content,
+        show_header: not is_home
+      }, with_context = false) }}
+    </main>
+  </div>
+
   {# Outcome zone — Launch Success Alternative A (VL-5A). Same panel for AJAX + ?mel_celebrate=1. #}
   <section
     class="mel-event-studio-publish-feedback mel-launch-success"
@@ -137,45 +179,4 @@
     </div>
   </section>
 
-  <button
-    class="mel-event-studio-sidebar-toggle"
-    type="button"
-    aria-controls="mel-event-studio-sidebar"
-    aria-expanded="false"
-    data-mel-studio-sidebar-toggle
-  >{{ 'Sections'|t }}</button>
-
-  <div class="mel-event-studio-workspace">
-    <button
-      class="mel-event-studio-sidebar-overlay"
-      type="button"
-      aria-label="{{ 'Close sections menu'|t }}"
-      data-mel-studio-sidebar-overlay
-      hidden
-    ></button>
-
-    {{ include('@myeventlane_event_studio/mel-event-studio-sidebar.html.twig', {
-      sections: sections,
-      guidance: sidebar_guidance,
-      current_section: current_section
-    }, with_context = false) }}
-
-    <main
-      class="mel-event-studio-workspace__main"
-      id="mel-event-studio-section"
-      tabindex="-1"
-      data-section-id="{{ current_section_metadata.id|default(current_section) }}"
-      data-section-state="{{ current_section_metadata.section_state|default('active') }}"
-      data-operational-area="{{ current_section_metadata.operational_area|default('event') }}"
-      data-route-fragment="{{ current_section_metadata.route_fragment|default(current_section) }}"
-      data-mobile-priority="{{ current_section_metadata.mobile_priority|default(100) }}"
-      data-mel-section-writable="{{ current_section_metadata.writable|default(true) ? '1' : '0' }}"
-    >
-      {{ include('@myeventlane_event_studio/mel-event-studio-section.html.twig', {
-        label: current_section_label,
-        content: section_content,
-        show_header: not is_home
-      }, with_context = false) }}
-    </main>
-  </div>
 </div>
