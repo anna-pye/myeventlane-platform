@@ -61,6 +61,10 @@ final class EventStudioLaunchSuccessTest extends UnitTestCase {
     $this->assertStringContainsString('data-mel-publish-success-view', $twig);
     $this->assertStringContainsString('data-mel-publish-success-boost', $twig);
     $this->assertStringContainsString('aria-live="polite"', $twig);
+    $this->assertStringContainsString('mel-outcome', $twig);
+    $this->assertStringContainsString('mel-outcome__panel--success', $twig);
+    $this->assertStringContainsString('mel-outcome__panel--error', $twig);
+    $this->assertStringContainsString('role="alert"', $twig);
     $this->assertStringContainsString('mel-publish-success-title', $twig);
     $this->assertStringContainsString('Share your event', $twig);
     $this->assertStringContainsString('Copy link', $twig);
@@ -96,6 +100,11 @@ final class EventStudioLaunchSuccessTest extends UnitTestCase {
     $js = file_get_contents(dirname(__DIR__, 3) . '/js/mel-event-studio-shell.js');
     $this->assertIsString($js);
     $this->assertStringContainsString('function renderPublishSuccessFeedback(shell, handoff)', $js);
+    $this->assertStringContainsString('function setOutcomeTone(feedback, tone)', $js);
+    $this->assertStringContainsString("setOutcomeTone(feedback, 'error')", $js);
+    $this->assertStringContainsString("setOutcomeTone(feedback, 'success')", $js);
+    $this->assertStringContainsString('heading.focus({ preventScroll: true })', $js);
+    $this->assertStringContainsString("Drupal.t('Unpublished successfully')", $js);
     $this->assertStringContainsString('people_can', $js);
     $this->assertStringContainsString('share_workspace_url', $js);
     $this->assertStringContainsString('[data-mel-publish-success-title]', $js);

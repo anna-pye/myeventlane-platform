@@ -114,29 +114,40 @@
 
   {# Outcome zone — Launch Success Alternative A (VL-5A). Same panel for AJAX + ?mel_celebrate=1. #}
   <section
-    class="mel-event-studio-publish-feedback mel-launch-success"
-    aria-live="polite"
+    class="mel-event-studio-publish-feedback mel-outcome mel-launch-success"
     aria-atomic="true"
     data-mel-publish-feedback
     data-mel-launch-success
     hidden
   >
-    <div class="mel-event-studio-publish-feedback__error" data-mel-publish-error hidden>
-      <h2 class="mel-event-studio-publish-feedback__title" data-mel-publish-feedback-title>{{ 'Cannot publish yet'|t }}</h2>
-      <ul class="mel-event-studio-publish-feedback__list" data-mel-publish-feedback-list></ul>
-      <a class="mel-event-studio-publish-feedback__restore" href="#" data-mel-publish-restore hidden>{{ 'Restore draft'|t }}</a>
+    <div
+      class="mel-event-studio-publish-feedback__error mel-outcome__panel mel-outcome__panel--error"
+      role="alert"
+      aria-labelledby="mel-publish-feedback-title"
+      data-mel-publish-error
+      hidden
+    >
+      <h2
+        id="mel-publish-feedback-title"
+        class="mel-event-studio-publish-feedback__title mel-outcome__title"
+        data-mel-publish-feedback-title
+        tabindex="-1"
+      >{{ 'Cannot publish yet'|t }}</h2>
+      <ul class="mel-event-studio-publish-feedback__list mel-outcome__messages" data-mel-publish-feedback-list></ul>
+      <a class="mel-event-studio-publish-feedback__restore mel-outcome__action" href="#" data-mel-publish-restore hidden>{{ 'Restore draft'|t }}</a>
     </div>
     <div
-      class="mel-event-studio-publish-feedback__success mel-launch-success__panel"
+      class="mel-event-studio-publish-feedback__success mel-outcome__panel mel-outcome__panel--success mel-launch-success__panel"
       data-mel-publish-success
       hidden
       role="region"
       aria-labelledby="mel-publish-success-title"
+      aria-live="polite"
     >
       <p class="visually-hidden" data-mel-publish-success-announce></p>
       <h2
         id="mel-publish-success-title"
-        class="mel-event-studio-publish-feedback__title mel-launch-success__title"
+        class="mel-event-studio-publish-feedback__title mel-outcome__title mel-launch-success__title"
         data-mel-publish-success-title
         tabindex="-1"
       ></h2>

@@ -1,0 +1,74 @@
+/**
+ * @file
+ * VL-5B — shared Vendor Studio Outcome states.
+ *
+ * Presentation only. State truth remains with existing services and AJAX.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+
+.mel-event-studio--workspace .mel-outcome {
+  width: min(100%, 42rem);
+  margin: $mel-zone-gap-md 0 0;
+  padding: $spacing-5;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 16px;
+  background: $mel-shell-surface;
+  box-shadow: $shadow-sm;
+}
+
+.mel-event-studio--workspace .mel-outcome--success {
+  border-left: 4px solid $success;
+}
+
+.mel-event-studio--workspace .mel-outcome--error {
+  border-left: 4px solid $danger;
+}
+
+.mel-event-studio--workspace .mel-outcome__title {
+  margin: 0 0 $spacing-3;
+  color: $text-primary;
+  font-size: 1.375rem;
+  font-weight: $font-weight-bold;
+  line-height: 1.25;
+}
+
+.mel-event-studio--workspace .mel-outcome__title:focus {
+  outline: none;
+}
+
+.mel-event-studio--workspace .mel-outcome__title:focus-visible {
+  outline: 3px solid $mel-brand-coral;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.mel-event-studio--workspace .mel-outcome__messages {
+  margin: 0 0 $spacing-4;
+  padding-left: $spacing-5;
+  color: $text-primary;
+}
+
+.mel-event-studio--workspace .mel-outcome__messages:empty {
+  display: none;
+}
+
+.mel-event-studio--workspace .mel-outcome__action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  color: $text-secondary;
+  font-weight: $font-weight-semibold;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio--workspace .mel-outcome {
+    margin-top: $mel-zone-gap-sm;
+    padding: $spacing-4;
+  }
+}

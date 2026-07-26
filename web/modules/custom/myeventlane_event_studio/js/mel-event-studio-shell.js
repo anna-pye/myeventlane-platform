@@ -1217,6 +1217,23 @@
     return ok;
   }
 
+  function setOutcomeTone(feedback, tone) {
+    feedback.classList.remove(
+      'is-success',
+      'is-error',
+      'mel-outcome--success',
+      'mel-outcome--error',
+      'mel-launch-success--enter',
+    );
+
+    if (tone === 'success') {
+      feedback.classList.add('is-success', 'mel-outcome--success');
+    }
+    else if (tone === 'error') {
+      feedback.classList.add('is-error', 'mel-outcome--error');
+    }
+  }
+
   function renderPublishFeedback(shell, title, messages, restoreUrl) {
     const feedback = shell.querySelector('[data-mel-publish-feedback]');
     if (!feedback) {
@@ -1230,7 +1247,7 @@
     if (errorPanel) {
       errorPanel.hidden = false;
     }
-    feedback.classList.remove('is-success', 'mel-launch-success--enter');
+    setOutcomeTone(feedback, 'error');
 
     const list = feedback.querySelector('[data-mel-publish-feedback-list]');
     const heading = feedback.querySelector('[data-mel-publish-feedback-title]');
@@ -1257,9 +1274,8 @@
       }
     }
     feedback.hidden = false;
-    if (typeof feedback.focus === 'function') {
-      feedback.setAttribute('tabindex', '-1');
-      feedback.focus({ preventScroll: true });
+    if (heading && typeof heading.focus === 'function') {
+      heading.focus({ preventScroll: true });
     }
   }
 
@@ -1423,7 +1439,7 @@
     }
 
     successPanel.hidden = false;
-    feedback.classList.add('is-success');
+    setOutcomeTone(feedback, 'success');
     feedback.classList.toggle('mel-launch-success--enter', !prefersReducedMotion());
     feedback.hidden = false;
 
@@ -1444,7 +1460,7 @@
     const feedback = shell.querySelector('[data-mel-publish-feedback]');
     if (feedback) {
       feedback.hidden = true;
-      feedback.classList.remove('is-success', 'mel-launch-success--enter');
+      setOutcomeTone(feedback, null);
       const errorPanel = feedback.querySelector('[data-mel-publish-error]');
       const successPanel = feedback.querySelector('[data-mel-publish-success]');
       if (errorPanel) {
@@ -1723,7 +1739,11 @@
               renderPublishSuccessFeedback(shell, result.handoff);
             }
             else {
-              renderPublishFeedback(shell, result.message || Drupal.t('Your event is now live'), []);
+              const title = result.message || Drupal.t('Your event is now live');
+              renderPublishSuccessFeedback(shell, {
+                title,
+                message: title,
+              });
             }
             setPublishButtonState(button, 'published');
             updatePublishPanels(shell, true);
@@ -1796,7 +1816,11 @@
               renderPublishSuccessFeedback(shell, result.handoff);
             }
             else {
-              renderPublishFeedback(shell, result.message || Drupal.t('Your event is now live'), []);
+              const title = result.message || Drupal.t('Your event is now live');
+              renderPublishSuccessFeedback(shell, {
+                title,
+                message: title,
+              });
             }
             updatePublishPanels(shell, true);
             updateFormMetadata(shell, result);
@@ -1869,7 +1893,11 @@
               button.textContent = originalLabel || Drupal.t('Unpublish');
               return;
             }
-            renderPublishFeedback(shell, result.message || Drupal.t('Unpublished successfully'), []);
+            const title = result.message || Drupal.t('Unpublished successfully');
+            renderPublishSuccessFeedback(shell, {
+              title,
+              message: title,
+            });
             updatePublishPanels(shell, false);
             updateFormMetadata(shell, result);
             button.disabled = false;
