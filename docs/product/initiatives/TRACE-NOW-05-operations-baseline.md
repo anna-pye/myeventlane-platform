@@ -3,8 +3,8 @@
 | Field | Value |
 | --- | --- |
 | Initiative | TRACE-NOW-05 — Operations ownership and verification baseline |
-| Status | Approved for documentation and verification only |
-| Product Owner approval | Approved as the next governed documentation step |
+| Status | Baseline approved; role assignments pending |
+| Product Owner approval | Operations ownership and verification baseline approved on 26 July 2026 |
 | Date | 2026-07-26 |
 
 ## Product surface
@@ -135,5 +135,6 @@ Refunds, payment failures, disputes, payouts and reconciliation require explicit
 | Decision | Name | Date | Evidence |
 | --- | --- | --- | --- |
 | Proceed with the documentation-only operations baseline | Product Owner | 2026-07-26 | Direction to continue to the next governed step |
+| Approve the operations ownership and verification baseline | Product Owner | 2026-07-26 | Explicit approval of the documented findings and required decisions |
 
-This approval does not authorise implementation or operational policy changes.
+This approval confirms the baseline and its governance boundary. It does not assign accountable people, approve service expectations, authorise implementation or change operational policy.

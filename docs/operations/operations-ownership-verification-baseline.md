@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Active verification baseline |
+| Status | Product Owner approved; accountable roles pending |
 | Date | 2026-07-26 |
 | Highest authority | [Organiser Manifesto](../governance/00-organiser-manifesto.md) |
 | Operational authority | [MyEventLane Operations](../governance/05-operations.md) |
@@ -97,6 +97,8 @@ Historical implementation and remediation documents remain evidence. They do not
 
 ## Product Owner decisions required
 
+The Product Owner approved this baseline on 26 July 2026. The decisions below remain open because approval of the baseline does not identify the accountable people or roles.
+
 | ID | Decision | Why it is required |
 | --- | --- | --- |
 | OPS-PO-01 | Name the accountable role for support intake and escalation | Technical portals do not establish staffed ownership |
@@ -127,3 +129,5 @@ Each exercise requires a separate approved brief. This baseline does not authori
 Operational architecture is substantial enough to support further verification. Human accountability and exercised procedures are not sufficiently established for new operational product surfaces.
 
 The safe next action is Product Owner confirmation of roles and channels. Do not implement new operations features to compensate for missing operating-model decisions.
+
+**Approval record:** Product Owner approved this baseline and its findings on 26 July 2026. No role assignment, service expectation, implementation authority or production certification is implied.
