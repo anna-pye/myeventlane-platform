@@ -336,6 +336,14 @@ The launch sign-off template still contains uncompleted owner signature fields. 
 
 Prioritise operating-model confirmation and runbook evidence before new operational product surfaces.
 
+Current records:
+
+- [Operations Ownership and Verification Initiative](product/initiatives/TRACE-NOW-05-operations-baseline.md)
+- [Operations Ownership and Verification Baseline](operations/operations-ownership-verification-baseline.md)
+- [Deferred Operational Configuration Requirements](operations/deferred-operational-configuration-requirements.md)
+
+The baseline confirms substantial operational architecture but does not confirm named accountable human owners or exercised coverage.
+
 ## Cross-initiative dependencies
 
 | Dependency | Affected initiatives | Current evidence |
