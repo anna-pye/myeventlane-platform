@@ -102,7 +102,7 @@ The Product Owner approved this baseline on 26 July 2026. The decisions below re
 | ID | Decision | Why it is required |
 | --- | --- | --- |
 | OPS-PO-01 | Name the accountable role for support intake and escalation | Technical portals do not establish staffed ownership |
-| OPS-PO-02 | Confirm active support channels and service expectations | Avoid accidental or unsupported promises |
+| OPS-PO-02 | Confirm active support channels and service expectations | Configuration is deferred to a later build; policy values remain unset to avoid accidental or unsupported promises |
 | OPS-PO-03 | Name moderation decision and appeal authority | Material community decisions require human accountability |
 | OPS-PO-04 | Name refund and payment operating authorities | Money movement and reconciliation require explicit authority |
 | OPS-PO-05 | Approve incident roles, severity model and communication ownership | Tools exist but exercised response is not confirmed |
@@ -110,6 +110,8 @@ The Product Owner approved this baseline on 26 July 2026. The decisions below re
 | OPS-PO-07 | Name release authority and production verification owner | Staging documentation does not establish production authority |
 
 The recommended resolution for OPS-PO-01 through OPS-PO-07 is documented in the [Operational Accountability Model](operational-accountability-model.md). That model remains pending Product Owner approval and named assignments.
+
+The requirements for any later configurable service levels and coverage are recorded in [Deferred Operational Configuration Requirements](deferred-operational-configuration-requirements.md). This records the deferral and safety boundary; it does not resolve OPS-PO-02, approve values or authorise implementation.
 
 ## Verification backlog
 

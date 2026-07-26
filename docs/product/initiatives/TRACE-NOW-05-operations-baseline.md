@@ -142,3 +142,9 @@ This approval confirms the baseline and its governance boundary. It does not ass
 ## Recommended accountability model
 
 The [Operational Accountability Model](../../operations/operational-accountability-model.md) proposes a scale-appropriate role structure, decision rights, channel ownership and separation rules. It remains pending Product Owner approval and named assignments.
+
+## Deferred operational settings
+
+Service levels, coverage hours, channel availability and escalation timing may become governed settings in a later build. [Deferred Operational Configuration Requirements](../../operations/deferred-operational-configuration-requirements.md) records the future safety and approval boundary.
+
+No values or implementation are authorised. An inactive or incomplete configuration must not create a public service promise.

@@ -192,6 +192,12 @@ Every incident record requires:
 
 Service levels and severity thresholds require a separate approved procedure.
 
+## Deferred service configuration
+
+The Product Owner has deferred service levels, coverage hours, channel availability and escalation timing to a possible later build. The governance and safety requirements for that future capability are recorded in [Deferred Operational Configuration Requirements](deferred-operational-configuration-requirements.md).
+
+No service values or implementation are approved. Until an approved policy is deliberately activated, the existence of roles, routes, dashboards or settings must not be presented as staffed coverage or a response-time commitment.
+
 ## Role assignment record
 
 | Role | Named assignee | Deputy or verifier | Effective date | Review trigger |
