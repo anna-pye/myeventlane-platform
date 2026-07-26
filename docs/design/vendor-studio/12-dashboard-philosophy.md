@@ -3,6 +3,8 @@
 **Version:** RC1  
 **Status:** Design authority (documentation only)
 
+**Repository governance:** Current dashboard design authority under [PDR-001](../../product-decisions/PDR-001-governance-baseline-authority.md), subordinate to the [Organiser Manifesto](../../governance/00-organiser-manifesto.md) and [Product Constitution](../../governance/01-product-constitution.md).
+
 ## Purpose
 
 Define what the **Dashboard** exists to accomplish — and what it must never become.

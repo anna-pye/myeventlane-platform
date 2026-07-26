@@ -1,5 +1,12 @@
 # Event-First Dashboard Governance
 
+> **Status:** Historical implementation governance
+>
+> **Current design authority:** [Vendor Studio Dashboard Philosophy](design/vendor-studio/12-dashboard-philosophy.md)
+>
+> **Classification decision:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md)
+> Retained for traceability. This document does not authorise current product or design changes.
+
 ## Canonical Dashboard Hierarchy
 
 1. Priority Attention

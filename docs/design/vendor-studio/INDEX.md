@@ -1,12 +1,14 @@
 # Vendor Studio Product Design System (PDS) — Index
 
 **Also known as:** Vendor Studio Design Operating System  
-**Version:** 1.0  
+**Version:** 1.0.3
 **Status:** **FROZEN**  
 **Authority:** Required for all Vendor Studio implementation work  
 **Landing page for contributors**
 
 ---
+
+**Repository-wide parent authority:** [Organiser Manifesto](../../governance/00-organiser-manifesto.md) → [Product Constitution](../../governance/01-product-constitution.md) → [PDR-001 canonical hierarchy](../../product-decisions/PDR-001-governance-baseline-authority.md). The stack below is the local Vendor Studio build stack and does not outrank repository-wide product governance.
 
 ## Mission
 

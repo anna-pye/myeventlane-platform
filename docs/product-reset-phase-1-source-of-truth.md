@@ -1,5 +1,12 @@
 # MEL Product Reset Phase 1 Source of Truth
 
+> **Status:** Historical product evidence
+>
+> **Current authority:** [Organiser Manifesto](governance/00-organiser-manifesto.md), [Product Constitution](governance/01-product-constitution.md), [Product Strategy](governance/02-product-strategy.md) and [Product Requirements](governance/04-product-requirements.md)
+>
+> **Classification decision:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md)
+> This record preserves Phase 1 reasoning. It does not authorise current implementation or override active governance.
+
 ## Purpose
 
 This document preserves the product reasoning, market lessons, implementation process, and non-negotiable rules for:

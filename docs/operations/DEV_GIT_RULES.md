@@ -1,5 +1,12 @@
 # MyEventLane Platform — Git & Repository Rules (Development Reference)
 
+> **Status:** Superseded
+>
+> **Superseded by:** [MyEventLane Development Workflow](../DEVELOPMENT_WORKFLOW.md) and [repository CONTRIBUTING](../../CONTRIBUTING.md)
+>
+> **Decision:** [PDR-001](../product-decisions/PDR-001-governance-baseline-authority.md), approved 2026-07-26
+> Retained for historical traceability. Its prohibition on feature worktrees is no longer current policy.
+
 **Purpose:**
 Prevent Git worktree conflicts, accidental branch locking, and detached worktrees.
 Ensure all work happens in the canonical repository only.
