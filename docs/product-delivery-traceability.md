@@ -90,6 +90,11 @@ I cannot confirm a single approved public-discovery design authority beyond the 
 
 Proceed with discovery research and evidence refresh only. Do not treat identified route or ranking gaps as authorised implementation.
 
+Current records:
+
+- [Discovery and research initiative brief](product/initiatives/TRACE-NOW-01-discovery-research.md)
+- [Discovery evidence refresh — 26 July 2026](research/discovery/2026-07-26-evidence-refresh.md)
+
 ## TRACE-NOW-02 — Vendor Studio
 
 ### Human outcome
