@@ -1,0 +1,172 @@
+/**
+ * @file
+ * VL-5C.1 — Vendor Studio Workspace empty states.
+ *
+ * Presentation only. Empty-state truth, copy, actions, and state selection
+ * remain owned by EventStudioEmptyStateBuilder and the section renderer.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+
+.mel-event-studio--workspace .mel-event-studio-empty-state {
+  display: grid;
+  width: min(100%, 42rem);
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: $spacing-5;
+  align-items: start;
+  padding: $spacing-6;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 16px;
+  background: $mel-brand-surface-soft;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state[data-mel-empty-state='readonly'] {
+  background: $mel-ws-soft-sky;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state[data-mel-empty-state='unavailable'] {
+  border-left: 4px solid $danger;
+  background: $mel-shell-surface;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__visual {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border: 1px solid $mel-ws-purple-border;
+  border-radius: 50%;
+  background: $mel-shell-surface;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__icon {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: $mel-ws-purple;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state[data-mel-empty-state='readonly']
+  .mel-event-studio-empty-state__icon {
+  background: $info;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state[data-mel-empty-state='unavailable']
+  .mel-event-studio-empty-state__icon {
+  background: $danger;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state__icon::before {
+  display: none;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__kicker {
+  margin: 0 0 $spacing-2;
+  color: $text-secondary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: $letter-spacing-wider;
+  text-transform: uppercase;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__title {
+  margin: 0 0 $spacing-2;
+  color: $text-primary;
+  font-family: $font-family-sans;
+  font-size: $font-size-section-title;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+  letter-spacing: $letter-spacing-tight;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__body,
+.mel-event-studio--workspace .mel-event-studio-empty-state__prompt {
+  max-width: 36rem;
+  margin: 0;
+  color: $text-secondary;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__prompt {
+  margin-top: $spacing-3;
+  color: $text-primary;
+  font-weight: $font-weight-semibold;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__guidance {
+  margin: $spacing-4 0 0;
+  padding-left: $spacing-5;
+  color: $text-secondary;
+  line-height: $line-height-normal;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state__guidance
+  li
+  + li {
+  margin-top: $spacing-2;
+}
+
+.mel-event-studio--workspace .mel-event-studio-empty-state__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: $spacing-3;
+  margin-top: $spacing-5;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state__actions
+  .mel-btn,
+.mel-vendor-console.mel-vendor-shell
+  .mel-event-studio--workspace
+  .mel-event-studio-empty-state__actions
+  .mel-btn.mel-btn--primary {
+  min-height: 44px;
+  border: 1px solid $mel-ws-purple-border;
+  background: transparent;
+  color: $mel-ws-purple;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state__actions
+  .mel-btn:hover,
+.mel-vendor-console.mel-vendor-shell
+  .mel-event-studio--workspace
+  .mel-event-studio-empty-state__actions
+  .mel-btn.mel-btn--primary:hover {
+  border-color: $mel-ws-purple;
+  background: $mel-ws-purple-tint;
+  color: $mel-ws-purple;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-empty-state__actions
+  .mel-btn:focus-visible {
+  outline: 3px solid $mel-focus-ring;
+  outline-offset: 3px;
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio--workspace .mel-event-studio-empty-state {
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-4;
+    padding: $spacing-5;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-empty-state__actions
+    .mel-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
