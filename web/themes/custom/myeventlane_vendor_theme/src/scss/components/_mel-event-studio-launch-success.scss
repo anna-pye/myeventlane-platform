@@ -16,22 +16,6 @@
 @use '../tokens/shadows' as *;
 @use '../tokens/typography' as *;
 
-// ============================================================================
-// OUTCOME PANEL — calm white soft surface on Warm Cream (earned card)
-// ============================================================================
-
-.mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-event-studio-publish-feedback.is-success,
-.mel-event-studio--workspace .mel-event-studio-publish-feedback.is-success,
-.mel-event-studio--workspace .mel-launch-success.is-success {
-  margin: 0 0 $mel-zone-gap-sm;
-  padding: $spacing-5 $spacing-5;
-  max-width: 42rem;
-  border: 1px solid $mel-ws-border-soft;
-  border-radius: 16px;
-  background: $mel-shell-surface;
-  box-shadow: $shadow-sm;
-}
-
 .mel-event-studio--workspace .mel-launch-success.is-success.mel-launch-success--enter {
   animation: mel-launch-success-enter 180ms ease-out;
 }
@@ -52,25 +36,6 @@
   .mel-event-studio--workspace .mel-launch-success.is-success.mel-launch-success--enter {
     animation: none;
   }
-}
-
-.mel-event-studio--workspace .mel-launch-success__title,
-.mel-event-studio--workspace .mel-event-studio-publish-feedback.is-success .mel-event-studio-publish-feedback__title {
-  margin: 0 0 $spacing-3;
-  font-size: 1.375rem;
-  font-weight: $font-weight-bold;
-  line-height: 1.25;
-  color: $text-primary;
-}
-
-.mel-event-studio--workspace .mel-launch-success__title:focus {
-  outline: none;
-}
-
-.mel-event-studio--workspace .mel-launch-success__title:focus-visible {
-  outline: 3px solid $mel-brand-coral;
-  outline-offset: 3px;
-  border-radius: 4px;
 }
 
 // ============================================================================
