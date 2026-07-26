@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 
 /**
@@ -38,6 +39,21 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
    */
   protected function getCurrentStepId(): string {
     return 'tickets';
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function getContinueButtonLabel() {
+    return $this->t('Save booking settings');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
+    $this->messenger()->addStatus($this->t('Booking settings saved.'));
+    $form_state->setRedirect('myeventlane_event_studio.workspace_tickets', ['node' => $saved->id()]);
   }
 
   /**
@@ -114,12 +130,42 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       ],
     ];
 
-    $form['mel']['collect_attendee_questions'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Collect extra attendee details'),
-      '#description' => $this->t('Gather information per guest (beyond name and email).'),
-      '#default_value' => !empty($melDefaults['collect_attendee_questions']),
-      '#mel_option_card' => TRUE,
+    $form['mel']['attendee_questions_handoff'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-studio-attendee-questions-handoff'],
+        'role' => 'region',
+        'aria-labelledby' => 'mel-attendee-questions-handoff-title',
+      ],
+      'eyebrow' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Attendee questions'),
+        '#attributes' => ['class' => ['mel-event-studio-attendee-questions-handoff__eyebrow']],
+      ],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h4',
+        '#value' => $this->t('Need more than name and email?'),
+        '#attributes' => [
+          'id' => 'mel-attendee-questions-handoff-title',
+          'class' => ['mel-event-studio-attendee-questions-handoff__title'],
+        ],
+      ],
+      'copy' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Add short questions for attendees to answer while booking. Collection turns on automatically when an active question is saved.'),
+        '#attributes' => ['class' => ['mel-event-studio-attendee-questions-handoff__copy']],
+      ],
+      'action' => [
+        '#type' => 'link',
+        '#title' => $this->t('Manage attendee questions'),
+        '#url' => Url::fromRoute('myeventlane_event_studio.workspace_questions', ['node' => $node->id()]),
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--secondary'],
+        ],
+      ],
       '#suffix' => '</div></section>',
     ];
 

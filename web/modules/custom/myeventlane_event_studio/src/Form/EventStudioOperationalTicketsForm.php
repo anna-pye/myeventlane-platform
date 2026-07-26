@@ -389,21 +389,38 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
-      if (!empty($row['archive']) && !empty($row['duplicate'])) {
+      $selected_actions = array_filter([
+        'duplicate' => !empty($row['duplicate']),
+        'archive' => !empty($row['archive']),
+        'delete' => !empty($row['delete']),
+      ]);
+      if (count($selected_actions) > 1) {
         $form_state->setErrorByName(
-          'tickets][' . $ticket_id . '][actions][duplicate]',
-          $this->t('Choose either Duplicate ticket or Archive ticket, not both.'),
+          'tickets][' . $ticket_id . '][actions',
+          $this->t('Choose only one ticket action: Duplicate, Archive, or permanently delete.'),
         );
         continue;
       }
-      if (!empty($row['archive'])) {
-        continue;
-      }
+
       $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
       if (!$ticket instanceof TicketTypeInterface) {
         $form_state->setErrorByName('tickets][' . $ticket_id, $this->t('Ticket data could not be matched to this event. Reload and try again.'));
         continue;
       }
+      if (!empty($row['delete'])) {
+        $eligibility = $this->ticketTierLifecycle->evaluateTicketDeletion($ticket);
+        if (!$eligibility['allowed']) {
+          $form_state->setErrorByName(
+            'tickets][' . $ticket_id . '][actions][delete]',
+            $this->deletionBlockedMessage($eligibility),
+          );
+        }
+        continue;
+      }
+      if (!empty($row['archive'])) {
+        continue;
+      }
+
       // Duplicate still applies the same-request inline edits to the source first.
       $row = $this->normalizeExistingTicketRowInput($ticket, $row);
       try {
@@ -451,6 +468,11 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
         $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
         if (!$ticket instanceof TicketTypeInterface) {
+          continue;
+        }
+        if (!empty($row['delete'])) {
+          $this->ticketTierLifecycle->deleteTicketOnEvent($event, $ticket);
+          $this->recordTicketAnalyticsEvent('ticket_deleted', $event, (int) $ticket->id());
           continue;
         }
         // Mutual exclusion is enforced in validateForm; never archive when
@@ -510,7 +532,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $this->persistDonationSettingsFromWorkspace($event);
 
     $this->messenger()->addStatus($this->t('Tickets saved and synced.'));
-    $form_state->setRebuild(TRUE);
+    $form_state->setRedirect('myeventlane_event_studio.workspace_tickets', [
+      'node' => $event->id(),
+    ]);
   }
 
   /**
@@ -545,6 +569,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           : 'public'
       ] ?? $this->t('Public'),
     };
+    $deletion_eligibility = $this->ticketTierLifecycle->evaluateTicketDeletion($ticket);
 
     return [
       '#type' => 'container',
@@ -744,6 +769,32 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             '#default_value' => $this->dateFieldDefault($ticket, 'sale_end'),
             '#parents' => ['tickets', $ticket_id, 'sales_window', 'sale_end'],
           ],
+          'reset' => [
+            '#type' => 'html_tag',
+            '#tag' => 'button',
+            '#value' => $this->t('Clear sales window'),
+            '#attributes' => [
+              'type' => 'button',
+              'class' => [
+                'mel-btn',
+                'mel-btn--tertiary',
+                'mel-event-studio-ticket-card__reset-sales-window',
+              ],
+              'data-mel-reset-sales-window' => (string) $ticket_id,
+              'aria-describedby' => 'mel-ticket-sales-window-status-' . $ticket_id,
+            ],
+          ],
+          'reset_status' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => '',
+            '#attributes' => [
+              'id' => 'mel-ticket-sales-window-status-' . $ticket_id,
+              'class' => ['mel-event-studio-ticket-card__reset-status'],
+              'role' => 'status',
+              'aria-live' => 'polite',
+            ],
+          ],
         ],
         'visibility_group' => [
           '#type' => 'container',
@@ -783,15 +834,6 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
             '#parents' => ['tickets', $ticket_id, 'status', 'published'],
           ],
-          'best_value' => [
-            '#type' => 'checkbox',
-            '#title' => $this->t('Highlight as best value'),
-            '#description' => $this->t('Use sparingly when one ticket should be gently highlighted for attendees.'),
-            '#default_value' => $ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket(),
-            '#disabled' => $ticket->isArchived() || !$ticket->hasField('field_is_best_value'),
-            '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
-            '#parents' => ['tickets', $ticket_id, 'status', 'best_value'],
-          ],
         ],
       ],
       'quick_actions' => [
@@ -803,7 +845,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         'hint' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Quick edit above, then save. Choose duplicate or archive — not both.'),
+          '#value' => $this->t('Quick edit above, then save. Choose only one ticket action.'),
           '#attributes' => ['class' => ['mel-event-studio-ticket-card__quick-actions-hint']],
         ],
         'duplicate' => [
@@ -827,10 +869,51 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '#attributes' => ['class' => ['mel-event-studio-ticket-card__advanced-content']],
         '#prefix' => '<details class="mel-event-studio-ticket-card__advanced"><summary>' . $this->t('Optional ticket settings') . '</summary>',
         '#suffix' => '</details>',
+        'best_value' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Highlight as best value'),
+          '#description' => $this->t('Use sparingly when one ticket should be gently highlighted for attendees.'),
+          '#default_value' => $ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket(),
+          '#disabled' => $ticket->isArchived() || !$ticket->hasField('field_is_best_value'),
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox']],
+          '#parents' => ['tickets', $ticket_id, 'status', 'best_value'],
+        ],
         'ticket_kind' => [
           '#type' => 'hidden',
           '#value' => $kind,
           '#parents' => ['tickets', $ticket_id, 'actions', 'ticket_kind'],
+        ],
+      ],
+      'removal' => [
+        '#type' => 'details',
+        '#title' => $this->t('Remove ticket'),
+        '#open' => FALSE,
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-card__removal'],
+        ],
+        'warning' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Permanent deletion cannot be undone. Use Archive when you only need to stop future bookings.'),
+          '#access' => $deletion_eligibility['allowed'],
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__removal-warning']],
+        ],
+        'delete' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Permanently delete this ticket when I save'),
+          '#description' => $this->t('The ticket and its unused Commerce variation will be removed when you select Save tickets.'),
+          '#default_value' => 0,
+          '#access' => $deletion_eligibility['allowed'],
+          '#attributes' => ['autocomplete' => 'off'],
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__action', 'mel-event-studio-ticket-card__action--danger']],
+          '#parents' => ['tickets', $ticket_id, 'actions', 'delete'],
+        ],
+        'blocked' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->deletionBlockedMessage($deletion_eligibility),
+          '#access' => !$deletion_eligibility['allowed'],
+          '#attributes' => ['class' => ['mel-event-studio-ticket-card__removal-blocked']],
         ],
       ],
     ];
@@ -929,10 +1012,21 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $row['ticket_kind'] = $row['actions']['ticket_kind'] ?? '';
         $row['archive'] = !empty($row['actions']['archive']) ? 1 : 0;
         $row['duplicate'] = !empty($row['actions']['duplicate']) ? 1 : 0;
+        $row['delete'] = !empty($row['actions']['delete']) ? 1 : 0;
       }
       $out[(int) $ticket_id] = $row;
     }
     return $out;
+  }
+
+  /**
+   * @param array{allowed: bool, blockers: list<string>, counts: array<string, int>} $eligibility
+   */
+  private function deletionBlockedMessage(array $eligibility): string {
+    if (in_array('inspection_failed', $eligibility['blockers'], TRUE)) {
+      return (string) $this->t('Deletion availability could not be verified. Archive this ticket or try again later.');
+    }
+    return (string) $this->t('This ticket has booking or operational history, so it cannot be permanently deleted. Archive it instead.');
   }
 
   private function dateFieldDefault(TicketTypeInterface $ticket, string $field_name): ?DrupalDateTime {

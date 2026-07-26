@@ -30,8 +30,6 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
 
   public const CURRENCY_MISMATCH_MESSAGE = 'All tickets for an event must use the same currency.';
 
-  private const BEST_VALUE_REQUIRED_MESSAGE = 'Choose one Best value ticket when an event has more than one paid or RSVP ticket type.';
-
   private const SHORT_DESCRIPTION_MAX_LENGTH = 320;
 
   private const TICKET_TITLE_MAX_LENGTH = 255;
@@ -44,6 +42,7 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly EventVendorAccessChecker $eventVendorAccessChecker,
     private readonly Connection $database,
+    private readonly TicketTierDeletionGuard $ticketTierDeletionGuard,
   ) {}
 
   /**
@@ -550,6 +549,64 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
   }
 
   /**
+   * @return array{
+   *   allowed: bool,
+   *   blockers: list<string>,
+   *   counts: array<string, int>
+   * }
+   */
+  public function evaluateTicketDeletion(TicketTypeInterface $ticket): array {
+    return $this->ticketTierDeletionGuard->evaluate($ticket);
+  }
+
+  /**
+   * Permanently deletes an unreferenced ticket and its unused variation.
+   *
+   * @throws \InvalidArgumentException
+   * @throws \Throwable
+   */
+  public function deleteTicketOnEvent(NodeInterface $event, TicketTypeInterface $ticket): void {
+    if (!$this->ticketBelongsToEvent($event, (int) $ticket->id())) {
+      throw new InvalidArgumentException('Ticket data could not be matched to this event.');
+    }
+
+    $eligibility = $this->evaluateTicketDeletion($ticket);
+    if (!$eligibility['allowed']) {
+      throw new InvalidArgumentException('This ticket has booking or operational history and cannot be permanently deleted.');
+    }
+
+    $variation_id = $ticket->hasField('commerce_variation') && !$ticket->get('commerce_variation')->isEmpty()
+      ? (int) $ticket->get('commerce_variation')->target_id
+      : 0;
+
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->archiveTicketOnEvent($event, $ticket);
+
+      if ($variation_id > 0) {
+        $variation_storage = $this->entityTypeManager->getStorage('commerce_product_variation');
+        $variation_storage->resetCache([$variation_id]);
+        $variation = $variation_storage->load($variation_id);
+        if ($variation instanceof ProductVariationInterface) {
+          $product = $variation->getProduct();
+          if ($product instanceof ProductInterface && method_exists($product, 'hasVariation')
+            && $product->hasVariation($variation)) {
+            $product->removeVariation($variation);
+            $product->save();
+          }
+          $variation->delete();
+        }
+      }
+
+      $ticket->delete();
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+  }
+
+  /**
    * Persists field changes on an existing ticket and syncs paid projections.
    *
    * @param array<string, mixed> $values
@@ -652,8 +709,6 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
         'title' => '',
       ];
     }
-
-    $this->assertBestValueSelectionForNewTicket($event, $payload);
 
     return $payload;
   }
@@ -785,8 +840,6 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
       );
     }
 
-    $this->assertBestValueSelectionForTicketUpdate($event, $ticket, $payload);
-
     return $payload;
   }
 
@@ -855,127 +908,7 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
       $errors[] = self::CURRENCY_MISMATCH_MESSAGE;
     }
 
-    $bestValueError = $this->validateBestValueSelectionForRows($event, $account, $rows);
-    if ($bestValueError !== NULL) {
-      $errors[] = $bestValueError;
-    }
-
     return array_merge($errors, $this->validateRsvpCapacityAgainstEvent($event, $eventKind, $rsvpCapSum));
-  }
-
-  /**
-   * Optional best-value guidance for newly created joinable ticket types.
-   *
-   * Previously enforced as a hard block; now advisory only so vendors can
-   * save tickets without designating a "best value" tier upfront.
-   *
-   * @param array<string, mixed> $payload
-   */
-  private function assertBestValueSelectionForNewTicket(NodeInterface $event, array $payload): void {
-  }
-
-  /**
-   * Enforces the MEL guided model when editing an existing joinable ticket type.
-   *
-   * @param array<string, mixed> $payload
-   */
-  private function assertBestValueSelectionForTicketUpdate(NodeInterface $event, TicketTypeInterface $ticket, array $payload): void {
-    if (!$ticket->hasField('field_is_best_value') && !array_key_exists('field_is_best_value', $payload)) {
-      return;
-    }
-
-    $analysis = $this->analyzeBestValueTickets($event, $ticket, $payload);
-    if ($analysis['joinable_count'] > 1 && !$analysis['has_best_value']) {
-      throw new InvalidArgumentException(self::BEST_VALUE_REQUIRED_MESSAGE);
-    }
-  }
-
-  /**
-   * Validates a complete Event Studio ticket rows payload against existing tickets.
-   *
-   * @param list<array<string, mixed>> $rows
-   */
-  private function validateBestValueSelectionForRows(NodeInterface $event, AccountInterface $account, array $rows): ?string {
-    $tickets = $this->ticketTypeManager->loadEventTicketTypesForDisplay($event);
-    $joinableCount = 0;
-    $hasBestValue = FALSE;
-    $seenIds = [];
-
-    foreach ($rows as $row) {
-      $ticketId = (int) ($row['id'] ?? 0);
-      if ($ticketId > 0) {
-        $ticket = $this->loadWritableTicketForEvent($event, $ticketId, $account);
-        if (!$ticket instanceof TicketTypeInterface) {
-          continue;
-        }
-        $seenIds[$ticketId] = TRUE;
-        if (!$this->isJoinableTicketKind($ticket->getTicketKind())) {
-          continue;
-        }
-        $joinableCount++;
-        $hasBestValue = $hasBestValue || $this->ticketWillBeBestValue($ticket, $row);
-        continue;
-      }
-
-      $kind = $this->normalizeTicketKind($row['ticket_kind'] ?? 'paid');
-      if (!$this->isJoinableTicketKind($kind)) {
-        continue;
-      }
-      $joinableCount++;
-      $hasBestValue = $hasBestValue || !empty($row['field_is_best_value']);
-    }
-
-    foreach ($tickets as $ticketId => $ticket) {
-      if (isset($seenIds[(int) $ticketId]) || !$this->isJoinableTicketKind($ticket->getTicketKind())) {
-        continue;
-      }
-      $joinableCount++;
-      $hasBestValue = $hasBestValue || ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket());
-    }
-
-    return $joinableCount > 1 && !$hasBestValue ? self::BEST_VALUE_REQUIRED_MESSAGE : NULL;
-  }
-
-  /**
-   * @param array<string, mixed> $payload
-   *
-   * @return array{joinable_count: int, has_best_value: bool}
-   */
-  private function analyzeBestValueTickets(NodeInterface $event, ?TicketTypeInterface $overrideTicket = NULL, array $payload = []): array {
-    $joinableCount = 0;
-    $hasBestValue = FALSE;
-    $overrideId = $overrideTicket instanceof TicketTypeInterface ? (int) $overrideTicket->id() : 0;
-
-    foreach ($this->ticketTypeManager->loadEventTicketTypesForDisplay($event) as $ticket) {
-      if (!$this->isJoinableTicketKind($ticket->getTicketKind())) {
-        continue;
-      }
-      $joinableCount++;
-      if ($overrideId > 0 && (int) $ticket->id() === $overrideId) {
-        $hasBestValue = $hasBestValue || $this->ticketWillBeBestValue($ticket, $payload);
-        continue;
-      }
-      $hasBestValue = $hasBestValue || ($ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket());
-    }
-
-    return [
-      'joinable_count' => $joinableCount,
-      'has_best_value' => $hasBestValue,
-    ];
-  }
-
-  /**
-   * @param array<string, mixed> $values
-   */
-  private function ticketWillBeBestValue(TicketTypeInterface $ticket, array $values): bool {
-    if (array_key_exists('field_is_best_value', $values)) {
-      return !empty($values['field_is_best_value']);
-    }
-    return $ticket->hasField('field_is_best_value') && $ticket->isBestValueTicket();
-  }
-
-  private function isJoinableTicketKind(string $kind): bool {
-    return in_array($kind, ['paid', 'rsvp'], TRUE);
   }
 
   /**
