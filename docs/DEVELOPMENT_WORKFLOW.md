@@ -1,5 +1,9 @@
 # MyEventLane Development Workflow
 
+**Status:** Active repository workflow
+
+**Authority:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md) · [CONTRIBUTING.md](../CONTRIBUTING.md)
+
 This document is the standard local development workflow for MyEventLane (MEL).
 
 Tooling lives in [`scripts/dev/`](../scripts/dev/). It is **developer-only**: it does not change Drupal runtime behaviour and does not deploy.

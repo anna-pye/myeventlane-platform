@@ -1,5 +1,12 @@
 # Dashboard vs Event Workspace Governance
 
+> **Status:** Historical implementation boundary record
+>
+> **Current design authority:** [Vendor Studio Dashboard Philosophy](design/vendor-studio/12-dashboard-philosophy.md) and [Event Workspace Philosophy](design/vendor-studio/13-event-workspace-philosophy.md)
+>
+> **Classification decision:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md)
+> Retained for traceability. Confirm runtime facts from the repository before implementation.
+
 ## Dashboard Purpose
 
 `/vendor/dashboard` is Organiser Mission Control. It answers what is happening across the organiser account, which events need attention, what recent operational activity occurred, whether bookings and payouts are healthy, and what the organiser should review next.

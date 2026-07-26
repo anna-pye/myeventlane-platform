@@ -2,18 +2,20 @@
 
 **Status:** Accepted  
 **Date:** 2026-07-25  
-**Pack version:** 1.0 (FROZEN)  
+**Pack version:** 1.0.3 (FROZEN; governance clarification only)
 **Owners:** Product Owner · Design Authority · Technical Authority
 
 ---
 
 ## Purpose
 
-This is the **constitutional document** for the **Vendor Studio Product Design System (PDS)** (also known as the Vendor Studio Design Operating System).
+This is the **local constitutional document** for the **Vendor Studio Product Design System (PDS)** (also known as the Vendor Studio Design Operating System).
 
 It establishes why the PDS exists, who owns it, how decisions are made, and what happens when documents disagree.
 
-All other documents in this pack are subordinate to this constitution and to the precedence hierarchy below.
+All other documents in this pack are subordinate to this local constitution and to the precedence hierarchy below.
+
+This ADR is itself subordinate to the repository-wide [Organiser Manifesto](../../../governance/00-organiser-manifesto.md), [Product Constitution](../../../governance/01-product-constitution.md), Product Strategy and Product Requirements. The canonical global hierarchy is recorded in [PDR-001](../../../product-decisions/PDR-001-governance-baseline-authority.md). This clarification does not reopen or alter any frozen design decision.
 
 ---
 
@@ -66,7 +68,7 @@ Contributor practice: [CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ## Document precedence
 
-When two documents disagree, **higher wins**. Lower documents must be amended to restore alignment — never the reverse by silent implementation.
+Within the Vendor Studio PDS, when two documents disagree, **higher wins**. Lower documents must be amended to restore alignment — never the reverse by silent implementation.
 
 ```text
 ADR-0001 Design Authority (this constitution)

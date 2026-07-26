@@ -4,12 +4,14 @@
 
 | Field | Value |
 | --- | --- |
-| **Version** | **1.0** |
+| **Version** | **1.0.3** |
 | **Status** | **FROZEN** |
 | **Released** | 2026 |
 | **Authority** | Required for all Vendor Studio implementation work |
 | **Language** | Australian English |
 | **Landing index** | [INDEX.md](INDEX.md) |
+
+**Repository-wide parent authority:** [Organiser Manifesto](../../governance/00-organiser-manifesto.md) → [Product Constitution](../../governance/01-product-constitution.md) → [Product Strategy and Requirements](../../product-decisions/PDR-001-governance-baseline-authority.md). This pack remains frozen and authoritative within Vendor Studio design scope.
 
 ---
 

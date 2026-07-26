@@ -1,5 +1,12 @@
 # Mission Control Principles
 
+> **Status:** Historical implementation governance
+>
+> **Current design authority:** [Vendor Studio Dashboard Philosophy](design/vendor-studio/12-dashboard-philosophy.md)
+>
+> **Classification decision:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md)
+> “Final” is part of the historical filename and does not establish current authority.
+
 Mission Control is the organiser's operational home. It gives calm awareness, one current priority, one current event focus, lightweight multi-event visibility, sparse activity intelligence, and fast movement into contextual surfaces.
 
 Mission Control is not an analytics wall, onboarding wizard, notification centre, admin console, lifecycle dashboard, Stripe dashboard, Commerce dashboard, refund dashboard, or AI retrieval surface.

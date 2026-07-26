@@ -8,6 +8,19 @@ Versioning follows the Versioning Policy in [README.md](README.md#versioning-pol
 
 ---
 
+## [1.0.3] — 2026-07-26 — Repository constitutional alignment
+
+### Accepted (Product Owner)
+
+- Clarified that the PDS constitution and precedence are local to Vendor Studio design.
+- Linked the frozen pack to the repository-wide Organiser Manifesto, Product Constitution and canonical hierarchy in PDR-001.
+- Confirmed PDS `12-dashboard-philosophy.md` as the current dashboard design authority.
+
+### Notes
+
+- Compatible governance clarification only.
+- No design principle, Workspace Zone, visual language, component contract, freeze state or implementation scope changed.
+
 ## [1.0.2] — 2026-07-25 — Workspace Zones + Visual Language freeze
 
 ### Accepted (Product Owner)

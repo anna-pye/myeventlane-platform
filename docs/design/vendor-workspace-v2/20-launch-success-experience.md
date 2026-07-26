@@ -1,7 +1,10 @@
 # Vendor Workspace v2 — Launch Success Experience
 
-**Status:** Product design (Sprint 3B) — documentation only  
+**Status:** Approved design direction — Alternative A; implementation completion and final freeze not confirmed
+
 **Date:** 2026-07-25  
+
+**Governance clarification:** Product Owner 2026-07-26; see [PDR-001](../../product-decisions/PDR-001-governance-baseline-authority.md) and [Component Catalogue](23-vendor-component-catalogue.md).
 **Goal:** After publish, organiser feels confident, excited, guided — knows what happened and what next.  
 **Runtime seed:** `EventStudioPreprocess::buildPublishSuccessHandoff` · shell `renderPublishSuccessFeedback` · `?mel_celebrate=1`
 

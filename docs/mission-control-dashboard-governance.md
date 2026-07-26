@@ -1,5 +1,12 @@
 # Mission Control Dashboard Governance
 
+> **Status:** Historical implementation governance
+>
+> **Current design authority:** [Vendor Studio Dashboard Philosophy](design/vendor-studio/12-dashboard-philosophy.md)
+>
+> **Classification decision:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md)
+> Retained for traceability. This document does not authorise current product or design changes.
+
 The organiser dashboard is Mission Control: a calm operational home that keeps one event in focus while showing lightweight awareness across the organiser's event set.
 
 It is not an analytics wall, onboarding wizard, admin console, lifecycle dashboard, Stripe console, Commerce console, refund console, or AI surface.

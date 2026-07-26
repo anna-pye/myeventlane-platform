@@ -1,5 +1,12 @@
 # Event-First Dashboard Principles
 
+> **Status:** Historical implementation governance
+>
+> **Current design authority:** [Vendor Studio Dashboard Philosophy](design/vendor-studio/12-dashboard-philosophy.md)
+>
+> **Classification decision:** [PDR-001](product-decisions/PDR-001-governance-baseline-authority.md)
+> “Final” is part of the historical filename and does not establish current authority.
+
 The organiser dashboard is event-first, not system-first. It starts with the organiser's current or most important event, then shows only the operational signals needed to decide what to do next.
 
 The refactor consolidates dashboard attention around existing systems: `VendorDashboardViewModelBuilder`, `VendorActionQueueBuilder`, `MelReadinessHelper`, event state resolution, existing metrics summaries, existing route/access checks, and existing MEL live-ops/card styling.
