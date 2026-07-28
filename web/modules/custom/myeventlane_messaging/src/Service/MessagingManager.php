@@ -596,11 +596,15 @@ final class MessagingManager {
     }
 
     if (!$this->messageStorage->markDispatching($messageId, time())) {
+      $this->messageStorage->releaseFailedClaim($messageId);
       $this->logger->error('Message lost its delivery claim before provider dispatch. message_id=@id', [
         '@id' => $messageId,
         'queue_name' => self::QUEUE_NAME,
       ]);
-      return;
+      throw new RequeueException(sprintf(
+        'Provider dispatch claim failed for message %s.',
+        $messageId,
+      ));
     }
 
     try {

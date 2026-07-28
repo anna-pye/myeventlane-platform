@@ -176,6 +176,40 @@ final class BoostExpiryCronKernelTest extends KernelTestBase {
   }
 
   /**
+   * A mail transport exception restores retryable notification state.
+   */
+  public function testMailExceptionRetriesSameEntitlement(): void {
+    $entitlement = $this->createExpiredEntitlement();
+    $mail = $this->createMock(MailManagerInterface::class);
+    $calls = 0;
+    $mail->expects($this->exactly(2))
+      ->method('mail')
+      ->willReturnCallback(static function () use (&$calls): array {
+        if ($calls++ === 0) {
+          throw new \RuntimeException('Transport failed.');
+        }
+        return ['result' => TRUE];
+      });
+
+    $cron = $this->createCron($mail);
+    $cron->process();
+
+    $failed = $this->reloadEntitlement((int) $entitlement->id());
+    $this->assertSame(
+      BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING,
+      $failed->get('expiry_notification_status')->value,
+    );
+    $this->assertTrue($failed->get('expiry_notified_at')->isEmpty());
+
+    $cron->process();
+    $sent = $this->reloadEntitlement((int) $entitlement->id());
+    $this->assertSame(
+      BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+      $sent->get('expiry_notification_status')->value,
+    );
+  }
+
+  /**
    * A competing worker cannot deliver while the entitlement lock is held.
    */
   public function testConcurrentWorkerCannotSendDuplicate(): void {

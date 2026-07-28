@@ -214,7 +214,19 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
         $pendingEntitlement->save();
       }
 
-      if ($this->notifyVendor($event)) {
+      try {
+        $sent = $this->notifyVendor($event);
+      }
+      catch (\Throwable $exception) {
+        $sent = FALSE;
+        $this->logger->error('Boost expiry mail transport threw for event @event_id, attempt @attempt: @message', [
+          '@event_id' => $event->id(),
+          '@attempt' => $attempt,
+          '@message' => $exception->getMessage(),
+        ]);
+      }
+
+      if ($sent) {
         $this->logger->notice('Sent boost expiry notification once for @entitlement_count entitlement(s) on event @event_id, attempt @attempt.', [
           '@entitlement_id' => $entitlementId,
           '@event_id' => $event->id(),
