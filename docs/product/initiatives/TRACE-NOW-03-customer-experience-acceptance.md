@@ -3,7 +3,7 @@
 | Field | Value |
 | --- | --- |
 | Initiative | TRACE-NOW-03 — Customer experience acceptance refresh |
-| Status | Approved for bounded evidence collection; implementation not authorised |
+| Status | Controlled RSVP evidence complete; investigation decisions required; implementation not authorised |
 | Product Owner approval | Approved on 26 July 2026 |
 | Date | 2026-07-26 |
 
@@ -151,6 +151,7 @@ Roadmap position and approval of this acceptance brief authorise evidence collec
 
 ## Current evidence
 
+- [Customer Experience Acceptance Refresh — 27 July 2026](../../launch/customer-verification/2026-07-27-customer-experience-acceptance-refresh.md)
 - [Customer Acceptance Audit](../../launch/customer-acceptance/customer-acceptance.md)
 - [Customer Verification Summary](../../launch/customer-verification/verification-summary.md)
 - [Launch Certification Sign-off](../../launch/launch-certification/launch-signoff.md)
