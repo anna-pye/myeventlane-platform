@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_messaging\Plugin\QueueWorker;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\RequeueException;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
@@ -127,7 +128,9 @@ final class MessagingQueueWorker extends QueueWorkerBase implements ContainerFac
       $this->state->set(self::STATE_KEY_RUN_COUNT, $runCount + 1);
     }
     catch (\Throwable $e) {
-      $this->messagingManager->releaseFailedClaim($messageId);
+      if (!$e instanceof RequeueException) {
+        $this->messagingManager->releaseFailedClaim($messageId);
+      }
       $this->logger->error('Messaging queue item failed. message_id=@id @message', [
         '@id' => $messageId,
         '@message' => $e->getMessage(),

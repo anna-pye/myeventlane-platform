@@ -320,7 +320,10 @@ final class MessagingManager {
           '@id' => $messageId,
           'queue_name' => self::QUEUE_NAME,
         ]);
-        return;
+        throw new RequeueException(sprintf(
+          'Message %s is already claimed for delivery.',
+          $messageId,
+        ));
       }
       $this->logger->warning('Reclaimed stale pre-dispatch message after worker interruption. message_id=@id', [
         '@id' => $messageId,
@@ -737,15 +740,27 @@ final class MessagingManager {
         'created' => $now,
         'sent' => 0,
       ]);
-      $this->sendMessage($id);
     }
     catch (\Throwable $e) {
+      $existing = $this->messageStorage
+        ->findByIdempotencyKey($idempotencyKey);
+      if ($existing) {
+        $this->logger->info('sendNow legacy: concurrent duplicate recovered.', [
+          'message_id' => $existing->id,
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+        ]);
+        $this->sendMessage($existing->id);
+        return;
+      }
       $this->logger->error('sendNow legacy: failed to create message. @message', [
         '@message' => $e->getMessage(),
         'queue_name' => self::QUEUE_NAME,
         'message_type' => $type,
       ]);
+      throw $e;
     }
+    $this->sendMessage($id);
   }
 
   /**
