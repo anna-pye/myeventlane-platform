@@ -126,6 +126,28 @@ final class BoostExpiryCronKernelTest extends KernelTestBase {
   }
 
   /**
+   * The sent marker is durable before the external transport is invoked.
+   */
+  public function testSentMarkerPrecedesMailTransport(): void {
+    $entitlement = $this->createExpiredEntitlement();
+    $entitlementId = (int) $entitlement->id();
+    $mail = $this->createMock(MailManagerInterface::class);
+    $mail->expects($this->once())
+      ->method('mail')
+      ->willReturnCallback(function () use ($entitlementId): array {
+        $claimed = $this->reloadEntitlement($entitlementId);
+        $this->assertSame(
+          BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+          $claimed->get('expiry_notification_status')->value,
+        );
+        $this->assertFalse($claimed->get('expiry_notified_at')->isEmpty());
+        return ['result' => TRUE];
+      });
+
+    $this->createCron($mail)->process();
+  }
+
+  /**
    * A confirmed send failure remains retryable on the same entitlement.
    */
   public function testFailedSendRetriesSameEntitlement(): void {

@@ -199,18 +199,22 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
         $pendingEntitlement->save();
       }
 
+      // Persist the idempotency decision before invoking the external mail
+      // transport. A worker stopping after Postmark accepts the message must
+      // not leave a retryable row that can send the same email again.
+      foreach ($pendingEntitlements as $pendingEntitlement) {
+        $pendingEntitlement->set(
+          'expiry_notification_status',
+          BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+        );
+        $pendingEntitlement->set(
+          'expiry_notified_at',
+          $this->time->getRequestTime(),
+        );
+        $pendingEntitlement->save();
+      }
+
       if ($this->notifyVendor($event)) {
-        foreach ($pendingEntitlements as $pendingEntitlement) {
-          $pendingEntitlement->set(
-            'expiry_notification_status',
-            BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
-          );
-          $pendingEntitlement->set(
-            'expiry_notified_at',
-            $this->time->getRequestTime(),
-          );
-          $pendingEntitlement->save();
-        }
         $this->logger->notice('Sent boost expiry notification once for @entitlement_count entitlement(s) on event @event_id, attempt @attempt.', [
           '@entitlement_id' => $entitlementId,
           '@event_id' => $event->id(),
@@ -224,6 +228,7 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
             'expiry_notification_status',
             BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING,
           );
+          $pendingEntitlement->set('expiry_notified_at', NULL);
           $pendingEntitlement->save();
         }
         $this->logger->error('Boost expiry notification failed for @entitlement_count entitlement(s) on event @event_id, attempt @attempt; retry remains pending.', [
@@ -275,7 +280,17 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
 
     $sent = !empty($result['result']);
     if ($sent && $this->businessNotificationTrigger !== NULL) {
-      $this->businessNotificationTrigger->onBoostCompleted($node, (int) $owner->id());
+      try {
+        $this->businessNotificationTrigger->onBoostCompleted($node, (int) $owner->id());
+      }
+      catch (\Throwable $exception) {
+        // The email has already been accepted. Ancillary in-app notification
+        // failure must not make the email retryable.
+        $this->logger->error('Boost completion notification failed after expiry email was sent for event @event_id: @message', [
+          '@event_id' => $node->id(),
+          '@message' => $exception->getMessage(),
+        ]);
+      }
     }
 
     return $sent;
