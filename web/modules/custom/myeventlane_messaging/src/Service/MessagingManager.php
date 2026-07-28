@@ -347,6 +347,10 @@ final class MessagingManager {
           '@id' => $messageId,
           'queue_name' => self::QUEUE_NAME,
         ]);
+        throw new RequeueException(sprintf(
+          'Provider dispatch is already in progress for message %s.',
+          $messageId,
+        ));
       }
       return;
     }
