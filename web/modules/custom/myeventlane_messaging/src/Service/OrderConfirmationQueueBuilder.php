@@ -159,7 +159,10 @@ final class OrderConfirmationQueueBuilder {
       'is_guest' => $is_guest,
       'is_paid' => $is_paid,
       'events' => $this->formatEventsForEmail($events),
-      'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
+      'ticket_items' => $this->formatTicketItemsForEmail(
+        $ticket_items,
+        $order->getTotalPrice()->getCurrencyCode(),
+      ),
       'donation_total' => $donation_total > 0
         ? $this->formatPrice(
           $donation_total,
@@ -531,7 +534,10 @@ final class OrderConfirmationQueueBuilder {
     return $value !== '' ? $value : NULL;
   }
 
-  private function formatTicketItemsForEmail(array $ticket_items): array {
+  private function formatTicketItemsForEmail(
+    array $ticket_items,
+    string $orderCurrencyCode,
+  ): array {
     $formatted = [];
 
     foreach ($ticket_items as $item) {
@@ -567,7 +573,7 @@ final class OrderConfirmationQueueBuilder {
             (float) $price->getNumber(),
             $price->getCurrencyCode(),
         )
-          : $this->formatPrice(0.0, 'AUD'),
+          : $this->formatPrice(0.0, $orderCurrencyCode),
         'attendees' => $attendees,
       ];
     }

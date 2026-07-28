@@ -30,6 +30,11 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
   private const LOCK_TTL = 300.0;
 
   /**
+   * Maximum number of automatic expiry notification attempts.
+   */
+  private const MAX_NOTIFICATION_ATTEMPTS = 5;
+
+  /**
    * Constructs a BoostExpiryCron.
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
@@ -90,6 +95,7 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       ->condition('status', BoostEntitlementInterface::STATUS_EXPIRED)
       ->condition('ends', $this->time->getRequestTime(), '<=')
       ->condition('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT, '<>')
+      ->condition('expiry_notification_attempts', self::MAX_NOTIFICATION_ATTEMPTS, '<')
       ->notExists('expiry_notified_at')
       ->range(0, 500)
       ->execute();
@@ -167,6 +173,11 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
           'expiry_notification_status',
           BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
           '<>',
+        )
+        ->condition(
+          'expiry_notification_attempts',
+          self::MAX_NOTIFICATION_ATTEMPTS,
+          '<',
         )
         ->notExists('expiry_notified_at')
         ->execute();
@@ -249,6 +260,12 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
           '@attempt' => $attempt,
           '@entitlement_count' => count($pendingEntitlements),
         ]);
+        if ($attempt >= self::MAX_NOTIFICATION_ATTEMPTS) {
+          $this->logger->critical('Boost expiry notification exhausted automatic retries for event @event_id after @attempt attempts.', [
+            '@event_id' => $event->id(),
+            '@attempt' => $attempt,
+          ]);
+        }
       }
     }
     finally {

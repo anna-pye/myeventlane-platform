@@ -210,6 +210,29 @@ final class BoostExpiryCronKernelTest extends KernelTestBase {
   }
 
   /**
+   * Permanently undeliverable notifications stop after the retry limit.
+   */
+  public function testFailedSendStopsAfterRetryLimit(): void {
+    $entitlement = $this->createExpiredEntitlement();
+    $mail = $this->createMock(MailManagerInterface::class);
+    $mail->expects($this->exactly(5))
+      ->method('mail')
+      ->willReturn(['result' => FALSE]);
+    $cron = $this->createCron($mail);
+
+    for ($attempt = 0; $attempt < 6; $attempt++) {
+      $cron->process();
+    }
+
+    $failed = $this->reloadEntitlement((int) $entitlement->id());
+    $this->assertSame('5', $failed->get('expiry_notification_attempts')->value);
+    $this->assertSame(
+      BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING,
+      $failed->get('expiry_notification_status')->value,
+    );
+  }
+
+  /**
    * A competing worker cannot deliver while the entitlement lock is held.
    */
   public function testConcurrentWorkerCannotSendDuplicate(): void {
