@@ -21,7 +21,7 @@ final class PostmarkWebhookController extends ControllerBase {
   /**
    * Constructs PostmarkWebhookController.
    *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $config_factory
    *   The config factory.
    * @param \Drupal\myeventlane_messaging\Service\MessageStorage $messageStorage
    *   The message storage.
@@ -70,11 +70,16 @@ final class PostmarkWebhookController extends ControllerBase {
     $recipient = $payload['Recipient'] ?? '';
 
     // Update message status if we can find it by provider message ID.
-    $message = $this->messageStorage->findByProviderMessageId($messageId);
+    $message = $this->resolveMessage($payload);
 
-    if ($message && $message->status === 'sent') {
-      // Update status to 'delivered'.
-      $this->messageStorage->update($message->id, ['status' => 'delivered']);
+    if ($message) {
+      $this->messageStorage->update($message->id, [
+        'status' => 'delivered',
+        'sent' => (int) ($message->sent ?: time()),
+        'claimed_at' => 0,
+        'provider' => 'postmark',
+        'provider_message_id' => $messageId,
+      ]);
     }
 
     $this->getLogger('myeventlane_messaging')->info('Postmark delivery webhook received. MessageID=@id, Recipient=@recipient', [
@@ -123,10 +128,15 @@ final class PostmarkWebhookController extends ControllerBase {
     }
 
     // Update message status if found.
-    $message = $this->messageStorage->findByProviderMessageId($messageId);
+    $message = $this->resolveMessage($payload);
 
     if ($message) {
-      $this->messageStorage->update($message->id, ['status' => 'bounced']);
+      $this->messageStorage->update($message->id, [
+        'status' => 'bounced',
+        'claimed_at' => 0,
+        'provider' => 'postmark',
+        'provider_message_id' => $messageId,
+      ]);
     }
 
     $this->getLogger('myeventlane_messaging')->info('Postmark bounce webhook received. MessageID=@id, Recipient=@recipient', [
@@ -161,6 +171,36 @@ final class PostmarkWebhookController extends ControllerBase {
     }
 
     return hash_equals($secret, $providedSecret);
+  }
+
+  /**
+   * Resolves a message by provider ID or trusted Postmark metadata.
+   */
+  private function resolveMessage(array $payload): ?object {
+    $messageId = (string) ($payload['MessageID'] ?? '');
+    $message = $this->messageStorage->findByProviderMessageId($messageId);
+    if ($message !== NULL) {
+      return $message;
+    }
+
+    $internalId = $payload['Metadata']['mel_message_id'] ?? '';
+    if (!is_string($internalId) || $internalId === '') {
+      return NULL;
+    }
+    $message = $this->messageStorage->load($internalId);
+    if ($message === NULL) {
+      return NULL;
+    }
+
+    $recipient = strtolower(trim((string) (
+      $payload['Recipient'] ?? $payload['Email'] ?? ''
+    )));
+    if ($recipient === ''
+      || strtolower((string) $message->recipient) !== $recipient) {
+      return NULL;
+    }
+
+    return $message;
   }
 
 }

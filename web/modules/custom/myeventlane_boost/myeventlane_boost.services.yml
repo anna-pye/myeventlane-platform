@@ -33,6 +33,17 @@ services:
       - '@datetime.time'
       - '@logger.channel.myeventlane_boost'
 
+  myeventlane_boost.cron.expiry:
+    class: Drupal\myeventlane_boost\Cron\BoostExpiryCron
+    arguments:
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_boost'
+      - '@plugin.manager.mail'
+      - '@myeventlane_boost.entitlement_manager'
+      - '@lock'
+      - '@?myeventlane_notifications.business_trigger'
+
   myeventlane_boost.purchase_success_resolver:
     class: Drupal\myeventlane_boost\Service\BoostPurchaseSuccessResolver
     arguments:

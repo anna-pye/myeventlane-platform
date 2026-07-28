@@ -128,7 +128,7 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $context = $this->sampleContext();
     $context['apple_wallet_url'] = 'https://example.test/wallet/apple/55';
     $context['google_wallet_url'] = 'https://example.test/wallet/google/55';
-    $context['apple_wallet_badge_url'] = NULL;
+    $context['apple_wallet_badge_url'] = 'https://example.test/modules/custom/myeventlane_wallet/assets/web/add-to-apple-wallet.svg';
     $context['google_wallet_badge_url'] = 'https://example.test/modules/custom/myeventlane_wallet/assets/web/add-to-google-wallet.png';
     $context['pdf_url'] = 'https://example.test/ticket/ABC123/pdf';
 
@@ -139,8 +139,27 @@ final class OrderConfirmationTemplateAceTest extends TestCase {
     $this->assertStringContainsString('Download PDF', $body);
     $this->assertStringContainsString('/wallet/apple/55', $body);
     $this->assertStringContainsString('/wallet/google/55', $body);
-    $this->assertStringNotContainsString('add-to-apple-wallet.svg', $body);
+    $this->assertStringContainsString('add-to-apple-wallet.svg', $body);
     $this->assertStringContainsString('add-to-google-wallet.png', $body);
+    $this->assertStringContainsString('width="156" height="48"', $body);
+    $this->assertStringContainsString('width="272" height="48"', $body);
+  }
+
+  /**
+   * Wallet CTAs are omitted when official badge artwork is unavailable.
+   */
+  public function testWalletCtaDoesNotImitateMissingOfficialBadge(): void {
+    $data = $this->loadTemplate();
+    $twig = new Environment(new ArrayLoader([]));
+    $context = $this->sampleContext();
+    $context['apple_wallet_url'] = 'https://example.test/wallet/apple/55';
+    $context['apple_wallet_badge_url'] = NULL;
+
+    $body = trim($twig->createTemplate((string) $data['body_html'])->render($context));
+
+    $this->assertStringNotContainsString('/wallet/apple/55', $body);
+    $this->assertStringNotContainsString('Add to Apple Wallet', $body);
+    $this->assertStringNotContainsString('mel-wallet-badge__fallback', $body);
   }
 
   /**

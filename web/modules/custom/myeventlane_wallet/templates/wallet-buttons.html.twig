@@ -3,8 +3,8 @@
  * @file
  * Canonical Apple / Google Wallet CTA fragment.
  *
- * Consumes WalletActionBuilder action arrays. Prefer official badge artwork
- * under assets/web/; fall back to accessible text using official product names.
+ * Consumes WalletActionBuilder action arrays. A CTA is rendered only when its
+ * official badge artwork is available under assets/web/.
  *
  * Available variables:
  * - apple: action array|null from WalletActionBuilder
@@ -15,51 +15,45 @@
 {% set variant = variant|default('default') %}
 {% set apple_url = apple.url|default('') %}
 {% set google_url = google.url|default('') %}
-{% if apple_url or google_url %}
+{% set apple_badge = apple.badge.src|default('') %}
+{% set google_badge = google.badge.src|default('') %}
+{% if (apple_url and apple_badge) or (google_url and google_badge) %}
   {{ attach_library('myeventlane_wallet/wallet_badges') }}
   <div class="mel-wallet-buttons mel-wallet-buttons--{{ variant }}" role="group" aria-label="{{ 'Wallet'|t }}">
-    {% if apple_url %}
+    {% if apple_url and apple_badge %}
       <a
         href="{{ apple_url }}"
         class="mel-wallet-badge mel-wallet-badge--apple"
         download
         aria-label="{{ apple.aria_label|default(apple.label|default('Add to Apple Wallet'|t)) }}"
       >
-        {% if apple.badge.src|default('') %}
-          <img
-            class="mel-wallet-badge__img"
-            src="{{ apple.badge.src }}"
-            alt="{{ apple.badge.alt|default('Add to Apple Wallet'|t) }}"
-            width="156"
-            height="48"
-            loading="lazy"
-            decoding="async"
-          >
-        {% else %}
-          <span class="mel-wallet-badge__fallback">{{ apple.label|default('Add to Apple Wallet'|t) }}</span>
-        {% endif %}
+        <img
+          class="mel-wallet-badge__img"
+          src="{{ apple_badge }}"
+          alt="{{ apple.badge.alt|default('Add to Apple Wallet'|t) }}"
+          width="156"
+          height="48"
+          loading="lazy"
+          decoding="async"
+        >
       </a>
     {% endif %}
-    {% if google_url %}
+    {% if google_url and google_badge %}
       <a
         href="{{ google_url }}"
         class="mel-wallet-badge mel-wallet-badge--google"
         rel="noopener noreferrer"
         aria-label="{{ google.aria_label|default(google.label|default('Add to Google Wallet'|t)) }}"
       >
-        {% if google.badge.src|default('') %}
-          <img
-            class="mel-wallet-badge__img"
-            src="{{ google.badge.src }}"
-            alt="{{ google.badge.alt|default('Add to Google Wallet'|t) }}"
-            width="200"
-            height="48"
-            loading="lazy"
-            decoding="async"
-          >
-        {% else %}
-          <span class="mel-wallet-badge__fallback">{{ google.label|default('Add to Google Wallet'|t) }}</span>
-        {% endif %}
+        <img
+          class="mel-wallet-badge__img"
+          src="{{ google_badge }}"
+          alt="{{ google.badge.alt|default('Add to Google Wallet'|t) }}"
+          width="272"
+          height="48"
+          loading="lazy"
+          decoding="async"
+        >
       </a>
     {% endif %}
   </div>

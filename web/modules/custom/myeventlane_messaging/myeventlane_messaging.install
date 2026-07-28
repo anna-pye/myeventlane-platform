@@ -62,6 +62,12 @@ function myeventlane_messaging_schema() {
         'default' => '',
         'description' => 'Deterministic hash for idempotency (template + recipient + context).',
       ],
+      'idempotency_key' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Business occurrence key used to prevent duplicate messages.',
+      ],
       'scheduled_for' => [
         'type' => 'int',
         'size' => 'normal',
@@ -97,6 +103,13 @@ function myeventlane_messaging_schema() {
         'default' => 0,
         'description' => 'Unix timestamp when message was sent (0 if not sent).',
       ],
+      'claimed_at' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when a worker atomically claimed delivery.',
+      ],
       'provider' => [
         'type' => 'varchar',
         'length' => 32,
@@ -113,6 +126,9 @@ function myeventlane_messaging_schema() {
       ],
     ],
     'primary key' => ['id'],
+    'unique keys' => [
+      'idempotency_key' => ['idempotency_key'],
+    ],
     'indexes' => [
       'context_hash_recipient_template' => ['context_hash', 'recipient', 'template'],
       'status_created' => ['status', 'created'],
@@ -307,4 +323,145 @@ function myeventlane_messaging_update_10005(): void {
     $full = myeventlane_messaging_schema();
     $schema->addIndex($table, 'provider_message_id', ['provider_message_id'], $full[$table]);
   }
+}
+
+/**
+ * Adds atomic business idempotency and worker claim state.
+ */
+function myeventlane_messaging_update_10006(): void {
+  $schema = \Drupal::database()->schema();
+  $table = 'myeventlane_message';
+
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+
+  if (!$schema->fieldExists($table, 'idempotency_key')) {
+    $schema->addField($table, 'idempotency_key', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Business occurrence key used to prevent duplicate messages.',
+    ]);
+  }
+  if (!$schema->fieldExists($table, 'claimed_at')) {
+    $schema->addField($table, 'claimed_at', [
+      'type' => 'int',
+      'size' => 'normal',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Unix timestamp when a worker atomically claimed delivery.',
+    ]);
+  }
+  if (!$schema->indexExists($table, 'idempotency_key')) {
+    $full = myeventlane_messaging_schema();
+    $schema->addUniqueKey($table, 'idempotency_key', ['idempotency_key']);
+  }
+}
+
+/**
+ * Backfills canonical idempotency keys and normalizes legacy recipients.
+ */
+function myeventlane_messaging_update_10007(): string {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+  $table = 'myeventlane_message';
+  if (!$schema->tableExists($table)
+    || !$schema->fieldExists($table, 'idempotency_key')) {
+    return 'Messaging table or idempotency field is unavailable; no backfill required.';
+  }
+
+  $rows = $database->select($table, 'm')
+    ->fields('m', [
+      'id',
+      'template',
+      'recipient',
+      'context',
+      'status',
+      'created',
+    ])
+    ->isNull('idempotency_key')
+    ->execute()
+    ->fetchAll();
+  if ($rows === []) {
+    return 'No legacy messaging rows required idempotency backfill.';
+  }
+
+  $groups = [];
+  foreach ($rows as $row) {
+    $recipient = strtolower(trim((string) $row->recipient));
+    $context = $row->context
+      ? unserialize($row->context, ['allowed_classes' => FALSE])
+      : [];
+    $context = is_array($context) ? $context : [];
+    unset(
+      $context['_attachments'],
+      $context['_mel_notification_context'],
+      $context['_mel_notification_domain'],
+      $context['_mel_notification_priority'],
+    );
+    $context_hash = hash('sha256', implode('|', [
+      (string) $row->template,
+      $recipient,
+      (string) json_encode(
+        $context,
+        JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES,
+      ),
+    ]));
+    $key = sprintf(
+      'message:%s:%s',
+      (string) $row->template,
+      $context_hash,
+    );
+    $row->normalized_recipient = $recipient;
+    $row->normalized_context_hash = $context_hash;
+    $groups[$key][] = $row;
+  }
+
+  $priority = [
+    'delivered' => 100,
+    'sent' => 90,
+    'bounced' => 90,
+    'suppressed' => 85,
+    'delivery_unknown' => 80,
+    'dispatching' => 70,
+    'processing' => 60,
+    'queued' => 50,
+    'failed' => 10,
+    'failed_permanent' => 5,
+  ];
+  $updated = 0;
+  foreach ($groups as $key => $candidates) {
+    $key_exists = (bool) $database->select($table, 'm')
+      ->condition('idempotency_key', $key)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    usort($candidates, static function (object $a, object $b) use ($priority): int {
+      $status_order = ($priority[$b->status] ?? 0)
+        <=> ($priority[$a->status] ?? 0);
+      return $status_order !== 0
+        ? $status_order
+        : ((int) $a->created <=> (int) $b->created);
+    });
+    foreach ($candidates as $index => $row) {
+      $database->update($table)
+        ->fields([
+          'recipient' => $row->normalized_recipient,
+          'context_hash' => $row->normalized_context_hash,
+          'idempotency_key' => $index === 0 && !$key_exists
+            ? $key
+            : 'legacy-duplicate:' . $row->id,
+        ])
+        ->condition('id', $row->id)
+        ->isNull('idempotency_key')
+        ->execute();
+      $updated++;
+    }
+  }
+
+  return sprintf(
+    'Backfilled idempotency keys and normalized recipients for %d legacy messages.',
+    $updated,
+  );
 }

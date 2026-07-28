@@ -26,7 +26,8 @@ final class MessageStorage {
    *
    * @param array $row
    *   Keys: template, channel, recipient, langcode, context (array), context_hash,
-   *   scheduled_for, status, attempts, created, sent, provider, provider_message_id.
+   *   scheduled_for, status, attempts, created, sent, claimed_at, provider,
+   *   provider_message_id.
    *
    * @return string
    *   The message UUID.
@@ -48,11 +49,13 @@ final class MessageStorage {
         'langcode' => $row['langcode'] ?? 'en',
         'context' => $serialized,
         'context_hash' => $row['context_hash'] ?? '',
+        'idempotency_key' => $row['idempotency_key'] ?? NULL,
         'scheduled_for' => (int) ($row['scheduled_for'] ?? 0),
         'status' => $row['status'] ?? 'queued',
         'attempts' => (int) ($row['attempts'] ?? 0),
         'created' => (int) ($row['created'] ?? 0),
         'sent' => (int) ($row['sent'] ?? 0),
+        'claimed_at' => (int) ($row['claimed_at'] ?? 0),
         'provider' => $row['provider'] ?? '',
         'provider_message_id' => $row['provider_message_id'] ?? '',
       ])
@@ -120,6 +123,100 @@ final class MessageStorage {
   }
 
   /**
+   * Finds a message by its business idempotency key.
+   */
+  public function findByIdempotencyKey(string $idempotencyKey): ?object {
+    if ($idempotencyKey === '') {
+      return NULL;
+    }
+    $row = $this->connection->select('myeventlane_message', 'm')
+      ->fields('m')
+      ->condition('m.idempotency_key', $idempotencyKey)
+      ->execute()
+      ->fetchObject();
+    if (!$row) {
+      return NULL;
+    }
+    $row->context = $row->context
+      ? unserialize($row->context, ['allowed_classes' => FALSE])
+      : [];
+    return $row;
+  }
+
+  /**
+   * Atomically claims a queued or retryable message for one worker.
+   */
+  public function claimForDelivery(string $id, int $claimedAt): bool {
+    return $this->connection->update('myeventlane_message')
+      ->fields([
+        'status' => 'processing',
+        'claimed_at' => $claimedAt,
+      ])
+      ->condition('id', $id)
+      ->condition('status', ['queued', 'failed'], 'IN')
+      ->execute() === 1;
+  }
+
+  /**
+   * Atomically renews an abandoned pre-dispatch processing claim.
+   */
+  public function reclaimStaleProcessing(
+    string $id,
+    int $staleBefore,
+    int $claimedAt,
+  ): bool {
+    return $this->connection->update('myeventlane_message')
+      ->fields(['claimed_at' => $claimedAt])
+      ->condition('id', $id)
+      ->condition('status', 'processing')
+      ->condition('claimed_at', $staleBefore, '<=')
+      ->execute() === 1;
+  }
+
+  /**
+   * Atomically records that provider dispatch is about to begin.
+   */
+  public function markDispatching(string $id, int $claimedAt): bool {
+    return $this->connection->update('myeventlane_message')
+      ->fields([
+        'status' => 'dispatching',
+        'claimed_at' => $claimedAt,
+      ])
+      ->condition('id', $id)
+      ->condition('status', 'processing')
+      ->execute() === 1;
+  }
+
+  /**
+   * Quarantines an abandoned provider dispatch for reconciliation.
+   */
+  public function markStaleDispatchUnknown(string $id, int $staleBefore): bool {
+    return $this->connection->update('myeventlane_message')
+      ->fields([
+        'status' => 'delivery_unknown',
+        'claimed_at' => 0,
+      ])
+      ->condition('id', $id)
+      ->condition('status', 'dispatching')
+      ->condition('claimed_at', $staleBefore, '<=')
+      ->execute() === 1;
+  }
+
+  /**
+   * Releases a processing claim after an unhandled worker failure.
+   */
+  public function releaseFailedClaim(string $id): bool {
+    return $this->connection->update('myeventlane_message')
+      ->fields([
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ])
+      ->condition('id', $id)
+      ->condition('status', 'processing')
+      ->execute() === 1;
+  }
+
+  /**
    * Finds a message by provider-assigned message ID.
    *
    * @param string $messageId
@@ -152,6 +249,7 @@ final class MessageStorage {
    *   Rows with context as array; ordered by sent ascending (0 first).
    */
   public function findSentOrderConfirmationsForOrder(int $orderId, string $recipient): array {
+    $recipient = strtolower(trim($recipient));
     if ($orderId < 1 || $recipient === '') {
       return [];
     }
@@ -180,13 +278,20 @@ final class MessageStorage {
    * @param string $id
    *   Message UUID.
    * @param array $updates
-   *   Keys: status, attempts, sent, provider, provider_message_id.
+   *   Keys: status, attempts, sent, claimed_at, provider, provider_message_id.
    *
    * @return int
    *   Number of rows updated.
    */
   public function update(string $id, array $updates): int {
-    $allowed = ['status', 'attempts', 'sent', 'provider', 'provider_message_id'];
+    $allowed = [
+      'status',
+      'attempts',
+      'sent',
+      'claimed_at',
+      'provider',
+      'provider_message_id',
+    ];
     $fields = array_intersect_key($updates, array_flip($allowed));
     if (empty($fields)) {
       return 0;

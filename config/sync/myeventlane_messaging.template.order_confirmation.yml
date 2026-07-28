@@ -163,22 +163,14 @@ body_html: |
           <!--<![endif]-->
           {% if apple_wallet_url or google_wallet_url or pdf_url %}
             <div style="margin-top:20px;" role="group" aria-label="Pass actions">
-              {% if apple_wallet_url %}
-                <a href="{{ apple_wallet_url }}" style="display:inline-block;margin:6px 8px;text-decoration:none;line-height:0;vertical-align:middle;" aria-label="Add to Apple Wallet">
-                  {% if apple_wallet_badge_url %}
-                    <img src="{{ apple_wallet_badge_url }}" alt="Add to Apple Wallet" width="156" height="48" style="display:block;width:156px;height:auto;border:0;outline:none;">
-                  {% else %}
-                    <span style="display:inline-block;background-color:#1f1f1f;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Apple Wallet</span>
-                  {% endif %}
+              {% if apple_wallet_url and apple_wallet_badge_url %}
+                <a href="{{ apple_wallet_url }}" style="display:inline-block;margin:8px;text-decoration:none;line-height:0;vertical-align:middle;" aria-label="Add to Apple Wallet">
+                  <img src="{{ apple_wallet_badge_url }}" alt="Add to Apple Wallet" width="156" height="48" style="display:block;width:156px;height:48px;border:0;outline:none;">
                 </a>
               {% endif %}
-              {% if google_wallet_url %}
-                <a href="{{ google_wallet_url }}" style="display:inline-block;margin:6px 8px;text-decoration:none;line-height:0;vertical-align:middle;" aria-label="Add to Google Wallet">
-                  {% if google_wallet_badge_url %}
-                    <img src="{{ google_wallet_badge_url }}" alt="Add to Google Wallet" width="200" height="48" style="display:block;width:200px;height:auto;border:0;outline:none;">
-                  {% else %}
-                    <span style="display:inline-block;background-color:#1f1f1f;color:#ffffff !important;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;font-size:14px;line-height:1.25;">Add to Google Wallet</span>
-                  {% endif %}
+              {% if google_wallet_url and google_wallet_badge_url %}
+                <a href="{{ google_wallet_url }}" style="display:inline-block;margin:8px;text-decoration:none;line-height:0;vertical-align:middle;" aria-label="Add to Google Wallet">
+                  <img src="{{ google_wallet_badge_url }}" alt="Add to Google Wallet" width="272" height="48" style="display:block;width:272px;height:48px;border:0;outline:none;">
                 </a>
               {% endif %}
               {% if pdf_url %}
