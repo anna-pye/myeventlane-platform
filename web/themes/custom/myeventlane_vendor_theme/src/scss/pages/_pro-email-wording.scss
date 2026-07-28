@@ -1,0 +1,305 @@
+/**
+ * Pro automatic-email wording settings.
+ */
+
+.mel-pro-email-wording {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-4, 1rem);
+  width: 100%;
+  max-width: none;
+
+  .mel-card {
+    border: 1px solid var(--mel-color-border, #e5e7eb);
+    border-radius: var(--mel-radius-lg, 16px);
+    background: var(--mel-color-bg, #fff);
+    box-shadow: 0 10px 30px rgba(41, 50, 65, 0.04);
+  }
+
+  textarea,
+  select {
+    width: 100%;
+    border: 1px solid var(--mel-color-border, #d7dce2);
+    border-radius: var(--mel-radius-md, 12px);
+    background: #fff;
+    color: var(--mel-color-text, #293241);
+    font: inherit;
+  }
+
+  textarea {
+    min-height: 10rem;
+    padding: 0.875rem 1rem;
+    line-height: 1.55;
+    resize: vertical;
+  }
+
+  select {
+    min-height: 48px;
+    padding: 0.65rem 2.5rem 0.65rem 0.875rem;
+  }
+
+  textarea:focus-visible,
+  select:focus-visible,
+  summary:focus-visible,
+  input:focus-visible {
+    outline: 2px solid var(--mel-color-focus, #f26d5b);
+    outline-offset: 2px;
+  }
+
+  .form-item {
+    margin-block: 0.75rem;
+  }
+
+  .description {
+    margin-top: 0.4rem;
+    color: var(--mel-color-text-secondary, #667085);
+    line-height: 1.5;
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0.25rem 0;
+  }
+
+  .form-submit {
+    min-height: 46px;
+    padding: 0.7rem 1.1rem;
+    border: 0;
+    border-radius: var(--mel-radius-md, 12px);
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  .form-actions .form-submit {
+    background: var(--mel-color-primary, #f26d5b);
+    color: #fff;
+  }
+}
+
+.mel-pro-email-wording__intro {
+  padding: clamp(1rem, 2vw, 1.5rem);
+  background: linear-gradient(135deg, #fff 0%, #fff7f1 100%) !important;
+}
+
+.mel-pro-email-wording__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--mel-color-primary, #f26d5b);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mel-pro-email-wording__title {
+  margin: 0;
+  color: var(--mel-color-text, #293241);
+  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  line-height: 1.15;
+}
+
+.mel-pro-email-wording__lead {
+  max-width: 52rem;
+  margin: 0.75rem 0 0;
+  color: var(--mel-color-text-secondary, #566174);
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.mel-pro-email-wording__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-top: 1.25rem;
+}
+
+.mel-pro-email-wording__text-link {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--mel-color-accent, #6e7ef2);
+  font-weight: 800;
+}
+
+.mel-pro-email-wording__activation,
+.mel-pro-email-wording__preview-controls,
+.mel-pro-email-wording__preview {
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+}
+
+.mel-pro-email-wording__workspace {
+  display: grid;
+  gap: var(--mel-space-4, 1rem);
+  align-items: start;
+
+  @media (min-width: 1050px) {
+    grid-template-columns: minmax(0, 1.35fr) minmax(20rem, 0.65fr);
+  }
+}
+
+.mel-pro-email-wording__preview-rail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-4, 1rem);
+
+  @media (min-width: 1050px) {
+    position: sticky;
+    top: 1rem;
+  }
+}
+
+.mel-pro-email-wording__activation {
+  border-color: rgba(110, 126, 242, 0.25) !important;
+  background: #f5f4ff !important;
+
+  .form-type-checkbox {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 0.75rem;
+    align-items: start;
+  }
+
+  input {
+    width: 1.4rem;
+    height: 1.4rem;
+    margin-top: 0.1rem;
+    accent-color: var(--mel-color-primary, #f26d5b);
+  }
+
+  label {
+    font-size: 1.05rem;
+    font-weight: 800;
+  }
+
+  .description {
+    grid-column: 2;
+  }
+}
+
+.mel-pro-email-wording__guidance {
+  overflow: hidden;
+  padding: 0;
+
+  > summary {
+    min-height: 54px;
+    display: flex;
+    align-items: center;
+    padding: 0.85rem 1.25rem;
+    cursor: pointer;
+    color: var(--mel-color-text, #293241);
+    font-weight: 800;
+  }
+
+  > .details-wrapper {
+    padding: 0 1.25rem 1.25rem;
+  }
+}
+
+.mel-pro-email-wording__tokens {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0.9rem 0;
+
+  code {
+    padding: 0.45rem 0.65rem;
+    border: 1px solid #ddd9ff;
+    border-radius: 999px;
+    background: #f5f4ff;
+    color: #49339e;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+}
+
+.mel-pro-email-wording__example {
+  margin-bottom: 0;
+  padding: 0.85rem 1rem;
+  border-radius: var(--mel-radius-md, 12px);
+  background: #edf6ff;
+  color: var(--mel-color-text, #293241);
+}
+
+.mel-pro-email-wording__section-heading {
+  padding: 0.5rem 0;
+
+  h2 {
+    margin: 0.2rem 0 0.4rem;
+    font-size: 1.45rem;
+  }
+
+  p:last-child {
+    margin: 0;
+    color: var(--mel-color-text-secondary, #667085);
+  }
+}
+
+.mel-pro-email-wording__wording {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mel-pro-email-wording__email {
+  overflow: hidden;
+  padding: 0;
+
+  > summary {
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    padding: 0.9rem 1.25rem;
+    cursor: pointer;
+    color: var(--mel-color-text, #293241);
+    font-size: 1rem;
+    font-weight: 800;
+  }
+
+  > .details-wrapper {
+    padding: 0 1.25rem 1.25rem;
+    border-top: 1px solid var(--mel-color-border, #eef0f3);
+  }
+}
+
+.mel-pro-email-wording__preview-controls {
+  h2,
+  p {
+    margin-top: 0;
+  }
+
+  p {
+    color: var(--mel-color-text-secondary, #667085);
+  }
+}
+
+.mel-pro-email-wording__preview-button {
+  min-height: 42px !important;
+  padding: 0.55rem 0.9rem !important;
+  border: 1px solid var(--mel-color-border, #d7dce2) !important;
+  background: #fff !important;
+  color: var(--mel-color-text, #293241) !important;
+  font-size: 0.92rem;
+}
+
+.mel-pro-email-wording__preview {
+  border-color: rgba(110, 126, 242, 0.28) !important;
+
+  h2 {
+    margin: 0 0 1rem;
+  }
+
+  hr {
+    margin: 1.25rem 0;
+    border: 0;
+    border-top: 1px solid var(--mel-color-border, #e5e7eb);
+  }
+}
+
+@media (max-width: 767px) {
+  .mel-pro-email-wording {
+    .form-actions {
+      justify-content: flex-start;
+    }
+  }
+}

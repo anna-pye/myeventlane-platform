@@ -21,9 +21,24 @@
       <span aria-hidden="true">☰</span>
     </button>
 
+    {% if page.is_event_studio_workspace|default(false) %}
+      <a
+        class="mel-shell-header__studio-brand"
+        href="{{ page.vendor_shell_brand_url|default(path('myeventlane_vendor.console.dashboard')) }}"
+        aria-label="{{ 'Organiser dashboard'|t }}"
+      >
+        <img
+          src="/themes/custom/myeventlane_vendor_theme/images/myeventlane-logo-icon.png"
+          alt=""
+          width="40"
+          height="40"
+        >
+      </a>
+    {% endif %}
+
     {% if not hide_shell_title %}
       <div class="mel-shell-header__titles">
-        <h1 class="mel-shell-header__title">{{ page.shell_page_title|default('Event Studio'|t) }}</h1>
+        <p class="mel-shell-header__title">{{ page.shell_page_title|default('Event Studio'|t) }}</p>
         {% if page.shell_page_subtitle %}
           <p class="mel-shell-header__subtitle">{{ page.shell_page_subtitle }}</p>
         {% endif %}

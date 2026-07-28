@@ -2407,7 +2407,9 @@
 }
 
 .mel-event-studio-sidebar-toggle {
-  display: none !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
   align-self: flex-start;
   min-height: 44px;
   padding: 0 14px;
@@ -2573,6 +2575,70 @@
   grid-column: 2;
   min-width: 0;
   container-type: inline-size;
+}
+
+@media (min-width: 1121px) {
+  .mel-vendor-shell--studio-focus .mel-event-studio-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-event-studio-workspace__main {
+    grid-column: 1;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open > .mel-event-studio-sidebar {
+    position: static;
+    display: block;
+    width: auto;
+    margin: 4px 0 0 34px;
+    padding: 0;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open > .mel-event-studio-sidebar.is-desktop-collapsed {
+    display: none;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open .mel-event-studio-sidebar__inner {
+    gap: 4px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open .mel-event-studio-sidebar__link {
+    min-height: 40px;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open > .mel-event-studio-sidebar-toggle {
+    width: calc(100% - 34px);
+    min-height: 36px;
+    margin: 4px 0 0 34px;
+    padding: 0 10px;
+    justify-content: flex-start;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    box-shadow: none;
+    color: #687386;
+    font-size: 0.78rem;
+  }
+
+  .mel-event-studio--workspace.is-sidebar-collapsed .mel-event-studio-workspace {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .mel-event-studio--workspace.is-sidebar-collapsed .mel-event-studio-sidebar {
+    display: none;
+  }
+
+  .mel-event-studio--workspace.is-sidebar-collapsed .mel-event-studio-workspace__main {
+    grid-column: 1;
+  }
 }
 
 .mel-event-studio-section {
@@ -4387,6 +4453,31 @@
   gap: var(--mel-es-panel-gap);
 }
 
+@media (min-width: 1121px) {
+  .mel-vendor-shell--studio-focus .mel-event-studio {
+    --mel-es-content-width: 64rem;
+  }
+
+  .mel-vendor-shell--studio-focus
+    .mel-event-studio
+    .mel-event-studio-section__body {
+    align-items: flex-start;
+  }
+
+  .mel-vendor-shell--studio-focus
+    .mel-event-studio
+    .mel-event-studio-wizard-form.mel-form {
+    width: min(100%, var(--mel-es-content-width));
+    max-width: none;
+    margin-inline: 0;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-event-workspace-home {
+    max-width: 64rem;
+    margin-inline: 0;
+  }
+}
+
 .mel-event-studio .mel-event-studio-overview__hero,
 .mel-event-studio .mel-event-studio-overview__orientation,
 .mel-event-studio .mel-event-studio-next-steps,
@@ -4635,6 +4726,90 @@
   .mel-event-studio .mel-event-studio-ticket-card__body,
   .mel-event-studio .mel-event-studio-ticket-card__sales-window {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Tickets workflow: orient first, edit second, confirm the customer view third. */
+.mel-event-studio .mel-event-studio-tickets-app {
+  gap: 16px;
+}
+
+.mel-event-studio .mel-es-workflow-step {
+  margin: 0 0 6px;
+  color: #e85d4a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.25;
+  text-transform: uppercase;
+}
+
+.mel-event-studio .mel-es-field-group--booking {
+  padding: 20px 22px;
+}
+
+.mel-event-studio .mel-es-field-group--booking .mel-es-field-group__header {
+  margin-bottom: 14px;
+}
+
+.mel-event-studio .mel-es-field-group--booking .mel-es-field-group__title,
+.mel-event-studio .mel-event-studio-ticket-intro .mel-es-card__title,
+.mel-event-studio .mel-event-ticket-preview__title {
+  margin-top: 0;
+}
+
+.mel-event-studio .mel-event-studio-ticket-intro.mel-es-card {
+  display: grid;
+  gap: 4px;
+  padding: 18px 22px;
+}
+
+.mel-event-studio .mel-event-studio-ticket-intro .mel-es-card__hint {
+  max-width: 54rem;
+  margin-bottom: 0;
+}
+
+.mel-event-studio .mel-event-ticket-preview__header {
+  display: grid;
+  align-content: start;
+}
+
+@media (min-width: 1360px) {
+  .mel-vendor-shell--studio-focus
+    .mel-event-studio
+    .mel-event-studio-tickets-app {
+    width: min(100%, 78rem);
+    max-width: none;
+    grid-template-columns: minmax(0, 2fr) minmax(19rem, 0.9fr);
+    align-items: start;
+  }
+
+  .mel-event-studio .mel-event-studio-tickets-app > .mel-event-studio-wizard-form {
+    grid-column: 1 / -1;
+  }
+
+  .mel-event-studio .mel-event-studio-tickets-app > .mel-event-studio-operational-tickets {
+    grid-column: 1;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .mel-event-studio .mel-event-studio-tickets-app > .mel-event-ticket-preview {
+    position: sticky;
+    top: 20px;
+    grid-column: 2;
+    width: 100%;
+  }
+
+  .mel-event-studio .mel-event-studio-tickets-app > :is(details, .mel-platform-support-card) {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 620px) {
+  .mel-event-studio .mel-es-field-group--booking,
+  .mel-event-studio .mel-event-studio-ticket-intro.mel-es-card {
+    padding: 18px;
   }
 }
 
@@ -5511,57 +5686,163 @@
 /* ── Event Visibility Controls ── */
 
 .mel-visibility-section {
-  background: var(--mel-surface-bg, #fff);
-  border: 1px solid var(--mel-border-subtle, #e2e8f0);
-  border-radius: 8px;
-  padding: 20px 24px;
-  margin-block-end: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-block-end: 18px;
 }
 
 .mel-visibility-section__title {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0 0 4px;
+  flex: 1 1 auto;
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin: 0;
+  color: #24303a;
 }
 
 .mel-visibility-section__current {
-  font-size: 0.875rem;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  background: #edf8f0;
+  color: #24663b;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.mel-visibility-section__intro {
+  flex: 0 0 100%;
+  margin: 0;
   color: var(--mel-text-secondary, #64748b);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  max-width: 46rem;
+}
+
+.mel-event-settings {
+  width: 100%;
+  max-width: none;
+}
+
+.mel-event-settings > .fieldset {
   margin: 0;
 }
 
 .mel-visibility-radios {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.mel-visibility-radios .fieldset-wrapper > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.mel-visibility-radios .form-item {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 12px;
+  align-items: start;
+  min-height: 112px;
+  margin: 0;
+  padding: 18px;
+  min-width: 0;
+  border: 1px solid #dfe5eb;
+  border-radius: 16px;
+  background: #fff;
+  color: #24303a;
+  transition: border-color 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.mel-visibility-radios .form-item:hover {
+  border-color: rgba(242, 109, 91, 0.58);
+  box-shadow: 0 10px 24px rgba(36, 48, 58, 0.08);
+}
+
+.mel-visibility-radios .form-item:has(input:checked) {
+  border-color: #f26d5b;
+  background: #fff8f4;
+  box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.12);
+}
+
+.mel-visibility-radios input[type='radio'] {
+  width: 20px;
+  height: 20px;
+  margin: 2px 0 0;
+  accent-color: #f26d5b;
+}
+
+.mel-visibility-radios .form-item > label {
   display: flex;
+  min-width: 0;
   flex-direction: column;
-  gap: 6px;
+  align-self: stretch;
+  cursor: pointer;
 }
 
-.mel-visibility-help {
-  background: var(--mel-surface-muted, #f8fafc);
-  border: 1px solid var(--mel-border-subtle, #e2e8f0);
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-block-end: 16px;
+.mel-visibility-option__title {
+  display: block;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
-.mel-visibility-help__item {
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--mel-text-secondary, #64748b);
-  margin: 0 0 6px;
-}
-
-.mel-visibility-help__item:last-child {
-  margin-block-end: 0;
+.mel-visibility-option__description {
+  display: block;
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.45;
 }
 
 .mel-visibility-passcode-input {
-  max-width: 320px;
+  max-width: 34rem;
+  margin-top: 18px;
+  padding: 18px;
+  border-radius: 14px;
+  background: #f8f7ff;
+  border: 1px solid #e4ddff;
 }
 
 .mel-visibility-passcode-status {
   font-size: 0.875rem;
   margin-block-end: 12px;
+}
+
+.mel-event-settings__publishing {
+  margin-top: 22px !important;
+}
+
+.mel-event-settings__publishing .mel-publish-action-card__live {
+  padding-left: 18px;
+  border-left: 4px solid #6e7ef2;
+}
+
+.mel-event-settings__publishing .mel-publish-action-card__draft {
+  padding-left: 18px;
+  border-left: 4px solid #f5c04c;
+}
+
+.mel-event-settings__publishing [data-mel-unpublish-action] {
+  color: #8a3027;
+  border-color: rgba(138, 48, 39, 0.28);
+}
+
+@media (max-width: 760px) {
+  .mel-visibility-radios .fieldset-wrapper > div {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-visibility-radios .form-item {
+    min-height: 0;
+  }
 }
 /* -------------------------------------------------------------------------- */
 /* VX2 Event Workspace Home — compositional dashboard (not spacing polish)     */
@@ -6500,6 +6781,90 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   font-size: 0.875rem;
 }
 
+.mel-event-studio details.mel-event-studio-ticket-card__body,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions {
+  display: block;
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid rgba(203, 213, 225, 0.62);
+  border-radius: 16px;
+  background: #fff;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body > summary,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 14px;
+  color: #475569;
+  font-size: 0.88rem;
+  font-weight: 750;
+  line-height: 1.4;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body > summary::-webkit-details-marker,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body > summary::before,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions > summary::before {
+  content: '+';
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border-radius: 8px;
+  background: #fff1eb;
+  color: #d94f3d;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body[open] {
+  display: block;
+  padding: 0 14px 14px;
+  background: #fffdfb;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] {
+  display: grid;
+  gap: 12px;
+  padding: 0 14px 14px;
+  background: #fffdfb;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body[open] > summary,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] > summary {
+  margin-inline: -14px;
+  padding-inline: 14px;
+  border-bottom: 1px solid rgba(203, 213, 225, 0.5);
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body[open] > summary::before,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] > summary::before {
+  content: '−';
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__body[open] > .mel-event-studio-ticket-card__field-group {
+  width: 100%;
+  margin-top: 12px;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] > summary,
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] > .mel-event-studio-ticket-card__quick-actions-hint {
+  grid-column: 1 / -1;
+}
+
 .mel-event-studio-ticket-card__action {
   min-height: 44px;
 }
@@ -6513,6 +6878,17 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 
 .mel-event-studio-ticket-sticky-add {
   display: none;
+}
+
+@media (max-width: 620px) {
+  .mel-event-studio details.mel-event-studio-ticket-card__body > summary,
+  .mel-event-studio details.mel-event-studio-ticket-card__quick-actions > summary {
+    align-items: flex-start;
+  }
+
+  .mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .mel-event-studio-advanced-tools {
@@ -7063,5 +7439,168 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   .mel-launch-centre * {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* Ticketing disclosures share one predictable full-width control language. */
+.mel-event-studio .mel-event-studio-ticket-card > :is(
+  .mel-event-studio-ticket-card__body,
+  .mel-event-studio-ticket-card__quick-actions,
+  .mel-event-studio-ticket-card__advanced,
+  .mel-event-studio-ticket-card__removal
+),
+.mel-event-studio .mel-event-studio-ticket-add {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card > :is(
+  .mel-event-studio-ticket-card__body,
+  .mel-event-studio-ticket-card__quick-actions,
+  .mel-event-studio-ticket-card__advanced,
+  .mel-event-studio-ticket-card__removal
+) > summary,
+.mel-event-studio .mel-event-studio-ticket-add > summary {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 50px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 0;
+  background: #fff8f3;
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.4;
+  cursor: pointer;
+  list-style: none;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card > :is(
+  .mel-event-studio-ticket-card__body,
+  .mel-event-studio-ticket-card__quick-actions,
+  .mel-event-studio-ticket-card__advanced,
+  .mel-event-studio-ticket-card__removal
+) > summary::-webkit-details-marker,
+.mel-event-studio .mel-event-studio-ticket-add > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card > :is(
+  .mel-event-studio-ticket-card__body,
+  .mel-event-studio-ticket-card__quick-actions,
+  .mel-event-studio-ticket-card__advanced,
+  .mel-event-studio-ticket-card__removal
+) > summary::before,
+.mel-event-studio .mel-event-studio-ticket-add > summary::before {
+  content: '+';
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border-radius: 8px;
+  background: #fff1eb;
+  color: #d94f3d;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card > :is(
+  .mel-event-studio-ticket-card__body,
+  .mel-event-studio-ticket-card__quick-actions,
+  .mel-event-studio-ticket-card__advanced,
+  .mel-event-studio-ticket-card__removal
+)[open] > summary::before,
+.mel-event-studio .mel-event-studio-ticket-add[open] > summary::before {
+  content: '−';
+}
+
+.mel-event-studio .mel-event-studio-ticket-card > :is(
+  .mel-event-studio-ticket-card__body,
+  .mel-event-studio-ticket-card__quick-actions,
+  .mel-event-studio-ticket-card__advanced,
+  .mel-event-studio-ticket-card__removal
+) > summary:focus-visible,
+.mel-event-studio .mel-event-studio-ticket-add > summary:focus-visible {
+  outline: 3px solid rgba(242, 109, 91, 0.34);
+  outline-offset: -3px;
+}
+
+/* Prefix-rendered details are wrapped by Form API, so match them directly too. */
+.mel-event-studio details.mel-event-studio-ticket-card__advanced,
+.mel-event-studio details.mel-event-studio-ticket-card__removal {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__advanced > summary,
+.mel-event-studio details.mel-event-studio-ticket-card__removal > summary {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 50px;
+  min-height: 50px;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 0;
+  background: #fff8f3;
+  color: #475569;
+  font-size: 0.92rem;
+  font-weight: 750;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__advanced > summary::before,
+.mel-event-studio details.mel-event-studio-ticket-card__removal > summary::before {
+  content: '+';
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border-radius: 8px;
+  background: #fff1eb;
+  color: #d94f3d;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mel-event-studio details.mel-event-studio-ticket-card__advanced[open] > summary::before,
+.mel-event-studio details.mel-event-studio-ticket-card__removal[open] > summary::before {
+  content: '−';
+}
+
+.mel-event-studio .mel-event-studio-ticket-add {
+  width: calc(100% - 48px);
+  margin-inline: 24px;
+  padding: 0;
+}
+
+@media (max-width: 620px) {
+  .mel-event-studio .mel-event-studio-ticket-add {
+    width: calc(100% - 32px);
+    margin-inline: 16px;
   }
 }

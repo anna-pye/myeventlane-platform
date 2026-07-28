@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_messaging\Service\AttendeeRecipientResolver;
@@ -42,15 +43,15 @@ final class VendorEventCommsForm extends FormBase {
   ];
 
   public function __construct(
-    private readonly AccountProxyInterface $currentUserAccount,
-    private readonly QueueFactory $queueFactory,
-    private readonly EventRecipientResolver $ticketRecipientResolver,
-    private readonly AttendeeRecipientResolver $attendeeRecipientResolver,
-    private readonly CommsRateLimiter $rateLimiter,
-    private readonly Connection $database,
-    private readonly DateFormatterInterface $dateFormatter,
-    private readonly LoggerInterface $logger,
-    private readonly RequestStack $requestStackService,
+    protected AccountProxyInterface $currentUserAccount,
+    protected QueueFactory $queueFactory,
+    protected EventRecipientResolver $ticketRecipientResolver,
+    protected AttendeeRecipientResolver $attendeeRecipientResolver,
+    protected CommsRateLimiter $rateLimiter,
+    protected Connection $database,
+    protected DateFormatterInterface $dateFormatter,
+    protected LoggerInterface $logger,
+    protected RequestStack $requestStackService,
   ) {}
 
   /**
@@ -105,6 +106,8 @@ final class VendorEventCommsForm extends FormBase {
     $form['#recipient_count'] = $recipientCount;
     $form['#rate_limit'] = $rateLimitCheck;
     $form['#attributes']['class'][] = 'mel-messages-compose';
+    $form['#attributes']['class'][] = 'mel-event-studio-companion-form';
+    $form['#attributes']['class'][] = 'mel-event-studio-companion-form--compose';
 
     $hubUrl = NULL;
     try {
@@ -115,7 +118,10 @@ final class VendorEventCommsForm extends FormBase {
 
     $form['intro'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-messages-compose__intro']],
+      '#attributes' => ['class' => ['mel-messages-compose__intro', 'mel-event-studio-companion-form__header']],
+      'eyebrow' => [
+        '#markup' => '<p class="mel-event-studio-companion-form__eyebrow">' . $this->t('Event messages') . '</p>',
+      ],
       'title' => [
         '#markup' => '<h2 class="mel-messages-compose__title">' . $this->t('New message') . '</h2>',
       ],
@@ -128,11 +134,20 @@ final class VendorEventCommsForm extends FormBase {
 
     if ($hubUrl) {
       $form['intro']['back'] = [
-        '#markup' => '<p><a class="mel-messages-hub__link" href="' . $hubUrl . '">' . $this->t('Back to Event Messages') . '</a></p>',
+        '#markup' => '<p><a class="mel-messages-hub__link mel-messages-compose__back" href="' . $hubUrl . '">← ' . $this->t('Back to Event Messages') . '</a></p>',
       ];
     }
 
-    $form['audience_summary'] = [
+    $form['recipient_setup'] = [
+      '#type' => 'details',
+      '#title' => $this->t('2. Choose recipients'),
+      '#open' => TRUE,
+      '#tree' => FALSE,
+      '#attributes' => ['class' => ['mel-event-studio-companion-form__accordion']],
+      '#weight' => 10,
+    ];
+
+    $form['recipient_setup']['audience_summary'] = [
       '#type' => 'markup',
       '#markup' => '<div class="mel-comms-info" role="status"><p><strong>' . $this->t('@count guest(s) will receive this message', [
         '@count' => $recipientCount,
@@ -164,23 +179,40 @@ final class VendorEventCommsForm extends FormBase {
       ? $this->resolveDefaultMessageType($submittedType)
       : $defaultType;
 
-    $form['message_type'] = [
+    $form['message_setup'] = [
+      '#type' => 'details',
+      '#title' => $this->t('1. Choose message type'),
+      '#open' => TRUE,
+      '#tree' => FALSE,
+      '#attributes' => ['class' => ['mel-event-studio-companion-form__accordion']],
+      '#weight' => 0,
+    ];
+
+    $form['message_setup']['message_type'] = [
       '#type' => 'radios',
       '#title' => $this->t('Message type'),
       '#required' => TRUE,
       '#options' => [
-        'announcement' => $this->t('Announcement'),
-        'reminder' => $this->t('Reminder'),
-        'important_update' => $this->t('Important update'),
-        'cancellation' => $this->t('Cancellation'),
-        'thank_you' => $this->t('Thank you'),
+        'announcement' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Announcement') . '</strong><small>' . $this->t('Helpful news for your guests') . '</small></span>'),
+        'reminder' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Reminder') . '</strong><small>' . $this->t('Time, doors or directions') . '</small></span>'),
+        'important_update' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Important update') . '</strong><small>' . $this->t('A change guests must know') . '</small></span>'),
+        'cancellation' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Cancellation') . '</strong><small>' . $this->t('The event will not go ahead') . '</small></span>'),
+        'thank_you' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Thank you') . '</strong><small>' . $this->t('A warm note after the event') . '</small></span>'),
       ],
       '#default_value' => $messageTypeDefault,
-      '#description' => $this->t('Choose the tone that matches why you are writing.'),
+      '#description' => $this->t('Choose the purpose that best matches this message.'),
+      '#attributes' => [
+        'class' => [
+          'mel-messages-compose__option-grid',
+          'mel-messages-compose__option-grid--types',
+        ],
+      ],
     ];
 
-    $form['message_type_help'] = [
-      '#type' => 'container',
+    $form['message_setup']['message_type_help'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Which message type should I choose?'),
+      '#open' => FALSE,
       '#attributes' => ['class' => ['mel-messages-compose__type-help']],
       'copy' => [
         '#markup' => '<ul>'
@@ -193,14 +225,14 @@ final class VendorEventCommsForm extends FormBase {
       ],
     ];
 
-    $form['audience'] = [
+    $form['recipient_setup']['audience'] = [
       '#type' => 'radios',
       '#title' => $this->t('Who should receive this?'),
       '#required' => TRUE,
       '#options' => [
-        'everyone' => $this->t('Everyone — ticket holders and RSVP guests'),
-        'ticket_holders' => $this->t('Ticket holders only'),
-        'rsvp' => $this->t('RSVP guests only'),
+        'everyone' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Everyone') . '</strong><small>' . $this->t('Ticket holders and RSVP guests') . '</small></span>'),
+        'ticket_holders' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('Ticket holders') . '</strong><small>' . $this->t('Paid bookings only') . '</small></span>'),
+        'rsvp' => Markup::create('<span class="mel-messages-compose__option-copy"><strong>' . $this->t('RSVP guests') . '</strong><small>' . $this->t('Free registrations only') . '</small></span>'),
       ],
       '#default_value' => $form_state->getValue('audience') ?: 'everyone',
       '#description' => $this->t('Ticket type, checked in, waitlist, and custom selection are coming soon.'),
@@ -209,21 +241,37 @@ final class VendorEventCommsForm extends FormBase {
         'wrapper' => 'mel-messages-audience-count',
         'event' => 'change',
       ],
+      '#attributes' => [
+        'class' => [
+          'mel-messages-compose__option-grid',
+          'mel-messages-compose__option-grid--audiences',
+        ],
+      ],
     ];
 
-    $form['audience_summary']['#prefix'] = '<div id="mel-messages-audience-count">';
-    $form['audience_summary']['#suffix'] = '</div>';
+    $form['recipient_setup']['audience_summary']['#prefix'] = '<div id="mel-messages-audience-count">';
+    $form['recipient_setup']['audience_summary']['#suffix'] = '</div>';
 
-    $form['subject'] = [
+    $form['message_content'] = [
+      '#type' => 'details',
+      '#title' => $this->t('3. Write and preview'),
+      '#open' => TRUE,
+      '#tree' => FALSE,
+      '#attributes' => ['class' => ['mel-event-studio-companion-form__accordion']],
+      '#weight' => 20,
+    ];
+
+    $form['message_content']['subject'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Subject'),
       '#required' => TRUE,
       '#maxlength' => 255,
       '#default_value' => $form_state->getValue('subject', ''),
       '#description' => $this->t('Keep it short and clear — guests should know why you wrote.'),
+      '#attributes' => ['class' => ['mel-messages-compose__text-input']],
     ];
 
-    $form['body'] = [
+    $form['message_content']['body'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Message'),
       '#required' => TRUE,
@@ -231,16 +279,23 @@ final class VendorEventCommsForm extends FormBase {
       '#maxlength' => 5000,
       '#description' => $this->t('Write like you are talking to your community. Maximum 5000 characters.'),
       '#default_value' => $form_state->getValue('body', ''),
+      '#attributes' => ['class' => ['mel-messages-compose__message-input']],
     ];
 
-    $form['confirmation'] = [
+    $form['message_content']['confirmation'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('I confirm this is essential event information — not a promotion'),
+      '#title' => Markup::create('<span class="mel-messages-compose__confirmation-copy"><strong>' . $this->t('Essential event information') . '</strong><small>' . $this->t('I confirm this message helps guests attend or understand this event. It is not a promotion.') . '</small></span>'),
       '#required' => TRUE,
+      '#wrapper_attributes' => ['class' => ['mel-messages-compose__confirmation']],
     ];
 
     $form['actions'] = [
       '#type' => 'actions',
+      '#weight' => 30,
+    ];
+    $form['actions']['reassurance'] = [
+      '#markup' => '<p class="mel-messages-compose__action-note">' . $this->t('Nothing sends until you confirm the preview.') . '</p>',
+      '#weight' => -10,
     ];
 
     $form['actions']['preview'] = [
@@ -248,12 +303,14 @@ final class VendorEventCommsForm extends FormBase {
       '#value' => $this->t('Preview'),
       '#submit' => ['::previewSubmit'],
       '#limit_validation_errors' => [['message_type'], ['audience'], ['subject'], ['body']],
+      '#button_type' => $form_state->get('preview') ? 'secondary' : 'primary',
     ];
 
     if ($form_state->get('preview')) {
       $form['preview'] = [
         '#type' => 'markup',
         '#markup' => '<div class="mel-comms-preview" role="region" aria-label="' . $this->t('Message preview') . '"><h3>' . $this->t('Preview') . '</h3><div class="preview-content">' . $form_state->get('preview') . '</div></div>',
+        '#weight' => 40,
       ];
 
       $form['actions']['submit'] = [
@@ -262,19 +319,20 @@ final class VendorEventCommsForm extends FormBase {
         '#button_type' => 'primary',
       ];
     }
-    else {
-      $form['actions']['submit'] = [
-        '#type' => 'submit',
-        '#value' => $this->t('Preview'),
-        '#button_type' => 'primary',
+    $pastSends = $this->getPastSendsMarkup((int) $node->id());
+    if ($pastSends !== '') {
+      $form['history'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Recent messages'),
+        '#open' => FALSE,
+        '#attributes' => ['class' => ['mel-event-studio-companion-form__accordion']],
+        'content' => [
+          '#type' => 'markup',
+          '#markup' => $pastSends,
+        ],
+        '#weight' => 100,
       ];
     }
-
-    $form['past_sends'] = [
-      '#type' => 'markup',
-      '#markup' => $this->getPastSendsMarkup((int) $node->id()),
-      '#weight' => 100,
-    ];
 
     return $form;
   }
@@ -288,18 +346,22 @@ final class VendorEventCommsForm extends FormBase {
       $audience = (string) $form_state->getValue('audience', 'everyone');
       $count = $this->resolveRecipientCount($node, $audience);
       $form['#recipient_count'] = $count;
-      $form['audience_summary']['#markup'] = '<div class="mel-comms-info" role="status"><p><strong>' . $this->t('@count guest(s) will receive this message', [
+      $form['recipient_setup']['audience_summary']['#markup'] = '<div class="mel-comms-info" role="status"><p><strong>' . $this->t('@count guest(s) will receive this message', [
         '@count' => $count,
       ]) . '</strong></p></div>';
     }
-    return $form['audience_summary'];
+    return $form['recipient_setup']['audience_summary'];
   }
 
   /**
    * Preview submit handler.
    */
   public function previewSubmit(array &$form, FormStateInterface $form_state): void {
-    $form_state->set('preview', TRUE);
+    $form_state->set('preview', $this->buildPreview(
+      (string) $form_state->getValue('subject'),
+      (string) $form_state->getValue('body'),
+      (string) $form_state->getValue('message_type'),
+    ));
     $form_state->setRebuild();
   }
 
@@ -318,7 +380,7 @@ final class VendorEventCommsForm extends FormBase {
     }
 
     if (!$form_state->getValue('confirmation')) {
-      $form_state->setError($form['confirmation'], $this->t('Please confirm this is essential event information.'));
+      $form_state->setError($form['message_content']['confirmation'], $this->t('Please confirm this is essential event information.'));
     }
   }
 

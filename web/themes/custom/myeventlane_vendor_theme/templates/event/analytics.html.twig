@@ -5,16 +5,16 @@
  * Story flow: All Sales → Ticket Sales → Merchandise → Boost → Placements → Recommendations → Details
  */
 #}
-{% if workspace_back_url or edit_event_url or export_pdf_url or export_excel_url %}
+{% if (not studio and (workspace_back_url or edit_event_url)) or export_pdf_url or export_excel_url %}
   <nav class="mel-live-ops__quick-bar" role="region" aria-label="{{ 'Analytics actions'|t }}">
     <div class="mel-live-ops__quick-inner" role="toolbar">
-      {% if workspace_back_url %}
+      {% if workspace_back_url and not studio %}
         <a href="{{ workspace_back_url }}" class="mel-live-ops__action mel-live-ops__action--lavender" data-icon="list">
           <span class="mel-live-ops__action-glyph" aria-hidden="true"></span>
           <span class="mel-live-ops__action-label">{{ 'Back to Overview'|t }}</span>
         </a>
       {% endif %}
-      {% if edit_event_url %}
+      {% if edit_event_url and not studio %}
         <a href="{{ edit_event_url }}" class="mel-live-ops__action mel-live-ops__action--muted" data-icon="settings">
           <span class="mel-live-ops__action-glyph" aria-hidden="true"></span>
           <span class="mel-live-ops__action-label">{{ 'Edit event'|t }}</span>
@@ -80,10 +80,21 @@
   or (show_extras_section and (commerce.extras_items_sold|default(0) > 0 or commerce.orders_with_extras|default(0) > 0))
   or has_boost_trend_chart %}
 
-<div class="mel-workspace-page mel-page mel-analytics mel-analytics--dashboard mel-analytics--growth mel-live-operations mel-vendor-console-stack">
+<div class="mel-workspace-page mel-page mel-analytics mel-analytics--dashboard mel-analytics--growth mel-live-operations mel-vendor-console-stack{% if studio %} mel-studio-analytics mel-studio-analytics--pro{% endif %}">
+  {% if studio %}
+    <header class="mel-studio-analytics__header">
+      <div>
+        <p class="mel-studio-analytics__eyebrow">{{ 'MEL Pro analytics'|t }}</p>
+        <h2>{{ 'Understand what is working'|t }}</h2>
+        <p>{{ 'Use event trends and audience behaviour to choose your next useful action.'|t }}</p>
+      </div>
+      <span class="mel-studio-analytics__pro-badge">{{ 'Pro'|t }}</span>
+    </header>
+  {% endif %}
 
   {# RSVP-only event health (when no paid sales section) #}
   {% if rsvp_health.show|default(false) and rsvp_health.kpis|default([])|length > 0 %}
+    {% if studio %}<details class="mel-studio-analytics__group" open><summary>{{ 'Event health'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
     <section class="mel-analytics__business mel-analytics__business--rsvp mel-live-ops__panel" aria-labelledby="mel-analytics-rsvp-title">
       <div class="mel-live-ops__timeline-head">
         <h2 id="mel-analytics-rsvp-title" class="mel-live-ops__panel-title">{{ 'Event health'|t }}</h2>
@@ -104,10 +115,12 @@
         </div>
       {% endif %}
     </section>
+    {% if studio %}</div></details>{% endif %}
   {% endif %}
 
   {# All Sales — CEO view #}
   {% if all_sales.show|default(false) %}
+    {% if studio %}<details class="mel-studio-analytics__group" open><summary>{{ 'All sales'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
     <section class="mel-analytics__business mel-analytics__business--all-sales mel-live-ops__panel" aria-labelledby="mel-analytics-all-sales-title">
       <div class="mel-live-ops__timeline-head">
         <h2 id="mel-analytics-all-sales-title" class="mel-live-ops__panel-title">{{ 'All sales'|t }}</h2>
@@ -140,10 +153,12 @@
         </div>
       {% endif %}
     </section>
+    {% if studio %}</div></details>{% endif %}
   {% endif %}
 
   {# Ticket Sales — ticket performance only #}
   {% if ticket_sales.show|default(false) %}
+    {% if studio %}<details class="mel-studio-analytics__group"><summary>{{ 'Ticket sales'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
     <section class="mel-analytics__business mel-analytics__business--tickets mel-live-ops__panel" aria-labelledby="mel-analytics-ticket-sales-title">
       <div class="mel-live-ops__timeline-head">
         <h2 id="mel-analytics-ticket-sales-title" class="mel-live-ops__panel-title">{{ 'Ticket sales'|t }}</h2>
@@ -176,10 +191,12 @@
         </div>
       {% endif %}
     </section>
+    {% if studio %}</div></details>{% endif %}
   {% endif %}
 
   {# Merchandise & Add-Ons — ancillary revenue only #}
   {% if merchandise.show|default(false) %}
+    {% if studio %}<details class="mel-studio-analytics__group"><summary>{{ 'Merchandise & add-ons'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
     <section class="mel-analytics__business mel-analytics__business--merchandise mel-live-ops__panel" aria-labelledby="mel-analytics-merch-title">
       <div class="mel-live-ops__timeline-head">
         <h2 id="mel-analytics-merch-title" class="mel-live-ops__panel-title">{{ 'Merchandise & add-ons'|t }}</h2>
@@ -229,10 +246,12 @@
         </div>
       {% endif %}
     </section>
+    {% if studio %}</div></details>{% endif %}
   {% endif %}
 
   {# Organiser donations — shown only when donation revenue exists #}
   {% if has_donation_metrics %}
+    {% if studio %}<details class="mel-studio-analytics__group"><summary>{{ 'Donations'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
     <section class="mel-analytics__business mel-analytics__business--donations mel-live-ops__panel" aria-labelledby="mel-analytics-donations-title">
       <div class="mel-live-ops__timeline-head">
         <h2 id="mel-analytics-donations-title" class="mel-live-ops__panel-title">{{ 'Donations'|t }}</h2>
@@ -247,12 +266,14 @@
         ],
       } only %}
     </section>
+    {% if studio %}</div></details>{% endif %}
   {% endif %}
 
   {# Boost — marketing performance (never mixed with revenue) #}
   {% set boost_perf = boost_performance_section|default({}) %}
   {% set boost_level = boost_performance_level|default({}) %}
   {% set boost_actions = boost_action_engine|default({}) %}
+  {% if studio %}<details class="mel-studio-analytics__group"><summary>{{ 'Boost performance'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
   <section class="mel-analytics__business mel-analytics__business--boost mel-live-ops__panel mel-analytics__boost-panel" aria-labelledby="mel-analytics-boost-title">
     <div class="mel-live-ops__timeline-head">
       <h2 id="mel-analytics-boost-title" class="mel-live-ops__panel-title">{{ 'Boost performance'|t }}</h2>
@@ -344,10 +365,12 @@
       has_boost_trend_mini_chart: has_boost_trend_mini_chart,
     } only %}
   </section>
+  {% if studio %}</div></details>{% endif %}
 
   {# Placement Performance — where Boost is working best #}
   {% set placement_perf = placement_performance_section|default({}) %}
   {% if placement_perf.show|default(false) and placement_perf.cards|default([])|length > 0 %}
+    {% if studio %}<details class="mel-studio-analytics__group"><summary>{{ 'Placement performance'|t }}</summary><div class="mel-studio-analytics__group-body">{% endif %}
     <section class="mel-analytics__business mel-analytics__business--placements mel-live-ops__panel" aria-labelledby="mel-analytics-placements-title">
       <div class="mel-live-ops__timeline-head">
         <h2 id="mel-analytics-placements-title" class="mel-live-ops__panel-title">{{ 'Placement performance'|t }}</h2>
@@ -388,6 +411,7 @@
         </div>
       {% endif %}
     </section>
+    {% if studio %}</div></details>{% endif %}
   {% endif %}
 
   {# Recommendations — what to do next (max 3) #}

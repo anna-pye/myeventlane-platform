@@ -19,6 +19,42 @@
   const UPLOAD_STATE_UPLOADED = "uploaded";
 
   /**
+   * Keeps the contrib crop heading and generated labels accurate after AJAX.
+   *
+   * Image Widget Crop retains label targets for controls that disappear once
+   * an image has been uploaded. Those orphaned `for` values are misleading to
+   * assistive technology, so they become plain visual labels on this page.
+   *
+   * @param {HTMLElement} root
+   */
+  function repairCropWidgetSemantics(root) {
+    root.querySelectorAll("label[for]").forEach((label) => {
+      const targetId = label.getAttribute("for");
+      if (targetId && !document.getElementById(targetId)) {
+        const visualLabel = document.createElement("span");
+        Array.from(label.attributes).forEach((attribute) => {
+          if (attribute.name !== "for") {
+            visualLabel.setAttribute(attribute.name, attribute.value);
+          }
+        });
+        visualLabel.textContent = label.textContent;
+        label.replaceWith(visualLabel);
+      }
+    });
+
+    const summary = root.querySelector(".image-data__crop-wrapper > summary");
+    if (!summary) {
+      return;
+    }
+    const textNode = Array.from(summary.childNodes).find(
+      (node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim() !== "",
+    );
+    if (textNode) {
+      textNode.textContent = `${Drupal.t("Adjust 16:9 framing")} `;
+    }
+  }
+
+  /**
    * @param {HTMLElement} root
    * @returns {HTMLInputElement|null}
    */
@@ -396,9 +432,8 @@
     const activeFid = currentHeroFid(root);
     if (
       fromSettings &&
-      activeFid &&
       settingsFid &&
-      activeFid === settingsFid
+      (!activeFid || activeFid === settingsFid)
     ) {
       return fromSettings;
     }
@@ -452,7 +487,6 @@
    */
   function notifyFocalPointModule(field) {
     $(field).trigger("change");
-    $(document).trigger("drupalFocalPointSet");
   }
 
   /**
@@ -544,25 +578,35 @@
   function syncCropRequiredNotice(root) {
     const notice = root.querySelector("#mel-es-branding-crop-notice");
     const wrapper = findCropWrapper(root);
+    const hasHero = hasUploadedHeroFile(root);
     const needsAttention = cropNeedsAttention(root);
     const hasError = !!(wrapper && wrapper.classList.contains("error"));
 
     if (notice instanceof HTMLElement) {
-      const shouldHide = !needsAttention;
+      const shouldHide = !hasHero;
       if (notice.hidden !== shouldHide) {
         notice.hidden = shouldHide;
       }
       if (notice.classList.contains("is-error") !== hasError) {
         notice.classList.toggle("is-error", hasError);
       }
+      notice.classList.toggle("is-success", hasHero && !needsAttention);
+      const title = notice.querySelector(".mel-es-branding-crop-notice__title");
+      if (title instanceof HTMLElement) {
+        title.textContent = needsAttention
+          ? Drupal.t("Framing required")
+          : Drupal.t("Framing ready");
+      }
       const text = notice.querySelector(".mel-es-branding-crop-notice__text");
       if (text instanceof HTMLElement) {
         text.textContent = hasError
           ? Drupal.t(
-              "Cover crop is required — apply the 16:9 crop, then save branding.",
+              "Framing is required — adjust the 16:9 frame, then save branding.",
             )
           : Drupal.t(
-              "Apply the 16:9 crop under your cover image before saving branding.",
+              needsAttention
+                ? "Adjust the 16:9 frame before saving. This framing is used on your public event and booking pages."
+                : "Your 16:9 framing is ready. Save changes to update your public event and booking pages.",
             );
       }
     }
@@ -587,10 +631,10 @@
     if (needsAttention) {
       const message = hasError
         ? Drupal.t(
-            "Cover crop is required — apply the 16:9 crop, then save branding.",
+            "Framing is required — adjust the 16:9 frame, then save branding.",
           )
         : Drupal.t(
-            "Apply the 16:9 crop under your cover image before saving branding.",
+            "Adjust the 16:9 frame before saving. This framing is used on your public event and booking pages.",
           );
       const status = root.querySelector("#mel-es-branding-focal-status");
       if (status && status.textContent !== message) {
@@ -611,6 +655,9 @@
       return false;
     }
     if (submitter.id === "edit-continue") {
+      return true;
+    }
+    if (submitter.matches("[data-mel-branding-save]")) {
       return true;
     }
     if (
@@ -686,6 +733,47 @@
       applied.addEventListener("change", () => {
         syncCropRequiredNotice(root);
       });
+    }
+  }
+
+  /**
+   * Starts Image Widget Crop when its preview enters the visible Studio area.
+   *
+   * The contrib visibility poll samples the image's exact border corners. In
+   * the Studio panel those points can resolve to the surrounding pane, leaving
+   * a visible crop preview uninitialised.
+   *
+   * @param {HTMLElement} root
+   */
+  function wakeCropperWhenVisible(root) {
+    const image = root.querySelector(".crop-preview-wrapper__preview-image");
+    if (!(image instanceof HTMLImageElement) || image.dataset.melCropWakeBound) {
+      return;
+    }
+    image.dataset.melCropWakeBound = "1";
+
+    const wake = () => {
+      const rect = image.getBoundingClientRect();
+      const visible =
+        rect.width > 0
+        && rect.height > 0
+        && rect.bottom > 0
+        && rect.right > 0
+        && rect.top < window.innerHeight
+        && rect.left < window.innerWidth;
+      if (visible && !$(image).data("cropper")) {
+        $(image).trigger("visible.iwc");
+      }
+    };
+
+    window.requestAnimationFrame(wake);
+    if (typeof IntersectionObserver !== "undefined") {
+      const observer = new IntersectionObserver((entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          wake();
+        }
+      });
+      observer.observe(image);
     }
   }
 
@@ -796,9 +884,11 @@
   function refreshBrandingHeroObservers(root) {
     delete root.dataset.melCropObserved;
     delete root.dataset.melHeroPreviewObserved;
+    repairCropWidgetSemantics(root);
     syncHeroToolStrip(root);
     observeWidgetPreview(root);
     observeCropWidget(root);
+    wakeCropperWhenVisible(root);
   }
 
   if (!Drupal.melBrandingHeroToolsAjaxBound) {
@@ -826,9 +916,11 @@
     attach(context) {
       once("mel-branding-hero-tools", ".mel-es-field-group--branding", context).forEach(
         (root) => {
+          repairCropWidgetSemantics(root);
           syncHeroToolStrip(root);
           observeWidgetPreview(root);
           observeCropWidget(root);
+          wakeCropperWhenVisible(root);
 
           if (
             hasCropValidationError(root) &&

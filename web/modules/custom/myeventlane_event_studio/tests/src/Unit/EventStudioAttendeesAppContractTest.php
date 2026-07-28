@@ -51,17 +51,47 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
     $this->assertStringContainsString('Ticket / RSVP', $twig);
     $this->assertStringContainsString('Booking status', $twig);
     $this->assertStringContainsString('No attendees yet', $twig);
-    $this->assertStringContainsString('Publish your event and share it', $twig);
-    $this->assertStringContainsString('No checked-in guests', $twig);
-    $this->assertStringContainsString('Door Mode will update this list', $twig);
+    $this->assertStringNotContainsString('<h2 class="mel-attendees-workspace__title">', $twig);
+    $this->assertStringContainsString('data-mel-attendee-event-empty', $twig);
     $this->assertStringContainsString('data-mel-attendee-search', $twig);
     $this->assertStringContainsString('data-mel-attendee-filter', $twig);
+    $this->assertStringContainsString('data-mel-attendee-reset', $twig);
+    $this->assertStringContainsString('Showing @count of @total attendees', $twig);
     $this->assertStringContainsString("name=\"destination\"", $twig);
     $this->assertStringContainsString('workspace_attendees', $twig);
     $this->assertStringContainsString('matches_initial_filter', $twig);
     $this->assertStringContainsString('empty_filter', $twig);
     $this->assertStringNotContainsString('Ticket holders', $twig);
     $this->assertStringNotContainsString('Check-in module', $twig);
+  }
+
+  /**
+   * Empty-state guidance follows the event's canonical publication state.
+   */
+  public function testEmptyStateAndActionsRespectGuestListState(): void {
+    $builder = dirname(__DIR__, 4) . '/myeventlane_event_attendees/src/Service/EventAttendeeWorkspaceBuilder.php';
+    $contents = file_get_contents($builder);
+    $this->assertNotFalse($contents);
+    $this->assertStringContainsString('buildWorkspaceActions($event, $total > 0)', $contents);
+    $this->assertStringContainsString('if ($hasAttendees)', $contents);
+    $this->assertStringContainsString('$event->isPublished()', $contents);
+    $this->assertStringContainsString('Your event is live. Share it to receive your first booking or RSVP.', $contents);
+    $this->assertStringContainsString('Finish publishing your event, then share it to welcome your first guest.', $contents);
+    $this->assertStringContainsString('View and share event', $contents);
+    $this->assertStringContainsString('Continue to Publishing', $contents);
+    $this->assertStringContainsString("'open_new_tab' => \$published", $contents);
+  }
+
+  /**
+   * Filtered cards must remain hidden despite their flex/grid presentation.
+   */
+  public function testVendorThemePreservesAttendeeHiddenState(): void {
+    $scss = dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-attendees.scss';
+    $contents = file_get_contents($scss);
+    $this->assertNotFalse($contents);
+    $this->assertStringContainsString('.mel-attendee-card[hidden]', $contents);
+    $this->assertStringContainsString('.mel-attendees-workspace__list[hidden]', $contents);
+    $this->assertStringContainsString('display: none', $contents);
   }
 
   /**
@@ -79,6 +109,12 @@ final class EventStudioAttendeesAppContractTest extends TestCase {
     $this->assertStringContainsString('data-mel-attendee-search', $js);
     $this->assertStringContainsString('hasNarrowing', $js);
     $this->assertStringContainsString("activeFilter !== 'all'", $js);
+    $this->assertStringContainsString("filter: 'reset'", $js);
+    $this->assertStringContainsString("button.getAttribute('data-mel-attendee-filter') === 'all'", $js);
+    $this->assertStringContainsString("ticketSelect.value = ''", $js);
+    $this->assertStringContainsString("search.value = ''", $js);
+    $this->assertStringContainsString('No checked-in guests', $js);
+    $this->assertStringContainsString('Door Mode will update this list', $js);
   }
 
   /**

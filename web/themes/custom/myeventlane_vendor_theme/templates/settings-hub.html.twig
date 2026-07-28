@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Organiser Workspace Settings hub.
+ * Organiser Account settings hub.
  *
  * Variables:
  *   - hub: view model from VendorSettingsHubBuilder
@@ -13,21 +13,21 @@
 <div class="mel-settings-hub mel-layout--form" data-mel-settings-hub data-mel-analytics-event="settings_hub_opened">
 
   <header class="mel-settings-hub__intro">
-    <p class="mel-settings-hub__eyebrow">{{ 'Workspace'|t }}</p>
-    <h1 class="mel-settings-hub__title">{{ hub.title|default('Workspace Settings'|t) }}</h1>
+    <p class="mel-settings-hub__eyebrow">{{ 'Your organiser account'|t }}</p>
     <p class="mel-settings-hub__lede">{{ hub.lede }}</p>
   </header>
 
   <nav class="mel-settings-hub__jump" aria-label="{{ 'Settings sections'|t }}">
-    <a class="mel-settings-hub__jump-link" href="#workspace-health">{{ 'Workspace health'|t }}</a>
-    {% for section in sections %}
-      <a class="mel-settings-hub__jump-link" href="#{{ section.id }}">{{ section.title }}</a>
-    {% endfor %}
+    <a class="mel-settings-hub__jump-link" href="#workspace-health">{{ 'Overview'|t }}</a>
+    <a class="mel-settings-hub__jump-link" href="#settings-profile-brand">{{ 'Profile & brand'|t }}</a>
+    <a class="mel-settings-hub__jump-link" href="#settings-payments">{{ 'Payments'|t }}</a>
+    <a class="mel-settings-hub__jump-link" href="#settings-preferences">{{ 'Preferences'|t }}</a>
+    <a class="mel-settings-hub__jump-link" href="#settings-help-account">{{ 'Help & account'|t }}</a>
   </nav>
 
   <section class="mel-settings-hub__health mel-card mel-card--status mel-settings-hub__health--{{ health.tone|default('muted') }}" id="workspace-health" aria-labelledby="mel-settings-health-heading">
     <div class="mel-settings-hub__health-header">
-      <p class="mel-settings-hub__eyebrow">{{ 'Workspace health'|t }}</p>
+      <p class="mel-settings-hub__eyebrow">{{ 'Account setup'|t }}</p>
       <h2 id="mel-settings-health-heading" class="mel-settings-hub__health-title">{{ health.headline }}</h2>
       <p class="mel-settings-hub__health-summary">{{ health.summary }}</p>
     </div>
@@ -35,6 +35,7 @@
     {% if health.items %}
       <ul class="mel-settings-hub__checklist" role="list">
         {% for item in health.items %}
+          {% if item.tone != 'success' %}
           <li class="mel-settings-hub__check mel-settings-hub__check--{{ item.tone|default('muted') }}">
             <span class="mel-settings-hub__check-icon" aria-hidden="true">
               {% if item.tone == 'success' %}●{% elseif item.tone == 'attention' %}●{% else %}○{% endif %}
@@ -54,6 +55,7 @@
               <a class="mel-settings-hub__check-link" href="{{ item.cta_url }}">{{ item.cta_label }}</a>
             {% endif %}
           </li>
+          {% endif %}
         {% endfor %}
       </ul>
     {% endif %}
@@ -68,9 +70,24 @@
     </div>
   </section>
 
-  <div class="mel-settings-hub__sections">
-    {% for section in sections %}
-      <section class="mel-card mel-settings-hub__section" id="{{ section.id }}" aria-labelledby="mel-settings-{{ section.id }}-heading">
+  {% set settings_groups = [
+    {id: 'settings-profile-brand', title: 'Profile & brand'|t, intro: 'How guests recognise and contact your organisation.'|t, section_ids: ['profile', 'brand']},
+    {id: 'settings-payments', title: 'Payments'|t, intro: 'Where money, payouts and financial records are managed.'|t, section_ids: ['payments']},
+    {id: 'settings-preferences', title: 'Preferences'|t, intro: 'Reusable choices that make future events quicker to manage.'|t, section_ids: ['notifications', 'venues', 'guest-questions']},
+    {id: 'settings-help-account', title: 'Help & account'|t, intro: 'Support, policies and important account-level actions.'|t, section_ids: ['support', 'help', 'policies', 'danger']}
+  ] %}
+
+  <div class="mel-settings-hub__groups">
+    {% for group in settings_groups %}
+      <section class="mel-settings-hub__group" id="{{ group.id }}" aria-labelledby="{{ group.id }}-heading">
+        <header class="mel-settings-hub__group-header">
+          <h2 id="{{ group.id }}-heading">{{ group.title }}</h2>
+          <p>{{ group.intro }}</p>
+        </header>
+        <div class="mel-settings-hub__sections">
+        {% for section in sections %}
+          {% if section.id in group.section_ids %}
+          <article class="mel-card mel-settings-hub__section{% if section.id == 'danger' %} mel-settings-hub__section--danger{% endif %}" id="{{ section.id }}" aria-labelledby="mel-settings-{{ section.id }}-heading">
         <div class="mel-card__header mel-settings-hub__section-header">
           <h2 id="mel-settings-{{ section.id }}-heading" class="mel-card__title">{{ section.title }}</h2>
         </div>
@@ -111,6 +128,10 @@
             <a class="mel-button mel-button--{% if section.id == 'danger' %}secondary{% else %}primary{% endif %}" href="{{ section.cta_url }}">{{ section.cta_label }}</a>
           </div>
         {% endif %}
+          </article>
+          {% endif %}
+        {% endfor %}
+        </div>
       </section>
     {% endfor %}
   </div>

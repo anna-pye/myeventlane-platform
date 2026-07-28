@@ -1505,6 +1505,439 @@ $mel-dash-attention-danger: #D64545;
   }
 }
 
+// ---------------------------------------------------------------------------
+// Organiser portfolio foundation — Identity → Guidance → Work → Outcome.
+// The canonical view model owns state and priority; this layer is presentation.
+// ---------------------------------------------------------------------------
+
+.mel-vendor-portfolio {
+  --portfolio-border: #{rgba($mel-shell-border, 0.62)};
+
+  gap: $spacing-8;
+
+  &__identity,
+  &__guidance,
+  &__work,
+  &__outcome,
+  &__first-event {
+    min-width: 0;
+  }
+
+  &__identity {
+    display: grid;
+    gap: $spacing-5;
+    align-items: end;
+    padding: $spacing-8 0 $spacing-5;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: $spacing-10;
+      padding-top: $spacing-10;
+    }
+  }
+
+  &__identity-copy {
+    display: grid;
+    gap: $spacing-2;
+    max-width: 48rem;
+  }
+
+  &__eyebrow {
+    margin: 0;
+    color: $primary;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.08em;
+    line-height: $line-height-normal;
+    text-transform: uppercase;
+  }
+
+  &__title {
+    margin: 0;
+    color: $mel-ws-navy;
+    font-size: clamp(2rem, 6vw, 3rem);
+    font-weight: $font-weight-bold;
+    letter-spacing: -0.03em;
+    line-height: $line-height-tight;
+  }
+
+  &__intro,
+  &__section-heading p,
+  &__group-heading p,
+  &__priority-copy p,
+  &__all-clear p,
+  &__first-event p {
+    margin: 0;
+    color: $text-secondary;
+    line-height: $line-height-relaxed;
+  }
+
+  &__pro {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2 $spacing-3;
+    align-items: center;
+    margin-top: $spacing-1;
+  }
+
+  &__pro-summary {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    align-items: center;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 $spacing-3;
+      border: 1px solid rgba($mel-shell-border, 0.6);
+      border-radius: $radius-full;
+      background: rgba($bg-primary, 0.72);
+    }
+
+    a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+      color: $primary;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &__create,
+  &__identity .mel-btn,
+  &__first-event .mel-btn,
+  &__priority .mel-btn,
+  &__event-summary .mel-btn {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  &__create {
+    justify-self: start;
+
+    @include respond-to(md) {
+      justify-self: end;
+    }
+  }
+
+  &__section-heading {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-3;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: $spacing-4;
+
+    h2 {
+      margin: $spacing-1 0 0;
+      color: $mel-ws-navy;
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      line-height: $line-height-tight;
+    }
+
+    > div {
+      display: grid;
+      gap: $spacing-2;
+      max-width: 44rem;
+    }
+
+    > a {
+      min-height: 44px;
+      display: inline-flex;
+      align-items: center;
+      color: $primary;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &__guidance,
+  &__first-event {
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.55);
+    border-radius: $radius-xl;
+    background: $mel-ws-soft-sky;
+
+    @include respond-to(md) {
+      padding: $spacing-8;
+    }
+  }
+
+  &__priority,
+  &__first-event {
+    display: grid;
+    gap: $spacing-5;
+    align-items: center;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: $spacing-8;
+    }
+  }
+
+  &__priority-copy,
+  &__first-event-copy {
+    display: grid;
+    gap: $spacing-2;
+
+    h2,
+    h3 {
+      margin: 0;
+      color: $mel-ws-navy;
+      line-height: $line-height-tight;
+    }
+  }
+
+  &__priority-status {
+    color: $primary !important;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  &__all-clear {
+    padding: $spacing-4 0 0;
+
+    h3 {
+      margin: 0 0 $spacing-1;
+      color: $mel-ws-navy;
+    }
+  }
+
+  &__expectation {
+    font-size: $font-size-sm;
+  }
+
+  &__secondary-guidance {
+    margin-top: $spacing-5;
+    padding-top: $spacing-4;
+    border-top: 1px solid rgba($mel-shell-border, 0.5);
+
+    summary {
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      color: $mel-ws-navy;
+      cursor: pointer;
+      font-weight: $font-weight-semibold;
+    }
+
+    ul {
+      display: grid;
+      gap: $spacing-3;
+      margin: $spacing-2 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    li {
+      display: grid;
+      gap: $spacing-2;
+      padding: $spacing-3 0;
+      border-top: 1px solid rgba($mel-shell-border, 0.45);
+
+      @include respond-to(sm) {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+      }
+
+      div {
+        display: grid;
+        gap: $spacing-1;
+      }
+
+      span {
+        color: $text-secondary;
+        font-size: $font-size-sm;
+      }
+
+      a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        color: $primary;
+        font-weight: $font-weight-semibold;
+      }
+    }
+  }
+
+  &__work {
+    padding-top: $spacing-2;
+  }
+
+  &__groups,
+  &__event-list {
+    display: grid;
+    gap: $spacing-4;
+  }
+
+  &__group {
+    display: grid;
+    gap: $spacing-3;
+    padding-top: $spacing-5;
+    border-top: 1px solid var(--portfolio-border);
+
+    &--attention {
+      border-top-color: rgba($warning, 0.55);
+    }
+
+    &--past {
+      margin-top: $spacing-2;
+    }
+  }
+
+  &__group-heading {
+    display: grid;
+    gap: $spacing-1;
+
+    h3 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-lg;
+      line-height: $line-height-tight;
+    }
+
+    p {
+      font-size: $font-size-sm;
+    }
+  }
+
+  &__event-summary {
+    display: grid;
+    gap: $spacing-4;
+    align-items: center;
+    padding: $spacing-4;
+    border: 1px solid var(--portfolio-border);
+    border-radius: $radius-lg;
+    background: $bg-primary;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      padding: $spacing-5;
+    }
+
+    &:focus-within {
+      outline: 3px solid rgba($primary, 0.35);
+      outline-offset: 2px;
+    }
+
+    &--quiet {
+      background: rgba($bg-primary, 0.68);
+      opacity: 0.88;
+    }
+  }
+
+  &__event-identity {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: $spacing-3;
+    align-items: start;
+    min-width: 0;
+
+    > div:last-child {
+      display: grid;
+      gap: $spacing-1;
+      min-width: 0;
+    }
+
+    h4 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-base;
+      line-height: $line-height-tight;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  &__event-date {
+    margin: 0;
+    color: $text-secondary;
+    font-size: $font-size-sm;
+  }
+
+  &__event-signals {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-top: $spacing-1;
+
+    span {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 $spacing-2;
+      border-radius: $radius-full;
+      background: rgba($mel-ws-soft-sky, 0.72);
+      color: $text-secondary;
+      font-size: $font-size-xs;
+      font-weight: $font-weight-semibold;
+    }
+  }
+
+  &__status {
+    background: rgba($primary, 0.1) !important;
+    color: $mel-ws-navy !important;
+  }
+
+  &__open {
+    width: 100%;
+    justify-content: center;
+
+    @include respond-to(md) {
+      width: auto;
+      min-width: 10rem;
+    }
+  }
+
+  &__outcome {
+    padding: $spacing-6 0 $spacing-8;
+    border-top: 1px solid var(--portfolio-border);
+  }
+
+  &__metrics {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-3;
+    margin: 0;
+
+    @include respond-to(md) {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    > div {
+      display: grid;
+      gap: $spacing-1;
+      min-width: 0;
+      padding: $spacing-4 0;
+    }
+
+    dt,
+    span {
+      color: $text-secondary;
+      font-size: $font-size-xs;
+    }
+
+    dt {
+      font-weight: $font-weight-semibold;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    dd {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: clamp(1.35rem, 4vw, 1.75rem);
+      font-weight: $font-weight-bold;
+      line-height: $line-height-tight;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
 .mel-vendor-dashboard .mel-live-ops__chip[href] {
   cursor: pointer;
   text-decoration: none;

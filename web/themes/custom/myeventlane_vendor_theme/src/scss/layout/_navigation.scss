@@ -153,6 +153,7 @@
   &.is-visible {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
   }
 }
 
@@ -195,6 +196,14 @@
   color: #2f2544;
   font-weight: $font-weight-bold;
   font-size: $font-size-lg;
+}
+
+.mel-sidebar__logo-image {
+  display: block;
+  width: 40px;
+  height: 40px;
+  border-radius: $radius-lg;
+  object-fit: cover;
 }
 
 .mel-sidebar__logo-text {
@@ -480,6 +489,28 @@
   gap: $spacing-3;
 }
 
+.mel-shell-header__studio-brand {
+  display: inline-flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  border-radius: $radius-md;
+
+  img {
+    display: block;
+    width: 40px;
+    height: 40px;
+    border-radius: $radius-md;
+    object-fit: cover;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #7c83fd;
+    outline-offset: 2px;
+  }
+}
+
 .mel-shell-header__menu-btn {
   width: 44px;
   height: 44px;
@@ -646,6 +677,131 @@
 
       @include respond-to(md) {
         padding-top: $spacing-3;
+      }
+    }
+  }
+}
+
+// Tablet correction: Event Studio already treats widths below 1121px as the
+// drawer experience. Keep the organiser shell on the same boundary so the
+// persistent sidebar cannot squeeze the working canvas at 768–1120px.
+@media (min-width: 768px) and (max-width: 1120px) {
+  .mel-vendor-shell,
+  .mel-vendor-console.mel-vendor-shell.mel-vendor-shell--studio-focus {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mel-vendor-shell .mel-vendor-shell__sidebar,
+  .mel-vendor-console.mel-vendor-shell.mel-vendor-shell--studio-focus .mel-vendor-shell__sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    height: 100vh;
+    transform: translateX(-100%);
+
+    &.is-open {
+      transform: translateX(0);
+    }
+  }
+
+  .mel-vendor-shell .mel-shell-header__menu-btn,
+  .mel-vendor-console.mel-vendor-shell.mel-vendor-shell--studio-focus .mel-shell-header__menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+// Organiser navigation — light B.5 shell. Event Studio uses this as a drawer
+// so its event-scoped navigation remains the only persistent sidebar.
+.mel-vendor-console.mel-vendor-shell {
+  .mel-vendor-shell__sidebar {
+    background: #fffaf5;
+    color: #293241;
+    border-right-color: #eadfd5;
+    box-shadow: 10px 0 30px rgba(41, 50, 65, 0.05);
+
+    .mel-sidebar__brand,
+    .mel-sidebar__footer {
+      border-color: #eadfd5;
+    }
+
+    .mel-sidebar__logo,
+    .mel-sidebar__logo-text,
+    .mel-sidebar__logo:link,
+    .mel-sidebar__logo:visited,
+    .mel-sidebar__logo:hover,
+    .mel-sidebar__logo:focus-visible,
+    .mel-sidebar__workspace-name,
+    .mel-sidebar__user-name {
+      color: #293241;
+    }
+
+    .mel-sidebar__link--disabled {
+      color: #7b8490;
+    }
+
+    .mel-sidebar__logo-mark,
+    .mel-sidebar__user-avatar {
+      background: #f26d5b;
+      color: #293241;
+    }
+
+    .mel-sidebar__section-label,
+    .mel-sidebar__workspace-label,
+    .mel-sidebar__user-role {
+      color: #697381;
+    }
+
+    .mel-sidebar__user {
+      background: #f2edff;
+      border: 1px solid #ded6f7;
+    }
+
+    .mel-sidebar__link:not(.mel-sidebar__link--disabled),
+    .mel-sidebar__footer .mel-sidebar__link,
+    .mel-sidebar__subnav-link:not([aria-disabled='true']),
+    .mel-sidebar__logout a {
+      &:link,
+      &:visited {
+        color: #4d5968;
+      }
+
+      &:hover,
+      &:focus-visible {
+        color: #293241;
+        background: #eef6ff;
+      }
+
+      &.is-active,
+      &[aria-current='page'] {
+        color: #293241;
+        background: #e8e6ff;
+        border-color: #d5cff8;
+      }
+    }
+
+    .mel-sidebar__link.is-active::before {
+      background: #6e7ef2;
+    }
+  }
+
+  &.mel-vendor-shell--studio-focus {
+    @include respond-to(md) {
+      grid-template-columns: 280px minmax(0, 1fr);
+
+      .mel-vendor-shell__sidebar {
+        position: sticky;
+        top: 0;
+        width: 280px;
+        height: 100vh;
+        transform: none;
+      }
+
+      .mel-shell-header__menu-btn {
+        display: none;
       }
     }
   }

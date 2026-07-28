@@ -49,18 +49,34 @@ final class VendorMelContributionBillingController extends ControllerBase {
     $invoices = $this->invoiceService->listInvoicesForVendor($vendorId);
 
     $vendor = $this->entityTypeManager()->getStorage('myeventlane_vendor')->load($vendorId);
-    $billing_prefs = $vendor ? $this->billingPreferences->getBillingState($vendor) : [
+    $billing_prefs = [
       'auto_billing_enabled' => FALSE,
       'has_payment_method' => FALSE,
       'last4' => NULL,
       'stripe_customer_id' => NULL,
+      'payment_controls_available' => FALSE,
     ];
+    $billing_notice = NULL;
+    if ($vendor) {
+      try {
+        $billing_prefs = $this->billingPreferences->getBillingState($vendor) + [
+          'payment_controls_available' => TRUE,
+        ];
+      }
+      catch (\Throwable $e) {
+        \Drupal::logger('myeventlane_donations')->warning('Vendor billing payment controls are unavailable: @message', [
+          '@message' => $e->getMessage(),
+        ]);
+        $billing_notice = (string) $this->t('Saved-card controls are temporarily unavailable. Your contribution totals and invoices are still shown below.');
+      }
+    }
 
     return [
       '#theme' => 'myeventlane_mel_vendor_billing',
       '#summary' => $summary,
       '#invoices' => $invoices,
       '#billing_prefs' => $billing_prefs,
+      '#billing_notice' => $billing_notice,
       '#save_payment_url' => Url::fromRoute('myeventlane_donations.vendor_mel_save_payment_method')->toString(),
       '#remove_payment_url' => Url::fromRoute('myeventlane_donations.vendor_mel_remove_payment_method')->toString(),
       '#attached' => [

@@ -19,37 +19,22 @@
 
   {# ── Payment health (trust card) ── #}
   <section class="mel-payments-hub__health mel-card mel-card--status mel-payments-hub__health--{{ health.tone|default('muted') }}" id="payment-health" aria-labelledby="mel-payments-health-heading">
-    <div class="mel-payments-hub__health-header">
-      <p class="mel-payments-hub__eyebrow">{{ 'Payment health'|t }}</p>
-      <h2 id="mel-payments-health-heading" class="mel-payments-hub__health-title">{{ health.headline }}</h2>
-      <p class="mel-payments-hub__health-summary">{{ health.summary }}</p>
-    </div>
-    <dl class="mel-payments-hub__facts">
-      <div class="mel-payments-hub__fact">
-        <dt>{{ 'Status'|t }}</dt>
-        <dd>{{ health.verification_status }}</dd>
+    <div class="mel-payments-hub__health-copy">
+      <div class="mel-payments-hub__health-header">
+        <p class="mel-payments-hub__eyebrow">{{ 'Payment health'|t }}</p>
+        <div class="mel-payments-hub__health-heading">
+          <h2 id="mel-payments-health-heading" class="mel-payments-hub__health-title">{{ health.headline }}</h2>
+          <span class="mel-payments-hub__status">{{ health.verification_status }}</span>
+        </div>
+        <p class="mel-payments-hub__health-summary">{{ health.summary }}</p>
       </div>
       {% if health.needs_attention %}
-        <div class="mel-payments-hub__fact">
-          <dt>{{ 'What’s happening'|t }}</dt>
-          <dd>{{ health.why }}</dd>
-        </div>
-        <div class="mel-payments-hub__fact">
-          <dt>{{ 'Impact'|t }}</dt>
-          <dd>{{ health.impact }}</dd>
-        </div>
-        <div class="mel-payments-hub__fact">
-          <dt>{{ 'Next step'|t }}</dt>
-          <dd>{{ health.next_step }}</dd>
-        </div>
+        <p class="mel-payments-hub__next-step"><strong>{{ 'Next step'|t }}:</strong> {{ health.next_step }}</p>
       {% endif %}
-    </dl>
+    </div>
     <div class="mel-payments-hub__actions">
       {% if health.cta_url %}
         <a class="mel-button mel-button--primary" href="{{ health.cta_url }}" {% if health.needs_attention %}data-mel-analytics-event="stripe_attention_viewed"{% endif %}>{{ health.cta_label }}</a>
-      {% endif %}
-      {% if health.secondary_cta_url %}
-        <a class="mel-button mel-button--secondary" href="{{ health.secondary_cta_url }}" rel="noopener noreferrer" target="_blank">{{ health.secondary_cta_label }}</a>
       {% endif %}
     </div>
   </section>
@@ -61,55 +46,22 @@
       <div class="mel-payments-hub__kpi" role="listitem">
         <span class="mel-payments-hub__kpi-label">{{ 'Available'|t }}</span>
         <span class="mel-payments-hub__kpi-value" aria-label="{{ 'Available balance'|t }} {{ earnings.available }}">{{ earnings.available }}</span>
+        <span class="mel-payments-hub__kpi-help">{{ earnings.available_help }}</span>
       </div>
       <div class="mel-payments-hub__kpi" role="listitem">
         <span class="mel-payments-hub__kpi-label">{{ 'Pending'|t }}</span>
         <span class="mel-payments-hub__kpi-value" aria-label="{{ 'Pending balance'|t }} {{ earnings.pending }}">{{ earnings.pending }}</span>
+        <span class="mel-payments-hub__kpi-help">{{ earnings.pending_help }}</span>
       </div>
       <div class="mel-payments-hub__kpi" role="listitem">
         <span class="mel-payments-hub__kpi-label">{{ 'Net earnings'|t }}</span>
         <span class="mel-payments-hub__kpi-value" aria-label="{{ 'Net earnings'|t }} {{ earnings.net }}">{{ earnings.net }}</span>
+        <span class="mel-payments-hub__kpi-help">{{ earnings.net_help }}</span>
       </div>
     </div>
   </section>
 
-  {# ── Stripe connection ── #}
-  <section class="mel-card mel-payments-hub__section" id="stripe-connection" aria-labelledby="mel-payments-stripe-heading">
-    <h2 id="mel-payments-stripe-heading" class="mel-card__title">{{ 'Stripe connection'|t }}</h2>
-    <dl class="mel-payments-hub__facts mel-payments-hub__facts--grid">
-      <div class="mel-payments-hub__fact">
-        <dt>{{ 'Connection'|t }}</dt>
-        <dd>{{ health.connected ? 'Connected'|t : 'Not connected'|t }}</dd>
-      </div>
-      <div class="mel-payments-hub__fact">
-        <dt>{{ 'Account'|t }}</dt>
-        <dd>{{ health.account_label|default('—'|t) }}</dd>
-      </div>
-      <div class="mel-payments-hub__fact">
-        <dt>{{ 'Charges'|t }}</dt>
-        <dd>{{ health.charges_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>
-      </div>
-      <div class="mel-payments-hub__fact">
-        <dt>{{ 'Payouts'|t }}</dt>
-        <dd>{{ health.payouts_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>
-      </div>
-      <div class="mel-payments-hub__fact">
-        <dt>{{ 'Verification'|t }}</dt>
-        <dd>{{ health.verification_status }}</dd>
-      </div>
-    </dl>
-    {% if health.needs_attention %}
-      <div class="mel-payments-hub__callout" role="status">
-        <p><strong>{{ 'Why'|t }}:</strong> {{ health.why }}</p>
-        <p><strong>{{ 'Impact'|t }}:</strong> {{ health.impact }}</p>
-        <p><strong>{{ 'Next step'|t }}:</strong> {{ health.next_step }}</p>
-        {% if health.cta_url %}
-          <a class="mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
-        {% endif %}
-      </div>
-    {% endif %}
-  </section>
-
+  <div class="mel-payments-hub__money-workspace">
   {# ── Payouts ── #}
   <section class="mel-card mel-payments-hub__section" id="payouts" aria-labelledby="mel-payments-payouts-heading" data-mel-analytics-event="payout_viewed">
     <div class="mel-card__header mel-payments-hub__section-header">
@@ -178,28 +130,62 @@
       </div>
     {% endif %}
   </section>
+  </div>
 
-  {# ── Tax ── #}
-  {% if tax.available %}
-    <section class="mel-card mel-payments-hub__section" id="tax" aria-labelledby="mel-payments-tax-heading">
-      <h2 id="mel-payments-tax-heading" class="mel-card__title">{{ tax.title }}</h2>
-      <p class="mel-payments-hub__muted">{{ tax.body }}</p>
-      {% if tax.cta_url %}
-        <a class="mel-button mel-button--secondary" href="{{ tax.cta_url }}">{{ tax.cta_label }}</a>
-      {% endif %}
-    </section>
-  {% endif %}
+  <section class="mel-card mel-payments-hub__section mel-payments-hub__tools" id="payment-tools" aria-labelledby="mel-payments-tools-heading">
+    <p class="mel-payments-hub__eyebrow">{{ 'Account and records'|t }}</p>
+    <h2 id="mel-payments-tools-heading" class="mel-card__title">{{ 'Payment tools'|t }}</h2>
+    <p class="mel-payments-hub__muted">{{ 'Open these when you need account details, tax records or MyEventLane invoices.'|t }}</p>
 
-  {# ── Billing ── #}
-  {% if billing.available %}
-    <section class="mel-card mel-payments-hub__section" id="billing" aria-labelledby="mel-payments-billing-heading">
-      <h2 id="mel-payments-billing-heading" class="mel-card__title">{{ billing.title }}</h2>
-      <p class="mel-payments-hub__muted">{{ billing.body }}</p>
-      {% if billing.cta_url %}
-        <a class="mel-button mel-button--secondary" href="{{ billing.cta_url }}">{{ billing.cta_label }}</a>
+    <div class="mel-payments-hub__tool-list">
+      <details class="mel-payments-hub__tool">
+        <summary>{{ 'Stripe account details'|t }}</summary>
+        <div class="mel-payments-hub__tool-content">
+          <dl class="mel-payments-hub__facts mel-payments-hub__facts--grid">
+            <div class="mel-payments-hub__fact">
+              <dt>{{ 'Connection'|t }}</dt>
+              <dd>{{ health.connected ? 'Connected'|t : 'Not connected'|t }}</dd>
+            </div>
+            <div class="mel-payments-hub__fact">
+              <dt>{{ 'Account'|t }}</dt>
+              <dd>{{ health.account_label|default('—'|t) }}</dd>
+            </div>
+            <div class="mel-payments-hub__fact">
+              <dt>{{ 'Charges'|t }}</dt>
+              <dd>{{ health.charges_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>
+            </div>
+            <div class="mel-payments-hub__fact">
+              <dt>{{ 'Payouts'|t }}</dt>
+              <dd>{{ health.payouts_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>
+            </div>
+          </dl>
+          {% if health.secondary_cta_url %}
+            <a class="mel-button mel-button--secondary" href="{{ health.secondary_cta_url }}" rel="noopener noreferrer" target="_blank">{{ health.secondary_cta_label }}</a>
+          {% endif %}
+        </div>
+      </details>
+
+      {% if tax.available %}
+        <details class="mel-payments-hub__tool" id="tax">
+          <summary>{{ tax.title }}</summary>
+          <div class="mel-payments-hub__tool-content">
+            <p class="mel-payments-hub__muted">{{ tax.body }}</p>
+            <a class="mel-button mel-button--secondary" href="{{ tax.cta_url }}">{{ tax.cta_label }}</a>
+          </div>
+        </details>
       {% endif %}
-    </section>
-  {% endif %}
+
+      {% if billing.available %}
+        <details class="mel-payments-hub__tool" id="billing">
+          <summary>{{ billing.title }}</summary>
+          <div class="mel-payments-hub__tool-content">
+            <p class="mel-payments-hub__muted">{{ billing.body }}</p>
+            <a class="mel-button mel-button--secondary" href="{{ billing.cta_url }}">{{ billing.cta_label }}</a>
+          </div>
+        </details>
+      {% endif %}
+    </div>
+  </section>
 
   {# ── Support ── #}
   <section class="mel-card mel-payments-hub__section" id="support" aria-labelledby="mel-payments-support-heading">

@@ -65,7 +65,7 @@ final class EventStudioTicketsForm extends EventStudioBaseForm {
       '#tag' => 'p',
       '#value' => $this->t('How will people join?'),
       '#attributes' => ['class' => ['mel-tickets-intro']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--booking" aria-labelledby="mel-es-booking-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-booking-title">' . $this->t('Booking model') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose the safest path for RSVPs, paid tickets, or external registration.') . '</p></header><div class="mel-es-field-group__body">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--booking" aria-labelledby="mel-es-booking-title"><header class="mel-es-field-group__header"><p class="mel-es-workflow-step">' . $this->t('Step 1 of 3') . '</p><h3 class="mel-es-field-group__title" id="mel-es-booking-title">' . $this->t('Choose how people book') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose RSVP, paid tickets, or an external registration page.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_event_type'] = [

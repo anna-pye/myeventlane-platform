@@ -90,23 +90,9 @@ final class VendorDashboardMessagingBrandController extends VendorConsoleBaseCon
       Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
     );
 
-    // Build settings tabs for navigation (same subsection tabs as Profile settings).
-    $tabs = [
-      [
-        'label' => $this->t('Profile'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
-        'active' => FALSE,
-      ],
-      [
-        'label' => $this->t('Messages brand'),
-        'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
-        'active' => TRUE,
-      ],
-    ];
-
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $this->t('Messages brand'),
-      'tabs' => $tabs,
+      'title' => $this->t('Message branding'),
+      'tabs' => [],
       'body' => $form,
     ]);
   }

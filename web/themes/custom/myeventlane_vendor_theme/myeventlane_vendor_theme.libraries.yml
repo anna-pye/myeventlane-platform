@@ -104,6 +104,20 @@ mel_vendor_events:
     - myeventlane_vendor_theme/global-styling
     - myeventlane_vendor_theme/mel_event_card_remove
 
+# Portfolio Messages hub: accessible event search and compact disclosure.
+mel_messages_hub:
+  js:
+    js/mel-messages-hub.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+    - myeventlane_vendor_theme/global-styling
+
+# Guided Pro automatic-email wording settings.
+pro_email_wording:
+  dependencies:
+    - myeventlane_vendor_theme/global-styling
+
 mel_notifications:
   dependencies:
     - core/drupal

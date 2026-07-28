@@ -11,6 +11,23 @@ use Drupal\Core\Template\Attribute;
 use Drupal\myeventlane_event_studio\EventStudioMelOptionCards;
 
 /**
+ * Implements hook_library_info_alter().
+ *
+ * Cropper 4 calls jQuery.isFunction(), removed in jQuery 4. Make the existing
+ * image_widget_crop library wait for MEL's narrow compatibility bridge.
+ */
+function myeventlane_event_studio_library_info_alter(array &$libraries, string $extension): void {
+  if ($extension !== 'image_widget_crop' || !isset($libraries['cropper'])) {
+    return;
+  }
+
+  $libraries['cropper']['dependencies'] ??= [];
+  if (!in_array('myeventlane_event_studio/mel_cropper_jquery_compat', $libraries['cropper']['dependencies'], TRUE)) {
+    $libraries['cropper']['dependencies'][] = 'myeventlane_event_studio/mel_cropper_jquery_compat';
+  }
+}
+
+/**
  * Returns a root-relative URL for the default MEL hero placeholder graphic.
  */
 function myeventlane_event_studio_hero_placeholder_url(): string {
@@ -68,6 +85,14 @@ function myeventlane_event_studio_theme($existing, $type, $theme, $path) {
         'visibility_form' => NULL,
       ],
       'template' => 'mel-event-studio-launch-centre',
+    ],
+    'mel_event_studio_analytics_pulse' => [
+      'variables' => [
+        'metrics' => [],
+        'is_rsvp' => FALSE,
+        'upgrade_url' => NULL,
+      ],
+      'template' => 'mel-event-studio-analytics-pulse',
     ],
     'mel_event_studio_workspace' => [
       'variables' => [

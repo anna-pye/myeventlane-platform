@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_pro\Service;
 
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Utility\Token;
 use Drupal\Component\Utility\Xss;
 use Psr\Log\LoggerInterface;
 
@@ -24,7 +23,7 @@ final class VendorCommsResolver {
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly Token $token,
+    private readonly VendorCommsPlaceholderRenderer $placeholderRenderer,
     private readonly LoggerInterface $logger,
     private readonly ProActiveResolver $proActiveResolver,
   ) {}
@@ -59,26 +58,8 @@ final class VendorCommsResolver {
     }
 
     try {
-      $tokenData = [
-        'event' => [
-          'title' => (string) ($context['event_title'] ?? ''),
-          'date' => (string) ($context['event_date'] ?? $context['event_start'] ?? ''),
-          'location' => (string) ($context['event_location'] ?? $context['venue'] ?? ''),
-        ],
-        'customer' => [
-          'first_name' => (string) ($context['first_name'] ?? $context['name'] ?? 'there'),
-        ],
-        'order' => [
-          'total' => (string) ($context['order_total'] ?? $context['total_paid'] ?? ''),
-        ],
-        'ticket' => [
-          'type' => (string) ($context['ticket_type'] ?? ''),
-        ],
-      ];
-
-      $rendered = $this->token->replace($raw, $tokenData, ['clear' => TRUE]);
-      $safe = Xss::filter($rendered, self::ALLOWED_TAGS);
-      return trim($safe) . $this->buildMandatoryFooter($store);
+      $rendered = $this->placeholderRenderer->render($raw, $context);
+      return $rendered . $this->buildMandatoryFooter($store);
     }
     catch (\Throwable $exception) {
       $this->logger->error('Failed to resolve vendor comms override for store @store and template @template: @message', [
@@ -99,7 +80,7 @@ final class VendorCommsResolver {
       'order_confirmation' => 'ticket_body',
       'order_invoice' => 'ticket_body',
       'order_receipt' => 'ticket_body',
-      'event_reminder_24h', 'event_reminder_2h' => 'reminder_body',
+      'event_reminder_7d', 'event_reminder_24h', 'event_reminder_2h' => 'reminder_body',
       'pro_cart_abandoned_w1', 'pro_cart_abandoned_w2' => 'abandoned_cart_body',
       default => NULL,
     };

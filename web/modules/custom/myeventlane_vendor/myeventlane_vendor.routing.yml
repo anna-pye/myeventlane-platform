@@ -676,14 +676,14 @@ myeventlane_vendor.console.messaging_brand:
   path: '/vendor/dashboard/messaging/brand'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_dashboard_messaging_brand:brand'
-    _title: 'Messages brand'
+    _title: 'Message branding'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:
     _theme: myeventlane_vendor_theme
 
 # /vendor/settings hub + /vendor/settings/profile are defined by
-# myeventlane_vendor_settings (Workspace Settings + Profile form).
+# myeventlane_vendor_settings (Account settings + Profile form).
 
 myeventlane_vendor.manage_event.design:
   path: '/vendor/event/{event}/design'

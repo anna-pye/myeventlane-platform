@@ -117,6 +117,37 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
   }
 
   /**
+   * Builds the canonical event-order projection inside Event Studio.
+   *
+   * Commerce orders, event isolation, totals, refunds, and row actions remain
+   * owned by this controller. Event Studio only supplies the surrounding
+   * workspace shell.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The selected event.
+   *
+   * @return array<string, mixed>
+   *   Event-scoped order content for the Studio section renderer.
+   */
+  public function buildStudioContent(NodeInterface $event): array {
+    $this->assertEventOwnership($event);
+    $data = $this->getOrdersForEvent($event);
+
+    $content = [
+      '#theme' => 'myeventlane_vendor_event_orders',
+      '#event' => $event,
+      '#orders' => $data['rows'],
+      '#totals' => $data['totals'],
+      '#studio' => TRUE,
+    ];
+    if ($this->refundProcessor) {
+      $content['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
+    }
+
+    return $content;
+  }
+
+  /**
    * Gets orders for an event.
    *
    * Filters: field_target_event = event, order.store_id = event's store,

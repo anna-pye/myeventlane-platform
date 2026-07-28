@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_event\Unit;
 
 use Drupal\myeventlane_event\Service\EventMediaPresenter;
+use Drupal\Core\Image\ImageFactory;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 use Psr\Log\LoggerInterface;
@@ -22,7 +23,10 @@ final class EventMediaPresenterTest extends UnitTestCase {
     $node = $this->createMock(NodeInterface::class);
     $node->method('hasField')->with('field_mel_event_gallery')->willReturn(FALSE);
 
-    $presenter = new EventMediaPresenter($this->createMock(LoggerInterface::class));
+    $presenter = new EventMediaPresenter(
+      $this->createMock(LoggerInterface::class),
+      $this->createMock(ImageFactory::class),
+    );
     $result = $presenter->buildGalleryViewModel($node);
 
     $this->assertSame(EventMediaPresenter::ROLE_GALLERY, $result['role']);
@@ -35,7 +39,10 @@ final class EventMediaPresenterTest extends UnitTestCase {
    * @dataProvider compositionCountProvider
    */
   public function testResolveComposition(int $count, string $expected): void {
-    $presenter = new EventMediaPresenter($this->createMock(LoggerInterface::class));
+    $presenter = new EventMediaPresenter(
+      $this->createMock(LoggerInterface::class),
+      $this->createMock(ImageFactory::class),
+    );
     $this->assertSame($expected, $presenter->resolveComposition($count));
   }
 
@@ -59,7 +66,10 @@ final class EventMediaPresenterTest extends UnitTestCase {
     $node = $this->createMock(NodeInterface::class);
     $node->method('hasField')->willReturn(FALSE);
 
-    $presenter = new EventMediaPresenter($this->createMock(LoggerInterface::class));
+    $presenter = new EventMediaPresenter(
+      $this->createMock(LoggerInterface::class),
+      $this->createMock(ImageFactory::class),
+    );
     $result = $presenter->buildEventMediaViewModel($node, 'teaser');
 
     $this->assertFalse($result['has_gallery']);

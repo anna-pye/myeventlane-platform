@@ -68,8 +68,8 @@
 @media (min-width: 64rem) {
   .mel-event-branding-studio__layout {
     display: grid;
-    grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr);
-    gap: 2rem;
+    grid-template-columns: minmax(0, 7.5fr) minmax(280px, 2.5fr);
+    gap: 1.5rem;
     align-items: start;
   }
 
@@ -114,6 +114,18 @@
   }
 }
 
+@media (max-width: 48rem) {
+  .mel-es-branding-workflow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 30rem) {
+  .mel-es-branding-workflow {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Creator studio field groups — left column cards. */
 .mel-event-studio .mel-event-branding-studio .mel-es-field-group {
   margin: 0;
@@ -147,6 +159,82 @@
 
 .mel-event-studio .mel-event-branding-studio .mel-es-field-group__body {
   gap: 1.25rem;
+}
+
+.mel-es-branding-workflow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin: 0 0 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-es-branding-workflow li {
+  display: grid;
+  grid-template-columns: 2rem 1fr;
+  gap: 0 0.6rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.75rem;
+  border: 1px solid rgba(110, 126, 242, 0.18);
+  border-radius: 12px;
+  background: rgba(248, 247, 255, 0.8);
+}
+
+.mel-es-branding-workflow li > span {
+  grid-row: 1 / 3;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 999px;
+  background: var(--mel-brand-accent);
+  color: #fff;
+  font-weight: 800;
+}
+
+.mel-es-branding-workflow strong,
+.mel-es-branding-workflow small {
+  min-width: 0;
+}
+
+.mel-es-branding-workflow small {
+  color: var(--mel-brand-muted);
+  line-height: 1.35;
+}
+
+.mel-es-branding-source--upload {
+  padding: 1rem;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.mel-es-branding-source__eyebrow,
+.mel-es-branding-source__title,
+.mel-es-branding-source__help {
+  margin: 0;
+}
+
+.mel-es-branding-source__eyebrow {
+  color: var(--mel-brand-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-es-branding-source__title {
+  margin-top: 0.2rem;
+  font-size: 1rem;
+}
+
+.mel-es-branding-source__help {
+  margin-top: 0.35rem;
+  color: var(--mel-brand-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 /* Upload card — hero image managed file widget. */
@@ -302,6 +390,11 @@
   background: rgba(255, 241, 241, 0.98);
 }
 
+.mel-es-branding-crop-notice.is-success {
+  border-color: rgba(46, 125, 50, 0.35);
+  background: rgba(240, 253, 244, 0.94);
+}
+
 .mel-es-branding-crop-notice__title {
   margin: 0;
   font-size: 0.875rem;
@@ -332,6 +425,166 @@
 .mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.error .messages--error,
 .mel-event-studio .mel-es-field-group--branding .image-data__crop-wrapper.error .form-item--error-message {
   font-weight: 600;
+}
+
+.mel-es-branding-crop-guidance {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(110, 126, 242, 0.3);
+  border-radius: 12px;
+  background: rgba(248, 250, 255, 0.98);
+}
+
+.mel-es-branding-crop-guidance__title,
+.mel-es-branding-crop-guidance__text,
+.mel-es-branding-crop-guidance__aftercare {
+  margin: 0;
+}
+
+.mel-es-branding-crop-guidance__title {
+  color: var(--mel-studio-text, #0f172a);
+  font-weight: 700;
+}
+
+.mel-es-branding-crop-guidance__text,
+.mel-es-branding-crop-guidance__aftercare {
+  color: var(--mel-brand-muted, #64748b);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.mel-es-branding-crop-guidance__aftercare {
+  font-weight: 600;
+}
+
+.mel-es-saved-cover-media {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(100, 116, 139, 0.22);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.mel-es-saved-cover-media::before {
+  content: "Option 2";
+  color: var(--mel-brand-primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-es-branding-remove {
+  align-self: flex-start;
+  color: #9f2d24;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-es-branding-save-help {
+  margin: 0.5rem 0 0;
+  color: var(--mel-brand-muted);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.mel-es-saved-cover-media__title,
+.mel-es-saved-cover-media__help {
+  margin: 0;
+}
+
+.mel-es-saved-cover-media__title {
+  color: var(--mel-studio-text, #0f172a);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.mel-es-saved-cover-media__help {
+  max-width: 62ch;
+  color: var(--mel-brand-muted, #64748b);
+  font-size: 0.875rem;
+  line-height: 1.55;
+}
+
+.mel-es-saved-cover-media .js-media-library-widget {
+  margin: 0;
+}
+
+.mel-es-branding-pro-status {
+  display: grid;
+  gap: 0.25rem;
+  margin-top: 1rem;
+  padding: 0.875rem 1rem;
+  border: 1px solid rgba(110, 126, 242, 0.28);
+  border-radius: 12px;
+  background: rgba(248, 247, 255, 0.96);
+}
+
+.mel-es-branding-pro-status.is-active {
+  border-color: rgba(46, 125, 50, 0.3);
+  background: rgba(240, 253, 244, 0.92);
+}
+
+.mel-es-branding-pro-status__title,
+.mel-es-branding-pro-status__message {
+  margin: 0;
+}
+
+.mel-es-branding-pro-status__title {
+  color: var(--mel-studio-text, #0f172a);
+  font-weight: 700;
+}
+
+.mel-es-branding-pro-status__message {
+  color: var(--mel-brand-muted, #64748b);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mel-es-branding-pro-status__message a {
+  font-weight: 700;
+}
+
+.mel-event-branding-studio .js-mel-branding-save {
+  align-self: flex-start;
+  min-height: 48px;
+  margin-top: 1rem;
+  padding-inline: 1.5rem;
+}
+
+.mel-event-branding-studio .image-data__crop-wrapper .vertical-tabs {
+  margin: 0;
+  border: 0;
+}
+
+.mel-event-branding-studio .image-data__crop-wrapper .vertical-tabs__menu {
+  display: none;
+}
+
+.mel-event-branding-studio .image-data__crop-wrapper .vertical-tabs__panes {
+  margin: 0;
+  border: 0;
+}
+
+.mel-event-branding-studio .image-data__crop-wrapper .vertical-tabs__pane {
+  padding: 0;
+}
+
+.mel-event-branding-studio .image-data__crop-wrapper .crop-preview-wrapper {
+  width: 100%;
+  max-width: 52rem;
+}
+
+.mel-event-branding-studio .image-data__crop-wrapper .cropper-container {
+  max-width: 100% !important;
+}
+
+.mel-event-branding-studio .focal-point-wrapper {
+  display: none;
 }
 
 .mel-es-branding-hero-framing {

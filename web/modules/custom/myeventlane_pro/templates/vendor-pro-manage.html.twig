@@ -1,112 +1,117 @@
 {#
 /**
  * @file
- * Template for the Pro subscription manage / billing page.
- *
- * Variables:
- * - subscription_status: Status label (e.g. "Active").
- * - started_date: Formatted start date string.
- * - next_billing_date: Formatted next billing date string or NULL.
- * - cancel_url: URL to the cancel confirmation form.
- * - roi_summary: ROI summary array or NULL.
- * - pro_status: Billing status array from ProSubscriptionStatusService.
- * - plan_label: Human-readable plan name.
- * - billing_schedule_label: e.g. Monthly.
- * - billing_portal_enabled: Whether Stripe portal is enabled in config.
- * - billing_portal_url: Route URL to start portal redirect.
- * - billing_support_url: Optional support link.
+ * MEL Pro subscription home for organisers.
  */
 #}
 {% set status = pro_status|default({}) %}
 
 <div class="mel-pro-manage">
-
-  <div class="mel-pro-manage__header">
-    <span class="mel-pro-badge">PRO</span>
-    <h1 class="mel-pro-manage__title">{{ 'Billing & subscription'|t }}</h1>
-  </div>
-
-  {% if status.is_in_grace|default(false) %}
-    <div class="mel-pro-warning messages messages--warning">
-      {{ 'Your Pro features are at risk. Please update your payment method.'|t }}
+  <header class="mel-pro-manage__hero">
+    <div>
+      <p class="mel-pro-manage__eyebrow"><span class="mel-pro-badge">PRO</span> {{ 'Your organiser plan'|t }}</p>
+      <h1 class="mel-pro-manage__title">{{ 'MEL Pro'|t }}</h1>
+      <p class="mel-pro-manage__intro">{{ 'More insight, stronger branding and reusable messaging tools for organisers who run events regularly.'|t }}</p>
     </div>
-  {% endif %}
-
-  {% if grace_days_remaining is not null %}
-    <div class="messages messages--warning">
-      {{ 'Your payment failed. You have @days days remaining before Pro is suspended.'|t({'@days': grace_days_remaining}) }}
+    <div class="mel-pro-manage__status mel-pro-manage__status--{{ status.state|default('inactive') }}">
+      <span>{{ status.status_label|default(subscription_status) }}</span>
+      <p>{{ status.status_message|default('') }}</p>
     </div>
-  {% endif %}
+  </header>
 
-  {% if renewal_in_days is not null %}
-    <div class="messages messages--status">
-      {{ 'Your Pro renews in @days days.'|t({'@days': renewal_in_days}) }}
-    </div>
-  {% endif %}
-
-  <div class="mel-billing-status mel-billing-status--{{ status.state|default('inactive') }}">
-    <strong>{{ status.status_label|default('') }}</strong>
-    <p>{{ status.status_message|default('') }}</p>
-    {% if status.is_in_grace|default(false) and status.grace_expires_label %}
-      <div class="mel-billing-warning">
-        {{ 'Update your payment method before @date'|t({'@date': status.grace_expires_label}) }}
-      </div>
-    {% endif %}
-  </div>
-
-  <div class="mel-pro-manage__card mel-card">
-    <div class="mel-pro-manage__details">
-
-      <div class="mel-pro-manage__row">
-        <span class="mel-pro-manage__label">{{ 'Plan'|t }}</span>
-        <span class="mel-pro-manage__value">{{ plan_label|default('MEL Pro') }} — {{ billing_schedule_label|default('') }}</span>
-      </div>
-
-      <div class="mel-pro-manage__row">
-        <span class="mel-pro-manage__label">{{ 'Status'|t }}</span>
-        <span class="mel-pro-manage__value mel-pro-manage__value--status">
-          <span class="mel-badge mel-badge--success">{{ subscription_status }}</span>
-        </span>
-      </div>
-
-      {% if started_date %}
-        <div class="mel-pro-manage__row">
-          <span class="mel-pro-manage__label">{{ 'Started'|t }}</span>
-          <span class="mel-pro-manage__value">{{ started_date }}</span>
-        </div>
+  {% if status.is_in_grace|default(false) or grace_days_remaining is not null %}
+    <section class="mel-pro-manage__notice mel-pro-manage__notice--warning" role="alert">
+      <strong>{{ 'Your payment needs attention'|t }}</strong>
+      {% if grace_days_remaining is not null %}
+        <p>{{ 'You have @days days remaining before Pro access is suspended.'|t({'@days': grace_days_remaining}) }}</p>
+      {% else %}
+        <p>{{ 'Update your payment method to keep your Pro tools available.'|t }}</p>
       {% endif %}
+    </section>
+  {% elseif renewal_in_days is not null %}
+    <p class="mel-pro-manage__renewal">{{ 'Your plan renews in @days days.'|t({'@days': renewal_in_days}) }}</p>
+  {% endif %}
 
-      {% if next_billing_date %}
+  <div class="mel-pro-manage__grid">
+    <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-included-heading">
+      <p class="mel-pro-manage__eyebrow">{{ 'Included with your plan'|t }}</p>
+      <h2 id="mel-pro-included-heading">{{ 'Your Pro toolkit'|t }}</h2>
+      <p>{{ 'Use these tools when you are ready to understand your audience, strengthen your brand and invite people back.'|t }}</p>
+      <div class="mel-pro-manage__benefits">
+        <a class="mel-pro-manage__benefit" href="{{ path('myeventlane_analytics.dashboard') }}">
+          <strong>{{ 'Deeper analytics'|t }}</strong>
+          <span>{{ 'See event performance and more detailed organiser insights.'|t }}</span>
+        </a>
+        <a class="mel-pro-manage__benefit" href="{{ path('myeventlane_vendor.console.messages') }}">
+          <strong>{{ 'Pro email templates'|t }}</strong>
+          <span>{{ 'Create reusable branded messaging for your guests.'|t }}</span>
+        </a>
+        <a class="mel-pro-manage__benefit" href="{{ path('myeventlane_vendor.console.marketing') }}">
+          <strong>{{ 'Marketing and branding tools'|t }}</strong>
+          <span>{{ 'Keep your organiser identity consistent as you promote events.'|t }}</span>
+        </a>
+      </div>
+    </section>
+
+    <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-plan-heading">
+      <p class="mel-pro-manage__eyebrow">{{ 'Subscription details'|t }}</p>
+      <h2 id="mel-pro-plan-heading">{{ plan_label|default('MEL Pro') }}</h2>
+      <dl class="mel-pro-manage__details">
         <div class="mel-pro-manage__row">
-          <span class="mel-pro-manage__label">{{ 'Next billing date'|t }}</span>
-          <span class="mel-pro-manage__value">{{ next_billing_date }}</span>
+          <dt>{{ 'Billing'|t }}</dt>
+          <dd>{{ billing_schedule_label|default('Monthly'|t) }}</dd>
         </div>
-      {% endif %}
+        <div class="mel-pro-manage__row">
+          <dt>{{ 'Status'|t }}</dt>
+          <dd><span class="mel-badge mel-badge--success">{{ subscription_status }}</span></dd>
+        </div>
+        {% if started_date %}
+          <div class="mel-pro-manage__row"><dt>{{ 'Started'|t }}</dt><dd>{{ started_date }}</dd></div>
+        {% endif %}
+        {% if next_billing_date %}
+          <div class="mel-pro-manage__row"><dt>{{ 'Next billing date'|t }}</dt><dd>{{ next_billing_date }}</dd></div>
+        {% endif %}
+      </dl>
 
       {% if roi_summary %}
-        <div class="mel-pro-manage__row">
-          <span class="mel-pro-manage__label">{{ 'ROI this month'|t }}</span>
-          <span class="mel-pro-manage__value">{{ 'Pro paid for itself @times times this month.'|t({'@times': roi_summary.roi_multiple|number_format(2)}) }}</span>
+        <div class="mel-pro-manage__value-note">
+          <strong>{{ 'Value this month'|t }}</strong>
+          {% if roi_summary.roi_multiple > 0 %}
+            <p>{{ 'Pro recovery tools have returned @times times the monthly plan cost.'|t({'@times': roi_summary.roi_multiple|number_format(1)}) }}</p>
+          {% else %}
+            <p>{{ 'No recovered revenue has been attributed to Pro tools yet this month.'|t }}</p>
+          {% endif %}
         </div>
       {% endif %}
 
-    </div>
-
-    <div class="mel-pro-manage__actions mel-billing-actions">
-      {% if billing_portal_enabled and billing_portal_url %}
-        <a href="{{ billing_portal_url }}" class="mel-button">{{ 'Manage payment method'|t }}</a>
-      {% else %}
-        <p class="mel-pro-manage__fallback">{{ 'Billing management online is not available yet. Contact support to update your payment method.'|t }}</p>
-        {% if billing_support_url %}
-          <a href="{{ billing_support_url }}" class="mel-button mel-button--secondary">{{ 'Contact support'|t }}</a>
+      <div class="mel-pro-manage__actions">
+        {% if billing_portal_enabled and billing_portal_url %}
+          <a href="{{ billing_portal_url }}" class="mel-button mel-button--primary">{{ 'Manage billing'|t }}</a>
+        {% else %}
+          <p class="mel-pro-manage__fallback">{{ 'Need to change your payment method or billing details? Our support team can help.'|t }}</p>
+          <a href="{{ billing_support_url|default('/vendor/support') }}" class="mel-button mel-button--primary">{{ 'Contact support'|t }}</a>
         {% endif %}
-      {% endif %}
-
-      <a href="{{ path('myeventlane_vendor.console.dashboard') }}" class="mel-button mel-button--secondary">{{ 'Back to Dashboard'|t }}</a>
-      {% if cancel_url %}
-        <a href="{{ cancel_url }}" class="mel-button mel-button--secondary">{{ 'Cancel subscription'|t }}</a>
-      {% endif %}
-    </div>
+        {% if cancel_url %}
+          <div class="mel-pro-manage__cancel">
+            <a href="{{ cancel_url }}" class="mel-button mel-button--secondary mel-pro-manage__cancel-button">{{ 'Cancel at period end'|t }}</a>
+            <span>
+              {% if next_billing_date %}
+                {{ 'Your Pro access will continue until @date.'|t({'@date': next_billing_date}) }}
+              {% else %}
+                {{ 'Your Pro access will continue until the end of your current paid period.'|t }}
+              {% endif %}
+            </span>
+          </div>
+        {% endif %}
+      </div>
+    </section>
   </div>
 
+  <aside class="mel-pro-manage__help">
+    <div>
+      <strong>{{ 'Not sure which Pro tool to use next?'|t }}</strong>
+      <p>{{ 'Start with Analytics to see what is working, then use Messages or Marketing to invite your audience back.'|t }}</p>
+    </div>
+    <a href="/vendor/support" class="mel-button mel-button--secondary">{{ 'Ask for help'|t }}</a>
+  </aside>
 </div>

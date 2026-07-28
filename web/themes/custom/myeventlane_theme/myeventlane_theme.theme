@@ -5874,3 +5874,28 @@ function myeventlane_theme_preprocess_status_messages(array &$variables): void {
     }
   }
 }
+/**
+ * Keeps the canonical event hero on its generated PNG/JPEG derivative.
+ *
+ * The contributed WebP fallback resolves lowercase derivative names through an
+ * uppercase candidate first on case-insensitive host mounts. Fresh Studio hero
+ * copies can therefore produce a broken WebP response even though the canonical
+ * derivative is valid. Remove only that optional source; the responsive image
+ * retains its working original-format source and fallback image.
+ */
+function myeventlane_theme_preprocess_responsive_image(array &$variables): void {
+  if (($variables['responsive_image_style_id'] ?? '') !== 'mel_event_hero') {
+    return;
+  }
+  if (!isset($variables['sources']) || !is_array($variables['sources'])) {
+    return;
+  }
+
+  $variables['sources'] = array_values(array_filter(
+    $variables['sources'],
+    static function ($source): bool {
+      return !$source instanceof Attribute
+        || (string) $source->offsetGet('type') !== 'image/webp';
+    },
+  ));
+}

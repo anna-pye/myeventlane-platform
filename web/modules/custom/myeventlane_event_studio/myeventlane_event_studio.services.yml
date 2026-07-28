@@ -134,6 +134,8 @@ services:
       - '@myeventlane_event_studio.overview_builder'
       - '@myeventlane_core.domain_detector'
       - '@?myeventlane_event_attendees.attendee_workspace_builder'
+      - '@myeventlane_vendor.controller.vendor_event_orders'
+      - '@myeventlane_vendor.controller.vendor_event_analytics'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper
@@ -441,6 +443,7 @@ services:
       - '@myeventlane_event.passcode_access'
       - '@myeventlane_event_studio.question_template_manager'
       - '@request_stack'
+      - '@file.repository'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService

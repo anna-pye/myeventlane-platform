@@ -19,6 +19,7 @@ use Drupal\Core\Session\AccountInterface;
 use Drupal\crop\Entity\Crop;
 use Drupal\crop\CropInterface;
 use Drupal\file\FileInterface;
+use Drupal\file\FileRepositoryInterface;
 use Drupal\focal_point\FocalPointManagerInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
@@ -28,6 +29,7 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
+use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\Entity\Paragraph;
 use Psr\Log\LoggerInterface;
@@ -70,7 +72,124 @@ final class EventStudioSaveService {
     private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
     private readonly ?EventStudioQuestionTemplateManager $questionTemplateManager = NULL,
     private readonly ?RequestStack $requestStack = NULL,
+    private readonly ?FileRepositoryInterface $fileRepository = NULL,
   ) {}
+
+  /**
+   * Copies a reusable Media Library image into an event-specific cover file.
+   *
+   * Event hero crops are keyed by file URI. Copying prevents one event's crop
+   * from changing the framing of another event that reused the same media item.
+   *
+   * @return array{node: ?\Drupal\node\NodeInterface, errors: list<string>}
+   */
+  public function applyBrandingCoverMedia(NodeInterface $node, MediaInterface $media): array {
+    if (
+      !$node->hasField('field_event_image')
+      || !$node->hasField('field_mel_event_cover_media')
+      || !$this->fileRepository instanceof FileRepositoryInterface
+    ) {
+      return ['node' => NULL, 'errors' => ['Saved image selection is not available.']];
+    }
+
+    $source_field = (string) ($media->getSource()->getConfiguration()['source_field'] ?? '');
+    $source_item = $source_field !== '' && $media->hasField($source_field)
+      ? $media->get($source_field)->first()
+      : NULL;
+    $source_fid = (int) ($source_item?->target_id ?? 0);
+    $source_file = $source_fid > 0
+      ? $this->entityTypeManager->getStorage('file')->load($source_fid)
+      : NULL;
+    if (!$source_file instanceof FileInterface || !$this->isHeroFileRenderable($source_file)) {
+      return ['node' => NULL, 'errors' => ['The selected Media Library image is missing or unreadable.']];
+    }
+
+    $source_image = $this->imageFactory->get($source_file->getFileUri());
+    if (!$source_image->isValid() || $source_image->getWidth() < 400 || $source_image->getHeight() < 200) {
+      return ['node' => NULL, 'errors' => ['Choose an image that is at least 400×200 pixels.']];
+    }
+
+    $directory = 'public://events/' . date('Y-m');
+    if (!$this->fileSystem->prepareDirectory(
+      $directory,
+      FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS,
+    )) {
+      return ['node' => NULL, 'errors' => ['The event image directory could not be prepared.']];
+    }
+
+    try {
+      $copied_file = $this->fileRepository->copy(
+        $source_file,
+        $directory . '/' . basename($source_file->getFileUri()),
+        FileSystemInterface::EXISTS_RENAME,
+      );
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding saved-cover copy failed for event @nid media @media: @message', [
+        '@nid' => (string) $node->id(),
+        '@media' => (string) $media->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['node' => NULL, 'errors' => ['The selected image could not be copied into this event.']];
+    }
+
+    $image = $this->imageFactory->get($copied_file->getFileUri());
+    if (!$image->isValid() || $image->getWidth() < 1 || $image->getHeight() < 1) {
+      return ['node' => NULL, 'errors' => ['The selected image could not be opened for framing.']];
+    }
+
+    $image_width = $image->getWidth();
+    $image_height = $image->getHeight();
+    if (($image_width / $image_height) >= (16 / 9)) {
+      $crop_height = $image_height;
+      $crop_width = (int) floor($crop_height * 16 / 9);
+    }
+    else {
+      $crop_width = $image_width;
+      $crop_height = (int) floor($crop_width * 9 / 16);
+    }
+
+    $crop = Crop::create([
+      'type' => self::BRANDING_HERO_CROP_TYPE,
+      'entity_id' => $copied_file->id(),
+      'entity_type' => 'file',
+      'uri' => $copied_file->getFileUri(),
+    ]);
+    $crop->setPosition((int) floor($image_width / 2), (int) floor($image_height / 2));
+    $crop->setSize($crop_width, $crop_height);
+    $crop->save();
+
+    $alt = trim((string) ($source_item?->alt ?? ''));
+    if ($alt === '') {
+      $alt = trim((string) $media->label());
+    }
+    $previous_fid = $this->brandingHeroFidFromNode($node);
+    $node->set('field_event_image', [[
+      'target_id' => (int) $copied_file->id(),
+      'alt' => $alt,
+      'title' => '',
+      'width' => $image_width,
+      'height' => $image_height,
+      'focal_point' => '50,50',
+    ]]);
+    $node->set('field_mel_event_cover_media', [['target_id' => (int) $media->id()]]);
+
+    EventNodeRevisionSave::prepare($node, 'Event Studio Media Library cover selected.');
+    try {
+      $node->save();
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding saved-cover event save failed for event @nid media @media: @message', [
+        '@nid' => (string) $node->id(),
+        '@media' => (string) $media->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['node' => NULL, 'errors' => ['The selected image could not be saved to this event.']];
+    }
+
+    $this->flushBrandingHeroImageStylesAfterSave($copied_file, $previous_fid, (string) $node->id());
+    return ['node' => $node, 'errors' => []];
+  }
 
   /**
    * @param array<string, mixed> $payload
@@ -1239,6 +1358,17 @@ final class EventStudioSaveService {
       }
     }
 
+    $cover_media_errors = $this->saveBrandingCoverMediaField(
+      $node,
+      $mel_structure,
+      $form_state,
+      $fid,
+      $previous_hero_fid,
+    );
+    if ($cover_media_errors !== []) {
+      return ['node' => NULL, 'errors' => $cover_media_errors, 'warnings' => []];
+    }
+
     $gallery_errors = $this->saveBrandingGalleryField($node, $mel_structure, $form_state);
     if ($gallery_errors !== []) {
       return ['node' => NULL, 'errors' => $gallery_errors, 'warnings' => []];
@@ -1282,6 +1412,71 @@ final class EventStudioSaveService {
     $this->flushBrandingHeroImageStylesAfterSave($saved_hero_file, $previous_hero_fid, (string) $node->id());
 
     return ['node' => $node, 'errors' => [], 'warnings' => $warnings];
+  }
+
+  /**
+   * Persists Media Library provenance when it matches the saved cover file.
+   *
+   * Direct uploads remain supported. If a direct upload replaces a saved-media
+   * cover, the stale media reference is cleared while field_event_image remains
+   * the public rendering source of truth.
+   *
+   * @param array<string, mixed> $mel_structure
+   *
+   * @return list<string>
+   */
+  private function saveBrandingCoverMediaField(
+    NodeInterface $node,
+    array $mel_structure,
+    FormStateInterface $form_state,
+    int $saved_hero_fid,
+    int $previous_hero_fid,
+  ): array {
+    if (!$node->hasField('field_mel_event_cover_media')) {
+      return [];
+    }
+
+    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+    $widget = $display instanceof EntityFormDisplay
+      ? $display->getRenderer('field_mel_event_cover_media')
+      : NULL;
+    if (!$widget instanceof WidgetInterface || !isset($mel_structure['field_mel_event_cover_media'])) {
+      return [];
+    }
+
+    try {
+      $mel_form = $this->normalizeBrandingMelFormStructure($mel_structure);
+      $items = $node->get('field_mel_event_cover_media');
+      $widget->extractFormValues($items, $mel_form, $form_state);
+
+      $matching_value = [];
+      foreach ($items->referencedEntities() as $media) {
+        $source_field = method_exists($media, 'getSource')
+          ? (string) ($media->getSource()->getConfiguration()['source_field'] ?? '')
+          : '';
+        if ($source_field === '' || !$media->hasField($source_field)) {
+          continue;
+        }
+        $media_fid = (int) ($media->get($source_field)->target_id ?? 0);
+        $already_applied_media = (int) ($node->get('field_mel_event_cover_media')->target_id ?? 0) === (int) $media->id()
+          && $saved_hero_fid > 0
+          && $saved_hero_fid === $previous_hero_fid;
+        if (($saved_hero_fid > 0 && $media_fid === $saved_hero_fid) || $already_applied_media) {
+          $matching_value = [['target_id' => (int) $media->id()]];
+          break;
+        }
+      }
+      $node->set('field_mel_event_cover_media', $matching_value);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Branding saved-cover media persistence failed for node @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['Could not save the selected Media Library image.'];
+    }
+
+    return [];
   }
 
   /**
@@ -2221,7 +2416,10 @@ final class EventStudioSaveService {
     if ($mime !== '' && !str_starts_with($mime, 'image/')) {
       return FALSE;
     }
-    return TRUE;
+    $image = $this->imageFactory->get($uri);
+    return $image->isValid()
+      && $image->getWidth() > 0
+      && $image->getHeight() > 0;
   }
 
   /**

@@ -56,7 +56,7 @@
 }
 
 // ============================================================================
-// WORK COLUMN — editorial narrative width; flat on Warm Cream canvas
+// WORK COLUMN — wide, left-aligned operational canvas
 // ============================================================================
 
 .mel-event-studio--workspace .mel-launch-centre,
@@ -64,8 +64,8 @@
   display: flex;
   flex-direction: column;
   gap: $mel-zone-gap-work-internal;
-  max-width: 42rem; // Reading width for narrative + ops
-  width: min(100%, 42rem);
+  max-width: none;
+  width: 100%;
   margin: 0;
   padding: 0 0 $spacing-6;
   background: transparent;
@@ -87,11 +87,12 @@
 
 .mel-launch-centre__ready {
   margin: 0;
-  padding: 0;
-  background: transparent;
-  border: 0;
+  padding: $spacing-5;
+  background: $mel-shell-surface;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: $radius-workspace-card;
   box-shadow: none;
-  max-width: 40rem;
+  max-width: none;
 }
 
 .mel-launch-centre__eyebrow {
@@ -114,7 +115,7 @@
   margin: 0;
   @include body-text;
   color: $text-primary;
-  max-width: 38rem;
+  max-width: 54rem;
 }
 
 .mel-launch-centre__hero-hint {
@@ -135,42 +136,66 @@
 }
 
 .mel-launch-centre--live .mel-launch-centre__hero-hint {
-  background: transparent;
-  border: 0;
-  padding: $spacing-2 0 0;
-  color: $text-secondary;
-  @include meta-text;
-  font-weight: $font-weight-normal;
+  display: none;
 }
 
 // ============================================================================
-// 2. LAUNCH CHECKLIST — one restrained soft panel
+// 2–3. LAUNCH CONTROLS — matched progressive disclosures
 // ============================================================================
 
+.mel-launch-centre__controls {
+  display: grid;
+  gap: $spacing-3;
+  width: 100%;
+}
+
 .mel-event-studio--workspace .mel-launch-centre__checklist,
-.mel-launch-centre__checklist {
+.mel-launch-centre__checklist,
+.mel-event-studio--workspace .mel-launch-centre__visibility,
+.mel-launch-centre__visibility {
   margin: 0;
   padding: 0;
   border: 1px solid $mel-ws-border-soft;
-  border-radius: $radius-workspace-card;
+  border-radius: $mel-radius-sm;
   background: $mel-shell-surface;
-  box-shadow: $shadow-sm;
+  box-shadow: none;
   overflow: clip;
 }
 
-.mel-launch-centre__checklist-summary {
+.mel-launch-centre__checklist-summary,
+.mel-launch-centre__visibility-summary {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: $spacing-2 $spacing-4;
   list-style: none;
   cursor: pointer;
-  padding: $spacing-4 $spacing-5;
-  min-height: 44px;
+  padding: $spacing-3 $spacing-4;
+  min-height: 50px;
   font-weight: $font-weight-semibold;
   color: $text-primary;
-  background: transparent;
+  background: #fff8f3;
+}
+
+.mel-launch-centre__checklist-summary::before,
+.mel-launch-centre__visibility-summary::before {
+  content: '+';
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: $spacing-2;
+  border-radius: $spacing-2;
+  background: #fff1eb;
+  color: #d94f3d;
+  font-weight: $font-weight-bold;
+}
+
+.mel-launch-centre__checklist[open] > .mel-launch-centre__checklist-summary::before,
+.mel-launch-centre__visibility[open] > .mel-launch-centre__visibility-summary::before {
+  content: '−';
 }
 
 .mel-launch-centre__checklist-title {
@@ -182,6 +207,7 @@
 .mel-launch-centre__checklist-meta {
   display: inline-flex;
   align-items: center;
+  margin-left: auto;
   gap: $spacing-2;
   @include meta-text;
   font-weight: $font-weight-medium;
@@ -205,8 +231,8 @@
 .mel-launch-centre--ready .mel-launch-centre__checklist:not([open]),
 .mel-launch-centre--live .mel-launch-centre__checklist:not([open]) {
   box-shadow: none;
-  background: transparent;
-  border-color: rgba(36, 48, 58, 0.08);
+  background: $mel-shell-surface;
+  border-color: $mel-ws-border-soft;
 }
 
 .mel-launch-centre--ready .mel-launch-centre__checklist:not([open]) .mel-launch-centre__checklist-summary,
@@ -300,49 +326,20 @@
   color: $mel-brand-purple;
 }
 
-// ============================================================================
-// 3. WHO CAN FIND THIS? — quiet flat tertiary disclosure
-// ============================================================================
-
-.mel-event-studio--workspace .mel-launch-centre__visibility,
-.mel-launch-centre__visibility {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-top: 1px solid rgba(36, 48, 58, 0.08);
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-}
-
-.mel-launch-centre__visibility-summary {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: $spacing-2 $spacing-4;
-  list-style: none;
-  cursor: pointer;
-  padding: $spacing-4 0;
-  min-height: 44px;
-  font-weight: $font-weight-semibold;
-  color: $text-primary;
-  background: transparent;
-}
-
 .mel-launch-centre__visibility-title {
-  font-size: $font-size-label;
+  font-size: $font-size-section-title;
   font-weight: $font-weight-semibold;
 }
 
 .mel-launch-centre__visibility-current {
+  margin-left: auto;
   @include meta-text;
   font-weight: $font-weight-medium;
   color: $text-secondary;
 }
 
 .mel-launch-centre__visibility-body {
-  padding: 0 0 $spacing-4;
+  padding: $spacing-4;
 }
 
 // Visibility form reuses wizard form classes, so Event-steps nav renders here.
@@ -417,11 +414,6 @@
   font-weight: $font-weight-medium;
 }
 
-// Live: aftercare leads; checklist stays recessed when closed
-.mel-launch-centre--live .mel-launch-centre__after {
-  order: 0;
-}
-
 // ============================================================================
 // FOCUS — brand coral (B.5), visible, not clipped
 // ============================================================================
@@ -480,8 +472,8 @@
     padding-inline: $spacing-4;
   }
 
-  .mel-launch-centre__visibility-summary {
-    padding-inline: 0;
+  .mel-launch-centre__ready {
+    padding: $spacing-4;
   }
 
   .mel-launch-centre__list {

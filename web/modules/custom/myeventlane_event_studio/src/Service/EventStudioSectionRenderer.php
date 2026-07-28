@@ -24,6 +24,8 @@ use Drupal\myeventlane_event_studio\Plugin\EventStudioSection\EventStudioSection
 use Drupal\myeventlane_event_studio\Support\MelSupportResolverInterface;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
 use Drupal\myeventlane_tickets\Service\AccessCodeManagementBuilder;
+use Drupal\myeventlane_vendor\Controller\VendorEventOrdersController;
+use Drupal\myeventlane_vendor\Controller\VendorEventAnalyticsController;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -49,6 +51,8 @@ final class EventStudioSectionRenderer {
     private readonly ?EventWorkspaceOverviewBuilder $overviewBuilder = NULL,
     private readonly ?DomainDetector $domainDetector = NULL,
     private readonly ?EventAttendeeWorkspaceBuilder $attendeeWorkspaceBuilder = NULL,
+    private readonly ?VendorEventOrdersController $eventOrdersController = NULL,
+    private readonly ?VendorEventAnalyticsController $eventAnalyticsController = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -1004,8 +1008,10 @@ final class EventStudioSectionRenderer {
   private function buildReadonlySection(EventStudioSectionInterface $section, NodeInterface $event): array {
     return match ((string) $section->getPluginId()) {
       'attendees' => $this->buildAttendeeReadonlySection($section, $event),
-      'analytics' => $this->buildAnalyticsReadonlySection($section, $event),
-      'orders' => $this->buildReadonlyProjection(new ReadonlySectionProjection($section->title(), [], (string) $this->t('Order reporting will appear here after a paginated, event-scoped order read model is connected.'))),
+      'analytics' => $this->buildAnalyticsSection($section, $event),
+      'orders' => $this->eventOrdersController instanceof VendorEventOrdersController
+        ? $this->eventOrdersController->buildStudioContent($event)
+        : $this->emptyStateBuilder->unavailableSection($section->title()),
       default => $this->emptyStateBuilder->readonlyEmptySection($section->title()),
     };
   }
@@ -1041,15 +1047,25 @@ final class EventStudioSectionRenderer {
   /**
    * @return array<string, mixed>
    */
-  private function buildAnalyticsReadonlySection(EventStudioSectionInterface $section, NodeInterface $event): array {
+  private function buildAnalyticsSection(EventStudioSectionInterface $section, NodeInterface $event): array {
+    if (
+      $this->eventAnalyticsController instanceof VendorEventAnalyticsController
+      && $this->eventAnalyticsController->currentUserHasActivePro()
+    ) {
+      return $this->eventAnalyticsController->buildStudioContent($event);
+    }
+
     if (!$this->metricsService instanceof EventMetricsServiceInterface) {
       return $this->emptyStateBuilder->readonlyEmptySection($section->title());
     }
 
     try {
       $attendeeCount = $this->metricsService->getAttendeeCount($event);
+      $checkedInCount = $this->metricsService->getCheckedInCount($event);
       $revenue = $this->metricsService->getRevenue($event);
+      $ticketBreakdown = $this->metricsService->getTicketBreakdown($event);
       $checkInRate = $this->metricsService->getCheckInRate($event);
+      $remaining = $this->metricsService->getRemainingCapacity($event);
     }
     catch (\Throwable $e) {
       $this->logger->error('Event Studio analytics readonly summary failed for event @event: @message', [
@@ -1066,11 +1082,39 @@ final class EventStudioSectionRenderer {
         '@currency' => $revenue->getCurrencyCode(),
       ]);
 
-    return $this->buildReadonlyProjection(new ReadonlySectionProjection($section->title(), [
-      [$this->t('Attendees'), (string) $attendeeCount],
-      [$this->t('Ticket revenue'), $revenueText],
-      [$this->t('Check-in rate'), $checkInRate === NULL ? $this->t('Not available yet') : $this->t('@rate%', ['@rate' => number_format($checkInRate, 1)])],
-    ]));
+    $ticketsSold = 0;
+    foreach ($ticketBreakdown as $ticket) {
+      $ticketsSold += (int) ($ticket['sold'] ?? 0);
+    }
+
+    $checkInText = $checkInRate === NULL
+      ? (string) $this->t('Not available yet')
+      : (string) $this->t('@rate%', ['@rate' => number_format($checkInRate, 1)]);
+
+    $metrics = $revenue === NULL
+      ? [
+        ['label' => (string) $this->t('Registrations'), 'value' => (string) $attendeeCount],
+        ['label' => (string) $this->t('Checked in'), 'value' => (string) $checkedInCount],
+        ['label' => (string) $this->t('Check-in rate'), 'value' => $checkInText],
+        ['label' => (string) $this->t('Available places'), 'value' => $remaining === NULL ? (string) $this->t('Unlimited') : (string) $remaining],
+      ]
+      : [
+        ['label' => (string) $this->t('Bookings'), 'value' => (string) $attendeeCount],
+        ['label' => (string) $this->t('Tickets sold'), 'value' => (string) $ticketsSold],
+        ['label' => (string) $this->t('Ticket revenue'), 'value' => (string) $revenueText],
+        ['label' => (string) $this->t('Check-in rate'), 'value' => $checkInText],
+      ];
+
+    return [
+      '#theme' => 'mel_event_studio_analytics_pulse',
+      '#metrics' => $metrics,
+      '#is_rsvp' => $revenue === NULL,
+      '#upgrade_url' => Url::fromRoute('myeventlane_pro.overview')->toString(),
+      '#cache' => [
+        'contexts' => ['user'],
+        'tags' => $event->getCacheTags(),
+      ],
+    ];
   }
 
   /**

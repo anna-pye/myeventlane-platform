@@ -14,26 +14,25 @@
 
 <div class="mel-messages-hub mel-messages-hub--event" data-mel-messages-hub data-mel-analytics-event="messages_hub_opened">
 
-  <section class="mel-messages-hub__health mel-card mel-card--status mel-messages-hub__health--muted" aria-labelledby="mel-event-messages-heading">
-    <p class="mel-messages-hub__eyebrow">{{ 'Event Messages'|t }}</p>
-    <h2 id="mel-event-messages-heading" class="mel-messages-hub__health-title">{{ 'Keep @event guests informed'|t({'@event': panel.event_title|default('your event'|t)}) }}</h2>
-    <p class="mel-messages-hub__health-summary">{{ audience.body|default('') }}</p>
-    <div class="mel-messages-hub__actions">
-      {% if panel.compose_url %}
-        <a class="mel-button mel-button--primary" href="{{ panel.compose_url }}" data-mel-analytics-event="message_created">{{ 'New message'|t }}</a>
-      {% endif %}
-      {% if panel.brand_url %}
-        <a class="mel-button mel-button--secondary" href="{{ panel.brand_url }}">{{ 'Event email look'|t }}</a>
-      {% endif %}
-      {% if panel.cancel_url %}
-        <a class="mel-messages-hub__link" href="{{ panel.cancel_url }}">{{ 'Cancel event'|t }}</a>
-      {% endif %}
+  <section class="mel-messages-hub__command mel-card" aria-labelledby="mel-event-messages-heading">
+    <div class="mel-messages-hub__command-copy">
+      <p class="mel-messages-hub__eyebrow">{{ 'Event Messages'|t }}</p>
+      <h2 id="mel-event-messages-heading" class="mel-messages-hub__health-title">{{ 'Keep @event guests informed'|t({'@event': panel.event_title|default('your event'|t)}) }}</h2>
+      <p class="mel-messages-hub__health-summary">{{ audience.body|default('') }}</p>
+      <div class="mel-messages-hub__actions">
+        {% if panel.compose_url %}
+          <a class="mel-button mel-button--primary" href="{{ panel.compose_url }}" data-mel-analytics-event="message_created">{{ 'New message'|t }}</a>
+        {% endif %}
+        {% if panel.brand_url %}
+          <a class="mel-button mel-button--secondary" href="{{ panel.brand_url }}">{{ 'Event email look'|t }}</a>
+        {% endif %}
+        {% if panel.cancel_url %}
+          <a class="mel-messages-hub__danger-link" href="{{ panel.cancel_url }}">{{ 'Cancel event'|t }}</a>
+        {% endif %}
+      </div>
     </div>
-  </section>
 
-  <section class="mel-messages-hub__overview" aria-labelledby="mel-event-messages-overview">
-    <h3 id="mel-event-messages-overview" class="mel-messages-hub__section-title">{{ 'Overview'|t }}</h3>
-    <div class="mel-messages-hub__kpi-row" role="list">
+    <div class="mel-messages-hub__kpi-row" role="list" aria-label="{{ 'Message overview'|t }}">
       <div class="mel-messages-hub__kpi" role="listitem">
         <span class="mel-messages-hub__kpi-label">{{ 'Audience'|t }}</span>
         <span class="mel-messages-hub__kpi-value">{{ overview.audience|default(0) }}</span>
@@ -56,6 +55,7 @@
   {% if panel.types %}
     <section class="mel-card mel-messages-hub__section" aria-labelledby="mel-event-messages-types">
       <h3 id="mel-event-messages-types" class="mel-card__title">{{ 'What should I send?'|t }}</h3>
+      <p class="mel-messages-hub__section-intro">{{ 'Choose the message that matches what guests need to know next.'|t }}</p>
       <div class="mel-messages-hub__type-grid" role="list">
         {% for type in panel.types %}
           <article class="mel-messages-hub__type-card" role="listitem">
@@ -70,45 +70,48 @@
     </section>
   {% endif %}
 
-  <section class="mel-card mel-messages-hub__section" aria-labelledby="mel-event-messages-scheduled">
-    <h3 id="mel-event-messages-scheduled" class="mel-card__title">{{ 'Scheduled'|t }}</h3>
-    {% if scheduled.items is empty %}
-      <div class="mel-empty-state" role="status">
-        <p class="mel-empty-state__title">{{ scheduled.empty_title }}</p>
-        <p class="mel-empty-state__body">{{ scheduled.empty_body }}</p>
-      </div>
-    {% else %}
-      <ol class="mel-messages-hub__timeline">
-        {% for item in scheduled.items %}
-          <li class="mel-messages-hub__timeline-item">
-            <p class="mel-messages-hub__timeline-subject">{{ item.subject }}</p>
-            <p class="mel-messages-hub__muted">{{ item.status_label }} · {{ item.sent_label }}</p>
-          </li>
-        {% endfor %}
-      </ol>
-    {% endif %}
-  </section>
-
-  <section class="mel-card mel-messages-hub__section" aria-labelledby="mel-event-messages-history">
-    <h3 id="mel-event-messages-history" class="mel-card__title">{{ 'History'|t }}</h3>
-    {% if history.items is empty %}
-      <div class="mel-empty-state" role="status">
-        <p class="mel-empty-state__title">{{ history.empty_title }}</p>
-        <p class="mel-empty-state__body">{{ history.empty_body }}</p>
-      </div>
-    {% else %}
-      <ol class="mel-messages-hub__timeline" aria-label="{{ 'Message history'|t }}">
-        {% for item in history.items %}
-          <li class="mel-messages-hub__timeline-item">
-            <div class="mel-messages-hub__timeline-header">
+  <div class="mel-messages-hub__activity-grid">
+    <section class="mel-card mel-messages-hub__section" aria-labelledby="mel-event-messages-scheduled">
+      <h3 id="mel-event-messages-scheduled" class="mel-card__title">{{ 'Scheduled'|t }}</h3>
+      <p class="mel-messages-hub__section-intro">{{ 'Messages you schedule yourself appear here. Automatic event reminders continue separately.'|t }}</p>
+      {% if scheduled.items is empty %}
+        <div class="mel-empty-state" role="status">
+          <p class="mel-empty-state__title">{{ scheduled.empty_title }}</p>
+          <p class="mel-empty-state__body">{{ scheduled.empty_body }}</p>
+        </div>
+      {% else %}
+        <ol class="mel-messages-hub__timeline">
+          {% for item in scheduled.items %}
+            <li class="mel-messages-hub__timeline-item">
               <p class="mel-messages-hub__timeline-subject">{{ item.subject }}</p>
-              <span class="mel-messages-hub__status">{{ item.status_label }}</span>
-            </div>
-            <p class="mel-messages-hub__muted">{{ item.type_label }} · {{ item.sent_label }} · {{ item.delivery_summary }}</p>
-          </li>
-        {% endfor %}
-      </ol>
-    {% endif %}
-  </section>
+              <p class="mel-messages-hub__muted">{{ item.status_label }} · {{ item.sent_label }}</p>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </section>
 
+    <section class="mel-card mel-messages-hub__section" aria-labelledby="mel-event-messages-history">
+      <h3 id="mel-event-messages-history" class="mel-card__title">{{ 'History'|t }}</h3>
+      <p class="mel-messages-hub__section-intro">{{ 'Review messages already sent to this event’s guests.'|t }}</p>
+      {% if history.items is empty %}
+        <div class="mel-empty-state" role="status">
+          <p class="mel-empty-state__title">{{ history.empty_title }}</p>
+          <p class="mel-empty-state__body">{{ history.empty_body }}</p>
+        </div>
+      {% else %}
+        <ol class="mel-messages-hub__timeline" aria-label="{{ 'Message history'|t }}">
+          {% for item in history.items %}
+            <li class="mel-messages-hub__timeline-item">
+              <div class="mel-messages-hub__timeline-header">
+                <p class="mel-messages-hub__timeline-subject">{{ item.subject }}</p>
+                <span class="mel-messages-hub__status">{{ item.status_label }}</span>
+              </div>
+              <p class="mel-messages-hub__muted">{{ item.type_label }} · {{ item.sent_label }} · {{ item.delivery_summary }}</p>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+    </section>
+  </div>
 </div>

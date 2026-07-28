@@ -1,0 +1,31 @@
+<section class="mel-studio-analytics mel-studio-analytics--free" aria-labelledby="mel-studio-analytics-title">
+  <header class="mel-studio-analytics__header">
+    <div>
+      <p class="mel-studio-analytics__eyebrow">{{ 'Event pulse'|t }}</p>
+      <h2 id="mel-studio-analytics-title">{{ is_rsvp ? 'RSVP performance'|t : 'Event performance'|t }}</h2>
+      <p>{{ is_rsvp
+        ? 'See how registrations and attendance are tracking for this event.'|t
+        : 'See the essential sales and attendance signals for this event.'|t }}</p>
+    </div>
+  </header>
+
+  <div class="mel-studio-analytics__metrics" aria-label="{{ 'Event analytics summary'|t }}">
+    {% for metric in metrics %}
+      <article class="mel-studio-analytics__metric">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
+    {% endfor %}
+  </div>
+
+  <aside class="mel-studio-analytics__upgrade" aria-labelledby="mel-studio-analytics-pro-title">
+    <div>
+      <span class="mel-studio-analytics__pro-badge">{{ 'MEL Pro'|t }}</span>
+      <h3 id="mel-studio-analytics-pro-title">{{ 'Go deeper when you are ready'|t }}</h3>
+      <p>{{ 'Unlock longer trends, ticket and audience comparisons, Boost performance, advanced segments, and downloadable reports.'|t }}</p>
+    </div>
+    {% if upgrade_url %}
+      <a class="mel-btn mel-btn--primary" href="{{ upgrade_url }}">{{ 'Explore Pro analytics'|t }}</a>
+    {% endif %}
+  </aside>
+</section>

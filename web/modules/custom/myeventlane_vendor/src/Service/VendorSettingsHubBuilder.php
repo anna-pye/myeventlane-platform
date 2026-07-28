@@ -12,7 +12,7 @@ use Drupal\Core\Url;
 use Psr\Log\LoggerInterface;
 
 /**
- * Builds the organiser Workspace Settings hub view model.
+ * Builds the organiser Account settings hub view model.
  *
  * Deep-links existing profile, brand, venues, questions, payments, support.
  * Does not invent parallel Stripe, Commerce, or Drupal configuration UIs.
@@ -49,8 +49,8 @@ final class VendorSettingsHubBuilder {
     ]);
 
     return [
-      'title' => (string) $this->t('Workspace Settings'),
-      'lede' => (string) $this->t('Who you are, how you get paid, how guests hear from you, and where to get help — in one calm place.'),
+      'title' => (string) $this->t('Account settings'),
+      'lede' => (string) $this->t('Manage your organiser profile, brand, payment connections and reusable preferences. Event-specific choices stay inside each Event Studio.'),
       'health' => $health,
       'sections' => [
         $this->section(

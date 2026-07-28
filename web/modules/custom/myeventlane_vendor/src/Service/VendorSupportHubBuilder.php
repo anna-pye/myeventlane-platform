@@ -153,7 +153,7 @@ final class VendorSupportHubBuilder {
         'future' => TRUE,
       ],
       'settings_link' => [
-        'label' => (string) $this->t('Workspace Settings'),
+        'label' => (string) $this->t('Account settings'),
         'url' => $this->safeRouteUrl('myeventlane_vendor.console.settings') ?? '/vendor/settings',
       ],
       'analytics' => [

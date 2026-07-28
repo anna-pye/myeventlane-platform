@@ -274,6 +274,7 @@ services:
       - '@myeventlane_vendor.service.ticket_sales'
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@myeventlane_core.event_state_resolver'
+      - '@myeventlane_event_state.resolver'
       - '@myeventlane_vendor.event_presentation_alerts'
       - '@myeventlane_vendor.action_queue_builder'
       - '@router.route_provider'
@@ -369,6 +370,9 @@ services:
       - '@?myeventlane_boost.performance'
       - '@?myeventlane_surface.operational_policy_manager'
       - '@?myeventlane_surface.workflow_manager'
+      - '@?myeventlane_pro.vendor_pro_state'
+      - '@?myeventlane_pro.subscription_status'
+      - '@user.data'
     tags:
       - { name: controller.service_arguments }
 
@@ -563,6 +567,7 @@ services:
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'
       - '@?myeventlane_messaging.attendee_recipient_resolver'
+      - '@?myeventlane_pro.vendor_pro_state'
 
   myeventlane_vendor.controller.vendor_messages_hub:
     class: Drupal\myeventlane_vendor\Controller\VendorMessagesHubController

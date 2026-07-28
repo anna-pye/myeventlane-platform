@@ -34,6 +34,7 @@ final class VendorMessagesHubBuilder {
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
     private readonly ?object $attendeeResolver = NULL,
+    private readonly ?object $proState = NULL,
   ) {
     $this->setStringTranslation($stringTranslation);
   }
@@ -52,8 +53,11 @@ final class VendorMessagesHubBuilder {
     $events = $this->buildEventPicker($eventIds);
     $brandReady = $this->isBrandConfigured();
     $composeAvailable = $this->moduleHandler->moduleExists('myeventlane_vendor_comms');
+    $isPro = $this->proState !== NULL
+      && method_exists($this->proState, 'isPro')
+      && (bool) $this->proState->isPro();
 
-    $needsAttention = !$composeAvailable || $summary['failed'] > 0 || (!$brandReady && $events !== []);
+    $needsAttention = !$composeAvailable || $summary['failed'] > 0 || ($isPro && !$brandReady && $events !== []);
     $tone = $needsAttention ? 'attention' : ($historyRows === [] ? 'muted' : 'success');
 
     if ($summary['failed'] > 0) {
@@ -133,25 +137,33 @@ final class VendorMessagesHubBuilder {
         'empty_title' => (string) $this->t('No messages yet'),
         'empty_body' => (string) $this->t('When you send an announcement or update, it will appear in this timeline.'),
       ],
-      'audience' => [
-        'title' => (string) $this->t('Audience'),
-        'body' => (string) $this->t('You can message everyone who booked or RSVPed. More filters (ticket type, checked in, waitlist) are expanding.'),
-        'options' => $this->audienceOptions(),
-      ],
       'templates' => [
-        'title' => (string) $this->t('Templates'),
-        'body' => (string) $this->t('Start from a message type — announcement, reminder, important update, cancellation, or thank you. Pro organisers can also refine system email wording.'),
-        'cta_label' => (string) $this->t('Open Pro templates'),
+        'title' => (string) $this->t('Pro email templates'),
+        'body' => $isPro
+          ? (string) $this->t('Personalise the automatic RSVP, ticket, reminder and incomplete-booking emails guests receive.')
+          : (string) $this->t('With MEL Pro, personalise automatic guest emails while MyEventLane keeps the essential booking details in place.'),
+        'cta_label' => (string) $this->t('Design Pro email templates'),
         'cta_url' => $this->safeRouteUrl('myeventlane_pro.vendor_comms'),
-        'available' => $this->moduleHandler->moduleExists('myeventlane_pro')
-        && $this->safeRouteUrl('myeventlane_pro.vendor_comms') !== NULL,
+        'available' => $isPro
+          && $this->moduleHandler->moduleExists('myeventlane_pro')
+          && $this->safeRouteUrl('myeventlane_pro.vendor_comms') !== NULL,
+        'is_pro' => $isPro,
+        'upgrade_label' => (string) $this->t('Explore MEL Pro'),
+        'upgrade_url' => $this->safeRouteUrl('myeventlane_pro.overview'),
       ],
       'branding' => [
-        'title' => (string) $this->t('Branding'),
-        'body' => (string) $this->t('Set the sender name, reply-to, and look of emails guests receive from you.'),
+        'title' => (string) $this->t('Pro message branding'),
+        'body' => $isPro
+          ? (string) $this->t('Set the sender name, reply-to address and visual style guests see in your emails.')
+          : (string) $this->t('With MEL Pro, add your organiser identity, reply-to address and visual style to guest emails.'),
         'ready' => $brandReady,
-        'cta_label' => (string) $this->t('Edit Messages brand'),
+        'is_pro' => $isPro,
+        'available' => $isPro
+          && $this->safeRouteUrl('myeventlane_vendor.console.messaging_brand') !== NULL,
+        'cta_label' => (string) $this->t('Design Pro message branding'),
         'cta_url' => $this->safeRouteUrl('myeventlane_vendor.console.messaging_brand'),
+        'upgrade_label' => (string) $this->t('Explore MEL Pro'),
+        'upgrade_url' => $this->safeRouteUrl('myeventlane_pro.overview'),
       ],
       'support' => [
         'title' => (string) $this->t('Need a hand?'),
@@ -248,13 +260,22 @@ final class VendorMessagesHubBuilder {
       $rows[] = [
         'id' => $nid,
         'title' => (string) $node->label(),
+        'search_text' => mb_strtolower(trim((string) $node->label())),
         'compose_url' => $this->safeRouteUrl('myeventlane_vendor.console.event_promotion', ['event' => $nid]),
         'hub_url' => $this->safeRouteUrl('myeventlane_event_studio.workspace_messaging', ['node' => $nid])
         ?? $this->safeRouteUrl('myeventlane_event_studio.workspace_messages', ['node' => $nid]),
         'audience_count' => $this->countRecipients($node),
+        'changed' => (int) $node->getChangedTime(),
       ];
     }
-    usort($rows, static fn(array $a, array $b): int => strcasecmp((string) $a['title'], (string) $b['title']));
+    // The hub is an action surface: recently worked-on events are more useful
+    // than an alphabetical archive. Search still exposes every managed event.
+    usort($rows, static function (array $a, array $b): int {
+      $changed = ((int) $b['changed']) <=> ((int) $a['changed']);
+      return $changed !== 0
+        ? $changed
+        : strcasecmp((string) $a['title'], (string) $b['title']);
+    });
     return $rows;
   }
 

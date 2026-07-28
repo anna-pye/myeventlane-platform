@@ -126,15 +126,6 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
         'class' => 'mel-btn--secondary',
       ];
     }
-    if ($stripeManageUrl) {
-      $headerActions[] = [
-        'label' => (string) ($health['secondary_cta_label'] ?? $this->t('Open Stripe')),
-        'url' => $stripeManageUrl,
-        'class' => 'mel-btn--secondary',
-        'external' => TRUE,
-      ];
-    }
-
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
       'title' => (string) $this->t('Payouts'),
       'header_actions' => $headerActions,

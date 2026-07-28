@@ -1,0 +1,31 @@
+uuid: b0d5fd45-6f79-4ff5-befc-54c0fff58f88
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_mel_event_cover_media
+    - media.type.image
+    - node.type.event
+  module:
+    - media
+id: node.event.field_mel_event_cover_media
+field_name: field_mel_event_cover_media
+entity_type: node
+bundle: event
+label: 'Saved cover image'
+description: 'Choose an image already saved in Media Library, or add a reusable image there.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

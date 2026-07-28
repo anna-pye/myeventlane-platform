@@ -76,15 +76,7 @@ final class DonationAccess {
   public function vendorAccess(RouteMatchInterface $route_match, AccountInterface $account): AccessResult {
     // Administrators always have access.
     if ($account->id() === 1 || $account->hasPermission('administer site configuration')) {
-      if (!$this->domainDetector->isVendorDomain()) {
-        return AccessResult::forbidden('Vendor donation pages are only available on the vendor domain.');
-      }
       return AccessResult::allowed()->cachePerPermissions();
-    }
-
-    // Must be on vendor domain.
-    if (!$this->domainDetector->isVendorDomain()) {
-      return AccessResult::forbidden('Vendor donation pages are only available on the vendor domain.');
     }
 
     // Must be logged in.

@@ -106,7 +106,7 @@ final class VendorBrandingForm extends FormBase {
     $form['branding']['heading'] = [
       '#type' => 'html_tag',
       '#tag' => 'h2',
-      '#value' => $this->t('Messaging brand'),
+      '#value' => $this->t('Your message branding'),
       '#attributes' => ['class' => ['mel-vendor-brand-v2__title']],
     ];
 
@@ -114,17 +114,23 @@ final class VendorBrandingForm extends FormBase {
       '#type' => 'html_tag',
       '#tag' => 'p',
       '#attributes' => ['class' => ['mel-vendor-branding__intro', 'mel-vendor-brand-v2__section-lede']],
-      '#value' => $this->t('Logo, banner, and accent colour are shared with your organiser profile and email previews. Edit your full public description under Profile settings.'),
+      '#value' => $this->t('Set the reusable look for emails sent from MyEventLane. These assets are shared with your organiser profile, so you only need to maintain them in one place.'),
     ];
 
     $form['branding']['profile_link'] = [
       '#type' => 'link',
-      '#title' => $this->t('Open organiser profile settings'),
+      '#title' => $this->t('← Back to Account settings'),
       '#url' => Url::fromRoute('myeventlane_vendor.console.settings'),
       '#attributes' => ['class' => ['mel-vendor-brand-v2__header-link']],
     ];
 
     if ($form['logo_field_name']['#value'] !== '') {
+      $logo_default = $this->getManagedFileDefaultValue($vendor, $form['logo_field_name']['#value']);
+      $form['branding']['logo_preview'] = $this->buildAssetPreview(
+        $logo_default,
+        (string) $this->t('@name logo preview', ['@name' => $vendor->label()]),
+        'logo',
+      );
       $form['branding']['logo'] = [
         '#type' => 'managed_file',
         '#title' => $this->t('Logo'),
@@ -133,31 +139,39 @@ final class VendorBrandingForm extends FormBase {
           'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
           'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
         ],
-        '#default_value' => $this->getManagedFileDefaultValue($vendor, $form['logo_field_name']['#value']),
-        '#description' => $this->t('Upload the logo used for branded customer messaging.'),
+        '#default_value' => $logo_default,
+        '#description' => $this->t('Square PNG, JPG or WebP works best. Maximum 5 MB. This appears in message headers and your organiser profile.'),
+        '#wrapper_attributes' => ['class' => ['mel-vendor-brand-v2__asset-field']],
       ];
     }
 
     if ($vendor->hasField('field_banner_image')) {
+      $banner_default = $this->getManagedFileDefaultValue($vendor, 'field_banner_image');
+      $form['branding']['banner_preview'] = $this->buildAssetPreview(
+        $banner_default,
+        (string) $this->t('@name banner preview', ['@name' => $vendor->label()]),
+        'banner',
+      );
       $form['branding']['banner'] = [
         '#type' => 'managed_file',
-        '#title' => $this->t('Banner Image'),
+        '#title' => $this->t('Banner image'),
         '#upload_location' => 'public://vendor_banners/',
         '#upload_validators' => [
           'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
           'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
         ],
-        '#default_value' => $this->getManagedFileDefaultValue($vendor, 'field_banner_image'),
-        '#description' => $this->t('Upload an optional banner image for your branded presence.'),
+        '#default_value' => $banner_default,
+        '#description' => $this->t('A wide PNG, JPG or WebP works best. Maximum 10 MB. This adds personality to supported email layouts and your organiser profile.'),
+        '#wrapper_attributes' => ['class' => ['mel-vendor-brand-v2__asset-field']],
       ];
     }
 
     if ($vendor->hasField('field_accent_colour') || $vendor->hasField('field_msg_accent_color')) {
       $form['branding']['primary_color'] = [
         '#type' => 'color',
-        '#title' => $this->t('Primary Brand Colour'),
+        '#title' => $this->t('Accent colour'),
         '#default_value' => $this->getPrimaryColor($vendor),
-        '#description' => $this->t('Used for branded highlights in customer messaging.'),
+        '#description' => $this->t('Used for buttons and highlights in customer messages. Choose a colour with strong contrast so text remains easy to read.'),
         '#attributes' => ['class' => ['mel-vendor-brand-v2__colour']],
       ];
     }
@@ -364,6 +378,42 @@ final class VendorBrandingForm extends FormBase {
 
     $target_id = $vendor->get($field_name)->target_id;
     return $target_id ? [(int) $target_id] : [];
+  }
+
+  /**
+   * Builds a visual preview for a saved branding asset.
+   *
+   * @param array<int> $file_ids
+   *   Managed file IDs.
+   * @param string $alt
+   *   Accessible preview description.
+   * @param string $variant
+   *   Preview shape, either logo or banner.
+   *
+   * @return array<string, mixed>
+   *   Image render array, or an empty array when no file is saved.
+   */
+  private function buildAssetPreview(array $file_ids, string $alt, string $variant): array {
+    if (empty($file_ids[0])) {
+      return [];
+    }
+
+    $file = $this->entityTypeManager->getStorage('file')->load((int) $file_ids[0]);
+    if (!$file instanceof FileInterface) {
+      return [];
+    }
+
+    return [
+      '#theme' => 'image',
+      '#uri' => $file->getFileUri(),
+      '#alt' => $alt,
+      '#attributes' => [
+        'class' => [
+          'mel-vendor-brand-v2__preview',
+          'mel-vendor-brand-v2__preview--' . $variant,
+        ],
+      ],
+    ];
   }
 
   /**

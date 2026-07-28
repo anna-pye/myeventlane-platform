@@ -29,6 +29,8 @@ final class EventStudioTicketsAppContractTest extends TestCase {
   public function testOperationalTicketsFormUsesOrganiserLanguage(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);
+    $this->assertStringContainsString('Step 2 of 3', $form);
+    $this->assertStringContainsString('Create and manage tickets', $form);
     $this->assertStringContainsString("\$this->t('Add Ticket')", $form);
     $this->assertStringContainsString("\$this->t('Add your first ticket')", $form);
     $this->assertStringContainsString('Duplicate ticket', $form);
@@ -55,8 +57,11 @@ final class EventStudioTicketsAppContractTest extends TestCase {
   public function testTicketJourneyProgressesFromSavedBookingChoice(): void {
     $ticketsForm = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioTicketsForm.php');
     $renderer = file_get_contents($this->moduleRoot() . '/src/Service/EventStudioSectionRenderer.php');
+    $preview = file_get_contents($this->moduleRoot() . '/templates/mel-event-ticket-preview.html.twig');
 
     $this->assertNotFalse($ticketsForm);
+    $this->assertStringContainsString('Step 1 of 3', $ticketsForm);
+    $this->assertStringContainsString('Choose how people book', $ticketsForm);
     $this->assertStringContainsString("return \$this->t('Save booking settings')", $ticketsForm);
     $this->assertStringContainsString("'myeventlane_event_studio.workspace_tickets'", $ticketsForm);
     $this->assertStringContainsString("'Booking settings saved.'", $ticketsForm);
@@ -70,6 +75,10 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('if ($uses_ticket_types)', $renderer);
     $this->assertStringContainsString('if ($preview_ready && $this->eventTicketPreviewBuilder', $renderer);
     $this->assertStringContainsString('if ($uses_ticket_types && $has_ticket_setup)', $renderer);
+
+    $this->assertNotFalse($preview);
+    $this->assertStringContainsString('Step 3 of 3', $preview);
+    $this->assertStringContainsString('Check the customer preview', $preview);
   }
 
   public function testOptionalSettingsAndSalesWindowResetAreFunctional(): void {
@@ -86,6 +95,10 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('data-mel-reset-sales-window', $form);
     $this->assertStringContainsString("'type' => 'button'", $form);
     $this->assertStringContainsString('mel-event-studio-ticket-card__reset-status', $form);
+    $this->assertStringContainsString("'#title' => \$controls_summary", $form);
+    $this->assertStringContainsString("'#title' => \$this->t('Ticket actions')", $form);
+    $this->assertStringContainsString("'#open' => \$ticket_has_errors", $form);
+    $this->assertStringContainsString("str_contains((string) \$error_name, 'tickets][' . \$ticket_id)", $form);
 
     $this->assertNotFalse($javascript);
     $this->assertStringContainsString('function resetSalesWindow(button)', $javascript);
@@ -129,6 +142,19 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertNotFalse($form);
     $this->assertStringContainsString("administer commerce_product", $form);
     $this->assertStringContainsString('organisers never manage Commerce products directly', $form);
+  }
+
+  public function testWorkspaceUsesTicketingAsTheSectionLabel(): void {
+    $section = file_get_contents($this->moduleRoot() . '/src/Plugin/EventStudioSection/TicketsSection.php');
+    $tabs = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventTabsService.php');
+    $fallback = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Hook/VendorConsolePagePreprocess.php');
+
+    $this->assertNotFalse($section);
+    $this->assertStringContainsString("title: 'Ticketing'", $section);
+    $this->assertNotFalse($tabs);
+    $this->assertStringContainsString("translate('Ticketing')", $tabs);
+    $this->assertNotFalse($fallback);
+    $this->assertStringContainsString("\$this->t('Ticketing')", $fallback);
   }
 
   public function testTicketManagerRemovesCommerceLeakCopy(): void {

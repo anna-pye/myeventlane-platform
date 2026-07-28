@@ -1,0 +1,109 @@
+/**
+ * @file
+ * Payouts deep page.
+ */
+
+.mel-payouts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-5, 1.5rem);
+  width: 100%;
+  max-width: var(--mel-layout-dashboard, 1280px);
+}
+
+.mel-payouts__health.mel-card--status {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mel-space-4, 1rem);
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: var(--mel-space-5, 1.5rem);
+
+  @media (min-width: 960px) {
+    flex-direction: row;
+    align-items: flex-end;
+  }
+
+  &--success {
+    border-color: rgba(4, 120, 87, 0.28);
+    background: rgba(16, 185, 129, 0.06);
+  }
+
+  &--attention {
+    border-color: rgba(180, 83, 9, 0.35);
+    background: rgba(245, 158, 11, 0.08);
+  }
+}
+
+.mel-payouts__health-copy {
+  flex: 1 1 auto;
+  max-width: 54rem;
+}
+
+.mel-payouts__health-actions {
+  flex: 0 0 auto;
+
+  .mel-button {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1rem;
+  }
+}
+
+.mel-payouts__section-heading {
+  margin-bottom: var(--mel-space-3, 0.75rem);
+
+  h2 {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  p {
+    margin: var(--mel-space-1, 0.25rem) 0 0;
+    color: var(--mel-color-text-secondary, #5b6470);
+  }
+}
+
+.mel-payouts__section-intro {
+  margin: var(--mel-space-1, 0.25rem) 0 0;
+  color: var(--mel-color-text-secondary, #5b6470);
+  line-height: 1.45;
+}
+
+.mel-payouts__transactions {
+  padding: var(--mel-space-5, 1.5rem);
+}
+
+.mel-payouts__balance-grid {
+  @media (min-width: 960px) {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.mel-payouts__table-scroll {
+  overflow-x: auto;
+  margin: 0 calc(-1 * var(--mel-space-5, 1.5rem)) calc(-1 * var(--mel-space-5, 1.5rem));
+}
+
+.mel-payouts__transactions .mel-table {
+  min-width: 44rem;
+}
+
+.mel-payouts__transactions .mel-table__head,
+.mel-payouts__transactions .mel-table__row {
+  grid-template-columns: minmax(7rem, 0.7fr) minmax(16rem, 2fr) minmax(7rem, 0.7fr) minmax(7rem, 0.7fr);
+}
+
+.mel-payouts__status {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  color: #047857;
+  background: rgba(16, 185, 129, 0.1);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}

@@ -18,3 +18,4 @@ dependencies:
   - drupal:user
   - drupal:node
   - drupal:datetime
+  - drupal:file

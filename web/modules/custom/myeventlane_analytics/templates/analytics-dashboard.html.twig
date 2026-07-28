@@ -20,15 +20,12 @@
 <div class="mel-analytics-hub" data-mel-analytics-hub data-mel-analytics-event="analytics_viewed" data-mel-analytics-pro="{{ is_pro ? '1' : '0' }}">
 
   <header class="mel-analytics-hub__header">
-    <div>
-      {% if model.eyebrow %}
-        <p class="mel-analytics-hub__eyebrow">{{ model.eyebrow }}</p>
-      {% endif %}
-      <h1 class="mel-analytics-hub__title">{{ model.title|default('Analytics'|t) }}</h1>
-      {% if model.subtitle %}
-        <p class="mel-analytics-hub__subtitle">{{ model.subtitle }}</p>
-      {% endif %}
-    </div>
+    {% if model.eyebrow %}
+      <p class="mel-analytics-hub__eyebrow">{{ model.eyebrow }}</p>
+    {% endif %}
+    {% if model.subtitle %}
+      <p class="mel-analytics-hub__subtitle">{{ model.subtitle }}</p>
+    {% endif %}
   </header>
 
   {# Empty CTA is additive — do not hide Business Health / Launch / Pro when the organiser has no events. #}
@@ -44,63 +41,39 @@
     </section>
   {% endif %}
 
-  {# ── Business Health ── #}
-  {% if business %}
-    <section class="mel-card mel-card--status mel-analytics-hub__health mel-analytics-hub__health--{{ business.tone|default('muted') }}" id="business-health" aria-labelledby="mel-analytics-business-heading">
-      <p class="mel-analytics-hub__eyebrow">{{ 'Business health'|t }}</p>
-      <h2 id="mel-analytics-business-heading" class="mel-analytics-hub__health-title">{{ business.headline }}</h2>
-      <p class="mel-analytics-hub__health-question">{{ business.question }}</p>
-      <p class="mel-analytics-hub__health-summary">{{ business.summary }}</p>
-      {% if business.trend_label %}
-        <p class="mel-analytics-hub__trend">{{ business.trend_label }}</p>
-      {% endif %}
-      <div class="mel-analytics-hub__kpi-row" role="list">
-        {% for metric in business.metrics|default([]) %}
-          <div class="mel-analytics-hub__kpi" role="listitem">
-            <span class="mel-analytics-hub__kpi-label">{{ metric.label }}</span>
-            <span class="mel-analytics-hub__kpi-value" aria-label="{{ metric.label }} {{ metric.value }}">{{ metric.value }}</span>
-          </div>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
-
-  {# ── Launch Readiness ── #}
-  {% if launch %}
-    <section class="mel-card mel-card--status mel-analytics-hub__launch mel-analytics-hub__launch--{{ launch.tone|default('muted') }}" id="launch-readiness" aria-labelledby="mel-analytics-launch-heading">
-      <p class="mel-analytics-hub__eyebrow">{{ 'Launch readiness'|t }}</p>
-      <h2 id="mel-analytics-launch-heading" class="mel-analytics-hub__health-title">{{ launch.headline }}</h2>
-      <p class="mel-analytics-hub__health-question">{{ launch.question }}</p>
-      <p class="mel-analytics-hub__health-summary">{{ launch.summary }}</p>
-      <ul class="mel-analytics-hub__readiness-list">
-        {% for item in launch.items|default([]) %}
-          <li class="mel-analytics-hub__readiness-item mel-analytics-hub__readiness-item--{{ item.tone|default('muted') }}">
-            <span class="mel-analytics-hub__status-dot" aria-hidden="true"></span>
-            <div class="mel-analytics-hub__readiness-copy">
-              <p class="mel-analytics-hub__readiness-label">
-                <span class="visually-hidden">{{ item.status_label }}: </span>{{ item.label }}
-              </p>
-              <p class="mel-analytics-hub__readiness-detail">{{ item.detail }}</p>
+  <div class="mel-analytics-hub__priority-grid">
+    {# ── Business Health ── #}
+    {% if business %}
+      <section class="mel-card mel-card--status mel-analytics-hub__health mel-analytics-hub__health--{{ business.tone|default('muted') }}" id="business-health" aria-labelledby="mel-analytics-business-heading">
+        <p class="mel-analytics-hub__eyebrow">{{ 'Business health'|t }}</p>
+        <h2 id="mel-analytics-business-heading" class="mel-analytics-hub__health-title">{{ business.headline }}</h2>
+        <p class="mel-analytics-hub__health-summary">{{ business.summary }}</p>
+        {% if business.trend_label %}
+          <p class="mel-analytics-hub__trend">{{ business.trend_label }}</p>
+        {% endif %}
+        <div class="mel-analytics-hub__kpi-row" role="list">
+          {% for metric in business.metrics|default([]) %}
+            <div class="mel-analytics-hub__kpi" role="listitem">
+              <span class="mel-analytics-hub__kpi-label">{{ metric.label }}</span>
+              <span class="mel-analytics-hub__kpi-value" aria-label="{{ metric.label }} {{ metric.value }}">{{ metric.value }}</span>
             </div>
-            {% if item.url %}
-              <a class="mel-analytics-hub__readiness-link" href="{{ item.url }}">{{ 'Open'|t }}<span class="visually-hidden"> — {{ item.label }}</span></a>
-            {% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
 
-  {# ── Next recommended action ── #}
-  {% if next %}
-    <section class="mel-card mel-analytics-hub__next mel-analytics-hub__next--{{ next.tone|default('success') }}" id="next-action" aria-labelledby="mel-analytics-next-heading">
-      <h2 id="mel-analytics-next-heading" class="mel-card__title">{{ next.title }}</h2>
-      <p>{{ next.body }}</p>
-      {% if next.cta_url and next.cta_label %}
-        <a class="mel-button mel-button--primary" href="{{ next.cta_url }}">{{ next.cta_label }}</a>
-      {% endif %}
-    </section>
-  {% endif %}
+    {# ── Next recommended action ── #}
+    {% if next %}
+      <section class="mel-card mel-analytics-hub__next mel-analytics-hub__next--{{ next.tone|default('success') }}" id="next-action" aria-labelledby="mel-analytics-next-heading">
+        <p class="mel-analytics-hub__eyebrow">{{ 'Your next step'|t }}</p>
+        <h2 id="mel-analytics-next-heading" class="mel-card__title">{{ next.title }}</h2>
+        <p>{{ next.body }}</p>
+        {% if next.cta_url and next.cta_label %}
+          <a class="mel-button mel-button--primary" href="{{ next.cta_url }}">{{ next.cta_label }}</a>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
 
   {# ── Pulse sections ── #}
   {% if model.sections %}
@@ -131,6 +104,38 @@
           </article>
         {% endfor %}
       </div>
+    </section>
+  {% endif %}
+
+  {# ── Launch Readiness ── #}
+  {% if launch %}
+    <section class="mel-card mel-card--status mel-analytics-hub__launch mel-analytics-hub__launch--{{ launch.tone|default('muted') }}" id="launch-readiness">
+      <details class="mel-analytics-hub__readiness-details">
+        <summary>
+          <span>
+            <span class="mel-analytics-hub__eyebrow">{{ 'Operational checks'|t }}</span>
+            <span id="mel-analytics-launch-heading" class="mel-analytics-hub__health-title">{{ launch.headline }}</span>
+            <span class="mel-analytics-hub__health-summary">{{ launch.summary }}</span>
+          </span>
+          <span class="mel-analytics-hub__details-action">{{ 'Review checks'|t }}</span>
+        </summary>
+        <ul class="mel-analytics-hub__readiness-list" aria-labelledby="mel-analytics-launch-heading">
+          {% for item in launch.items|default([]) %}
+            <li class="mel-analytics-hub__readiness-item mel-analytics-hub__readiness-item--{{ item.tone|default('muted') }}">
+              <span class="mel-analytics-hub__status-dot" aria-hidden="true"></span>
+              <div class="mel-analytics-hub__readiness-copy">
+                <p class="mel-analytics-hub__readiness-label">
+                  <span class="visually-hidden">{{ item.status_label }}: </span>{{ item.label }}
+                </p>
+                <p class="mel-analytics-hub__readiness-detail">{{ item.detail }}</p>
+              </div>
+              {% if item.url %}
+                <a class="mel-analytics-hub__readiness-link" href="{{ item.url }}">{{ 'Open'|t }}<span class="visually-hidden"> — {{ item.label }}</span></a>
+              {% endif %}
+            </li>
+          {% endfor %}
+        </ul>
+      </details>
     </section>
   {% endif %}
 
@@ -201,45 +206,47 @@
     </section>
   {% endif %}
 
-  {# ── Recent activity ── #}
-  {% if model.recent_activity %}
-    <section class="mel-card mel-analytics-hub__activity" id="recent-activity" aria-labelledby="mel-analytics-activity-heading">
-      <h2 id="mel-analytics-activity-heading" class="mel-card__title">{{ 'Recent activity'|t }}</h2>
-      <ul class="mel-analytics-hub__activity-list">
-        {% for item in model.recent_activity %}
-          <li>
-            {% if item.url %}
-              <a href="{{ item.url }}">{{ item.title }}</a>
-            {% else %}
-              <span>{{ item.title }}</span>
-            {% endif %}
-            <span class="mel-analytics-hub__activity-meta">{{ item.meta }}</span>
-          </li>
-        {% endfor %}
-      </ul>
-    </section>
-  {% endif %}
-
-  {# ── Pro depth / Exports (organisers only — guest model has no business/launch) ── #}
-  {% if pro and (business or launch) %}
-    <section class="mel-card mel-analytics-hub__pro" id="exports" aria-labelledby="mel-analytics-pro-heading">
-      <h2 id="mel-analytics-pro-heading" class="mel-card__title">{{ pro.title }}</h2>
-      <p>{{ pro.body }}</p>
-      {% if pro.benefits %}
-        <ul class="mel-analytics-hub__pro-benefits">
-          {% for benefit in pro.benefits %}
-            <li>{{ benefit }}</li>
+  <div class="mel-analytics-hub__tail-grid">
+    {# ── Recent activity ── #}
+    {% if model.recent_activity %}
+      <section class="mel-card mel-analytics-hub__activity" id="recent-activity" aria-labelledby="mel-analytics-activity-heading">
+        <h2 id="mel-analytics-activity-heading" class="mel-card__title">{{ 'Recent activity'|t }}</h2>
+        <ul class="mel-analytics-hub__activity-list">
+          {% for item in model.recent_activity %}
+            <li>
+              {% if item.url %}
+                <a href="{{ item.url }}">{{ item.title }}</a>
+              {% else %}
+                <span>{{ item.title }}</span>
+              {% endif %}
+              <span class="mel-analytics-hub__activity-meta">{{ item.meta }}</span>
+            </li>
           {% endfor %}
         </ul>
-      {% endif %}
-      <div class="mel-analytics-hub__pro-exports">
-        <h3 class="mel-analytics-hub__pro-exports-title">{{ pro.export_label }}</h3>
-        <p>{{ pro.export_body }}</p>
-      </div>
-      {% if upgrade_url %}
-        <a class="mel-button {{ is_pro ? 'mel-button--secondary' : 'mel-button--primary' }}" href="{{ upgrade_url }}" data-mel-analytics-event="pro_upgrade_clicked">{{ pro.cta_label }}</a>
-      {% endif %}
-    </section>
-  {% endif %}
+      </section>
+    {% endif %}
+
+    {# ── Pro depth / Exports (organisers only — guest model has no business/launch) ── #}
+    {% if pro and (business or launch) %}
+      <section class="mel-card mel-analytics-hub__pro" id="exports" aria-labelledby="mel-analytics-pro-heading">
+        <h2 id="mel-analytics-pro-heading" class="mel-card__title">{{ pro.title }}</h2>
+        <p>{{ pro.body }}</p>
+        {% if pro.benefits %}
+          <ul class="mel-analytics-hub__pro-benefits">
+            {% for benefit in pro.benefits %}
+              <li>{{ benefit }}</li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <div class="mel-analytics-hub__pro-exports">
+          <h3 class="mel-analytics-hub__pro-exports-title">{{ pro.export_label }}</h3>
+          <p>{{ pro.export_body }}</p>
+        </div>
+        {% if upgrade_url %}
+          <a class="mel-button {{ is_pro ? 'mel-button--secondary' : 'mel-button--primary' }}" href="{{ upgrade_url }}" data-mel-analytics-event="pro_upgrade_clicked">{{ pro.cta_label }}</a>
+        {% endif %}
+      </section>
+    {% endif %}
+  </div>
 
 </div>

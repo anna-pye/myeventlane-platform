@@ -1,0 +1,20 @@
+uuid: df97ccf2-04af-4c6b-a7a8-d3c44738d19f
+langcode: en
+status: true
+dependencies:
+  module:
+    - media
+    - node
+id: node.field_mel_event_cover_media
+field_name: field_mel_event_cover_media
+entity_type: node
+type: entity_reference
+settings:
+  target_type: media
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

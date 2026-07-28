@@ -1,0 +1,328 @@
+/**
+ * @file
+ * Selected-event message composer and message-branding companion pages.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+
+.mel-event-studio-companion-form {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-4;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: $mel-layout-workspace;
+  margin: 0;
+  padding: $spacing-6;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 20px;
+  background: $bg-primary;
+  box-shadow: 0 12px 32px $mel-ws-shadow-soft;
+}
+
+.mel-event-studio-companion-form__header {
+  margin: 0;
+  padding: 0 0 $spacing-2;
+}
+
+.mel-event-studio-companion-form__eyebrow {
+  margin: 0 0 $spacing-1;
+  color: $mel-ws-coral;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mel-event-studio-companion-form__title,
+.mel-messages-compose__title {
+  margin: 0;
+  color: $text-primary;
+  font-size: clamp(1.75rem, 2.5vw, 2.25rem);
+  line-height: 1.15;
+}
+
+.mel-event-studio-companion-form__header > p:last-child,
+.mel-messages-compose__intro > p {
+  max-width: 52rem;
+  margin: $spacing-2 0 0;
+  color: $text-secondary;
+  line-height: 1.55;
+}
+
+.mel-event-studio-companion-form__accordion {
+  margin: 0;
+  overflow: clip;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 16px;
+  background: $bg-primary;
+}
+
+.mel-event-studio-companion-form__accordion > summary {
+  min-height: 56px;
+  box-sizing: border-box;
+  padding: $spacing-4 $spacing-5;
+  cursor: pointer;
+  list-style: none;
+  color: $mel-ws-navy;
+  background: linear-gradient(90deg, rgba(255, 107, 74, 0.08), $ml-vendor-surface-soft 42%);
+  font-size: 1rem;
+  font-weight: $font-weight-bold;
+}
+
+.mel-event-studio-companion-form__accordion > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mel-event-studio-companion-form__accordion > summary::before {
+  content: '›';
+  display: inline-grid;
+  place-items: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-right: $spacing-3;
+  border-radius: 999px;
+  color: $bg-primary;
+  background: $mel-ws-coral;
+}
+
+.mel-event-studio-companion-form__accordion[open] > summary::before {
+  content: '⌄';
+}
+
+.mel-event-studio-companion-form__accordion > .details-wrapper {
+  display: grid;
+  gap: $spacing-4;
+  padding: $spacing-5;
+}
+
+.mel-event-studio-companion-form .mel-comms-info {
+  margin: 0;
+  padding: $spacing-4;
+  border: 1px solid rgba(107, 70, 255, 0.18);
+  border-radius: 14px;
+  background: $mel-ws-soft-sky;
+}
+
+.mel-event-studio-companion-form .mel-comms-info p {
+  margin: 0;
+}
+
+.mel-event-studio-companion-form .form-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: $spacing-3;
+  margin: 0;
+  padding: $spacing-4;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 16px;
+  background: $ml-vendor-surface-soft;
+}
+
+.mel-messages-compose__back {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 $spacing-4;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 999px;
+  color: $mel-ws-navy;
+  background: $bg-primary;
+  font-weight: $font-weight-bold;
+  text-decoration: none;
+}
+
+.mel-messages-compose__option-grid .fieldset__wrapper > div:first-child,
+.mel-messages-compose__option-grid .fieldset-wrapper > div:first-child {
+  display: grid;
+  gap: $spacing-3;
+}
+
+.mel-messages-compose__option-grid--types .fieldset__wrapper > div:first-child,
+.mel-messages-compose__option-grid--types .fieldset-wrapper > div:first-child {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.mel-messages-compose__option-grid--audiences .fieldset__wrapper > div:first-child,
+.mel-messages-compose__option-grid--audiences .fieldset-wrapper > div:first-child {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.mel-messages-compose__option-grid .form-item {
+  position: relative;
+  min-width: 0;
+  margin: 0;
+}
+
+.mel-messages-compose__option-grid .form-radio {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+
+.mel-messages-compose__option-grid .option {
+  display: flex;
+  min-height: 92px;
+  box-sizing: border-box;
+  padding: $spacing-4;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 14px;
+  color: $text-primary;
+  background: $bg-primary;
+  cursor: pointer;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.mel-messages-compose__option-grid .option:hover {
+  border-color: rgba(255, 107, 74, 0.4);
+  transform: translateY(-1px);
+}
+
+.mel-messages-compose__option-grid .form-radio:checked + .option {
+  border-color: $mel-ws-coral;
+  background: rgba(255, 107, 74, 0.06);
+  box-shadow: inset 0 0 0 1px $mel-ws-coral;
+}
+
+.mel-messages-compose__option-grid .form-radio:focus-visible + .option {
+  outline: 3px solid rgba(107, 70, 255, 0.28);
+  outline-offset: 2px;
+}
+
+.mel-messages-compose__option-copy {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-2;
+  line-height: 1.35;
+}
+
+.mel-messages-compose__option-copy small {
+  color: $text-secondary;
+  font-size: 0.8125rem;
+  font-weight: $font-weight-normal;
+}
+
+.mel-messages-compose__text-input,
+.mel-messages-compose__message-input {
+  border-color: rgba(44, 62, 80, 0.16) !important;
+  border-radius: 14px !important;
+  background: $bg-primary !important;
+}
+
+.mel-messages-compose__message-input {
+  min-height: 12rem;
+}
+
+.mel-messages-compose__confirmation {
+  padding: $spacing-4;
+  border: 1px solid rgba(107, 70, 255, 0.18);
+  border-radius: 14px;
+  background: rgba(107, 70, 255, 0.05);
+}
+
+.mel-messages-compose__confirmation .option {
+  display: flex;
+  align-items: flex-start;
+  gap: $spacing-3;
+}
+
+.mel-messages-compose__confirmation-copy {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+}
+
+.mel-messages-compose__confirmation-copy small,
+.mel-messages-compose__action-note {
+  color: $text-secondary;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-messages-compose__action-note {
+  margin: 0;
+}
+
+.mel-event-studio-companion-form--compose .form-actions .button--primary {
+  min-height: 46px;
+  padding-inline: $spacing-6;
+  border-color: $mel-ws-coral;
+  border-radius: 999px;
+  background: $mel-ws-coral;
+  font-weight: $font-weight-bold;
+}
+
+.mel-event-studio-companion-form .mel-comms-preview {
+  padding: $spacing-5;
+  border: 1px solid $mel-ws-purple-border;
+  border-radius: 16px;
+  background: rgba(107, 70, 255, 0.04);
+}
+
+.mel-event-studio-companion-form__current-logo {
+  display: flex;
+  align-items: center;
+  gap: $spacing-4;
+  padding: $spacing-4;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 14px;
+  background: $ml-vendor-surface-soft;
+}
+
+.mel-event-studio-companion-form__current-logo p {
+  margin: 0;
+}
+
+.mel-event-studio-companion-form__current-logo img {
+  order: -1;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: $bg-primary;
+}
+
+.mel-event-studio-companion-form .mel-past-sends > h3 {
+  display: none;
+}
+
+.mel-event-studio-companion-form .mel-past-sends {
+  overflow-x: auto;
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio-companion-form {
+    gap: $spacing-3;
+    padding: $spacing-4;
+    border-radius: 16px;
+  }
+
+  .mel-event-studio-companion-form__accordion > summary,
+  .mel-event-studio-companion-form__accordion > .details-wrapper {
+    padding: $spacing-4;
+  }
+
+  .mel-event-studio-companion-form__current-logo {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mel-messages-compose__option-grid--types .fieldset__wrapper > div:first-child,
+  .mel-messages-compose__option-grid--types .fieldset-wrapper > div:first-child,
+  .mel-messages-compose__option-grid--audiences .fieldset__wrapper > div:first-child,
+  .mel-messages-compose__option-grid--audiences .fieldset-wrapper > div:first-child {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mel-event-studio-companion-form .form-actions {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mel-messages-compose__action-note {
+    order: 3;
+  }
+}

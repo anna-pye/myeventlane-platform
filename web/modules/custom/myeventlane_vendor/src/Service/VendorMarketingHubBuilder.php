@@ -227,6 +227,7 @@ final class VendorMarketingHubBuilder {
    */
   private function buildShareEvents(array $events): array {
     $cards = [];
+    $qrGenerated = FALSE;
     foreach ($events as $event) {
       if (!$event->isPublished()) {
         continue;
@@ -238,9 +239,10 @@ final class VendorMarketingHubBuilder {
       $publicUrl = $this->domainDetector->absolutePublicUrl($path);
       $title = (string) $event->label();
       $qrUri = NULL;
-      if ($this->qrCodeGenerator !== NULL && method_exists($this->qrCodeGenerator, 'buildDataUri')) {
+      if (!$qrGenerated && $this->qrCodeGenerator !== NULL && method_exists($this->qrCodeGenerator, 'buildDataUri')) {
         try {
           $qrUri = $this->qrCodeGenerator->buildDataUri($publicUrl, 240);
+          $qrGenerated = TRUE;
         }
         catch (\Throwable $e) {
           $this->logger->warning('Marketing hub QR generation failed for event @nid: @message', [
@@ -426,6 +428,10 @@ final class VendorMarketingHubBuilder {
         ];
       }
       else {
+        $normalisedState = strtolower(trim((string) $stateLabel));
+        if (in_array($normalisedState, ['ended', 'past', 'archived'], TRUE)) {
+          continue;
+        }
         $eligible[] = [
           'title' => (string) $event->label(),
           'state' => $stateLabel,

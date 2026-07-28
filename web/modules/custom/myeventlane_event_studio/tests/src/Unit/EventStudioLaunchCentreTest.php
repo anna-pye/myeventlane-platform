@@ -128,10 +128,24 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringContainsString('After you publish', $twig);
     $this->assertStringContainsString('data-mel-launch-checklist', $twig);
     $this->assertStringContainsString('data-mel-launch-visibility', $twig);
+    $this->assertStringContainsString('mel-launch-centre__controls', $twig);
+    $this->assertStringContainsString('eyebrow_repeats_headline', $twig);
+    $this->assertStringContainsString('L.eyebrow == L.headline', $twig);
     $this->assertStringNotContainsString('data-mel-publish-action', $twig);
     $this->assertStringNotContainsString('data-mel-card-publish-action', $twig);
     $this->assertStringNotContainsString('Publish now', $twig);
     $this->assertStringNotContainsString('data-mel-unpublish-action', $twig);
+  }
+
+  public function testLaunchCentrePresentationUsesWideMatchedControls(): void {
+    $scss = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-launch-centre.scss');
+    $this->assertIsString($scss);
+    $this->assertStringContainsString('.mel-launch-centre__controls', $scss);
+    $this->assertStringContainsString('max-width: none', $scss);
+    $this->assertStringContainsString('min-height: 50px', $scss);
+    $this->assertStringContainsString('.mel-launch-centre__checklist-summary::before', $scss);
+    $this->assertStringContainsString('.mel-launch-centre__visibility-summary::before', $scss);
+    $this->assertStringContainsString('@media (max-width: 767px)', $scss);
   }
 
   public function testThemeHookRegistersLaunchCentre(): void {

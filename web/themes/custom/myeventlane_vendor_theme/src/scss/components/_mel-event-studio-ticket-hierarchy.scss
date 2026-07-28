@@ -179,8 +179,17 @@
   gap: 0;
   margin: 0;
   padding: 0;
-  border-radius: 0;
-  background: transparent;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.mel-event-studio--workspace
+  .mel-event-studio-ticket-add {
+  border-radius: 14px;
+  box-shadow: none;
 }
 
 .mel-event-studio--workspace
@@ -238,25 +247,38 @@
 
 .mel-event-studio--workspace
   .mel-event-studio-ticket-card__advanced {
+  width: 100%;
   margin: 0;
-  padding-top: $spacing-3;
-  border-top: 1px solid $mel-ws-border-soft;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: #fff;
 }
 
 .mel-event-studio--workspace
   .mel-event-studio-ticket-card__advanced
   > summary {
-  min-height: 44px;
-  padding: 0;
-  color: $text-secondary;
-  background: transparent;
-  font-weight: $font-weight-semibold;
+  width: 100%;
+  min-height: 50px;
+  padding: 11px 14px;
+  color: #475569;
+  background: #fff8f3;
+  font-size: 0.92rem;
+  font-weight: 750;
 }
 
 .mel-event-studio--workspace
   .mel-event-studio-ticket-card__advanced
   > summary::before {
-  display: none;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 10px;
+  border-radius: 8px;
+  background: #fff1eb;
+  color: #d94f3d;
 }
 
 .mel-event-studio--workspace
@@ -267,9 +289,11 @@
 .mel-event-studio--workspace
   .mel-event-studio-ticket-card__quick-actions {
   margin: 0;
-  padding: $spacing-5 0;
-  border-bottom: 1px solid $mel-ws-border-soft;
-  background: transparent;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: #fff;
   box-shadow: none;
 }
 
@@ -277,9 +301,10 @@
   .mel-event-studio-ticket-card__removal {
   margin: 0;
   padding: 0;
-  border-top: 1px solid $mel-ws-border-soft;
-  border-radius: 0;
-  background: transparent;
+  overflow: hidden;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 14px;
+  background: #fff;
   box-shadow: none;
   color: $text-secondary;
 }
@@ -287,10 +312,12 @@
 .mel-event-studio--workspace
   .mel-event-studio-ticket-card__removal
   > summary {
-  min-height: 44px;
-  padding: 0;
-  color: $text-secondary;
-  font-weight: $font-weight-semibold;
+  min-height: 50px;
+  padding: 11px 14px;
+  color: #475569;
+  background: #fff8f3;
+  font-size: 0.92rem;
+  font-weight: 750;
 }
 
 .mel-event-studio--workspace

@@ -124,6 +124,13 @@ mel_customer_operational_experience:
   dependencies:
     - core/drupal
 
+mel_cropper_jquery_compat:
+  version: 1.0
+  js:
+    js/mel-cropper-jquery-compat.js: {}
+  dependencies:
+    - core/jquery
+
 mel_branding_hero_tools:
   version: 1.8
   js:
@@ -133,6 +140,7 @@ mel_branding_hero_tools:
     - core/jquery
     - core/once
     - focal_point/drupal.focal_point
+    - myeventlane_event_studio/mel_cropper_jquery_compat
 
 mel_branding_workspace:
   version: 1.5

@@ -52,6 +52,9 @@ final class VendorMessagesHubController extends VendorConsoleBaseController impl
         '#theme' => 'myeventlane_vendor_messages_hub',
         '#hub' => $hub,
         '#attached' => [
+          'library' => [
+            'myeventlane_vendor_theme/mel_messages_hub',
+          ],
           'drupalSettings' => [
             'melMessagesHub' => [
               'analytics' => $hub['analytics'] ?? [],

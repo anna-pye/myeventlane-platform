@@ -57,7 +57,11 @@
     <h2 id="mel-auto-billing-title" class="mel-mel-billing__section-title">{{ 'Automatic payments'|t }}</h2>
     <p class="mel-mel-billing__section-desc">{{ 'Save time by automatically paying your MEL contributions. This is optional.'|t }}</p>
 
-    {% if billing_prefs|default({}).has_payment_method|default(false) %}
+    {% if not billing_prefs|default({}).payment_controls_available|default(false) %}
+      <div class="mel-mel-billing__auto-off" role="status">
+        <p class="mel-mel-billing__consent-note">{{ billing_notice|default('Saved-card controls are temporarily unavailable. Your contribution totals and invoices are still shown below.'|t) }}</p>
+      </div>
+    {% elseif billing_prefs|default({}).has_payment_method|default(false) %}
       <div class="mel-mel-billing__auto-on">
         <p class="mel-mel-billing__card-display">
           {{ 'Card ending in ****'|t }} {{ billing_prefs|default({}).last4|default('****') }}

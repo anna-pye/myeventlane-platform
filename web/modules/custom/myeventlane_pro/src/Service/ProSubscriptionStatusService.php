@@ -115,7 +115,9 @@ final class ProSubscriptionStatusService {
     $isManualPro = $isPro && !$isManaged && !$hasActiveSubscription;
 
     $canManageBilling = $isPro && ($hasActiveSubscription || $isInGrace);
-    $cancelRequestEnabled = (bool) ($this->configFactory->get('myeventlane_pro.settings')->get('cancel_request_enabled') ?? FALSE);
+    // Cancellation requests are enabled by default in install config. Preserve
+    // that contract for existing sites where the key has not yet been saved.
+    $cancelRequestEnabled = (bool) ($this->configFactory->get('myeventlane_pro.settings')->get('cancel_request_enabled') ?? TRUE);
     $canCancel = $canManageBilling && $isManaged && $hasActiveSubscription && $cancelRequestEnabled;
 
     $label = 'Inactive';

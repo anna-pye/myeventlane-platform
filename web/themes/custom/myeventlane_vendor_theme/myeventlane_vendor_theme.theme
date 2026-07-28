@@ -176,6 +176,11 @@ function myeventlane_vendor_theme_preprocess(array &$variables, string $hook): v
   if (!\Drupal::hasService('myeventlane_core.language_style')) {
     return;
   }
+  // Form control values include machine identifiers, CSRF data and the
+  // organiser's own input. Language standardisation is display-text only.
+  if (in_array($hook, ['input', 'textarea'], TRUE)) {
+    return;
+  }
   // Email wrappers carry rendered HTML with canonical hrefs — do not rewrite.
   if (in_array($hook, ['myeventlane_email', 'mel_email_base', 'myeventlane_messaging_inline'], TRUE)) {
     return;
@@ -396,6 +401,8 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   // Shell sidebar IA: VendorNavBuilder (myeventlane_vendor.nav_builder).
   $route_name = $route_match->getRouteName();
   $is_vendor_onboard = is_string($route_name) && str_starts_with($route_name, 'myeventlane_vendor.onboard');
+  $variables['page']['is_event_studio_workspace'] = is_string($route_name)
+    && str_starts_with($route_name, 'myeventlane_event_studio.workspace');
   /** @var \Drupal\myeventlane_vendor\Service\VendorNavBuilder $nav_builder */
   $nav_builder = \Drupal::service('myeventlane_vendor.nav_builder');
   $variables['page']['active_section'] = $nav_builder->resolveActiveSection(
@@ -404,51 +411,90 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   $variables['page']['vendor_shell_nav_items'] = $nav_builder->buildShellNavItems(
     $variables['page']['active_section'],
   );
+  $variables['page']['event_workspace_companion_sections'] = [];
+  if ($node instanceof \Drupal\node\NodeInterface
+    && $node->bundle() === 'event'
+    && in_array($route_name, [
+      'myeventlane_vendor.console.event_promotion',
+      'myeventlane_vendor_comms.branding',
+    ], TRUE)
+    && \Drupal::hasService('plugin.manager.myeventlane_event_studio_section')) {
+    try {
+      /** @var \Drupal\myeventlane_event_studio\EventStudioSectionManager $section_manager */
+      $section_manager = \Drupal::service('plugin.manager.myeventlane_event_studio_section');
+      $variables['page']['event_workspace_companion_sections'] = $section_manager->buildNavigation(
+        $node,
+        $account,
+        'messaging',
+      );
+    }
+    catch (\Throwable $e) {
+      \Drupal::logger('myeventlane_vendor_theme')->warning('Unable to build companion Event Studio navigation: @message', [
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
   $variables['#cache']['contexts'] = Cache::mergeContexts(
     $variables['#cache']['contexts'] ?? [],
     VendorNavBuilder::SHELL_NAV_CACHE_CONTEXTS,
   );
   $variables['page']['vendor_shell_brand_url'] = _myeventlane_vendor_theme_vendor_brand_home_url();
+  $current_path = \Drupal::requestStack()->getCurrentRequest()?->getPathInfo() ?? '';
 
   // Settings route (Profile): subsection tabs + shell title — was VendorSettingsController theme wrapper.
   $variables['page']['mel_vendor_route_tabs'] = NULL;
-  if ($route_name === 'myeventlane_vendor.console.settings') {
-    try {
-      $variables['page']['mel_vendor_route_tabs'] = [
-        [
-          'label' => t('Profile'),
-          'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
-          'active' => TRUE,
-        ],
-        [
-          'label' => t('Messaging Brand'),
-          'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
-          'active' => FALSE,
-        ],
-      ];
-      $variables['page']['shell_page_title'] = t('Settings');
-    }
-    catch (\Throwable) {
-    }
+  if (str_starts_with($current_path, '/vendor/support')) {
+    $variables['page']['shell_page_title'] = t('Support');
+  }
+  elseif ($route_name === 'myeventlane_vendor.console.events') {
+    $variables['page']['shell_page_title'] = t('Events');
+  }
+  elseif ($route_name === 'myeventlane_checkout_flow.vendor_attendees') {
+    $variables['page']['shell_page_title'] = t('Attendees');
+  }
+  elseif ($route_name === 'myeventlane_vendor.console.messages') {
+    $variables['page']['shell_page_title'] = t('Messages');
+  }
+  elseif ($route_name === 'myeventlane_escalations_portal.vendor_list') {
+    $variables['page']['shell_page_title'] = t('Support');
+  }
+  elseif ($route_name === 'myeventlane_vendor.console.settings') {
+    $variables['page']['shell_page_title'] = t('Settings');
+  }
+  elseif ($route_name === 'myeventlane_vendor.console.settings_profile') {
+    $variables['page']['shell_page_title'] = t('Settings');
   }
   elseif ($route_name === 'myeventlane_vendor.console.messaging_brand') {
-    try {
-      $variables['page']['mel_vendor_route_tabs'] = [
-        [
-          'label' => t('Profile'),
-          'url' => Url::fromRoute('myeventlane_vendor.console.settings')->toString(),
-          'active' => FALSE,
-        ],
-        [
-          'label' => t('Messaging Brand'),
-          'url' => Url::fromRoute('myeventlane_vendor.console.messaging_brand')->toString(),
-          'active' => TRUE,
-        ],
-      ];
-      $variables['page']['shell_page_title'] = t('Settings');
-    }
-    catch (\Throwable) {
-    }
+    $variables['page']['shell_page_title'] = t('Settings');
+  }
+  elseif ($route_name === 'myeventlane_pro.vendor_comms') {
+    $variables['page']['shell_page_title'] = t('Messages');
+  }
+  elseif (in_array($route_name, [
+    'myeventlane_pro.manage',
+    'myeventlane_pro.cancel_request',
+    'myeventlane_pro.cancel_confirm',
+    'myeventlane_pro.overview',
+  ], TRUE)) {
+    $variables['page']['shell_page_title'] = t('MEL Pro');
+  }
+  elseif (in_array($route_name, [
+    'myeventlane_vendor.console.payments',
+    'myeventlane_vendor.console.payouts',
+  ], TRUE)) {
+    $variables['page']['shell_page_title'] = t('Payments');
+  }
+  elseif ($route_name === 'myeventlane_analytics.dashboard') {
+    $variables['page']['shell_page_title'] = t('Analytics');
+  }
+  elseif ($route_name === 'myeventlane_vendor.console.marketing') {
+    $variables['page']['shell_page_title'] = t('Marketing');
+  }
+  elseif (in_array($route_name, [
+    'myeventlane_finance.vendor_bas',
+    'myeventlane_donations.vendor_mel_billing',
+  ], TRUE)) {
+    $variables['page']['shell_page_title'] = t('Payments');
   }
 
   // Create Event always goes through the gateway so draft-choice can run.
@@ -594,9 +640,25 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   // --- Vendor Alert Strip (STAGE A: data model, stub logic) ---
   // Exposes $page['vendor_alert'] when an alert applies. Only ONE alert at a time.
   // If no alert applies, vendor_alert is not set.
-  // Suppress on vendor onboarding routes: Stripe CTAs live in the guided flow (no duplicate banner).
+  // Suppress where Stripe guidance already owns the page hierarchy so the
+  // organiser is not shown the same warning and action twice.
   $vendor_alert = _myeventlane_vendor_theme_get_vendor_alert($current_user);
-  if ($vendor_alert !== NULL && !$is_vendor_onboard) {
+  $has_page_level_payment_health = str_starts_with($current_path, '/vendor/support')
+    || in_array($route_name, [
+    'myeventlane_vendor.console.payments',
+    'myeventlane_vendor.console.payouts',
+    'myeventlane_analytics.dashboard',
+    'myeventlane_vendor.console.marketing',
+    'myeventlane_pro.manage',
+    'myeventlane_pro.cancel_request',
+    'myeventlane_pro.cancel_confirm',
+    'myeventlane_pro.overview',
+    'myeventlane_vendor.console.settings',
+    'myeventlane_vendor.console.settings_profile',
+    'myeventlane_vendor.console.messaging_brand',
+    'myeventlane_escalations_portal.vendor_list',
+    ], TRUE);
+  if ($vendor_alert !== NULL && !$is_vendor_onboard && !$has_page_level_payment_health) {
     $variables['page']['vendor_alert'] = $vendor_alert;
   }
 
@@ -1407,6 +1469,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'has_placement_impressions_chart' => FALSE,
         'is_tickets_enabled' => FALSE,
         'is_rsvp_enabled' => FALSE,
+        'studio' => FALSE,
       ],
       'template' => 'event/analytics',
     ],
@@ -1435,6 +1498,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'event' => NULL,
         'orders' => [],
         'totals' => NULL,
+        'studio' => FALSE,
       ],
       'template' => 'event/orders',
     ],
@@ -2714,4 +2778,3 @@ function myeventlane_vendor_theme_preprocess_node(array &$variables): void {
     $variables['mel_event_state_key'] = NULL;
   }
 }
-

@@ -1,11 +1,11 @@
-# Owns Workspace Settings hub + organiser profile form.
+# Owns Account settings hub + organiser profile form.
 # Access matches vendor console.
 
 myeventlane_vendor.console.settings:
   path: '/vendor/settings'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_settings_hub:hub'
-    _title: 'Workspace Settings'
+    _title: 'Account settings'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
   options:

@@ -130,6 +130,6 @@ myeventlane_pro.vendor_comms:
   path: '/vendor/pro/settings/comms'
   defaults:
     _form: '\Drupal\myeventlane_pro\Form\ProVendorCommsForm'
-    _title: 'Pro communications'
+    _title: 'Pro email wording'
   requirements:
     _role: 'vendor'
