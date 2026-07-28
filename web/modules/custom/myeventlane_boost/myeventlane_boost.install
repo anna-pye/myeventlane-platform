@@ -653,19 +653,23 @@ function myeventlane_boost_update_10010(): string {
   }
 
   $database = \Drupal::database();
+  // Initialise both states atomically so cron can never observe historical
+  // expired entitlements as pending and resend their notifications.
+  $historical_expired = (int) $database
+    ->select('myeventlane_boost_entitlement', 'entitlement')
+    ->condition('status', 'expired')
+    ->countQuery()
+    ->execute()
+    ->fetchField();
+
   $database->update('myeventlane_boost_entitlement')
     ->fields([
-      'expiry_notification_status' => 'pending',
       'expiry_notification_attempts' => 0,
     ])
-    ->execute();
-
-  $historical_expired = $database
-    ->update('myeventlane_boost_entitlement')
-    ->fields([
-      'expiry_notification_status' => 'sent',
-    ])
-    ->condition('status', 'expired')
+    ->expression(
+      'expiry_notification_status',
+      "CASE WHEN status = 'expired' THEN 'sent' ELSE 'pending' END",
+    )
     ->execute();
 
   return sprintf(
