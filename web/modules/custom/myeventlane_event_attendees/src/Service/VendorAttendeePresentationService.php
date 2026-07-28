@@ -37,21 +37,64 @@ final class VendorAttendeePresentationService implements VendorAttendeePresentat
     foreach ($map as $key => $item) {
       $keyStr = (string) $key;
       if (is_array($item) && isset($item['label'], $item['value'])) {
+        $value = $this->normalizeCustomAnswerValue($item['value']);
+        if ($value === NULL) {
+          continue;
+        }
+        $label = $this->normalizeCustomAnswerValue($item['label']);
         $out[] = [
           'key' => $keyStr,
-          'label' => trim((string) $item['label']),
-          'value' => trim((string) $item['value']),
+          'label' => $label !== NULL && $label !== '' ? $label : $keyStr,
+          'value' => $value,
         ];
       }
       else {
+        $value = $this->normalizeCustomAnswerValue($item);
+        // Nested maps are operational metadata, not attendee-facing answers.
+        if ($value === NULL) {
+          continue;
+        }
         $out[] = [
           'key' => $keyStr,
           'label' => $keyStr,
-          'value' => trim((string) $item),
+          'value' => $value,
         ];
       }
     }
     return $out;
+  }
+
+  /**
+   * Converts one answer value without coercing nested metadata to a string.
+   */
+  private function normalizeCustomAnswerValue(mixed $value): ?string {
+    if ($value === NULL) {
+      return '';
+    }
+    if (is_scalar($value)) {
+      return trim((string) $value);
+    }
+    if ($value instanceof \Stringable) {
+      return trim((string) $value);
+    }
+    if (!is_array($value)) {
+      return NULL;
+    }
+    if ($value === []) {
+      return '';
+    }
+
+    $parts = [];
+    foreach ($value as $part) {
+      if (!is_scalar($part) && !$part instanceof \Stringable) {
+        return NULL;
+      }
+      $text = trim((string) $part);
+      if ($text !== '') {
+        $parts[] = $text;
+      }
+    }
+    return implode(', ', $parts);
   }
 
   /**

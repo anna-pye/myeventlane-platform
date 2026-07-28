@@ -1,0 +1,207 @@
+/**
+ * @file
+ * Event Studio Attendees — calm, event-scoped guest operations.
+ *
+ * Presentation only. Attendee data, filters, check-in, export and messaging
+ * continue to come from the canonical attendee workspace builder.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+
+.mel-event-studio--workspace[data-current-section-id='attendees'] {
+  .mel-event-studio-section.mel-es-card {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .mel-event-studio-section__header {
+    margin: 0 0 $spacing-4;
+    padding: 0;
+    border: 0;
+  }
+
+  .mel-event-studio-section__title {
+    margin: 0;
+  }
+
+  .mel-event-studio-section__body {
+    gap: 0;
+  }
+}
+
+.mel-attendees-workspace {
+  gap: $spacing-5;
+  width: 100%;
+}
+
+.mel-attendees-workspace__header {
+  align-items: center;
+  gap: $spacing-4;
+  padding: $spacing-5;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: $radius-workspace-card;
+  background: $mel-shell-surface;
+  box-shadow: none;
+}
+
+.mel-attendees-workspace__intro {
+  flex: 1 1 28rem;
+}
+
+.mel-attendees-workspace__lede {
+  max-width: 52rem;
+  margin: 0;
+  color: $text-secondary;
+  @include body-text;
+}
+
+.mel-attendees-workspace__actions {
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mel-attendees-workspace__metrics {
+  width: 100%;
+}
+
+.mel-attendees-workspace__metric-list {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid rgba(36, 48, 58, 0.08);
+  border-radius: $mel-radius-sm;
+  background: $mel-brand-soft-sky;
+}
+
+.mel-attendees-workspace__metric-list li {
+  min-width: 0;
+  padding: $spacing-4;
+  border-left: 1px solid rgba(36, 48, 58, 0.08);
+}
+
+.mel-attendees-workspace__metric-list li:first-child {
+  border-left: 0;
+}
+
+.mel-attendees-workspace__metric-label {
+  margin-bottom: $spacing-1;
+  color: $text-secondary;
+  font-weight: $font-weight-semibold;
+}
+
+.mel-attendees-workspace__metric-list strong {
+  display: block;
+  color: $text-primary;
+  font-size: 1.1rem;
+  line-height: $line-height-tight;
+}
+
+.mel-attendees-workspace__empty {
+  align-items: flex-start;
+  width: 100%;
+  padding: $spacing-6;
+  border: 1px solid rgba(36, 48, 58, 0.08);
+  border-radius: $radius-workspace-card;
+  background: $mel-shell-surface;
+  box-shadow: $shadow-sm;
+  text-align: left;
+}
+
+.mel-attendees-workspace__empty .mel-empty-state__title {
+  margin: 0 0 $spacing-2;
+  color: $text-primary;
+  @include band-title;
+}
+
+.mel-attendees-workspace__empty .mel-empty-state__text,
+.mel-attendees-workspace__empty .mel-empty-state__prompt {
+  max-width: 50rem;
+  color: $text-secondary;
+  @include body-text;
+}
+
+.mel-attendees-workspace__empty .mel-action-group {
+  justify-content: flex-start;
+  margin-top: $spacing-4;
+}
+
+.mel-attendees-workspace__toolbar {
+  align-items: end;
+}
+
+.mel-attendees-workspace__reset {
+  flex: 0 0 auto;
+  min-height: 44px;
+}
+
+.mel-attendees-workspace__reset[hidden] {
+  display: none;
+}
+
+.mel-attendees-workspace__result-status {
+  margin: -$spacing-2 0 0;
+  color: $text-secondary;
+  @include meta-text;
+  font-weight: $font-weight-semibold;
+}
+
+.mel-attendee-card {
+  border-color: $mel-ws-border-soft;
+  border-radius: $mel-radius-sm;
+  box-shadow: none;
+}
+
+.mel-attendee-card[hidden],
+.mel-attendees-workspace__list[hidden],
+.mel-attendees-workspace__empty-filter[hidden] {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .mel-attendees-workspace {
+    gap: $spacing-4;
+  }
+
+  .mel-attendees-workspace__header,
+  .mel-attendees-workspace__empty {
+    padding: $spacing-4;
+  }
+
+  .mel-attendees-workspace__actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .mel-attendees-workspace__actions .mel-btn {
+    flex: 1 1 100%;
+  }
+
+  .mel-attendees-workspace__reset {
+    width: 100%;
+  }
+
+  .mel-attendees-workspace__metric-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .mel-attendees-workspace__metric-list li {
+    border-top: 1px solid rgba(36, 48, 58, 0.08);
+  }
+
+  .mel-attendees-workspace__metric-list li:nth-child(-n + 2) {
+    border-top: 0;
+  }
+
+  .mel-attendees-workspace__metric-list li:nth-child(odd) {
+    border-left: 0;
+  }
+}

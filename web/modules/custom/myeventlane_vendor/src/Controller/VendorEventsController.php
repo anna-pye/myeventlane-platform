@@ -66,7 +66,7 @@ final class VendorEventsController extends VendorConsoleBaseController implement
   public function list(Request $request): array {
     $model = $this->eventIndexViewModelBuilder->build($this->currentUser, [
       'status' => $request->query->get('status') ?? 'all',
-      'sort' => $request->query->get('sort') ?? 'soonest',
+      'sort' => $request->query->get('sort') ?? 'created',
     ]);
 
     $body = [

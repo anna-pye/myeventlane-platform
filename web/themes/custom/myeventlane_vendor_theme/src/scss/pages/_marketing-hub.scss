@@ -13,7 +13,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--mel-space-5, 1.5rem);
-  max-width: var(--mel-layout-marketing, 1400px);
+  width: 100%;
+  max-width: var(--mel-layout-dashboard, 1280px);
 }
 
 .mel-marketing-hub__jump {
@@ -57,6 +58,9 @@
 }
 
 .mel-marketing-hub__health {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   padding: var(--mel-space-5, 1.5rem);
 
   &--success {
@@ -72,6 +76,65 @@
   &--muted {
     border-color: var(--mel-color-border, #e5e7eb);
   }
+}
+
+.mel-marketing-hub__tools-grid {
+  display: grid;
+  gap: var(--mel-space-5, 1.5rem);
+
+  @media (min-width: 1100px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.mel-marketing-hub__disclosure {
+  margin-top: var(--mel-space-4, 1rem);
+  border: 1px solid var(--mel-color-border, #e5e7eb);
+  border-radius: var(--mel-radius-md, 12px);
+  background: rgba(255, 255, 255, 0.72);
+
+  summary {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    font-weight: 700;
+    color: var(--mel-color-text, #111827);
+  }
+
+  summary span {
+    color: var(--mel-color-text-secondary, #5b6470);
+    font-weight: 600;
+  }
+}
+
+.mel-marketing-hub__compact-list {
+  max-height: 24rem;
+  overflow: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0 1rem 0.5rem;
+
+  li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 0;
+    border-top: 1px solid var(--mel-color-border, #e5e7eb);
+  }
+
+  a {
+    color: var(--mel-color-link, #1d4ed8);
+    font-weight: 700;
+  }
+}
+
+.mel-marketing-hub__compact-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
 
 .mel-marketing-hub__health-title {

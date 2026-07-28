@@ -16,6 +16,7 @@ use Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\myeventlane_rsvp\Form\RsvpPublicForm;
 use Drupal\node\NodeInterface;
+use Drupal\image\Entity\ImageStyle;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -158,7 +159,10 @@ final class BookController extends ControllerBase {
     if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
       $file = $node->get('field_event_image')->entity;
       if ($file) {
-        $build['#hero_url'] = $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+        $heroStyle = ImageStyle::load('mel_event_hero_featured');
+        $build['#hero_url'] = $heroStyle
+          ? $heroStyle->buildUrl($file->getFileUri())
+          : $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
       }
     }
 

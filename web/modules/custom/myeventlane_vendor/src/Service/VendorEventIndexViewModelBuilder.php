@@ -70,7 +70,7 @@ final class VendorEventIndexViewModelBuilder {
     $boostFieldExists = $this->eventBundleHasBoostField();
 
     $statusParam = $this->normalizeStatus((string) ($filters['status'] ?? 'all'));
-    $sortParam = $this->normalizeSort((string) ($filters['sort'] ?? 'soonest'));
+    $sortParam = $this->normalizeSort((string) ($filters['sort'] ?? 'created'));
     if (!$boostFieldExists && $statusParam === 'boosted') {
       $statusParam = 'all';
     }
@@ -129,7 +129,7 @@ final class VendorEventIndexViewModelBuilder {
         'url' => NULL,
       ],
       'filters' => ['active' => 'all', 'items' => []],
-      'sort' => ['active' => 'soonest', 'items' => []],
+      'sort' => ['active' => 'created', 'items' => []],
       'summary' => [
         'total' => 0,
         'draft' => 0,
@@ -304,6 +304,7 @@ final class VendorEventIndexViewModelBuilder {
         'attendees' => $this->routeUrlIfAccessible('myeventlane_event_attendees.vendor_list', ['node' => $nid], $account),
         'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
       ],
+      '_created' => $node->getCreatedTime(),
       '_changed' => $node->getChangedTime(),
       '_start_ts' => $startTs,
     ];
@@ -523,7 +524,7 @@ final class VendorEventIndexViewModelBuilder {
    * @return array<string, mixed>
    */
   private function stripInternalsRow(array $row): array {
-    unset($row['_changed'], $row['_start_ts']);
+    unset($row['_created'], $row['_changed'], $row['_start_ts']);
     return $row;
   }
 
@@ -533,7 +534,12 @@ final class VendorEventIndexViewModelBuilder {
    * @return list<array<string, mixed>>
    */
   private function sortRowsInternal(array $rows, string $sort): array {
-    if ($sort === 'updated') {
+    if ($sort === 'created') {
+      usort($rows, static function (array $a, array $b): int {
+        return (int) ($b['_created'] ?? 0) <=> (int) ($a['_created'] ?? 0);
+      });
+    }
+    elseif ($sort === 'updated') {
       usort($rows, static function (array $a, array $b): int {
         return (int) ($b['_changed'] ?? 0) <=> (int) ($a['_changed'] ?? 0);
       });
@@ -563,6 +569,12 @@ final class VendorEventIndexViewModelBuilder {
    */
   private function buildSortItems(AccountInterface $account, string $status, string $activeSort): array {
     return [
+      [
+        'key' => 'created',
+        'label' => (string) $this->t('Newest created'),
+        'url' => $this->safeEventsIndexUrl($account, $status, 'created'),
+        'active' => $activeSort === 'created',
+      ],
       [
         'key' => 'soonest',
         'label' => (string) $this->t('Soonest'),
@@ -599,7 +611,7 @@ final class VendorEventIndexViewModelBuilder {
         'title' => (string) $this->t('No matches'),
         'message' => (string) $this->t('Try another filter or clear filters to see all events.'),
         'action_label' => (string) $this->t('Show all events'),
-        'url' => $this->safeEventsIndexUrl($account, 'all', 'soonest'),
+        'url' => $this->safeEventsIndexUrl($account, 'all', 'created'),
       ];
     }
 
@@ -619,7 +631,7 @@ final class VendorEventIndexViewModelBuilder {
 
   private function normalizeSort(string $raw): string {
     $v = strtolower(trim($raw));
-    return $v === 'updated' ? 'updated' : 'soonest';
+    return in_array($v, ['created', 'soonest', 'updated'], TRUE) ? $v : 'created';
   }
 
   private function safeEventsIndexUrl(AccountInterface $account, string $status, string $sort): ?Url {
@@ -627,7 +639,7 @@ final class VendorEventIndexViewModelBuilder {
     if ($status !== 'all') {
       $query['status'] = $status;
     }
-    if ($sort !== 'soonest') {
+    if ($sort !== 'created') {
       $query['sort'] = $sort;
     }
     return $this->routeUrlIfAccessible(self::ROUTE_EVENTS_INDEX, [], $account, ['query' => $query]);

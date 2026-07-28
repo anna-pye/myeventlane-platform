@@ -8,7 +8,7 @@
   background: #ffffff;
   border: 1px solid #e9e3de;
   border-radius: 16px;
-  padding: 24px;
+  padding: 28px;
   box-shadow: 0 2px 8px rgba(36, 48, 58, 0.06);
   margin-bottom: 24px;
 }
@@ -20,7 +20,8 @@
 }
 
 #myeventlane-messaging-vendor-branding-form .mel-vendor-branding__intro {
-  margin: 0 0 24px;
+  max-width: 760px;
+  margin: 0 0 16px;
   color: #637185;
 }
 
@@ -98,17 +99,14 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  margin-bottom: 16px;
-  padding: 0 16px;
-  border-radius: 12px;
-  border: 1px solid #e9e3de;
+  margin-bottom: 24px;
+  padding: 0;
   font-weight: 700;
   text-decoration: none;
-  color: #293241;
+  color: #5b6470;
 }
 
 .mel-vendor-brand-v2__header-link:hover {
-  border-color: #f26d5b;
   color: #f26d5b;
 }
 
@@ -123,6 +121,74 @@
   padding: 4px;
 }
 
+.mel-vendor-brand-v2__preview,
+.mel-organiser-brand-v2__preview {
+  display: block;
+  width: 100%;
+  margin: 8px 0 12px;
+  border: 1px solid #e9e3de;
+  border-radius: 14px;
+  background: #fef9f4;
+  object-fit: contain;
+}
+
+.mel-vendor-brand-v2__preview--logo,
+.mel-organiser-brand-v2__preview--logo {
+  width: 112px;
+  height: 112px;
+  padding: 8px;
+}
+
+.mel-vendor-brand-v2__preview--banner,
+.mel-organiser-brand-v2__preview--banner {
+  max-width: 620px;
+  aspect-ratio: 3 / 1;
+}
+
+#myeventlane-messaging-vendor-branding-form .form-managed-file {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #e9e3de;
+  border-radius: 12px;
+  background: #fef9f4;
+}
+
+#myeventlane-messaging-vendor-branding-form .form-managed-file .button {
+  width: auto;
+  min-height: 40px;
+  padding: 8px 14px;
+  border: 1px solid #d8d1cb;
+  border-radius: 10px;
+  background: #fff;
+  color: #293241;
+}
+
+#myeventlane-messaging-vendor-branding-form .form-managed-file .button:hover,
+#myeventlane-messaging-vendor-branding-form .form-managed-file .button:focus {
+  border-color: #f26d5b;
+  background: #fff7f2;
+  color: #293241;
+}
+
 .mel-vendor-brand-v2__actions {
+  display: flex;
+  justify-content: flex-start;
   margin-top: 8px;
+  padding-top: 20px;
+  border-top: 1px solid #e9e3de;
+}
+
+@media (max-width: 767px) {
+  .mel-vendor-brand-v2 .mel-card,
+  #myeventlane-messaging-vendor-branding-form .mel-card {
+    padding: 20px;
+  }
+
+  .mel-vendor-brand-v2__preview--logo {
+    width: 96px;
+    height: 96px;
+  }
 }

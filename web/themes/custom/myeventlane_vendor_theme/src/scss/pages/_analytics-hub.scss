@@ -14,6 +14,7 @@
   flex-direction: column;
   gap: var(--mel-space-5, 1.5rem);
   max-width: var(--mel-layout-dashboard, 1280px);
+  width: 100%;
 }
 
 .mel-analytics-hub__eyebrow {
@@ -33,11 +34,23 @@
 }
 
 .mel-analytics-hub__subtitle {
-  margin: var(--mel-space-2, 0.5rem) 0 0;
-  max-width: 42rem;
+  margin: 0;
+  max-width: 48rem;
   font-size: 1rem;
   line-height: 1.5;
   color: var(--mel-color-text-secondary, #4b5563);
+}
+
+.mel-analytics-hub__priority-grid,
+.mel-analytics-hub__tail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--mel-space-4, 1rem);
+
+  @media (min-width: 1024px) {
+    grid-template-columns: minmax(0, 1.65fr) minmax(19rem, 0.85fr);
+    align-items: stretch;
+  }
 }
 
 .mel-analytics-hub__health,
@@ -49,6 +62,11 @@
 .mel-analytics-hub__pro,
 .mel-analytics-hub__empty {
   padding: var(--mel-space-5, 1.5rem);
+}
+
+.mel-analytics-hub__priority-grid > .mel-card,
+.mel-analytics-hub__tail-grid > .mel-card {
+  height: 100%;
 }
 
 .mel-analytics-hub__health--success,
@@ -103,6 +121,12 @@
   }
 }
 
+.mel-analytics-hub__priority-grid .mel-analytics-hub__kpi-row {
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(5, minmax(6rem, 1fr));
+  }
+}
+
 .mel-analytics-hub__kpi {
   display: flex;
   flex-direction: column;
@@ -131,6 +155,44 @@
   display: flex;
   flex-direction: column;
   gap: var(--mel-space-3, 0.75rem);
+}
+
+.mel-analytics-hub__readiness-details {
+  summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--mel-space-4, 1rem);
+    cursor: pointer;
+    list-style: none;
+
+    &::-webkit-details-marker {
+      display: none;
+    }
+  }
+
+  &[open] summary {
+    padding-bottom: var(--mel-space-4, 1rem);
+    border-bottom: 1px solid var(--mel-color-border, #e5e7eb);
+  }
+}
+
+.mel-analytics-hub__readiness-details .mel-analytics-hub__eyebrow,
+.mel-analytics-hub__readiness-details .mel-analytics-hub__health-title,
+.mel-analytics-hub__readiness-details .mel-analytics-hub__health-summary {
+  display: block;
+}
+
+.mel-analytics-hub__details-action {
+  flex: 0 0 auto;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--mel-color-border, #e5e7eb);
+  border-radius: 999px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.72);
 }
 
 .mel-analytics-hub__readiness-item {
@@ -234,9 +296,13 @@
 }
 
 .mel-analytics-hub__event-list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: var(--mel-space-4, 1rem);
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .mel-analytics-hub__event {
@@ -244,11 +310,7 @@
   flex-direction: column;
   gap: var(--mel-space-4, 1rem);
 
-  @media (min-width: 900px) {
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: stretch;
-  }
+  justify-content: space-between;
 }
 
 .mel-analytics-hub__event-title {
@@ -299,9 +361,13 @@
 
 .mel-analytics-hub__event-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: var(--mel-space-2, 0.5rem);
-  min-width: 12rem;
+
+  .mel-analytics-hub__link {
+    padding-inline: var(--mel-space-2, 0.5rem);
+  }
 }
 
 .mel-analytics-hub__activity-list {

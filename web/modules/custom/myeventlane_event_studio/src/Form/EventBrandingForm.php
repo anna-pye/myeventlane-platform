@@ -5,14 +5,19 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Component\Utility\Html;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\RedirectCommand;
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Markup;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\BrandingHeroFocalAugmenter;
 use Drupal\myeventlane_event_studio\Service\EventBrandingPreviewBuilder;
 use Drupal\myeventlane_event_studio\Service\EventPageStyleResolver;
 use Drupal\myeventlane_event_studio\Service\EventStudioMelPayloadService;
 use Drupal\myeventlane_event_studio\Service\EventStyleAccessManager;
+use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -88,7 +93,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
   }
 
   protected function getContinueButtonLabel() {
-    return $this->t('Save branding');
+    return $this->t('Save changes');
   }
 
   protected function onWizardStepSaveSuccess(NodeInterface $saved, FormStateInterface $form_state): void {
@@ -132,13 +137,16 @@ final class EventBrandingForm extends EventStudioBaseForm {
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
     $this->ensureInjectedServices();
+    $managed_file_action = $this->isBrandingHeroManagedFileAction($form_state);
     $nid = (int) ($form_state->getValue('nid') ?? 0);
     if ($nid > 0) {
       $this->saveService->prepareBrandingHeroFormStateForValidation($form_state);
     }
     parent::validateForm($form, $form_state);
 
-    if ($nid < 1) {
+    // Choose file / Remove are AJAX staging actions. They must rebuild the
+    // crop editor before final branding validation runs.
+    if ($managed_file_action || $nid < 1) {
       return;
     }
     $loaded = $this->entityTypeManager->getStorage('node')->load($nid);
@@ -204,6 +212,15 @@ final class EventBrandingForm extends EventStudioBaseForm {
 
     $this->validateBrandingHeroPendingUpload($form_state);
     $this->validateBrandingHeroUploadResolution($form_state, $mel_for_hero);
+  }
+
+  /**
+   * Whether the current submission is staging or removing a managed hero file.
+   */
+  private function isBrandingHeroManagedFileAction(FormStateInterface $form_state): bool {
+    $trigger = $form_state->getTriggeringElement();
+    $name = is_array($trigger) ? (string) ($trigger['#name'] ?? '') : '';
+    return str_ends_with($name, '_upload_button') || str_ends_with($name, '_remove_button');
   }
 
   /**
@@ -321,6 +338,47 @@ final class EventBrandingForm extends EventStudioBaseForm {
     ]);
   }
 
+  /**
+   * Keeps a managed-file AJAX upload on the render-only entity clone.
+   *
+   * This widget is embedded manually rather than built by a full entity form.
+   * After ManagedFile creates a temporary file, the rebuilt widget therefore
+   * needs the submitted fid overlaid onto the clone explicitly.
+   */
+  private function applySubmittedHeroOverlay(
+    NodeInterface $target,
+    FormStateInterface $form_state,
+  ): void {
+    $candidates = [];
+    $user_mel = $form_state->getUserInput()['mel'] ?? NULL;
+    if (is_array($user_mel)) {
+      $candidates[] = $user_mel;
+    }
+    $value_mel = $form_state->getValue('mel');
+    if (is_array($value_mel)) {
+      $candidates[] = $value_mel;
+    }
+
+    foreach ($candidates as $mel) {
+      $fragment = $this->brandingHeroInputFragmentWithFid($mel);
+      if ($fragment === NULL) {
+        continue;
+      }
+      $hero = EventStudioMelPayloadService::normalizeHeroFromMelFragment([
+        'field_event_image' => $fragment,
+        'field_event_image_alt' => $mel['field_event_image_alt'] ?? '',
+      ]);
+      if ($hero['fid'] < 1) {
+        continue;
+      }
+      $target->set('field_event_image', [[
+        'target_id' => $hero['fid'],
+        'alt' => $hero['alt'],
+      ]]);
+      return;
+    }
+  }
+
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
     $this->ensureInjectedServices();
     $request = $this->requestStack->getCurrentRequest();
@@ -330,6 +388,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     if ($restoreDraft) {
       $this->applyDraftHeroOverlay($formNode, $melDefaults);
     }
+    $this->applySubmittedHeroOverlay($formNode, $form_state);
     if ($this->saveService->isBrokenHeroImageReference($formNode)) {
       $formNode->set('field_event_image', []);
       $this->messenger()->addWarning($this->t('The previous cover image file is no longer available. Upload a new image, or use “Remove cover image” and save to clear the broken reference.'));
@@ -338,6 +397,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
     $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_workspace';
     $form['mel']['#attached']['library'][] = 'myeventlane_event_studio/mel_branding_hero_tools';
     $form['mel']['#attributes']['class'][] = 'mel-event-branding-studio';
+    $form['mel']['#attributes']['id'] = 'mel-branding-form-content';
 
     $form['mel']['branding_layout_open'] = [
       '#type' => 'markup',
@@ -357,9 +417,19 @@ final class EventBrandingForm extends EventStudioBaseForm {
         . '<header class="mel-es-field-group__header">'
         . '<h3 class="mel-es-field-group__title" id="mel-es-branding-title">' . Html::escape((string) $this->t('Branding')) . '</h3>'
         . '<p class="mel-es-field-group__hint">' . Html::escape((string) $this->t('Shape how your event appears across MyEventLane and social sharing.')) . '</p>'
-        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Choose a photo, click Upload, add alt text, then Save branding. Upload alone does not publish your cover. Set focal shortcuts after upload if you need to adjust the 16:9 hero.')) . '</p>'
+        . '<p class="mel-es-field-group__reassurance">' . Html::escape((string) $this->t('Choose a new or saved landscape image, adjust its 16:9 framing, describe it for screen readers, then save your changes.')) . '</p>'
         . '</header>'
         . '<div class="mel-es-field-group__body">'
+        . '<ol class="mel-es-branding-workflow" aria-label="' . Html::escape((string) $this->t('Cover image steps')) . '">'
+        . '<li><span>1</span><strong>' . Html::escape((string) $this->t('Choose')) . '</strong><small>' . Html::escape((string) $this->t('Upload new or use a saved image')) . '</small></li>'
+        . '<li><span>2</span><strong>' . Html::escape((string) $this->t('Frame')) . '</strong><small>' . Html::escape((string) $this->t('Position the 16:9 crop')) . '</small></li>'
+        . '<li><span>3</span><strong>' . Html::escape((string) $this->t('Describe')) . '</strong><small>' . Html::escape((string) $this->t('Add useful alt text')) . '</small></li>'
+        . '<li><span>4</span><strong>' . Html::escape((string) $this->t('Save')) . '</strong><small>' . Html::escape((string) $this->t('Update the public preview')) . '</small></li>'
+        . '</ol>'
+        . '<div class="mel-es-branding-source mel-es-branding-source--upload">'
+        . '<p class="mel-es-branding-source__eyebrow">' . Html::escape((string) $this->t('Option 1')) . '</p>'
+        . '<h4 class="mel-es-branding-source__title">' . Html::escape((string) $this->t('Upload a new image')) . '</h4>'
+        . '<p class="mel-es-branding-source__help">' . Html::escape((string) $this->t('For a sharp event page, use a landscape image at least 1600×900 px. Smaller accepted images may appear soft.')) . '</p>'
         . '<div class="mel-identity-media mel-identity-media--compact">'
         . '<div class="mel-identity-media__fields mel-builder-fields mel-builder-fields--stack">'
       ),
@@ -403,6 +473,10 @@ final class EventBrandingForm extends EventStudioBaseForm {
         }
         $this->brandingHeroFocalAugmenter->attachAfterBuild($form['mel']['field_event_image'], $formNode, $focal_override);
       }
+    }
+
+    if ($form_display instanceof EntityFormDisplay) {
+      $this->buildSavedCoverMediaSelector($form, $formNode, $form_state, $form_display);
     }
 
     $main['branding_hero_upload_notice'] = [
@@ -460,23 +534,27 @@ final class EventBrandingForm extends EventStudioBaseForm {
         '#type' => 'html_tag',
         '#tag' => 'p',
         '#attributes' => ['class' => ['mel-es-branding-crop-notice__title']],
-        '#value' => Html::escape((string) $this->t('Cover crop')),
+        '#value' => Html::escape((string) $this->t('Framing status')),
       ],
       'text' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
         '#attributes' => ['class' => ['mel-es-branding-crop-notice__text']],
-        '#value' => Html::escape((string) $this->t('Apply the 16:9 crop under your cover image before saving branding.')),
+        '#value' => Html::escape((string) $this->t('Adjust the 16:9 frame before saving. This framing is used on your public event and booking pages.')),
       ],
     ];
 
     $main['field_event_image_alt'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Image alt text'),
-      '#description' => $this->t('Short description for screen readers and SEO. Required when a cover image is present.'),
+      '#description' => $this->t('Describe the important people, setting or action in the image. Required when a cover image is present. Example: “Three performers singing on a warmly lit stage.”'),
       '#default_value' => $this->resolveHeroAltDefault($node, $melDefaults),
       '#weight' => 6,
-      '#attributes' => ['class' => ['mel-input']],
+      '#attributes' => [
+        'class' => ['mel-input'],
+        // Event-image descriptions are authored content, never personal data.
+        'autocomplete' => 'off',
+      ],
     ];
 
     $main['branding_hero_tools'] = [
@@ -490,7 +568,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#attributes' => ['class' => ['mel-es-branding-hero-framing__title']],
-          '#value' => Html::escape((string) $this->t('Public hero framing (16:9)')),
+          '#value' => Html::escape((string) $this->t('Saved public hero preview')),
         ],
         'frame' => [
           '#type' => 'html_tag',
@@ -501,7 +579,7 @@ final class EventBrandingForm extends EventStudioBaseForm {
           '#type' => 'html_tag',
           '#tag' => 'p',
           '#attributes' => ['class' => ['mel-es-branding-hero-framing__hint', 'mel-text--muted']],
-          '#value' => Html::escape((string) $this->t('Matches your public event and book page heroes — Classic and Immersive both use this framing.')),
+          '#value' => Html::escape((string) $this->t('Updates after you click Save branding.')),
         ],
       ],
       'quality' => [
@@ -524,55 +602,70 @@ final class EventBrandingForm extends EventStudioBaseForm {
           ),
         ],
       ],
-      'presets' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets']],
-        'label' => [
-          '#type' => 'html_tag',
-          '#tag' => 'span',
-          '#attributes' => ['class' => ['mel-es-branding-hero-focal-presets__label']],
-          '#value' => Html::escape((string) $this->t('Focal shortcuts')),
-        ],
-        'buttons' => [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['mel-es-branding-hero-focal-presets__buttons'],
-            'role' => 'group',
-            'aria-label' => (string) $this->t('Focal shortcuts'),
-          ],
-          'c' => $this->buildFocalPresetButton($this->t('Centre'), '50,50'),
-          't' => $this->buildFocalPresetButton($this->t('Top'), '50,18'),
-          'b' => $this->buildFocalPresetButton($this->t('Bottom'), '50,82'),
-          'l' => $this->buildFocalPresetButton($this->t('Left'), '18,50'),
-          'r' => $this->buildFocalPresetButton($this->t('Right'), '82,50'),
-        ],
-        'status' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#attributes' => [
-            'class' => ['mel-es-branding-hero-focal-status'],
-            'id' => 'mel-es-branding-focal-status',
-            'aria-live' => 'polite',
-          ],
-          '#value' => '',
-        ],
-      ],
       'remove' => [
         '#type' => 'button',
         '#value' => $this->t('Remove cover image'),
         '#weight' => 10,
         '#attributes' => [
           'type' => 'button',
-          'class' => ['button', 'button--danger', 'js-mel-branding-hero-remove'],
+          'class' => ['button', 'button--secondary', 'mel-es-branding-remove', 'js-mel-branding-hero-remove'],
           'disabled' => 'disabled',
           'aria-disabled' => 'true',
         ],
       ],
     ];
 
+    $can_customize = $this->eventStyleAccess->canCustomizeEventPage($this->currentUser);
+    $main['branding_pro_colour_status'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => [
+          'mel-es-branding-pro-status',
+          $can_customize ? 'is-active' : 'is-locked',
+        ],
+        'role' => 'note',
+      ],
+      '#weight' => 10,
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-branding-pro-status__title']],
+        '#value' => Html::escape((string) ($can_customize
+          ? $this->t('MEL Pro active')
+          : $this->t('MEL Pro event colours'))),
+      ],
+      'message' => [
+        '#type' => 'markup',
+        '#markup' => Markup::create(
+          '<p class="mel-es-branding-pro-status__message">'
+          . Html::escape((string) ($can_customize
+            ? $this->t('You can change this event’s page style and approved colour palette below.')
+            : $this->t('The Coral event page is included. Upgrade to Pro to unlock Immersive styling and additional approved colour palettes.')))
+          . ' <a href="#mel-es-page-style-title">'
+          . Html::escape((string) ($can_customize
+            ? $this->t('Choose page colours')
+            : $this->t('See Pro options')))
+          . '</a></p>'
+        ),
+      ],
+    ];
+
+    $main['branding_image_save'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Save changes'),
+      '#name' => 'branding_image_save',
+      '#submit' => ['::submitContinue'],
+      '#weight' => 11,
+      '#attributes' => [
+        'class' => ['button', 'button--primary', 'js-mel-branding-save'],
+        'data-mel-branding-save' => '1',
+      ],
+      '#suffix' => '<p class="mel-es-branding-save-help">' . Html::escape((string) $this->t('Saves your cover, gallery and page colours, then refreshes the public preview.')) . '</p>',
+    ];
+
     $form['mel']['branding_hero_close'] = [
       '#type' => 'markup',
-      '#markup' => Markup::create('</div></div></div></section>'),
+      '#markup' => Markup::create('</div></div></div></div></section>'),
       '#weight' => 12,
     ];
 
@@ -581,6 +674,162 @@ final class EventBrandingForm extends EventStudioBaseForm {
     }
 
     $this->buildPageStyleFields($form, $node, $melDefaults);
+  }
+
+  /**
+   * Adds an image-only Media Library chooser for the event cover.
+   *
+   * The selected media file is applied to the existing image/crop widget so
+   * public rendering continues to use field_event_image as its source of truth.
+   *
+   * @param array<string, mixed> $form
+   */
+  private function buildSavedCoverMediaSelector(
+    array &$form,
+    NodeInterface $formNode,
+    FormStateInterface $form_state,
+    EntityFormDisplay $form_display,
+  ): void {
+    if (!$formNode->hasField('field_mel_event_cover_media')) {
+      return;
+    }
+    $widget = $form_display->getRenderer('field_mel_event_cover_media');
+    if ($widget === NULL) {
+      return;
+    }
+
+    $form['mel']['saved_cover_media'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-es-saved-cover-media']],
+      '#weight' => 3,
+      'heading' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h4',
+        '#attributes' => ['class' => ['mel-es-saved-cover-media__title']],
+        '#value' => Html::escape((string) $this->t('Choose from saved images')),
+      ],
+      'help' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#attributes' => ['class' => ['mel-es-saved-cover-media__help']],
+        '#value' => Html::escape((string) $this->t('Reuse an image you have already saved. Select it, then choose “Use and frame image” to prepare it for this event.')),
+      ],
+    ];
+
+    $selector = $widget->form(
+      $formNode->get('field_mel_event_cover_media'),
+      $form['mel'],
+      $form_state,
+    );
+    $this->renameMediaLibraryOpenButton($selector);
+    $selector['#weight'] = 1;
+    $form['mel']['saved_cover_media']['selector'] = $selector;
+
+    $form['mel']['saved_cover_media']['apply'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Use and frame image'),
+      '#name' => 'apply_saved_cover_image',
+      // String callbacks remain serializable in Drupal's AJAX form cache.
+      '#validate' => [],
+      '#submit' => ['::applySavedCoverImage'],
+      '#limit_validation_errors' => [
+        ['nid'],
+        ['mel', 'field_mel_event_cover_media'],
+      ],
+      '#ajax' => [
+        'callback' => '::refreshBrandingAfterSavedCover',
+        'wrapper' => 'mel-branding-form-content',
+        'progress' => [
+          'type' => 'throbber',
+          'message' => $this->t('Loading image into the framing editor…'),
+        ],
+      ],
+      '#attributes' => ['class' => ['button', 'button--secondary']],
+      '#weight' => 2,
+    ];
+  }
+
+  /**
+   * Uses the selected Media Library image in the existing crop widget.
+   *
+   * @param array<string, mixed> $form
+   */
+  public function applySavedCoverImage(array &$form, FormStateInterface $form_state): void {
+    $this->ensureInjectedServices();
+    $nid = (int) ($form_state->getValue('nid') ?? 0);
+    $node = $nid > 0 ? $this->entityTypeManager->getStorage('node')->load($nid) : NULL;
+    if (!$node instanceof NodeInterface || !$node->hasField('field_mel_event_cover_media')) {
+      $this->messenger()->addWarning($this->t('Choose a saved image first.'));
+      $form_state->setRebuild();
+      return;
+    }
+    $this->assertVendorEvent($node);
+
+    $selection_path = ['mel', 'field_mel_event_cover_media'];
+    $selection_input = NestedArray::getValue($form_state->getUserInput(), $selection_path);
+    $media_id = is_array($selection_input)
+      ? (int) ($selection_input['selection'][0]['target_id'] ?? 0)
+      : 0;
+    $media = $media_id > 0
+      ? $this->entityTypeManager->getStorage('media')->load($media_id)
+      : NULL;
+    if (!$media instanceof MediaInterface) {
+      $this->messenger()->addWarning($this->t('Choose a saved image first.'));
+      $form_state->setRebuild();
+      return;
+    }
+
+    $result = $this->saveService->applyBrandingCoverMedia($node, $media);
+    if ($result['errors'] !== []) {
+      foreach ($result['errors'] as $error) {
+        $this->messenger()->addError($this->t($error));
+      }
+      $form_state->setRebuild();
+      return;
+    }
+
+    $this->messenger()->addStatus($this->t('Saved image loaded. Adjust the 16:9 framing, then choose Save image.'));
+    $form_state->setRedirect('myeventlane_event_studio.workspace_branding', ['node' => $node->id()]);
+  }
+
+  /**
+   * AJAX callback after applying a saved Media Library image.
+   *
+   * @param array<string, mixed> $form
+   *
+   * @return array<string, mixed>|\Drupal\Core\Ajax\AjaxResponse
+   */
+  public function refreshBrandingAfterSavedCover(array &$form, FormStateInterface $form_state): array|AjaxResponse {
+    $redirect = $form_state->getRedirect();
+    if ($redirect instanceof Url) {
+      $response = new AjaxResponse();
+      $response->addCommand(new RedirectCommand($redirect->toString()));
+      return $response;
+    }
+    return is_array($form['mel'] ?? NULL) ? $form['mel'] : $form;
+  }
+
+  /**
+   * Gives the standard Media Library opener task-specific wording.
+   *
+   * @param array<string, mixed> $element
+   */
+  private function renameMediaLibraryOpenButton(array &$element): void {
+    foreach ($element as $key => &$child) {
+      if (!is_array($child)) {
+        continue;
+      }
+      if ($key === 'open_button') {
+        $child['#value'] = $this->t('Choose from saved images');
+      }
+      elseif ($key === 'update_button') {
+        $child['#value'] = $this->t('Replace saved image');
+      }
+      elseif ($key === 'remove_button') {
+        $child['#value'] = $this->t('Clear saved choice');
+      }
+      $this->renameMediaLibraryOpenButton($child);
+    }
   }
 
   /**
@@ -796,22 +1045,6 @@ final class EventBrandingForm extends EventStudioBaseForm {
       }
     }
     return '';
-  }
-
-  /**
-   * @return array<string, mixed>
-   */
-  private function buildFocalPresetButton($title, string $preset): array {
-    return [
-      '#type' => 'button',
-      '#value' => $title,
-      '#attributes' => [
-        'type' => 'button',
-        'class' => ['button', 'button--small', 'button--secondary', 'mel-es-branding-focal-preset'],
-        'data-focal-preset' => $preset,
-        'aria-pressed' => 'false',
-      ],
-    ];
   }
 
 }

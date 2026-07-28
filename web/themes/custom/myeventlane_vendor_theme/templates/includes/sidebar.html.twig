@@ -18,7 +18,15 @@
 
   <div class="mel-sidebar__brand">
     <a href="{{ page.vendor_shell_brand_url|default(path('myeventlane_vendor.console.dashboard')) }}" class="mel-sidebar__logo" aria-label="{{ 'Organiser dashboard'|t }}">
-      <span class="mel-sidebar__logo-mark">M</span>
+      <span class="mel-sidebar__logo-mark">
+        <img
+          class="mel-sidebar__logo-image"
+          src="/themes/custom/myeventlane_vendor_theme/images/myeventlane-logo-icon.png"
+          alt=""
+          width="40"
+          height="40"
+        >
+      </span>
       <span class="mel-sidebar__logo-text">MyEventLane</span>
     </a>
   </div>
@@ -28,7 +36,7 @@
   {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
   {% set nav_groups = [
     { id: 'primary', label: '', keys: ['dashboard', 'events', 'attendees', 'orders', 'messages', 'payments', 'analytics', 'marketing'] },
-    { id: 'account', label: 'Account'|t, keys: ['settings', 'support'] },
+    { id: 'account', label: 'Account'|t, keys: ['pro', 'settings', 'support'] },
   ] %}
 
   <div class="mel-sidebar__nav-groups">
@@ -45,9 +53,10 @@
               {% for item in nav_items %}
                 {% if item.key|default('') == key %}
                   {% set wizard_children = item.children|default([]) %}
-                  {% set has_subnav = wizard_children|length > 0 %}
+                  {% set event_workspace_groups = item.key|default('') == 'events' ? page.event_workspace_companion_sections|default({}) : {} %}
+                  {% set has_subnav = wizard_children|length > 0 or event_workspace_groups|length > 0 %}
 
-                  <li class="mel-sidebar__item{% if has_subnav %} mel-sidebar__item--with-subnav{% endif %}">
+                  <li class="mel-sidebar__item{% if has_subnav %} mel-sidebar__item--with-subnav{% endif %}" data-nav-key="{{ item.key }}">
                     {% include '@myeventlane_vendor_theme/includes/sidebar-nav-item.html.twig' with { item: item } only %}
 
                     {% if has_subnav %}
@@ -56,6 +65,19 @@
                           <li class="mel-sidebar__subitem">
                             {% include '@myeventlane_vendor_theme/includes/sidebar-nav-subitem.html.twig' with { child: child } only %}
                           </li>
+                        {% endfor %}
+                        {% for sections in event_workspace_groups %}
+                          {% for section in sections %}
+                            {% set child = {
+                              label: section.label,
+                              url: section.url,
+                              is_disabled: false,
+                              is_active: section.active
+                            } %}
+                            <li class="mel-sidebar__subitem">
+                              {% include '@myeventlane_vendor_theme/includes/sidebar-nav-subitem.html.twig' with { child: child } only %}
+                            </li>
+                          {% endfor %}
                         {% endfor %}
                       </ul>
                     {% endif %}

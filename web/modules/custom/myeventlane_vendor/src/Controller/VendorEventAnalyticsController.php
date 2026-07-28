@@ -69,11 +69,7 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
    */
   public function analytics(NodeInterface $event): array {
     $this->assertEventOwnership($event);
-    if (!$this->proActiveResolver) {
-      throw new AccessDeniedHttpException('Pro resolver service is unavailable.');
-    }
-    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
-    if (!$user instanceof UserInterface || !$this->proActiveResolver->isUserProActive($user)) {
+    if (!$this->currentUserHasActivePro()) {
       throw new AccessDeniedHttpException('Pro subscription is required.');
     }
     $tabs = $this->eventTabsService->getTabs($event, 'analytics');
@@ -437,6 +433,43 @@ final class VendorEventAnalyticsController extends VendorConsoleBaseController {
         ],
       ],
     ]);
+  }
+
+  /**
+   * Reports whether the current organiser has an active Pro entitlement.
+   */
+  public function currentUserHasActivePro(): bool {
+    if (!$this->proActiveResolver) {
+      return FALSE;
+    }
+
+    $user = $this->entityTypeManager->getStorage('user')->load((int) $this->currentUser->id());
+    return $user instanceof UserInterface
+      && $this->proActiveResolver->isUserProActive($user);
+  }
+
+  /**
+   * Reuses the canonical Pro analytics projection inside Event Studio.
+   *
+   * @return array<string, mixed>
+   *   The analytics content with its chart libraries and settings attached.
+   */
+  public function buildStudioContent(NodeInterface $event): array {
+    $page = $this->analytics($event);
+    $content = $page['#content'] ?? [];
+    if (!is_array($content)) {
+      return ['#markup' => (string) $content];
+    }
+
+    $content['#studio'] = TRUE;
+    if (!empty($page['#attached']) && is_array($page['#attached'])) {
+      $content['#attached'] = array_replace_recursive(
+        $content['#attached'] ?? [],
+        $page['#attached'],
+      );
+    }
+
+    return $content;
   }
 
   /**

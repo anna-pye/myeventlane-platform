@@ -168,9 +168,12 @@ services:
     class: Drupal\myeventlane_pro\Service\VendorCommsResolver
     arguments:
       - '@entity_type.manager'
-      - '@token'
+      - '@myeventlane_pro.vendor_comms_placeholder_renderer'
       - '@logger.channel.myeventlane_pro'
       - '@myeventlane_pro.active_resolver'
+
+  myeventlane_pro.vendor_comms_placeholder_renderer:
+    class: Drupal\myeventlane_pro\Service\VendorCommsPlaceholderRenderer
 
   myeventlane_pro.vendor_pro_state:
     class: Drupal\myeventlane_pro\Service\VendorProState

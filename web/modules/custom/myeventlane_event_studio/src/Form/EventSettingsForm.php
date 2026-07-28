@@ -42,8 +42,11 @@ class EventSettingsForm extends EventStudioPublishForm {
    * {@inheritdoc}
    */
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
+    $form['mel']['#attributes']['class'][] = 'mel-event-settings';
     $this->buildVisibilityControls($form, $node, $melDefaults);
     parent::buildWizardStepContent($form, $form_state, $node, $melDefaults);
+
+    $form['mel']['publish_action_card']['#attributes']['class'][] = 'mel-event-settings__publishing';
   }
 
   /**
@@ -106,6 +109,12 @@ class EventSettingsForm extends EventStudioPublishForm {
       && (string) $node->get('field_event_passcode_hash')->value !== '';
 
     $visibility_labels = [
+      PublicEventVisibility::VISIBILITY_PUBLIC => $this->t('<span class="mel-visibility-option__title">Public</span> <span class="mel-visibility-option__description">Shown in MyEventLane listings, search, calendars and search engines.</span>'),
+      PublicEventVisibility::VISIBILITY_UNLISTED => $this->t('<span class="mel-visibility-option__title">Unlisted</span> <span class="mel-visibility-option__description">Anyone with the direct link can view it, but it stays out of discovery and search engines.</span>'),
+      PublicEventVisibility::VISIBILITY_PRIVATE => $this->t('<span class="mel-visibility-option__title">Private</span> <span class="mel-visibility-option__description">Only you, your event team, administrators and staff can view or book.</span>'),
+      PublicEventVisibility::VISIBILITY_PASSCODE => $this->t('<span class="mel-visibility-option__title">Passcode protected</span> <span class="mel-visibility-option__description">Direct visitors must enter your passcode before they can view or book.</span>'),
+    ];
+    $visibility_names = [
       PublicEventVisibility::VISIBILITY_PUBLIC => $this->t('Public'),
       PublicEventVisibility::VISIBILITY_UNLISTED => $this->t('Unlisted'),
       PublicEventVisibility::VISIBILITY_PRIVATE => $this->t('Private'),
@@ -125,19 +134,26 @@ class EventSettingsForm extends EventStudioPublishForm {
     $form['mel']['visibility_section']['title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h3',
-      '#value' => $this->t('Event visibility'),
+      '#value' => $this->t('Visibility & access'),
       '#attributes' => [
         'id' => 'mel-visibility-title',
         'class' => ['mel-visibility-section__title'],
       ],
     ];
 
-    $current_label = $visibility_labels[$current_visibility] ?? $this->t('Public');
+    $current_label = $visibility_names[$current_visibility] ?? $this->t('Public');
     $form['mel']['visibility_section']['current_state'] = [
       '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('Current: <strong>@label</strong>', ['@label' => $current_label]),
+      '#tag' => 'span',
+      '#value' => $this->t('Current: @label', ['@label' => $current_label]),
       '#attributes' => ['class' => ['mel-visibility-section__current']],
+    ];
+
+    $form['mel']['visibility_section']['intro'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => $this->t('Choose how people find and access this event. You can change this at any time.'),
+      '#attributes' => ['class' => ['mel-visibility-section__intro']],
     ];
 
     $form['mel']['field_event_visibility'] = [
@@ -150,43 +166,13 @@ class EventSettingsForm extends EventStudioPublishForm {
       '#weight' => -9,
     ];
 
-    $form['mel']['visibility_help'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-visibility-help']],
-      '#weight' => -8,
-    ];
-    $form['mel']['visibility_help']['public_help'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('<strong>Public</strong> — appears in listings, search, calendar, categories, API, and SEO.'),
-      '#attributes' => ['class' => ['mel-visibility-help__item']],
-    ];
-    $form['mel']['visibility_help']['unlisted_help'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('<strong>Unlisted</strong> — direct link works, hidden from discovery and search engines (noindex).'),
-      '#attributes' => ['class' => ['mel-visibility-help__item']],
-    ];
-    $form['mel']['visibility_help']['private_help'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('<strong>Private</strong> — only the owner, team members, admins, and staff can view or book.'),
-      '#attributes' => ['class' => ['mel-visibility-help__item']],
-    ];
-    $form['mel']['visibility_help']['passcode_help'] = [
-      '#type' => 'html_tag',
-      '#tag' => 'p',
-      '#value' => $this->t('<strong>Passcode protected</strong> — hidden from discovery; direct visitors must enter a passcode before viewing or booking.'),
-      '#attributes' => ['class' => ['mel-visibility-help__item']],
-    ];
-
     $passcode_description = $has_passcode
       ? (string) $this->t('Leave blank to keep the existing passcode, or enter a new passcode to replace it.')
       : (string) $this->t('Enter a passcode that visitors must provide to access this event.');
 
     $form['mel']['event_passcode'] = [
       '#type' => 'password',
-      '#title' => $this->t('Event passcode'),
+      '#title' => $this->t('Set the event passcode'),
       '#description' => $passcode_description,
       '#attributes' => [
         'class' => ['mel-input', 'mel-visibility-passcode-input'],

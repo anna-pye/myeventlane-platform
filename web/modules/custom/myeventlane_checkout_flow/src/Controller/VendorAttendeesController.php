@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_checkout_flow\Controller;
 
-use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Controller\ControllerBase;
@@ -18,7 +17,6 @@ use Drupal\myeventlane_core\Service\TicketLabelResolver;
 use Drupal\myeventlane_core\GovernedOperationalTemplates;
 use Drupal\myeventlane_event_attendees\Service\AttendanceManagerInterface;
 use Drupal\node\NodeInterface;
-use Drupal\paragraphs\ParagraphInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -92,6 +90,7 @@ final class VendorAttendeesController extends ControllerBase {
     $eventData = [];
     $operationalSummaries = [];
     $melCards = [];
+    $statsAvailable = TRUE;
     $melKpis = [
       'events' => 0,
       'tickets_sold' => 0,
@@ -99,10 +98,23 @@ final class VendorAttendeesController extends ControllerBase {
       'upcoming' => 0,
     ];
 
-    if ($this->attendeeStats !== NULL && !empty($events)) {
-      $stats = $this->attendeeStats->buildStatsForEvents(array_values($events));
-      $melCards = $stats['cards'];
-      $melKpis = $stats['kpis'];
+    if (!empty($events)) {
+      if ($this->attendeeStats === NULL) {
+        $statsAvailable = FALSE;
+      }
+      else {
+        try {
+          $stats = $this->attendeeStats->buildStatsForEvents(array_values($events));
+          $melCards = is_array($stats['cards'] ?? NULL) ? $stats['cards'] : [];
+          $melKpis = is_array($stats['kpis'] ?? NULL) ? $stats['kpis'] : $melKpis;
+        }
+        catch (\Throwable $e) {
+          $statsAvailable = FALSE;
+          $this->getLogger('myeventlane_checkout_flow')->error('Unable to build the organiser attendee portfolio: @message', [
+            '@message' => $e->getMessage(),
+          ]);
+        }
+      }
     }
 
     foreach ($melCards as $eid => &$card) {
@@ -164,18 +176,19 @@ final class VendorAttendeesController extends ControllerBase {
     unset($card);
 
     foreach ($events as $event) {
-      $stats = $this->calculateEventStats($event);
+      $eventId = (int) $event->id();
+      $card = is_array($melCards[$eventId] ?? NULL) ? $melCards[$eventId] : [];
       $eventData[] = [
         'event' => $event,
-        'id' => $event->id(),
+        'id' => $eventId,
         'title' => $event->label(),
         'url' => $event->toUrl()->toString(),
         'start_date' => $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()
           ? date('F j, Y', strtotime($event->get('field_event_start')->value))
           : NULL,
-        'tickets_sold' => $stats['tickets_sold'],
-        'attendee_count' => $stats['attendee_count'],
-        'revenue' => $stats['revenue'],
+        'tickets_sold' => (int) ($card['sold'] ?? 0),
+        'attendee_count' => (int) ($card['attendees'] ?? 0),
+        'revenue' => (float) str_replace(',', '', (string) ($card['revenue'] ?? '0.00')),
       ];
 
       if ($event instanceof NodeInterface) {
@@ -195,6 +208,7 @@ final class VendorAttendeesController extends ControllerBase {
       '#events' => $eventData,
       '#mel_cards' => $melCards,
       '#mel_kpis' => $melKpis,
+      '#mel_stats_unavailable' => !$statsAvailable,
       '#operational_summaries' => $operationalSummaries,
       '#cache' => [
         'contexts' => ['user'],
@@ -251,78 +265,6 @@ final class VendorAttendeesController extends ControllerBase {
     }
 
     return $events;
-  }
-
-  private function calculateEventStats($event): array {
-    $eventId = (int) $event->id();
-    $ticketsSold = 0;
-    $attendeeCount = 0;
-    $revenue = 0.0;
-
-    $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
-    $orderItemIds = $orderItemStorage->getQuery()
-      ->accessCheck(FALSE)
-      ->condition('field_target_event', $eventId)
-      ->execute();
-
-    if (empty($orderItemIds)) {
-      return [
-        'tickets_sold' => 0,
-        'attendee_count' => 0,
-        'revenue' => 0.0,
-      ];
-    }
-
-    $orderItems = $orderItemStorage->loadMultiple($orderItemIds);
-    $accessHandler = $this->entityTypeManager->getAccessControlHandler('paragraph');
-
-    foreach ($orderItems as $orderItem) {
-      if (!$orderItem instanceof OrderItemInterface) {
-        continue;
-      }
-      if (in_array($orderItem->bundle(), ['checkout_donation', 'platform_donation', 'rsvp_donation'], TRUE)) {
-        continue;
-      }
-      if ($orderItem->bundle() === 'boost') {
-        continue;
-      }
-
-      try {
-        $order = $orderItem->getOrder();
-        if (!$order || $order->getState()->getId() !== 'completed') {
-          continue;
-        }
-      }
-      catch (\Exception $e) {
-        continue;
-      }
-
-      $quantity = (int) $orderItem->getQuantity();
-      $ticketsSold += $quantity;
-
-      if ($orderItem->hasField('field_ticket_holder') && !$orderItem->get('field_ticket_holder')->isEmpty()) {
-        foreach ($orderItem->get('field_ticket_holder')->referencedEntities() as $paragraph) {
-          if (!$paragraph instanceof ParagraphInterface) {
-            continue;
-          }
-          $access = $accessHandler->access($paragraph, 'view', $this->currentUser);
-          if ($access) {
-            $attendeeCount++;
-          }
-        }
-      }
-
-      $price = $orderItem->getTotalPrice();
-      if ($price) {
-        $revenue += (float) $price->getNumber();
-      }
-    }
-
-    return [
-      'tickets_sold' => $ticketsSold,
-      'attendee_count' => $attendeeCount,
-      'revenue' => $revenue,
-    ];
   }
 
 }

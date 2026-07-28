@@ -195,7 +195,7 @@ final class VendorNavBuilderTest extends UnitTestCase {
   }
 
   /**
-   * Compose under /vendor/events/.../promotion highlights Messages, not Events.
+   * Event promotion remains inside the selected Events workspace.
    *
    * @covers ::resolveActiveSection
    */
@@ -206,8 +206,25 @@ final class VendorNavBuilderTest extends UnitTestCase {
     );
 
     $this->assertSame(
-      'messages',
+      'events',
       $builder->resolveActiveSection('myeventlane_vendor.console.event_promotion'),
+    );
+  }
+
+  /**
+   * Event message branding remains inside the selected Events workspace.
+   *
+   * @covers ::resolveActiveSection
+   */
+  public function testResolveActiveSectionFromEventBrandingPath(): void {
+    $builder = $this->createBuilder(
+      routeName: 'myeventlane_vendor_comms.branding',
+      path: '/vendor/events/42/promotion/branding',
+    );
+
+    $this->assertSame(
+      'events',
+      $builder->resolveActiveSection('myeventlane_vendor_comms.branding'),
     );
   }
 

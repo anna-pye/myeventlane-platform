@@ -152,7 +152,7 @@ final class EventAttendeeWorkspaceBuilder {
       '#empty_filter' => $this->buildEmptyFilterState($initialFilter, $initialMatchCount),
       '#layout' => $layout,
       '#dense_threshold' => self::DENSE_TABLE_THRESHOLD,
-      '#actions' => $this->buildWorkspaceActions($event),
+      '#actions' => $this->buildWorkspaceActions($event, $total > 0),
       '#checkin_csrf' => $this->csrfToken->get(self::CHECKIN_CSRF_ID),
       '#public_event_url' => $publicUrl,
       '#empty' => $this->buildEmptyState($event, $publicUrl),
@@ -330,7 +330,7 @@ final class EventAttendeeWorkspaceBuilder {
    * @return list<array{label: string, url: string, class: string, analytics: string}>
    *   Header action buttons.
    */
-  private function buildWorkspaceActions(NodeInterface $event): array {
+  private function buildWorkspaceActions(NodeInterface $event, bool $hasAttendees): array {
     $eventId = (int) $event->id();
     $actions = [];
 
@@ -347,24 +347,26 @@ final class EventAttendeeWorkspaceBuilder {
       ];
     }
 
-    $messageUrl = $this->buildMessageUrl($event);
-    if ($messageUrl !== NULL) {
-      $actions[] = [
-        'label' => (string) $this->t('Message attendees'),
-        'url' => $messageUrl,
-        'class' => 'mel-btn--secondary',
-        'analytics' => 'message_attendees_clicked',
-      ];
-    }
+    if ($hasAttendees) {
+      $messageUrl = $this->buildMessageUrl($event);
+      if ($messageUrl !== NULL) {
+        $actions[] = [
+          'label' => (string) $this->t('Message attendees'),
+          'url' => $messageUrl,
+          'class' => 'mel-btn--secondary',
+          'analytics' => 'message_attendees_clicked',
+        ];
+      }
 
-    $exportUrl = $this->safeRouteUrl('myeventlane_event_attendees.vendor_export', ['node' => $eventId]);
-    if ($exportUrl !== NULL) {
-      $actions[] = [
-        'label' => (string) $this->t('Export attendees'),
-        'url' => $exportUrl,
-        'class' => 'mel-btn--secondary',
-        'analytics' => 'attendee_exported',
-      ];
+      $exportUrl = $this->safeRouteUrl('myeventlane_event_attendees.vendor_export', ['node' => $eventId]);
+      if ($exportUrl !== NULL) {
+        $actions[] = [
+          'label' => (string) $this->t('Export attendees'),
+          'url' => $exportUrl,
+          'class' => 'mel-btn--secondary',
+          'analytics' => 'attendee_exported',
+        ];
+      }
     }
 
     return $actions;
@@ -373,16 +375,26 @@ final class EventAttendeeWorkspaceBuilder {
   /**
    * Builds empty-state copy when the guest list has no attendees.
    *
-   * @return array{title: string, body: string, prompt: string, cta_label: string, cta_url: string}|null
+   * @return array{title: string, body: string, prompt: string, cta_label: string, cta_url: string, open_new_tab: bool}|null
    *   Empty-state payload for Twig.
    */
   private function buildEmptyState(NodeInterface $event, string $publicUrl): ?array {
+    $published = $event->isPublished();
+    $publishingUrl = $this->safeRouteUrl('myeventlane_event_studio.workspace_publishing', [
+      'node' => (int) $event->id(),
+    ]);
+
     return [
       'title' => (string) $this->t('No attendees yet'),
-      'body' => (string) $this->t('Publish your event and share it to receive your first booking.'),
+      'body' => $published
+        ? (string) $this->t('Your event is live. Share it to receive your first booking or RSVP.')
+        : (string) $this->t('Finish publishing your event, then share it to welcome your first guest.'),
       'prompt' => (string) $this->t('Guests who buy a ticket or RSVP will appear here in one guest list.'),
-      'cta_label' => (string) $this->t('View event page'),
-      'cta_url' => $publicUrl,
+      'cta_label' => $published
+        ? (string) $this->t('View and share event')
+        : (string) $this->t('Continue to Publishing'),
+      'cta_url' => $published ? $publicUrl : ($publishingUrl ?? $publicUrl),
+      'open_new_tab' => $published,
     ];
   }
 

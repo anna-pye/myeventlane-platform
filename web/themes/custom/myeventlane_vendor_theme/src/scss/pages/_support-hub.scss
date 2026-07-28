@@ -101,6 +101,11 @@
 
 .mel-support-hub__section {
   padding: var(--mel-space-5, 1.5rem);
+
+  > .mel-button {
+    width: fit-content;
+    max-width: 100%;
+  }
 }
 
 .mel-support-hub__section--future {

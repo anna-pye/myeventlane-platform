@@ -13,7 +13,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--mel-space-5, 1.5rem);
-  max-width: var(--mel-layout-form, 720px);
+  width: 100%;
+  max-width: var(--mel-layout-dashboard, 1280px);
 }
 
 .mel-settings-hub__intro {
@@ -75,6 +76,9 @@
 }
 
 .mel-settings-hub__health {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
   padding: var(--mel-space-5, 1.5rem);
 
   &--success {
@@ -164,13 +168,59 @@
 }
 
 .mel-settings-hub__sections {
+  display: grid;
+  gap: var(--mel-space-4, 1rem);
+
+  @media (min-width: 860px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mel-settings-hub__groups {
   display: flex;
   flex-direction: column;
-  gap: var(--mel-space-4, 1rem);
+  gap: var(--mel-space-7, 2.5rem);
+}
+
+.mel-settings-hub__group {
+  scroll-margin-top: 1rem;
+}
+
+.mel-settings-hub__group-header {
+  margin-bottom: var(--mel-space-4, 1rem);
+
+  h2 {
+    margin: 0 0 0.25rem;
+    color: var(--mel-color-text, #111827);
+    font-size: 1.4rem;
+  }
+
+  p {
+    margin: 0;
+    color: var(--mel-color-text-secondary, #4b5563);
+  }
 }
 
 .mel-settings-hub__section {
+  display: flex;
+  flex-direction: column;
   padding: var(--mel-space-5, 1.5rem);
+
+  .mel-settings-hub__actions {
+    margin-top: auto;
+    padding-top: var(--mel-space-3, 0.75rem);
+  }
+}
+
+.mel-settings-hub__section--danger {
+  border-color: rgba(180, 83, 9, 0.25);
+  background: rgba(255, 248, 241, 0.72);
+}
+
+#settings-payments .mel-settings-hub__sections {
+  @media (min-width: 860px) {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .mel-settings-hub__section-header {

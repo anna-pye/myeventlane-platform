@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
@@ -16,6 +17,7 @@ use Drupal\file\FileInterface;
 use Drupal\focal_point\FocalPointManagerInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
+use Drupal\image_widget_crop\Element\ImageCrop;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 
@@ -58,7 +60,36 @@ final class BrandingHeroFocalAugmenter {
     }
     // Callable must be serializable — instance [$this, …] breaks form cache (AJAX/crop/media).
     $field_element['#mel_branding_node_id'] = (int) $node->id();
+    if (isset($field_element['widget']) && is_array($field_element['widget'])) {
+      foreach ($field_element['widget'] as $delta_key => &$delta) {
+        if (!is_numeric($delta_key) || !is_array($delta)) {
+          continue;
+        }
+        $delta['#process'] = is_array($delta['#process'] ?? NULL) ? $delta['#process'] : [];
+        $delta['#process'][] = [self::class, 'formProcessHeroWidget'];
+      }
+      unset($delta);
+    }
     $field_element['#after_build'][] = [self::class, 'formAfterBuildFieldFromElement'];
+  }
+
+  /**
+   * Adds the fid-retention submit callback before Form API resolves the trigger.
+   *
+   * @param array<string, mixed> $element
+   * @param array<string, mixed> $form
+   *
+   * @return array<string, mixed>
+   */
+  public static function formProcessHeroWidget(
+    array $element,
+    FormStateInterface $form_state,
+    array &$form,
+  ): array {
+    if (isset($element['upload_button']['#submit']) && is_array($element['upload_button']['#submit'])) {
+      $element['upload_button']['#submit'][] = [self::class, 'formRetainManagedHeroUpload'];
+    }
+    return $element;
   }
 
   /**
@@ -83,6 +114,52 @@ final class BrandingHeroFocalAugmenter {
     $augmenter = \Drupal::service('myeventlane_event_studio.branding_hero_focal_augmenter');
     assert($augmenter instanceof self);
     $augmenter->validateFocalPointElement($element, $form_state);
+  }
+
+  /**
+   * Keeps required-crop validation on final save, not managed-file AJAX.
+   *
+   * Image Widget Crop's upload detection expects the legacy string submit
+   * callback. Drupal 11 supplies ManagedFile::submit as a callable array, so
+   * the contrib validator otherwise treats Choose file / Remove as final save.
+   *
+   * @param array<string, mixed> $element
+   */
+  public static function formValidateRequiredCrop(array &$element, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $name = is_array($trigger) ? (string) ($trigger['#name'] ?? '') : '';
+    if (str_ends_with($name, '_upload_button') || str_ends_with($name, '_remove_button')) {
+      return;
+    }
+    ImageCrop::cropRequired($element, $form_state);
+  }
+
+  /**
+   * Retains the uploaded fid across this manually embedded widget's rebuild.
+   *
+   * @param array<string, mixed> $form
+   */
+  public static function formRetainManagedHeroUpload(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $array_parents = is_array($trigger) ? ($trigger['#array_parents'] ?? NULL) : NULL;
+    if (!is_array($array_parents) || array_pop($array_parents) !== 'upload_button') {
+      return;
+    }
+    $managed = NestedArray::getValue($form, $array_parents);
+    if (!is_array($managed) || !isset($managed['fids']) || !is_array($managed['fids'])) {
+      return;
+    }
+    $fids = array_map('intval', array_keys(is_array($managed['#files'] ?? NULL) ? $managed['#files'] : []));
+    $fids = array_values(array_filter($fids, static fn (int $fid): bool => $fid > 0));
+    $fids_parents = $managed['fids']['#parents'] ?? NULL;
+    if ($fids === [] || !is_array($fids_parents)) {
+      return;
+    }
+    $value = implode(' ', $fids);
+    $form_state->setValueForElement($managed['fids'], $value);
+    $user_input = $form_state->getUserInput();
+    NestedArray::setValue($user_input, $fids_parents, $value);
+    $form_state->setUserInput($user_input);
   }
 
   /**
@@ -132,8 +209,14 @@ final class BrandingHeroFocalAugmenter {
         ? (string) $element['#mel_branding_focal_override']
         : NULL;
       $this->augmentWidgetDelta($element['widget'][$delta_key], $node, $override);
+      $this->augmentCropWorkspace($element['widget'][$delta_key]);
       $this->suppressWidgetAltField($element['widget'][$delta_key]);
     }
+
+    // Keep the saved public preview available even when a rebuilt image widget
+    // has no processed delta (for example after Media Library AJAX or stale
+    // form recovery). The node field remains the source of truth.
+    $this->attachBrandingHeroPreviewSettings($element, $node, []);
 
     return $element;
   }
@@ -168,10 +251,15 @@ final class BrandingHeroFocalAugmenter {
     }
 
     if (isset($delta['focal_point']) && is_array($delta['focal_point'])) {
+      $delta['focal_point']['#type'] = 'hidden';
       $delta['focal_point']['#element_validate'] = [[self::class, 'formValidateFocalPointElement']];
-      if (!empty($delta['focal_point']['#description']) && !isset($delta['focal_point']['#description_display'])) {
-        $delta['focal_point']['#description_display'] = 'after';
-      }
+      unset(
+        $delta['focal_point']['#title'],
+        $delta['focal_point']['#description'],
+        $delta['focal_point']['#description_display'],
+        $delta['focal_point']['#wrapper_attributes'],
+        $delta['focal_point']['#attached'],
+      );
       $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
       $this->suppressWidgetAltField($delta);
       return;
@@ -183,10 +271,7 @@ final class BrandingHeroFocalAugmenter {
     $selector = 'focal-point-mel-field-event-image-0';
 
     $delta['focal_point'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Focal point'),
-      '#description' => $this->t('Focus area for the public event and book page hero (16:9). Saved when you save branding.'),
-      '#description_display' => 'after',
+      '#type' => 'hidden',
       '#default_value' => $focal_value,
       '#element_validate' => [[self::class, 'formValidateFocalPointElement']],
       '#parents' => array_merge($delta_parents, ['focal_point']),
@@ -195,13 +280,6 @@ final class BrandingHeroFocalAugmenter {
         'class' => ['focal-point', $selector],
         'data-selector' => $selector,
         'data-field-name' => 'field_event_image',
-        'aria-describedby' => 'mel-es-branding-focal-status',
-      ],
-      '#wrapper_attributes' => [
-        'class' => ['focal-point-wrapper'],
-      ],
-      '#attached' => [
-        'library' => ['focal_point/drupal.focal_point'],
       ],
       '#weight' => 20,
     ];
@@ -232,6 +310,66 @@ final class BrandingHeroFocalAugmenter {
     }
 
     $this->attachBrandingHeroPreviewSettings($delta, $node, $delta);
+  }
+
+  /**
+   * Turns the single crop type into a clear organiser-facing framing step.
+   *
+   * @param array<string, mixed> $delta
+   *   Processed image widget delta.
+   */
+  private function augmentCropWorkspace(array &$delta): void {
+    if (!isset($delta['image_crop']['crop_wrapper']) || !is_array($delta['image_crop']['crop_wrapper'])) {
+      return;
+    }
+    $delta['image_crop']['#element_validate'] = [[self::class, 'formValidateRequiredCrop']];
+    $wrapper = &$delta['image_crop']['crop_wrapper'];
+    $wrapper_parents = is_array($wrapper['#parents'] ?? NULL) ? $wrapper['#parents'] : [];
+    $wrapper_array_parents = is_array($wrapper['#array_parents'] ?? NULL) ? $wrapper['#array_parents'] : [];
+    $guidance_parents = array_merge($wrapper_parents, ['mel_guidance']);
+    $guidance_array_parents = array_merge($wrapper_array_parents, ['mel_guidance']);
+
+    $wrapper['#title'] = $this->t('Adjust 16:9 framing');
+    $wrapper['mel_guidance'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#weight' => -30,
+      '#parents' => $guidance_parents,
+      '#array_parents' => $guidance_array_parents,
+      '#attributes' => [
+        'class' => ['mel-es-branding-crop-guidance'],
+      ],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#parents' => array_merge($guidance_parents, ['title']),
+        '#array_parents' => array_merge($guidance_array_parents, ['title']),
+        '#attributes' => [
+          'class' => ['mel-es-branding-crop-guidance__title'],
+        ],
+        '#value' => $this->t('Choose what guests will see'),
+      ],
+      'text' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#parents' => array_merge($guidance_parents, ['text']),
+        '#array_parents' => array_merge($guidance_array_parents, ['text']),
+        '#attributes' => [
+          'class' => ['mel-es-branding-crop-guidance__text'],
+        ],
+        '#value' => $this->t('Drag the frame to choose what guests will see. Keep faces, performers and important details inside the box. Resize using the corners.'),
+      ],
+      'aftercare' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#parents' => array_merge($guidance_parents, ['aftercare']),
+        '#array_parents' => array_merge($guidance_array_parents, ['aftercare']),
+        '#attributes' => [
+          'class' => ['mel-es-branding-crop-guidance__aftercare'],
+        ],
+        '#value' => $this->t('Use Reset crop to start again, then click Save branding.'),
+      ],
+    ];
   }
 
   /**

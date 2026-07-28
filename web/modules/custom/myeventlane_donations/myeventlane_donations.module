@@ -53,6 +53,7 @@ function myeventlane_donations_theme(array $existing, string $type, string $them
         'summary' => [],
         'invoices' => [],
         'billing_prefs' => [],
+        'billing_notice' => NULL,
         'save_payment_url' => '',
         'remove_payment_url' => '',
       ],

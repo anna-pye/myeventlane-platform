@@ -289,7 +289,7 @@ class VendorSettingsForm extends FormBase {
     ];
     $form['page_header']['back'] = [
       '#type' => 'link',
-      '#title' => $this->t('← Workspace Settings'),
+      '#title' => $this->t('← Account settings'),
       '#url' => Url::fromRoute('myeventlane_vendor.console.settings'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__header-link']],
       '#weight' => -10,
@@ -710,7 +710,7 @@ class VendorSettingsForm extends FormBase {
     $form['contact'] = [
       '#type' => 'details',
       '#title' => $this->t('Contact & email identity'),
-      '#open' => TRUE,
+      '#open' => FALSE,
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
     ];
     $form['contact']['_intro'] = [
@@ -815,7 +815,7 @@ class VendorSettingsForm extends FormBase {
     $form['public_page'] = [
       '#type' => 'details',
       '#title' => $this->t('Public page visibility'),
-      '#open' => TRUE,
+      '#open' => FALSE,
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
     ];
     $form['public_page']['_intro'] = [
@@ -935,7 +935,7 @@ class VendorSettingsForm extends FormBase {
     $form['store'] = [
       '#type' => 'details',
       '#title' => $this->t('Business details'),
-      '#open' => TRUE,
+      '#open' => FALSE,
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'business',
@@ -991,7 +991,7 @@ class VendorSettingsForm extends FormBase {
     $form['team'] = [
       '#type' => 'details',
       '#title' => $this->t('Team members'),
-      '#open' => TRUE,
+      '#open' => FALSE,
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'mel-vendor-settings-team-ajax',

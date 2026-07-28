@@ -57,6 +57,7 @@ final class ProCancelRequestForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form['#attached']['library'][] = 'myeventlane_pro/pro';
     $status = $this->statusService->getStatusForCurrentUser();
 
     if (!$status['is_pro'] || !$status['is_subscription_managed'] || !$status['has_active_subscription']) {
@@ -71,7 +72,7 @@ final class ProCancelRequestForm extends FormBase {
 
     $form['intro'] = [
       '#type' => 'markup',
-      '#markup' => '<p class="mel-pro-cancel-request__intro">' . $this->t('Your current access will remain until the end of your paid period unless stated otherwise.') . '</p>',
+      '#markup' => '<p class="mel-pro-cancel-request__intro">' . $this->t('Your current Pro access will remain available until the end of your paid billing period.') . '</p>',
       '#weight' => -10,
     ];
 
@@ -92,7 +93,7 @@ final class ProCancelRequestForm extends FormBase {
     $form['actions'] = ['#type' => 'actions', '#weight' => 10];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Request to cancel MEL Pro'),
+      '#value' => $this->t('Cancel at period end'),
       '#button_type' => 'primary',
     ];
     $form['actions']['cancel'] = [
@@ -151,7 +152,7 @@ final class ProCancelRequestForm extends FormBase {
       ])
       ->execute();
 
-    $this->messenger()->addStatus($this->t('We have received your cancellation request. Our team will be in touch shortly.'));
+    $this->messenger()->addStatus($this->t('Your cancellation request has been received. Your Pro access remains available until the end of your paid billing period.'));
     $form_state->setRedirectUrl(Url::fromRoute('myeventlane_pro.manage'));
   }
 

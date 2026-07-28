@@ -61,7 +61,7 @@ final class VendorWorkspaceHealthService {
 
     if ($attention !== []) {
       $tone = 'attention';
-      $headline = (string) $this->t('A few Workspace settings need attention');
+      $headline = (string) $this->t('A few account settings need attention');
       $summary = (string) $this->t('Finish the highlighted items so guests and payouts stay smooth.');
       $next = (string) ($attention[0]['next_step'] ?? $this->t('Open the first yellow item below.'));
       $cta_label = (string) ($attention[0]['cta_label'] ?? $this->t('Review settings'));

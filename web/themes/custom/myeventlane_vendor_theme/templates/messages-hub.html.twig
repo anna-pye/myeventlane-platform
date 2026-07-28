@@ -12,7 +12,6 @@
 {% set compose = hub.compose|default({}) %}
 {% set scheduled = hub.scheduled|default({}) %}
 {% set history = hub.history|default({}) %}
-{% set audience = hub.audience|default({}) %}
 {% set templates = hub.templates|default({}) %}
 {% set branding = hub.branding|default({}) %}
 {% set support = hub.support|default({}) %}
@@ -20,14 +19,10 @@
 <div class="mel-messages-hub" data-mel-messages-hub data-mel-analytics-event="messages_hub_opened">
 
   <nav class="mel-messages-hub__jump" aria-label="{{ 'Messages sections'|t }}">
-    <a class="mel-messages-hub__jump-link" href="#overview">{{ 'Overview'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#compose">{{ 'Compose'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#scheduled">{{ 'Scheduled'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#history">{{ 'History'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#templates">{{ 'Templates'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#audience">{{ 'Audience'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#branding">{{ 'Branding'|t }}</a>
-    <a class="mel-messages-hub__jump-link" href="#support">{{ 'Support'|t }}</a>
+    <a class="mel-messages-hub__jump-link" href="#compose">{{ 'Send a message'|t }}</a>
+    <a class="mel-messages-hub__jump-link" href="#activity">{{ 'Activity'|t }}</a>
+    <a class="mel-messages-hub__jump-link" href="#message-tools">{{ 'Message tools'|t }}</a>
+    <a class="mel-messages-hub__jump-link" href="#support">{{ 'Help'|t }}</a>
   </nav>
 
   <section class="mel-messages-hub__health mel-card mel-card--status mel-messages-hub__health--{{ health.tone|default('muted') }}" id="messages-status" aria-labelledby="mel-messages-health-heading">
@@ -80,9 +75,21 @@
         <p class="mel-empty-state__body">{{ compose.empty_body }}</p>
       </div>
     {% else %}
+      <div class="mel-messages-hub__event-filter">
+        <label for="mel-message-event-search">{{ 'Find an event'|t }}</label>
+        <input
+          id="mel-message-event-search"
+          class="mel-messages-hub__event-search"
+          type="search"
+          placeholder="{{ 'Search by event name'|t }}"
+          autocomplete="off"
+          data-mel-message-event-search
+        >
+        <p class="mel-messages-hub__muted" aria-live="polite" data-mel-message-event-count></p>
+      </div>
       <ul class="mel-messages-hub__event-list">
         {% for event in compose.events %}
-          <li class="mel-messages-hub__event-item">
+          <li class="mel-messages-hub__event-item" data-mel-message-event="{{ event.search_text|e('html_attr') }}">
             <div class="mel-messages-hub__event-copy">
               <p class="mel-messages-hub__event-title">{{ event.title }}</p>
               <p class="mel-messages-hub__muted">{{ '@count guest(s) reachable'|t({'@count': event.audience_count|default(0)}) }}</p>
@@ -98,6 +105,9 @@
           </li>
         {% endfor %}
       </ul>
+      <p class="mel-empty-state mel-messages-hub__search-empty" data-mel-message-event-empty hidden>
+        {{ 'No events match that search. Try another event name.'|t }}
+      </p>
     {% endif %}
 
     {% if compose.types %}
@@ -126,6 +136,7 @@
     {% endif %}
   </section>
 
+  <div class="mel-messages-hub__activity-grid" id="activity">
   <section class="mel-card mel-messages-hub__section" id="scheduled" aria-labelledby="mel-messages-scheduled-heading">
     <h2 id="mel-messages-scheduled-heading" class="mel-card__title">{{ scheduled.title }}</h2>
     <p class="mel-messages-hub__muted">{{ scheduled.body }}</p>
@@ -168,41 +179,46 @@
       </ol>
     {% endif %}
   </section>
+  </div>
 
-  <section class="mel-card mel-messages-hub__section" id="templates" aria-labelledby="mel-messages-templates-heading">
-    <h2 id="mel-messages-templates-heading" class="mel-card__title">{{ templates.title }}</h2>
-    <p class="mel-messages-hub__muted">{{ templates.body }}</p>
-    {% if templates.available and templates.cta_url %}
-      <a class="mel-button mel-button--secondary" href="{{ templates.cta_url }}" data-mel-analytics-event="template_used">{{ templates.cta_label }}</a>
-    {% endif %}
-  </section>
+  <section class="mel-card mel-messages-hub__section" id="message-tools" aria-labelledby="mel-messages-tools-heading">
+    <h2 id="mel-messages-tools-heading" class="mel-card__title">{{ 'Message tools'|t }}</h2>
+    <p class="mel-messages-hub__section-intro">{{ 'Set up your automatic email wording and the way guest emails look.'|t }}</p>
 
-  <section class="mel-card mel-messages-hub__section" id="audience" aria-labelledby="mel-messages-audience-heading">
-    <h2 id="mel-messages-audience-heading" class="mel-card__title">{{ audience.title }}</h2>
-    <p class="mel-messages-hub__muted">{{ audience.body }}</p>
-    <ul class="mel-messages-hub__audience-list">
-      {% for option in audience.options|default([]) %}
-        <li class="mel-messages-hub__audience-item{% if not option.available %} mel-messages-hub__audience-item--soon{% endif %}">
-          <p class="mel-messages-hub__audience-label">{{ option.label }}{% if not option.available %} <span class="mel-messages-hub__badge">{{ 'Soon'|t }}</span>{% endif %}</p>
-          <p class="mel-messages-hub__muted">{{ option.description }}</p>
-        </li>
-      {% endfor %}
-    </ul>
-  </section>
+    <div class="mel-messages-hub__tool-list">
+      <details class="mel-messages-hub__tool{% if not templates.is_pro %} mel-messages-hub__tool--locked{% endif %}">
+        <summary>{{ templates.title }}{% if not templates.is_pro %} <span class="mel-messages-hub__badge">{{ 'Pro'|t }}</span>{% endif %}</summary>
+        <div class="mel-messages-hub__tool-content">
+          <p class="mel-messages-hub__muted">{{ templates.body }}</p>
+          {% if templates.available and templates.cta_url %}
+            <a class="mel-button mel-button--secondary" href="{{ templates.cta_url }}" data-mel-analytics-event="template_used">{{ templates.cta_label }}</a>
+          {% elseif not templates.is_pro and templates.upgrade_url %}
+            <a class="mel-button mel-button--secondary" href="{{ templates.upgrade_url }}">{{ templates.upgrade_label }}</a>
+          {% endif %}
+        </div>
+      </details>
 
-  <section class="mel-card mel-messages-hub__section" id="branding" aria-labelledby="mel-messages-branding-heading">
-    <h2 id="mel-messages-branding-heading" class="mel-card__title">{{ branding.title }}</h2>
-    <p class="mel-messages-hub__muted">{{ branding.body }}</p>
-    <p class="mel-messages-hub__muted" role="status">
-      {% if branding.ready %}
-        {{ 'Brand looks ready for guest emails.'|t }}
-      {% else %}
-        {{ 'Add a sender name so guests recognise your emails.'|t }}
-      {% endif %}
-    </p>
-    {% if branding.cta_url %}
-      <a class="mel-button mel-button--secondary" href="{{ branding.cta_url }}">{{ branding.cta_label }}</a>
-    {% endif %}
+      <details class="mel-messages-hub__tool{% if not branding.is_pro %} mel-messages-hub__tool--locked{% endif %}">
+        <summary>{{ branding.title }}{% if not branding.is_pro %} <span class="mel-messages-hub__badge">{{ 'Pro'|t }}</span>{% endif %}</summary>
+        <div class="mel-messages-hub__tool-content">
+          <p class="mel-messages-hub__muted">{{ branding.body }}</p>
+          {% if branding.is_pro %}
+            <p class="mel-messages-hub__muted" role="status">
+              {% if branding.ready %}
+                {{ 'Brand looks ready for guest emails.'|t }}
+              {% else %}
+                {{ 'Add a sender name so guests recognise your emails.'|t }}
+              {% endif %}
+            </p>
+          {% endif %}
+          {% if branding.available and branding.cta_url %}
+            <a class="mel-button mel-button--secondary" href="{{ branding.cta_url }}">{{ branding.cta_label }}</a>
+          {% elseif not branding.is_pro and branding.upgrade_url %}
+            <a class="mel-button mel-button--secondary" href="{{ branding.upgrade_url }}">{{ branding.upgrade_label }}</a>
+          {% endif %}
+        </div>
+      </details>
+    </div>
   </section>
 
   <section class="mel-card mel-messages-hub__section" id="support" aria-labelledby="mel-messages-support-heading">

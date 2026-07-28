@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event\Service;
 use Drupal\file\FileInterface;
 use Drupal\image\Entity\ImageStyle;
 use Drupal\image\ImageStyleInterface;
+use Drupal\Core\Image\ImageFactory;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -37,6 +38,7 @@ final class EventMediaPresenter {
 
   public function __construct(
     private readonly LoggerInterface $logger,
+    private readonly ImageFactory $imageFactory,
   ) {}
 
   /**
@@ -97,6 +99,14 @@ final class EventMediaPresenter {
       }
       $uri = $file->getFileUri();
       if ($uri === '') {
+        continue;
+      }
+      $image = $this->imageFactory->get($uri);
+      if (!$image->isValid()) {
+        $this->logger->warning('Skipping invalid gallery media @mid on node @nid.', [
+          '@mid' => (string) $media->id(),
+          '@nid' => (string) $event->id(),
+        ]);
         continue;
       }
 

@@ -120,7 +120,12 @@
   @include meta.load-css('pages/settings');
   @include meta.load-css('pages/vendor-console-stack');
   @include meta.load-css('pages/payments-hub');
+  @include meta.load-css('pages/payouts');
   @include meta.load-css('pages/messages-hub');
+  @include meta.load-css('pages/pro-email-wording');
+  @include meta.load-css('pages/event-promotion-companion');
+  @include meta.load-css('pages/event-studio-orders');
+  @include meta.load-css('pages/event-studio-analytics');
   @include meta.load-css('pages/marketing-hub');
   @include meta.load-css('pages/settings-hub');
   @include meta.load-css('pages/support-hub');
@@ -128,6 +133,7 @@
 
   // Vendor Studio corrections load after shared Event Studio presentation.
   @include meta.load-css('components/mel-event-studio-ticket-hierarchy');
+  @include meta.load-css('components/mel-event-studio-attendees');
 }
 
 // Klaro renders at document root (#klaro), outside .mel-vendor — reuse public theme styles.

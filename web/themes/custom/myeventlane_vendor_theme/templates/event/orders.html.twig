@@ -4,7 +4,7 @@
   purchaser_name, purchaser_email, ticket_count, net_sales, fees, total,
   status, view_link, resend_link).
 #}
-<div class="mel-live-operations mel-vendor-console-stack">
+<div class="mel-live-operations mel-vendor-console-stack{% if studio %} mel-studio-orders{% endif %}">
 {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
   <div class="mel-contextual-help mel-contextual-help--vendor-console">
     {{ mel_vendor_contextual_help }}
@@ -12,38 +12,63 @@
 {% endif %}
 
 <section class="mel-live-ops__panel mel-orders-console" aria-labelledby="mel-orders-console-title">
-  <h2 id="mel-orders-console-title" class="mel-live-ops__panel-title">{{ 'Orders'|t }}</h2>
+  <div class="mel-studio-orders__heading">
+    <div>
+      <p class="mel-studio-orders__eyebrow">{{ 'Sales and bookings'|t }}</p>
+      <h2 id="mel-orders-console-title" class="mel-live-ops__panel-title">{{ 'Orders'|t }}</h2>
+      <p class="mel-studio-orders__intro">{{ 'Review completed purchases for this event and help guests with their booking.'|t }}</p>
+    </div>
+  </div>
 
   {% if orders|length > 0 %}
-    <div class="mel-table mel-table--striped mel-table--cols-11">
+    {% if studio %}
+      <div class="mel-studio-orders__summary" aria-label="{{ 'Order summary'|t }}">
+        <article class="mel-studio-orders__metric">
+          <span>{{ 'Orders'|t }}</span>
+          <strong>{{ orders|length }}</strong>
+        </article>
+        <article class="mel-studio-orders__metric">
+          <span>{{ 'Tickets sold'|t }}</span>
+          <strong>{{ totals.ticket_count }}</strong>
+        </article>
+        <article class="mel-studio-orders__metric">
+          <span>{{ 'Gross ticket sales'|t }}</span>
+          <strong>{{ totals.net_sales }}</strong>
+        </article>
+        <article class="mel-studio-orders__metric mel-studio-orders__metric--accent">
+          <span>{{ 'Net proceeds'|t }}</span>
+          <strong>{{ totals.total }}</strong>
+        </article>
+      </div>
+    {% endif %}
+    <div class="mel-table mel-table--striped mel-studio-orders__table">
       <div class="mel-table__head">
-        <div>{{ 'Order ID'|t }}</div>
-        <div>{{ 'Order date'|t }}</div>
-        <div>{{ 'Purchaser name'|t }}</div>
-        <div>{{ 'Purchaser email'|t }}</div>
-        <div>{{ 'Ticket count'|t }}</div>
-        <div>{{ 'Net sales'|t }}</div>
-        <div>{{ 'Fees'|t }}</div>
-        <div>{{ 'Total'|t }}</div>
+        <div>{{ 'Order'|t }}</div>
+        <div>{{ 'Purchaser'|t }}</div>
+        <div>{{ 'Tickets'|t }}</div>
+        <div>{{ 'Sale'|t }}</div>
         <div>{{ 'Status'|t }}</div>
-        <div>{{ 'Refund'|t }}</div>
         <div>{{ 'Actions'|t }}</div>
       </div>
       <div class="mel-table__body">
         {% for row in orders %}
           <div class="mel-table__row">
-            <div class="mel-text--bold" data-label="{{ 'Order ID'|t }}">{{ row.order_number }}</div>
-            <div data-label="{{ 'Order date'|t }}">{{ row.placed_date }}</div>
-            <div data-label="{{ 'Purchaser name'|t }}">{{ row.purchaser_name }}</div>
-            <div data-label="{{ 'Purchaser email'|t }}">{{ row.purchaser_email }}</div>
-            <div data-label="{{ 'Ticket count'|t }}">{{ row.ticket_count }}</div>
-            <div data-label="{{ 'Net sales'|t }}">{{ row.net_sales }}</div>
-            <div data-label="{{ 'Fees'|t }}">{{ row.fees }}</div>
-            <div data-label="{{ 'Total'|t }}">{{ row.total }}</div>
+            <div data-label="{{ 'Order'|t }}">
+              <strong>{{ row.order_number }}</strong>
+              <small>{{ row.placed_date }}</small>
+            </div>
+            <div data-label="{{ 'Purchaser'|t }}">
+              <strong>{{ row.purchaser_name }}</strong>
+              <small>{{ row.purchaser_email }}</small>
+            </div>
+            <div data-label="{{ 'Tickets'|t }}"><strong>{{ row.ticket_count }}</strong></div>
+            <div data-label="{{ 'Sale'|t }}">
+              <strong>{{ row.net_sales }}</strong>
+              <small>{{ 'Fees'|t }} {{ row.fees }} · {{ 'Net'|t }} {{ row.total }}</small>
+            </div>
             <div data-label="{{ 'Status'|t }}">
               <span class="mel-badge mel-badge--{{ row.status|lower }}">{{ row.status }}</span>
-            </div>
-            <div data-label="{{ 'Refund'|t }}">
+              <div class="mel-studio-orders__refund">
               {% if row.refund_status %}
                 {{ row.refund_status }}
               {% else %}
@@ -63,6 +88,7 @@
                   <p class="mel-refund-retry-help">{{ 'MEL will try again safely. No duplicate refunds will be issued.'|t }}</p>
                 {% endif %}
               {% endif %}
+              </div>
             </div>
             <div data-label="{{ 'Actions'|t }}" class="mel-inline-actions">
               {{ row.view_link }}
@@ -74,16 +100,14 @@
       {% if totals %}
         <div class="mel-table__footer">
           <div class="mel-table__row">
-            <div class="mel-text--bold" data-label="{{ 'Order ID'|t }}">{{ 'Total'|t }}</div>
-            <div data-label="{{ 'Order date'|t }}"></div>
-            <div data-label="{{ 'Purchaser name'|t }}"></div>
-            <div data-label="{{ 'Purchaser email'|t }}"></div>
-            <div data-label="{{ 'Ticket count'|t }}">{{ totals.ticket_count }}</div>
-            <div data-label="{{ 'Net sales'|t }}">{{ totals.net_sales }}</div>
-            <div data-label="{{ 'Fees'|t }}">{{ totals.fees }}</div>
-            <div class="mel-text--bold" data-label="{{ 'Total'|t }}">{{ totals.total }}</div>
+            <div class="mel-text--bold" data-label="{{ 'Order'|t }}">{{ 'Total'|t }}</div>
+            <div data-label="{{ 'Purchaser'|t }}"></div>
+            <div data-label="{{ 'Tickets'|t }}"><strong>{{ totals.ticket_count }}</strong></div>
+            <div data-label="{{ 'Sale'|t }}">
+              <strong>{{ totals.net_sales }}</strong>
+              <small>{{ 'Fees'|t }} {{ totals.fees }} · {{ 'Net'|t }} {{ totals.total }}</small>
+            </div>
             <div data-label="{{ 'Status'|t }}"></div>
-            <div data-label="{{ 'Refund'|t }}"></div>
             <div data-label="{{ 'Actions'|t }}"></div>
           </div>
         </div>
@@ -94,7 +118,7 @@
       <div class="mel-empty__icon">💸</div>
       <div class="mel-empty__title">{{ 'No orders yet'|t }}</div>
       <div class="mel-empty__description">
-        {{ 'Share your event to start selling! Orders will appear here when customers complete a purchase.'|t }}
+        {{ 'Completed purchases will appear here. Share your event when you are ready to welcome your first booking.'|t }}
       </div>
     </div>
   {% endif %}

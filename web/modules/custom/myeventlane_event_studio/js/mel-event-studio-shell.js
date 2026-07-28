@@ -1532,9 +1532,48 @@
         }
         const overlay = shell.querySelector('[data-mel-studio-sidebar-overlay]');
         const sidebar = shell.querySelector('.mel-event-studio-sidebar');
+        const desktopSidebar = window.matchMedia('(min-width: 1121px)');
+        const organiserSidebar = document.querySelector('.mel-vendor-shell--studio-focus .mel-sidebar');
+        const eventsItem = organiserSidebar?.querySelector('[data-nav-key="events"]');
+        const sidebarAnchor = document.createComment('event-studio-sidebar-anchor');
+        const buttonAnchor = document.createComment('event-studio-sidebar-toggle-anchor');
+        sidebar?.parentNode?.insertBefore(sidebarAnchor, sidebar);
+        button.parentNode?.insertBefore(buttonAnchor, button);
+        const syncSidebarPlacement = () => {
+          if (!sidebar || !eventsItem) {
+            return;
+          }
+          if (desktopSidebar.matches) {
+            eventsItem.classList.add('mel-sidebar__item--studio-open');
+            eventsItem.append(button, sidebar);
+            return;
+          }
+          eventsItem.classList.remove('mel-sidebar__item--studio-open');
+          buttonAnchor.parentNode?.insertBefore(button, buttonAnchor.nextSibling);
+          sidebarAnchor.parentNode?.insertBefore(sidebar, sidebarAnchor.nextSibling);
+        };
+        const syncDesktopButton = () => {
+          syncSidebarPlacement();
+          if (!desktopSidebar.matches) {
+            sidebar?.classList.remove('is-desktop-collapsed');
+            button.textContent = Drupal.t('Sections');
+            button.setAttribute('aria-expanded', shell.classList.contains('is-sidebar-open') ? 'true' : 'false');
+            return;
+          }
+          const collapsed = shell.classList.contains('is-sidebar-collapsed');
+          sidebar?.classList.toggle('is-desktop-collapsed', collapsed);
+          button.textContent = collapsed ? Drupal.t('Show event menu') : Drupal.t('Hide event menu');
+          button.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+          shell.classList.remove('is-sidebar-open');
+          if (overlay) {
+            overlay.hidden = true;
+          }
+        };
         const closeSidebar = () => {
           shell.classList.remove('is-sidebar-open');
-          button.setAttribute('aria-expanded', 'false');
+          if (!desktopSidebar.matches) {
+            button.setAttribute('aria-expanded', 'false');
+          }
           if (overlay) {
             overlay.hidden = true;
           }
@@ -1547,13 +1586,20 @@
           }
         };
         closeSidebar();
+        syncDesktopButton();
         button.addEventListener('click', () => {
+          if (desktopSidebar.matches) {
+            shell.classList.toggle('is-sidebar-collapsed');
+            syncDesktopButton();
+            return;
+          }
           if (shell.classList.contains('is-sidebar-open')) {
             closeSidebar();
             return;
           }
           openSidebar();
         });
+        desktopSidebar.addEventListener('change', syncDesktopButton);
         overlay?.addEventListener('click', closeSidebar);
         document.addEventListener('click', (event) => {
           if (!shell.classList.contains('is-sidebar-open')) {

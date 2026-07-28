@@ -12,7 +12,7 @@ use Drupal\myeventlane_vendor\Service\VendorSettingsHubBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Organiser Workspace Settings hub.
+ * Organiser Account settings hub.
  *
  * Product language: Profile, Brand, Payments, Notifications, Support, Help.
  * Never Vendor / Commerce / Store / Gateway / Drupal configuration.
@@ -47,7 +47,7 @@ final class VendorSettingsHubController extends VendorConsoleBaseController impl
     $hub = $this->hubBuilder->build();
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => (string) $this->t('Workspace Settings'),
+      'title' => (string) $this->t('Account settings'),
       'body' => [
         '#theme' => 'myeventlane_vendor_settings_hub',
         '#hub' => $hub,

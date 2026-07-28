@@ -157,9 +157,20 @@ final class AttendeeRecipientResolver {
         continue;
       }
 
-      // Get order.
+      // Load the referenced order explicitly. Commerce's getOrder() assumes
+      // the order_id field item has an entity object attached, which is not
+      // guaranteed for order items loaded in bulk.
       try {
-        $order = $orderItem->getOrder();
+        if (!$orderItem->hasField('order_id') || $orderItem->get('order_id')->isEmpty()) {
+          continue;
+        }
+        $orderId = (int) $orderItem->get('order_id')->target_id;
+        if ($orderId <= 0) {
+          continue;
+        }
+        $order = $this->entityTypeManager
+          ->getStorage('commerce_order')
+          ->load($orderId);
         if (!$order instanceof OrderInterface) {
           continue;
         }
@@ -169,7 +180,7 @@ final class AttendeeRecipientResolver {
       }
 
       // Skip if order already processed (multiple items per order).
-      $orderId = $order->id();
+      $orderId = (int) $order->id();
       if (isset($processedOrders[$orderId])) {
         continue;
       }

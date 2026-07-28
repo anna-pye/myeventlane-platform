@@ -51,6 +51,7 @@ final class VendorNavBuilder {
     'payments' => 'primary',
     'analytics' => 'primary',
     'marketing' => 'primary',
+    'pro' => 'account',
     'settings' => 'account',
     'support' => 'account',
   ];
@@ -72,23 +73,28 @@ final class VendorNavBuilder {
   public function resolveActiveSection(?string $routeName): string {
     $path = $this->requestStack->getCurrentRequest()?->getPathInfo() ?? '';
 
+    if ($routeName === 'myeventlane_vendor.console.messaging_brand'
+      || str_contains($path, '/vendor/dashboard/messaging/brand')) {
+      return 'settings';
+    }
     if ($routeName === 'myeventlane_vendor.console.messages'
-      || $routeName === 'myeventlane_vendor.console.messaging_brand'
-      || $routeName === 'myeventlane_vendor.console.event_promotion'
-      || $routeName === 'myeventlane_vendor_comms.branding'
       || $routeName === 'myeventlane_vendor.message_attendees'
       || $routeName === 'myeventlane_pro.vendor_comms') {
       return 'messages';
     }
     if (str_starts_with($path, '/vendor/messages')
-      || str_contains($path, '/vendor/dashboard/messaging/brand')
-      || preg_match('#^/vendor/events/\d+/promotion(/|$)#', $path) === 1
       || preg_match('#^/vendor/events/\d+/message(/|$)#', $path) === 1
       || str_starts_with($path, '/vendor/pro/settings/comms')) {
       return 'messages';
     }
+    if (preg_match('#^/vendor/events/\d+/promotion(/|$)#', $path) === 1) {
+      return 'events';
+    }
     if (str_starts_with($path, '/vendor/settings')) {
       return 'settings';
+    }
+    if (str_starts_with($path, '/vendor/pro')) {
+      return 'pro';
     }
     if (str_starts_with($path, '/vendor/analytics') || str_starts_with($path, '/vendor/insights')) {
       return 'analytics';
@@ -136,10 +142,10 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.event_overview' => 'events',
       'myeventlane_vendor.console.event_tickets' => 'events',
       'myeventlane_vendor.console.event_publish' => 'events',
-      'myeventlane_vendor.console.event_promotion' => 'messages',
-      'myeventlane_vendor_comms.branding' => 'messages',
+      'myeventlane_vendor.console.event_promotion' => 'events',
+      'myeventlane_vendor_comms.branding' => 'events',
       'myeventlane_vendor.console.messages' => 'messages',
-      'myeventlane_vendor.console.messaging_brand' => 'messages',
+      'myeventlane_vendor.console.messaging_brand' => 'settings',
       'myeventlane_vendor.message_attendees' => 'messages',
       'myeventlane_event_studio.workspace_messaging' => 'events',
       'myeventlane_event_studio.workspace_messages' => 'events',
@@ -334,6 +340,15 @@ final class VendorNavBuilder {
         'label' => $this->t('Marketing'),
         'icon' => 'growth',
         'route' => 'myeventlane_vendor.console.marketing',
+        'children' => [],
+      ],
+      [
+        'key' => 'pro',
+        'label' => $this->t('MEL Pro'),
+        'icon' => 'star',
+        'route' => $this->namedRouteAccessible('myeventlane_pro.manage', [])
+          ? 'myeventlane_pro.manage'
+          : 'myeventlane_pro.overview',
         'children' => [],
       ],
       [

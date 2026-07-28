@@ -19,14 +19,11 @@
 <div class="mel-marketing-hub" data-mel-marketing-hub data-mel-analytics-event="marketing_opened">
 
   <nav class="mel-marketing-hub__jump" aria-label="{{ 'Marketing sections'|t }}">
-    <a class="mel-marketing-hub__jump-link" href="#marketing-health">{{ 'Marketing health'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#marketing-health">{{ 'Overview'|t }}</a>
     <a class="mel-marketing-hub__jump-link" href="#share">{{ 'Share'|t }}</a>
     <a class="mel-marketing-hub__jump-link" href="#boost">{{ 'Boost'|t }}</a>
-    <a class="mel-marketing-hub__jump-link" href="#widgets">{{ 'Widgets'|t }}</a>
-    <a class="mel-marketing-hub__jump-link" href="#social">{{ 'Social'|t }}</a>
-    <a class="mel-marketing-hub__jump-link" href="#audience">{{ 'Audience'|t }}</a>
+    <a class="mel-marketing-hub__jump-link" href="#marketing-tools">{{ 'Tools'|t }}</a>
     <a class="mel-marketing-hub__jump-link" href="#performance">{{ 'Performance'|t }}</a>
-    <a class="mel-marketing-hub__jump-link" href="#actions">{{ 'Next steps'|t }}</a>
   </nav>
 
   <section class="mel-marketing-hub__health mel-card mel-card--status mel-marketing-hub__health--{{ health.tone|default('muted') }}" id="marketing-health" aria-labelledby="mel-marketing-health-heading">
@@ -80,7 +77,7 @@
         {% endif %}
       </div>
     {% else %}
-      {% for event in share.events %}
+      {% set event = share.events|first %}
         <article class="mel-marketing-hub__share-card" data-mel-share-card data-public-url="{{ event.public_url }}">
           <h3 class="mel-marketing-hub__share-title">{{ event.title }}</h3>
           <p class="mel-marketing-hub__public-url">
@@ -136,7 +133,22 @@
           </div>
           <p class="mel-marketing-hub__copy-status" data-mel-copy-status role="status" aria-live="polite"></p>
         </article>
-      {% endfor %}
+      {% if share.events|length > 1 %}
+        <details class="mel-marketing-hub__disclosure">
+          <summary>{{ 'Choose another event'|t }} <span>({{ share.events|length - 1 }})</span></summary>
+          <ul class="mel-marketing-hub__compact-list">
+            {% for event in share.events|slice(1) %}
+              <li>
+                <span>{{ event.title }}</span>
+                <span class="mel-marketing-hub__compact-actions">
+                  {% if event.marketing_url %}<a href="{{ event.marketing_url }}">{{ 'Event Marketing'|t }}</a>{% endif %}
+                  {% if event.view_url %}<a href="{{ event.view_url }}" target="_blank" rel="noopener noreferrer">{{ 'View page'|t }}</a>{% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        </details>
+      {% endif %}
     {% endif %}
   </section>
 
@@ -169,7 +181,7 @@
         </div>
       {% else %}
         <ul class="mel-marketing-hub__campaign-list">
-          {% for campaign in boost.campaigns %}
+          {% for campaign in boost.campaigns|slice(0, 5) %}
             <li class="mel-marketing-hub__campaign-item">
               <div>
                 <p class="mel-marketing-hub__campaign-title">{{ campaign.title }}</p>
@@ -181,12 +193,22 @@
             </li>
           {% endfor %}
         </ul>
+        {% if boost.campaigns|length > 5 %}
+          <details class="mel-marketing-hub__disclosure">
+            <summary>{{ 'Show all active campaigns'|t }} <span>({{ boost.campaigns|length - 5 }} {{ 'more'|t }})</span></summary>
+            <ul class="mel-marketing-hub__compact-list">
+              {% for campaign in boost.campaigns|slice(5) %}
+                <li><span>{{ campaign.title }}</span>{% if campaign.url %}<a href="{{ campaign.url }}">{{ 'Manage Boost'|t }}</a>{% endif %}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
       {% endif %}
 
       {% if boost.eligible %}
         <h3 class="mel-marketing-hub__subsection-title">{{ 'Eligible to Boost'|t }}</h3>
         <ul class="mel-marketing-hub__campaign-list">
-          {% for item in boost.eligible %}
+          {% for item in boost.eligible|slice(0, 5) %}
             <li class="mel-marketing-hub__campaign-item">
               <div>
                 <p class="mel-marketing-hub__campaign-title">{{ item.title }}</p>
@@ -198,6 +220,16 @@
             </li>
           {% endfor %}
         </ul>
+        {% if boost.eligible|length > 5 %}
+          <details class="mel-marketing-hub__disclosure">
+            <summary>{{ 'Show all eligible events'|t }} <span>({{ boost.eligible|length - 5 }} {{ 'more'|t }})</span></summary>
+            <ul class="mel-marketing-hub__compact-list">
+              {% for item in boost.eligible|slice(5) %}
+                <li><span>{{ item.title }}</span>{% if item.url %}<a href="{{ item.url }}">{{ item.cta_label }}</a>{% endif %}</li>
+              {% endfor %}
+            </ul>
+          </details>
+        {% endif %}
       {% endif %}
 
       {% if boost.export_url %}
@@ -206,6 +238,7 @@
     {% endif %}
   </section>
 
+  <div class="mel-marketing-hub__tools-grid" id="marketing-tools">
   <section class="mel-card mel-marketing-hub__section" id="widgets" aria-labelledby="mel-marketing-widgets-heading">
     <h2 id="mel-marketing-widgets-heading" class="mel-card__title">{{ widgets.title }}</h2>
     <p class="mel-marketing-hub__muted">{{ widgets.body }}</p>
@@ -216,13 +249,23 @@
       </div>
     {% else %}
       <ul class="mel-marketing-hub__event-list">
-        {% for event in widgets.events %}
+        {% for event in widgets.events|slice(0, 5) %}
           <li class="mel-marketing-hub__event-item">
             <p class="mel-marketing-hub__event-title">{{ event.title }}</p>
             <a class="mel-button mel-button--secondary" href="{{ event.url }}" data-mel-analytics-event="widget_copied">{{ 'Open widgets'|t }}</a>
           </li>
         {% endfor %}
       </ul>
+      {% if widgets.events|length > 5 %}
+        <details class="mel-marketing-hub__disclosure">
+          <summary>{{ 'Choose another event'|t }} <span>({{ widgets.events|length - 5 }})</span></summary>
+          <ul class="mel-marketing-hub__compact-list">
+            {% for event in widgets.events|slice(5) %}
+              <li><span>{{ event.title }}</span><a href="{{ event.url }}">{{ 'Open widgets'|t }}</a></li>
+            {% endfor %}
+          </ul>
+        </details>
+      {% endif %}
     {% endif %}
   </section>
 
@@ -252,6 +295,7 @@
       <a class="mel-button mel-button--secondary" href="{{ audience.cta_url }}">{{ audience.cta_label }}</a>
     {% endif %}
   </section>
+  </div>
 
   <section class="mel-card mel-marketing-hub__section" id="performance" aria-labelledby="mel-marketing-performance-heading">
     <div class="mel-card__header mel-marketing-hub__section-header">

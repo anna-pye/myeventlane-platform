@@ -118,10 +118,15 @@ final class VendorBasController extends VendorConsoleBaseController implements C
 
     // Default to current quarter if not provided.
     if (!$startDate || !$endDate) {
-      $now = new \DateTime();
-      $quarter = (int) ceil($now->format('n') / 3);
-      $startDate = $now->format('Y') . '-' . sprintf('%02d', ($quarter - 1) * 3 + 1) . '-01';
-      $endDate = $now->format('Y') . '-' . sprintf('%02d', $quarter * 3) . '-' . sprintf('%02d', (int) $now->format('t'));
+      $now = new \DateTimeImmutable();
+      $quarter = (int) ceil((int) $now->format('n') / 3);
+      $startMonth = (($quarter - 1) * 3) + 1;
+      $endMonth = $quarter * 3;
+      $quarterStart = $now->setDate((int) $now->format('Y'), $startMonth, 1);
+      $quarterEnd = $now->setDate((int) $now->format('Y'), $endMonth, 1)
+        ->modify('last day of this month');
+      $startDate = $quarterStart->format('Y-m-d');
+      $endDate = $quarterEnd->format('Y-m-d');
     }
 
     // Create date range.
@@ -257,10 +262,15 @@ final class VendorBasController extends VendorConsoleBaseController implements C
 
     // Default to current quarter if not provided.
     if (!$startDate || !$endDate) {
-      $now = new \DateTime();
-      $quarter = (int) ceil($now->format('n') / 3);
-      $startDate = $now->format('Y') . '-' . sprintf('%02d', ($quarter - 1) * 3 + 1) . '-01';
-      $endDate = $now->format('Y') . '-' . sprintf('%02d', $quarter * 3) . '-' . sprintf('%02d', (int) $now->format('t'));
+      $now = new \DateTimeImmutable();
+      $quarter = (int) ceil((int) $now->format('n') / 3);
+      $startMonth = (($quarter - 1) * 3) + 1;
+      $endMonth = $quarter * 3;
+      $startDate = $now->setDate((int) $now->format('Y'), $startMonth, 1)
+        ->format('Y-m-d');
+      $endDate = $now->setDate((int) $now->format('Y'), $endMonth, 1)
+        ->modify('last day of this month')
+        ->format('Y-m-d');
     }
 
     $startTimestamp = strtotime($startDate . ' 00:00:00');

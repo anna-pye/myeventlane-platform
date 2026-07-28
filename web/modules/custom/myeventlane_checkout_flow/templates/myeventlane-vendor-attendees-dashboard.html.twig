@@ -28,7 +28,15 @@
     </div>
   {% endif %}
 
-  {% if mel_cards is not empty %}
+  {% if mel_stats_unavailable %}
+    <section class="mel-card mel-mt-6" role="status" aria-labelledby="mel-attendee-stats-unavailable-title">
+      <div class="mel-card-body">
+        <h2 id="mel-attendee-stats-unavailable-title">{{ 'Attendee overview temporarily unavailable'|t }}</h2>
+        <p>{{ 'Your event and attendee records are safe. Refresh the page shortly, or open an event workspace to manage that event directly.'|t }}</p>
+        <a href="{{ path('myeventlane_vendor.console.events') }}" class="mel-btn mel-btn--secondary">{{ 'Choose an event'|t }}</a>
+      </div>
+    </section>
+  {% elseif mel_cards is not empty %}
     <div class="mel-attendees-kpi-bar">
       <div class="mel-attendees-kpi-bar__kpi">
         <span class="mel-attendees-kpi-bar__label">{{ 'Events'|t }}</span>

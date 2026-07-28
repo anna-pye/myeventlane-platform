@@ -1,102 +1,125 @@
 {#
   Payouts deep page (under Payments Hub).
-  Variables: summary, history, health, empty, stripe_manage_url.
-
-  `history` is recent completed Commerce ticket orders, not Stripe payout records.
-  Bank payout status is summarised in Payout balances (Last payout).
+  `history` contains recent completed ticket orders, not Stripe bank transfers.
 #}
 {% set health = health|default({}) %}
+{% set health_tone = health.needs_attention ? 'attention' : (health.connected ? 'success' : 'muted') %}
 
-<div class="mel-layout__split mel-layout__split--status-primary">
-  <div class="mel-card mel-card--status">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Earnings'|t }}</div>
+<div class="mel-payouts">
+  <section class="mel-card mel-card--status mel-payouts__health mel-payouts__health--{{ health_tone }}" aria-labelledby="mel-payout-health-heading">
+    <div class="mel-payouts__health-copy">
+      <p class="mel-payments-hub__eyebrow">{{ 'Payout status'|t }}</p>
+      <div class="mel-payments-hub__health-heading">
+        <h2 id="mel-payout-health-heading" class="mel-payments-hub__health-title">
+          {{ health.needs_attention ? 'Finish your payout setup'|t : health.title|default(health.connected ? 'Stripe is connected'|t : 'Connect Stripe to receive payouts'|t) }}
+        </h2>
+        {% if health.status_label %}
+          <span class="mel-payments-hub__status">{{ health.status_label }}</span>
+        {% endif %}
+      </div>
+      <p class="mel-payments-hub__health-summary">
+        {{ health.summary|default(health.connected ? 'Your payout details and balances are shown below.'|t : 'Set up Stripe so ticket earnings can reach your bank account.'|t) }}
+      </p>
+      {% if health.next_step %}
+        <p class="mel-payments-hub__next-step"><strong>{{ 'Next step:'|t }}</strong> {{ health.next_step }}</p>
+      {% endif %}
     </div>
-    <div class="mel-list">
-      <div class="mel-list__item">
-        <div>{{ 'Total sales'|t }}</div>
-        <div class="mel-list__meta">{{ summary.total_sales|default('$0.00') }}</div>
-      </div>
-      <div class="mel-list__item">
-        <div>{{ 'Fees'|t }}</div>
-        <div class="mel-list__meta">{{ summary.total_fees|default('$0.00') }}</div>
-      </div>
-      <div class="mel-list__item">
-        <div>{{ 'Net earnings'|t }}</div>
-        <div class="mel-list__meta">{{ summary.net_earnings|default('$0.00') }}</div>
-      </div>
-    </div>
-  </div>
 
-  <div class="mel-card mel-card--status">
-    <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Payout balances'|t }}</div>
+    <div class="mel-payouts__health-actions">
+      {% if health.needs_attention and health.cta_url %}
+        <a class="mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
+      {% elseif not health.connected %}
+        <a class="mel-button mel-button--primary mel-button--stripe" href="{{ path('myeventlane_vendor.stripe_connect', {}, {'query': {'destination': '/vendor/payouts'}}) }}">{{ 'Connect Stripe'|t }}</a>
+      {% elseif health.secondary_cta_url %}
+        <a class="mel-button mel-button--secondary" href="{{ health.secondary_cta_url }}">{{ health.secondary_cta_label|default('Open Stripe'|t) }}</a>
+      {% endif %}
     </div>
-    <div class="mel-list">
-      <div class="mel-list__item">
-        <div>{{ 'Available'|t }}</div>
-        <div class="mel-list__meta">{{ summary.balance|default('$0.00') }}</div>
-      </div>
-      <div class="mel-list__item">
-        <div>{{ 'Pending'|t }}</div>
-        <div class="mel-list__meta">{{ summary.pending_payout|default('$0.00') }}</div>
-      </div>
-      <div class="mel-list__item">
-        <div>{{ 'Last payout'|t }}</div>
-        <div class="mel-list__meta">{{ summary.last_payout|default('—'|t) }}</div>
-      </div>
-      <div class="mel-list__item">
-        <div>{{ 'Next expected'|t }}</div>
-        <div class="mel-list__meta">{{ summary.next_payout|default('—'|t) }}</div>
-      </div>
-    </div>
-  </div>
-</div>
+  </section>
 
-<div class="mel-card mel-card--next">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Actions'|t }}</div>
-  </div>
-  <div class="mel-list mel-list--actions">
-    {% if health.needs_attention and health.cta_url %}
-      <a class="mel-list__item mel-button mel-button--primary" href="{{ health.cta_url }}">{{ health.cta_label }}</a>
-    {% elseif not health.connected %}
-      <a class="mel-list__item mel-button mel-button--primary mel-button--stripe" href="{{ path('myeventlane_vendor.stripe_connect', {}, {'query': {'destination': '/vendor/payouts'}}) }}">{{ 'Connect Stripe'|t }}</a>
-    {% endif %}
-    <a class="mel-list__item" href="{{ path('myeventlane_vendor.console.payments') }}">{{ 'Payments overview'|t }}</a>
-    {% if health.secondary_cta_url %}
-      <a class="mel-list__item" href="{{ health.secondary_cta_url }}">{{ health.secondary_cta_label|default('Open Stripe'|t) }}</a>
-    {% elseif stripe_manage_url and health.account_id_present %}
-      <a class="mel-list__item" href="{{ stripe_manage_url }}">{{ 'Open Stripe'|t }}</a>
-    {% endif %}
-  </div>
-</div>
-
-<div class="mel-card">
-  <div class="mel-card__header">
-    <div class="mel-card__title">{{ 'Recent transactions'|t }}</div>
-  </div>
-  <div class="mel-table">
-    <div class="mel-table__head">
-      <div>{{ 'Date'|t }}</div>
-      <div>{{ 'Event'|t }}</div>
-      <div>{{ 'Amount'|t }}</div>
-      <div>{{ 'Status'|t }}</div>
+  <section aria-labelledby="mel-payout-earnings-heading">
+    <div class="mel-payouts__section-heading">
+      <div>
+        <h2 id="mel-payout-earnings-heading">{{ 'Earnings'|t }}</h2>
+        <p>{{ 'Completed ticket sales after platform fees and refunds.'|t }}</p>
+      </div>
     </div>
-    <div class="mel-table__body">
-      {% for item in history %}
-        <div class="mel-table__row">
-          <div>{{ item.date }}</div>
-          <div>{{ item.event|default('') }}</div>
-          <div>{{ item.amount }}</div>
-          <div>{{ item.status }}</div>
+    <div class="mel-payments-hub__kpi-row">
+      <article class="mel-payments-hub__kpi">
+        <span class="mel-payments-hub__kpi-label">{{ 'Total sales'|t }}</span>
+        <strong class="mel-payments-hub__kpi-value">{{ summary.total_sales|default('$0.00') }}</strong>
+        <span class="mel-payments-hub__kpi-help">{{ 'Gross value of completed ticket orders.'|t }}</span>
+      </article>
+      <article class="mel-payments-hub__kpi">
+        <span class="mel-payments-hub__kpi-label">{{ 'Fees'|t }}</span>
+        <strong class="mel-payments-hub__kpi-value">{{ summary.total_fees|default('$0.00') }}</strong>
+        <span class="mel-payments-hub__kpi-help">{{ 'Platform fees recorded against those sales.'|t }}</span>
+      </article>
+      <article class="mel-payments-hub__kpi">
+        <span class="mel-payments-hub__kpi-label">{{ 'Net earnings'|t }}</span>
+        <strong class="mel-payments-hub__kpi-value">{{ summary.net_earnings|default('$0.00') }}</strong>
+        <span class="mel-payments-hub__kpi-help">{{ 'Completed sales less platform fees and completed refunds.'|t }}</span>
+      </article>
+    </div>
+  </section>
+
+  <section class="mel-card mel-payments-hub__section" aria-labelledby="mel-payout-balances-heading">
+    <div class="mel-payments-hub__section-header">
+      <div>
+        <h2 id="mel-payout-balances-heading" class="mel-payments-hub__section-title">{{ 'Payout balances'|t }}</h2>
+        <p class="mel-payouts__section-intro">{{ 'These balances come from Stripe and show what is ready or still processing.'|t }}</p>
+      </div>
+    </div>
+    <dl class="mel-payments-hub__facts mel-payments-hub__facts--grid mel-payouts__balance-grid">
+      <div class="mel-payments-hub__fact">
+        <dt>{{ 'Available'|t }}</dt>
+        <dd>{{ summary.balance|default('$0.00') }}</dd>
+      </div>
+      <div class="mel-payments-hub__fact">
+        <dt>{{ 'Pending'|t }}</dt>
+        <dd>{{ summary.pending_payout|default('$0.00') }}</dd>
+      </div>
+      <div class="mel-payments-hub__fact">
+        <dt>{{ 'Last bank payout'|t }}</dt>
+        <dd>{{ summary.last_payout|default('—'|t) }}</dd>
+      </div>
+      <div class="mel-payments-hub__fact">
+        <dt>{{ 'Next expected'|t }}</dt>
+        <dd>{{ summary.next_payout|default('—'|t) }}</dd>
+      </div>
+    </dl>
+  </section>
+
+  <section class="mel-card mel-payouts__transactions" aria-labelledby="mel-payout-transactions-heading">
+    <div class="mel-payments-hub__section-header">
+      <div>
+        <h2 id="mel-payout-transactions-heading" class="mel-payments-hub__section-title">{{ 'Recent ticket transactions'|t }}</h2>
+        <p class="mel-payouts__section-intro">{{ 'Completed ticket orders contributing to your earnings. Bank transfers are shown in the payout balance above.'|t }}</p>
+      </div>
+    </div>
+    <div class="mel-payouts__table-scroll">
+      <div class="mel-table">
+        <div class="mel-table__head">
+          <div>{{ 'Date'|t }}</div>
+          <div>{{ 'Event'|t }}</div>
+          <div>{{ 'Amount'|t }}</div>
+          <div>{{ 'Status'|t }}</div>
         </div>
-      {% else %}
-        <div class="mel-table__empty" role="status">
-          <p><strong>{{ 'No recent transactions listed.'|t }}</strong></p>
-          <p>{{ 'This list shows recent completed ticket orders. Bank transfers appear under Last payout above.'|t }}</p>
+        <div class="mel-table__body">
+          {% for item in history %}
+            <div class="mel-table__row">
+              <div data-label="{{ 'Date'|t }}">{{ item.date }}</div>
+              <div data-label="{{ 'Event'|t }}">{{ item.event|default('') }}</div>
+              <div data-label="{{ 'Amount'|t }}">{{ item.amount }}</div>
+              <div data-label="{{ 'Status'|t }}"><span class="mel-payouts__status">{{ item.status }}</span></div>
+            </div>
+          {% else %}
+            <div class="mel-table__empty" role="status">
+              <p><strong>{{ 'No completed ticket transactions yet.'|t }}</strong></p>
+              <p>{{ 'Transactions will appear here after your first completed ticket order.'|t }}</p>
+            </div>
+          {% endfor %}
         </div>
-      {% endfor %}
+      </div>
     </div>
-  </div>
+  </section>
 </div>

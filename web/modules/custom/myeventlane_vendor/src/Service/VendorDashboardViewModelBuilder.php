@@ -17,6 +17,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\myeventlane_boost\Service\BoostMetricsService;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
+use Drupal\myeventlane_event_state\Service\EventStateResolverInterface as LifecycleStateResolverInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_front\Service\HomepageVisibilityReportService;
@@ -37,7 +38,17 @@ final class VendorDashboardViewModelBuilder {
 
   use StringTranslationTrait;
 
-  private const MAX_EVENTS = 6;
+  private const MAX_EVENTS_PER_LIFECYCLE = 3;
+
+  private const LIFECYCLE_ORDER = [
+    'live',
+    'sold_out',
+    'scheduled',
+    'draft',
+    'ended',
+    'cancelled',
+    'archived',
+  ];
 
   private const MAX_EVENT_QUICK_ACTIONS = 6;
 
@@ -49,6 +60,7 @@ final class VendorDashboardViewModelBuilder {
     private readonly TicketSalesService $ticketSalesService,
     private readonly RsvpStatsService $rsvpStatsService,
     private readonly EventStateResolver $eventStateResolver,
+    private readonly LifecycleStateResolverInterface $lifecycleStateResolver,
     private readonly VendorEventPresentationAlertsBuilder $presentationAlerts,
     private readonly VendorActionQueueBuilder $actionQueueBuilder,
     private readonly RouteProviderInterface $routeProvider,
@@ -98,9 +110,13 @@ final class VendorDashboardViewModelBuilder {
       $kpis = $this->fallbackKpisUnavailable();
     }
 
-    $events = [];
+    $eventPortfolio = [
+      'events' => [],
+      'counts' => [],
+      'total' => 0,
+    ];
     try {
-      $events = $this->buildEventRows($uid, $account);
+      $eventPortfolio = $this->buildEventPortfolio($uid, $account);
     }
     catch (\Throwable $e) {
       $this->loggerFactory->get('myeventlane_vendor')->warning('Dashboard view model events build failed for uid @uid: @message', [
@@ -109,6 +125,7 @@ final class VendorDashboardViewModelBuilder {
       ]);
     }
 
+    $events = $eventPortfolio['events'];
     $analyticsSummary = $this->buildAnalyticsSummary($account);
 
     $model = [
@@ -132,6 +149,10 @@ final class VendorDashboardViewModelBuilder {
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip($kpis),
       'action_queue' => [],
       'events' => $events,
+      'event_portfolio' => [
+        'counts' => $eventPortfolio['counts'],
+        'total' => $eventPortfolio['total'],
+      ],
       'current_event' => $events[0] ?? NULL,
       'organiser_actions' => $this->buildOrganiserActions($account, $events !== []),
       'organiser_overview' => [],
@@ -193,6 +214,10 @@ final class VendorDashboardViewModelBuilder {
       'kpis' => $this->dataPresentationManager->decorateVendorDashboardMetricStrip([]),
       'action_queue' => [],
       'events' => [],
+      'event_portfolio' => [
+        'counts' => [],
+        'total' => 0,
+      ],
       'current_event' => NULL,
       'organiser_actions' => [],
       'organiser_overview' => [],
@@ -675,10 +700,14 @@ final class VendorDashboardViewModelBuilder {
   /**
    * @return list<array<string, mixed>>
    */
-  private function buildEventRows(int $uid, AccountInterface $account): array {
+  private function buildEventPortfolio(int $uid, AccountInterface $account): array {
     $ids = $this->userVendorMembershipQuery->getManagedEventNodeIds($uid, FALSE);
     if ($ids === []) {
-      return [];
+      return [
+        'events' => [],
+        'counts' => [],
+        'total' => 0,
+      ];
     }
 
     $nodes = $this->entityTypeManager->getStorage('node')->loadMultiple($ids);
@@ -706,13 +735,33 @@ final class VendorDashboardViewModelBuilder {
       return $b->getChangedTime() <=> $a->getChangedTime();
     });
 
-    $eventNodes = array_slice($eventNodes, 0, self::MAX_EVENTS);
+    $counts = [];
+    $nodesByLifecycle = [];
+    foreach ($eventNodes as $node) {
+      $lifecycleState = $this->lifecycleStateResolver->resolveState($node);
+      $counts[$lifecycleState] = ($counts[$lifecycleState] ?? 0) + 1;
+      $nodesByLifecycle[$lifecycleState][] = $node;
+    }
+
+    // Keep the dashboard representative and bounded: every populated lifecycle
+    // contributes rows, while the event index remains the complete portfolio.
+    $eventNodes = [];
+    foreach (self::LIFECYCLE_ORDER as $lifecycleState) {
+      foreach (array_slice($nodesByLifecycle[$lifecycleState] ?? [], 0, self::MAX_EVENTS_PER_LIFECYCLE) as $node) {
+        $eventNodes[] = $node;
+      }
+    }
+
     $rows = [];
     foreach ($eventNodes as $node) {
       $rows[] = $this->buildEventRow($node, $account);
     }
 
-    return $rows;
+    return [
+      'events' => $rows,
+      'counts' => $counts,
+      'total' => array_sum($counts),
+    ];
   }
 
   /**
@@ -724,6 +773,7 @@ final class VendorDashboardViewModelBuilder {
     $startTs = $this->getDateFieldTimestamp($node, 'field_event_start');
     $endTs = $this->getDateFieldTimestamp($node, 'field_event_end');
     $now = (int) $this->time->getRequestTime();
+    $lifecycleState = $this->lifecycleStateResolver->resolveState($node);
 
     if (!$published) {
       $status = 'draft';
@@ -807,6 +857,8 @@ final class VendorDashboardViewModelBuilder {
       'title' => (string) $node->getTitle(),
       'status' => $status,
       'status_label' => $statusLabel,
+      'lifecycle_state' => $lifecycleState,
+      'lifecycle_label' => $this->lifecycleLabel($lifecycleState),
       'date_label' => $dateLabel,
       'event_type' => $eventType,
       'booking_state_label' => $this->bookingStateLabel($eventType),
@@ -898,6 +950,19 @@ final class VendorDashboardViewModelBuilder {
       'rsvp' => (string) $this->t('RSVP collection is active.'),
       'both' => (string) $this->t('Tickets and RSVPs are active.'),
       default => (string) $this->t('Booking setup needs review.'),
+    };
+  }
+
+  private function lifecycleLabel(string $state): string {
+    return match ($state) {
+      'draft' => (string) $this->t('Draft'),
+      'scheduled' => (string) $this->t('Upcoming'),
+      'live' => (string) $this->t('Live'),
+      'sold_out' => (string) $this->t('Sold out'),
+      'ended' => (string) $this->t('Completed'),
+      'cancelled' => (string) $this->t('Cancelled'),
+      'archived' => (string) $this->t('Archived'),
+      default => (string) $this->t('Event'),
     };
   }
 

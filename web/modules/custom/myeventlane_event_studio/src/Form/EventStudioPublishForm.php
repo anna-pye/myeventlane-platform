@@ -115,7 +115,7 @@ class EventStudioPublishForm extends EventStudioBaseForm {
         'title' => [
           '#type' => 'html_tag',
           '#tag' => 'h3',
-          '#value' => $this->t('Publish event'),
+          '#value' => $this->t('Publishing status'),
           '#attributes' => [
             'id' => 'mel-publish-action-title-wizard',
             'class' => ['mel-publish-action-card__title'],
@@ -124,7 +124,7 @@ class EventStudioPublishForm extends EventStudioBaseForm {
         'description' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('After publishing, your public page can show RSVPs or tickets you\'ve turned on.'),
+          '#value' => $this->t('Draft — publish when the event is ready for guests. Your public page can then show RSVPs or tickets you\'ve turned on.'),
           '#attributes' => ['class' => ['mel-publish-action-card__desc']],
         ],
         'publish_now' => [
@@ -148,19 +148,19 @@ class EventStudioPublishForm extends EventStudioBaseForm {
         'title' => [
           '#type' => 'html_tag',
           '#tag' => 'h3',
-          '#value' => $this->t('Your event is live'),
+          '#value' => $this->t('Publishing status'),
           '#attributes' => ['class' => ['mel-publish-action-card__title']],
         ],
         'description' => [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Updates publish when you save.'),
+          '#value' => $this->t('Live — updates publish when you save. Moving the event back to draft also takes effect when you save settings.'),
           '#attributes' => ['class' => ['mel-publish-action-card__desc']],
         ],
         'unpublish' => [
           '#type' => 'html_tag',
           '#tag' => 'button',
-          '#value' => $this->t('Unpublish'),
+          '#value' => $this->t('Move event back to draft'),
           '#attributes' => [
             'type' => 'button',
             'class' => ['mel-btn', 'mel-btn--ghost'],

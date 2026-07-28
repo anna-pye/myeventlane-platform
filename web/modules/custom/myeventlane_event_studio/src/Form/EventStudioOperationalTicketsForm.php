@@ -186,16 +186,22 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $form['intro'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-es-card', 'mel-event-studio-ticket-intro']],
+      'step' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('Step 2 of 3'),
+        '#attributes' => ['class' => ['mel-es-workflow-step']],
+      ],
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Tickets'),
+        '#value' => $this->t('Create and manage tickets'),
         '#attributes' => ['class' => ['mel-es-card__title']],
       ],
       'copy' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Create the ticket types people can book — General Admission, VIP, Early Bird, Donation, and more. Focus on pricing, capacity, and availability. Advanced tools stay tucked away until you need them.'),
+        '#value' => $this->t('Set the name, price, capacity and availability for each ticket. Advanced tools stay tucked away until you need them.'),
         '#attributes' => ['class' => ['mel-es-card__hint']],
       ],
     ];
@@ -212,7 +218,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $tickets = $this->ticketTierLifecycle->loadOrderedTicketsForEvent($event);
     foreach ($tickets as $ticket) {
       $ticket_id = (int) $ticket->id();
-      $form['tickets'][$ticket_id] = $this->buildExistingTicketRow($ticket);
+      $form['tickets'][$ticket_id] = $this->buildExistingTicketRow($ticket, $form_state);
     }
 
     if ($tickets === []) {
@@ -540,7 +546,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
   /**
    * @return array<string, mixed>
    */
-  private function buildExistingTicketRow(TicketTypeInterface $ticket): array {
+  private function buildExistingTicketRow(TicketTypeInterface $ticket, FormStateInterface $form_state): array {
     $ticket_id = (int) $ticket->id();
     $kind = $ticket->getTicketKind();
     $price = $ticket->toPriceValue();
@@ -570,6 +576,21 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ] ?? $this->t('Public'),
     };
     $deletion_eligibility = $this->ticketTierLifecycle->evaluateTicketDeletion($ticket);
+    $ticket_has_errors = FALSE;
+    foreach (array_keys($form_state->getErrors()) as $error_name) {
+      if (str_contains((string) $error_name, 'tickets][' . $ticket_id)) {
+        $ticket_has_errors = TRUE;
+        break;
+      }
+    }
+    $controls_summary = $this->t(
+      'Sales and availability — @sales · @visibility · @status',
+      [
+        '@sales' => $status_summary,
+        '@visibility' => $availability_label,
+        '@status' => $status,
+      ],
+    );
 
     return [
       '#type' => 'container',
@@ -746,7 +767,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         ],
       ],
       'body' => [
-        '#type' => 'container',
+        '#type' => 'details',
+        '#title' => $controls_summary,
+        '#open' => $ticket_has_errors,
         '#attributes' => ['class' => ['mel-event-studio-ticket-card__body']],
         'sales_window' => [
           '#type' => 'container',
@@ -837,10 +860,11 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         ],
       ],
       'quick_actions' => [
-        '#type' => 'container',
+        '#type' => 'details',
+        '#title' => $this->t('Ticket actions'),
+        '#open' => $ticket_has_errors,
         '#attributes' => [
           'class' => ['mel-event-studio-ticket-card__quick-actions'],
-          'aria-label' => $this->t('Quick actions'),
         ],
         'hint' => [
           '#type' => 'html_tag',

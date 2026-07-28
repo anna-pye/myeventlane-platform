@@ -101,7 +101,7 @@
         {% set boost = ev.boost|default({}) %}
         {% set boost_extension_recommendation = ev.boost_extension_recommendation|default(null) %}
         {% set sev = ev.status_severity|default('neutral') %}
-        <article class="mel-vendor-events-v2__card{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}">
+        <article class="mel-vendor-events-v2__card{% if ev.status|default('') == 'past' %} mel-vendor-events-v2__card--quiet{% endif %}{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}">
           <div class="mel-vendor-events-v2__card-top">
             {% set img = ev.image|default({}) %}
             {% set img_url = img.url|default('') %}
@@ -185,35 +185,45 @@
           </div>
           <div class="mel-vendor-events-v2__card-actions">
             {% if links.manage is defined and links.manage %}
-              <a class="mel-btn mel-btn--primary mel-vendor-events-v2__action-primary" href="{{ links.manage }}">{{ 'Manage'|t }}</a>
+              <a class="mel-btn mel-btn--primary mel-vendor-events-v2__action-primary" href="{{ links.manage }}">
+                {{ 'Open workspace'|t }}
+                <span class="visually-hidden">: {{ ev.title|default('Untitled event'|t) }}</span>
+              </a>
             {% endif %}
-            {% if links.edit is defined and links.edit %}
-              <a class="mel-btn mel-btn--secondary mel-vendor-events-v2__action-secondary" href="{{ links.edit }}">{{ 'Edit'|t }}</a>
-            {% endif %}
-            {% if links.tickets is defined and links.tickets %}
-              <a class="mel-btn mel-btn--secondary mel-vendor-events-v2__action-secondary" href="{{ links.tickets }}">{{ 'Tickets'|t }}</a>
-            {% endif %}
-            <div class="mel-vendor-events-v2__optional-links">
-              {% if links.rsvps is defined and links.rsvps %}
-                <a class="mel-vendor-events-v2__link" href="{{ links.rsvps }}">{{ 'RSVPs'|t }}</a>
-              {% endif %}
-              {% if links.orders is defined and links.orders %}
-                <a class="mel-vendor-events-v2__link" href="{{ links.orders }}">{{ 'Orders'|t }}</a>
-              {% endif %}
-              {% if links.attendees is defined and links.attendees %}
-                <a class="mel-vendor-events-v2__link" href="{{ links.attendees }}">{{ 'Attendees'|t }}</a>
-              {% endif %}
-              {% if links.analytics is defined and links.analytics %}
-                <a class="mel-vendor-events-v2__link" href="{{ links.analytics }}">{{ 'Analytics'|t }}</a>
-              {% endif %}
-            </div>
-            {% set removal = ev.removal|default(null) %}
-            {% if removal %}
-              <button type="button" class="mel-btn mel-event-card-remove-open mel-vendor-events-v2__action-secondary" data-mel-open-dialog="{{ removal.dialog_id|e('html_attr') }}" aria-haspopup="dialog">
-                {{ removal.danger_label|default('Archive'|t) }}
-              </button>
-              {% include '@myeventlane_vendor_theme/components/mel-event-card-removal-dialog.html.twig' with { removal: removal } only %}
-            {% endif %}
+            <details class="mel-vendor-events-v2__more-actions">
+              <summary>{{ 'More actions'|t }}</summary>
+              <div class="mel-vendor-events-v2__more-actions-panel">
+                <div class="mel-vendor-events-v2__optional-links">
+                  {% if links.edit is defined and links.edit %}
+                    <a class="mel-vendor-events-v2__link" href="{{ links.edit }}">{{ 'Edit event'|t }}</a>
+                  {% endif %}
+                  {% if links.tickets is defined and links.tickets %}
+                    <a class="mel-vendor-events-v2__link" href="{{ links.tickets }}">{{ 'Tickets'|t }}</a>
+                  {% endif %}
+                  {% if links.rsvps is defined and links.rsvps %}
+                    <a class="mel-vendor-events-v2__link" href="{{ links.rsvps }}">{{ 'RSVPs'|t }}</a>
+                  {% endif %}
+                  {% if links.orders is defined and links.orders %}
+                    <a class="mel-vendor-events-v2__link" href="{{ links.orders }}">{{ 'Orders'|t }}</a>
+                  {% endif %}
+                  {% if links.attendees is defined and links.attendees %}
+                    <a class="mel-vendor-events-v2__link" href="{{ links.attendees }}">{{ 'Attendees'|t }}</a>
+                  {% endif %}
+                  {% if links.analytics is defined and links.analytics %}
+                    <a class="mel-vendor-events-v2__link" href="{{ links.analytics }}">{{ 'Analytics'|t }}</a>
+                  {% endif %}
+                </div>
+                {% set removal = ev.removal|default(null) %}
+                {% if removal %}
+                  <div class="mel-vendor-events-v2__removal">
+                    <button type="button" class="mel-btn mel-event-card-remove-open mel-vendor-events-v2__action-secondary" data-mel-open-dialog="{{ removal.dialog_id|e('html_attr') }}" aria-haspopup="dialog">
+                      {{ removal.danger_label|default('Archive'|t) }}
+                    </button>
+                    {% include '@myeventlane_vendor_theme/components/mel-event-card-removal-dialog.html.twig' with { removal: removal } only %}
+                  </div>
+                {% endif %}
+              </div>
+            </details>
           </div>
         </article>
       {% endfor %}

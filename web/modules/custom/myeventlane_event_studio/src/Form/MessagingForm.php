@@ -41,6 +41,19 @@ final class MessagingForm extends EventStudioBaseForm {
   /**
    * {@inheritdoc}
    */
+  public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $node = NULL): array {
+    $form = parent::buildForm($form, $form_state, $node);
+
+    // Messages is an operational workspace, not a data-entry wizard step.
+    $form['#attributes']['class'][] = 'mel-event-studio-wizard-form--messages';
+    unset($form['actions']);
+
+    return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   protected function getNextRouteName(): string {
     return 'myeventlane_event_studio.workspace_messaging';
   }

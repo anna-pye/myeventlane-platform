@@ -105,6 +105,22 @@ final class VendorPaymentsHubBuilder {
     }
 
     $refunds = $this->buildRefundsSection();
+    $hasCompletedSales = (float) ($revenue['gross_raw'] ?? 0.0) > 0;
+    $payoutsEnabled = !empty($health['payouts_enabled']);
+    if (!$payoutsEnabled) {
+      $payoutEmptyTitle = (string) $this->t('Payouts are not enabled yet');
+      $payoutEmptyBody = $hasCompletedSales
+        ? (string) $this->t('Your completed ticket sales are included in net earnings above. Finish your Stripe payout details so cleared funds can reach your bank.')
+        : (string) $this->t('Finish your Stripe payout details before selling paid tickets so cleared funds can reach your bank.');
+    }
+    elseif ($hasCompletedSales) {
+      $payoutEmptyTitle = (string) $this->t('No payout has arrived yet');
+      $payoutEmptyBody = (string) $this->t("Your completed sales are recorded above. Stripe will show a payout here once funds clear on its usual schedule.");
+    }
+    else {
+      $payoutEmptyTitle = (string) $this->t('No payouts yet');
+      $payoutEmptyBody = (string) $this->t("We'll show your first payout after paid ticket sales begin and the funds clear.");
+    }
     $billingUrl = $this->safeRouteUrl('myeventlane_donations.vendor_mel_billing');
     $supportUrl = $this->safeRouteUrl('myeventlane_escalations_portal.vendor_list')
       ?? $this->safeRouteUrl('myeventlane_help_centre.help')
@@ -129,6 +145,9 @@ final class VendorPaymentsHubBuilder {
         'net' => $revenue['net'] ?? '$0.00',
         'available' => $available,
         'pending' => $pending,
+        'available_help' => (string) $this->t('Cleared in Stripe and ready for its payout schedule.'),
+        'pending_help' => (string) $this->t('Still processing in Stripe before it can be paid out.'),
+        'net_help' => (string) $this->t('Completed ticket sales less platform fees and completed refunds.'),
       ],
       'payouts' => [
         'available' => $available,
@@ -139,8 +158,8 @@ final class VendorPaymentsHubBuilder {
           : (string) $this->t('Available once payouts are enabled'),
         'history_url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
         'empty' => $lastPayout === NULL && $this->isZeroBalance($available) && $this->isZeroBalance($pending),
-        'empty_title' => (string) $this->t('No payouts yet.'),
-        'empty_body' => (string) $this->t("We'll show your first payout once ticket sales begin."),
+        'empty_title' => $payoutEmptyTitle,
+        'empty_body' => $payoutEmptyBody,
       ],
       'refunds' => $refunds,
       'tax' => [

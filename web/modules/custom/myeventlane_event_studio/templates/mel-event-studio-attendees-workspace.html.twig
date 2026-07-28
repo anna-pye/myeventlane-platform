@@ -20,7 +20,6 @@
 
   <header class="mel-attendees-workspace__header">
     <div class="mel-attendees-workspace__intro">
-      <h2 class="mel-attendees-workspace__title">{{ 'Attendees'|t }}</h2>
       <p class="mel-attendees-workspace__lede">{{ 'One guest list for tickets, RSVPs, and waitlist — including Door Mode on the day.'|t }}</p>
     </div>
     {% if actions %}
@@ -79,6 +78,13 @@
           </select>
         </div>
       {% endif %}
+
+      <button type="button"
+              class="mel-btn mel-btn--ghost mel-attendees-workspace__reset"
+              data-mel-attendee-reset
+              hidden>
+        {{ 'Reset filters'|t }}
+      </button>
     </div>
 
     <div class="mel-attendees-workspace__filters" role="toolbar" aria-label="{{ 'Filter attendees'|t }}">
@@ -92,11 +98,11 @@
       {% endfor %}
     </div>
 
-    <p class="mel-attendees-workspace__result-status visually-hidden" data-mel-attendee-status role="status" aria-live="polite">
+    <p class="mel-attendees-workspace__result-status" data-mel-attendee-status role="status" aria-live="polite">
       {% if match_count == 1 %}
-        {{ 'Showing 1 attendee'|t }}
+        {{ 'Showing 1 of @total attendees'|t({'@total': attendees|length}) }}
       {% else %}
-        {{ 'Showing @count attendees'|t({'@count': match_count}) }}
+        {{ 'Showing @count of @total attendees'|t({'@count': match_count, '@total': attendees|length}) }}
       {% endif %}
     </p>
 
@@ -193,15 +199,15 @@
       <p class="mel-empty-state__text">{{ empty_filter.body|default('Try another search or clear your filters.'|t) }}</p>
     </div>
   {% else %}
-    <div class="mel-empty-state mel-attendees-workspace__empty">
+    <div class="mel-empty-state mel-attendees-workspace__empty" data-mel-attendee-event-empty>
       <p class="mel-empty-state__title">{{ empty.title|default('No attendees yet'|t) }}</p>
-      <p class="mel-empty-state__text">{{ empty.body|default('Publish your event and share it to receive your first booking.'|t) }}</p>
+      <p class="mel-empty-state__text">{{ empty.body|default('Share your event to welcome your first guest.'|t) }}</p>
       {% if empty.prompt %}
         <p class="mel-empty-state__prompt">{{ empty.prompt }}</p>
       {% endif %}
       {% if empty.cta_url %}
         <div class="mel-action-group">
-          <a class="mel-btn mel-btn--primary" href="{{ empty.cta_url }}" target="_blank" rel="noopener noreferrer">{{ empty.cta_label|default('View event page'|t) }}</a>
+          <a class="mel-btn mel-btn--primary" href="{{ empty.cta_url }}"{% if empty.open_new_tab|default(false) %} target="_blank" rel="noopener noreferrer"{% endif %}>{{ empty.cta_label|default('View event page'|t) }}</a>
         </div>
       {% endif %}
     </div>

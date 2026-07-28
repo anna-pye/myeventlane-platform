@@ -1,0 +1,19 @@
+uuid: 1919f705-06d2-471f-8e4f-1c4ce84af1cf
+langcode: en
+status: true
+dependencies:
+  config:
+    - image.style.mel_event_hero_featured
+id: mel_event_hero
+label: 'MyEventLane event hero'
+image_style_mappings:
+  -
+    image_mapping_type: sizes
+    image_mapping:
+      sizes: 100vw
+      sizes_image_styles:
+        - mel_event_hero_featured
+    breakpoint_id: responsive_image.viewport_sizing
+    multiplier: 1x
+breakpoint_group: responsive_image
+fallback_image_style: mel_event_hero_featured

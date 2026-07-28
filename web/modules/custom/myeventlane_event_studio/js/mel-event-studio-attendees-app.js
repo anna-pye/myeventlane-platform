@@ -31,6 +31,7 @@
         'data-mel-attendee-filter',
       ) || 'all';
     const cards = root.querySelectorAll('[data-mel-attendee-card]');
+    const total = cards.length;
     let visible = 0;
 
     cards.forEach(function (card) {
@@ -54,8 +55,11 @@
     if (status) {
       status.textContent =
         visible === 1
-          ? Drupal.t('Showing 1 attendee')
-          : Drupal.t('Showing @count attendees', { '@count': visible });
+          ? Drupal.t('Showing 1 of @total attendees', { '@total': total })
+          : Drupal.t('Showing @count of @total attendees', {
+              '@count': visible,
+              '@total': total,
+            });
     }
 
     const emptyFilter = root.querySelector('[data-mel-attendee-empty-filter]');
@@ -78,6 +82,12 @@
         emptyFilter.querySelector('.mel-empty-state__text').textContent =
           Drupal.t('Try another search or clear your filters.');
       }
+    }
+
+    const reset = root.querySelector('[data-mel-attendee-reset]');
+    if (reset) {
+      reset.hidden =
+        activeFilter === 'all' && !Boolean(search) && !Boolean(ticketType);
     }
 
     const list = root.querySelector('[data-mel-attendee-list]');
@@ -127,6 +137,29 @@
               emitAnalytics('attendee_filtered', {
                 filter: 'ticket_type',
                 ticketType: ticketSelect.value,
+                eventId: drupalSettings.melAttendeesWorkspace?.eventId,
+              });
+              applyFilters(root);
+            });
+          }
+
+          const reset = root.querySelector('[data-mel-attendee-reset]');
+          if (reset) {
+            reset.addEventListener('click', function () {
+              if (search) {
+                search.value = '';
+              }
+              if (ticketSelect) {
+                ticketSelect.value = '';
+              }
+              root.querySelectorAll('[data-mel-attendee-filter]').forEach(function (button) {
+                const active =
+                  button.getAttribute('data-mel-attendee-filter') === 'all';
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+              });
+              emitAnalytics('attendee_filtered', {
+                filter: 'reset',
                 eventId: drupalSettings.melAttendeesWorkspace?.eventId,
               });
               applyFilters(root);

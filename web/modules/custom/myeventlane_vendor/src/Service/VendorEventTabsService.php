@@ -145,7 +145,7 @@ final class VendorEventTabsService {
       ],
       [
         'key' => 'images',
-        'label' => (string) $t->translate('Images'),
+        'label' => (string) $t->translate('Branding'),
         'route' => 'myeventlane_event_studio.workspace_branding',
         'params' => ['node' => $id],
         'disabled' => FALSE,
@@ -153,7 +153,7 @@ final class VendorEventTabsService {
       ],
       [
         'key' => 'tickets',
-        'label' => (string) $t->translate('Tickets'),
+        'label' => (string) $t->translate('Ticketing'),
         'route' => 'myeventlane_event_studio.workspace_tickets',
         'params' => ['node' => $id],
         'disabled' => FALSE,
