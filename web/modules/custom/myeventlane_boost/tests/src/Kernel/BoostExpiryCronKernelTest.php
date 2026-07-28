@@ -206,9 +206,90 @@ final class BoostExpiryCronKernelTest extends KernelTestBase {
   }
 
   /**
+   * Multiple simultaneously ended entitlements produce one event notice.
+   */
+  public function testMultipleEndedEntitlementsForEventSendOnce(): void {
+    $first = $this->createExpiredEntitlement();
+    $second = $this->createExpiredEntitlement();
+    $mail = $this->createMock(MailManagerInterface::class);
+    $mail->expects($this->once())
+      ->method('mail')
+      ->willReturn(['result' => TRUE]);
+
+    $this->createCron($mail)->process();
+
+    foreach ([$first, $second] as $entitlement) {
+      $reloaded = $this->reloadEntitlement((int) $entitlement->id());
+      $this->assertSame(
+        BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+        $reloaded->get('expiry_notification_status')->value,
+      );
+    }
+  }
+
+  /**
+   * Expiry notice waits until the event has no active overlapping boost.
+   */
+  public function testOverlappingBoostDefersExpiryNotice(): void {
+    $ended = $this->createExpiredEntitlement();
+    $active = $this->createExpiredEntitlement(time() + 3600);
+    $mail = $this->createMock(MailManagerInterface::class);
+    $mail->expects($this->once())
+      ->method('mail')
+      ->willReturn(['result' => TRUE]);
+    $cron = $this->createCron($mail);
+
+    $cron->process();
+    $this->assertSame(
+      BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING,
+      $this->reloadEntitlement((int) $ended->id())
+        ->get('expiry_notification_status')->value,
+    );
+
+    $active->set('ends', time() - 1);
+    $active->save();
+    $cron->process();
+
+    foreach ([$ended, $active] as $entitlement) {
+      $this->assertSame(
+        BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+        $this->reloadEntitlement((int) $entitlement->id())
+          ->get('expiry_notification_status')->value,
+      );
+    }
+  }
+
+  /**
+   * Entitlement expiry itself is not limited by the 500-notification batch.
+   */
+  public function testBulkExpiryIsNotNotificationBatchLimited(): void {
+    for ($i = 0; $i < 501; $i++) {
+      $entitlement = $this->createExpiredEntitlement();
+      $entitlement->set(
+        'expiry_notification_status',
+        BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+      );
+      $entitlement->save();
+    }
+    $mail = $this->createMock(MailManagerInterface::class);
+    $mail->expects($this->never())->method('mail');
+
+    $this->createCron($mail)->process();
+
+    $activeCount = $this->container->get('entity_type.manager')
+      ->getStorage('myeventlane_boost_entitlement')
+      ->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('status', BoostEntitlementInterface::STATUS_ACTIVE)
+      ->count()
+      ->execute();
+    $this->assertSame(0, (int) $activeCount);
+  }
+
+  /**
    * Creates an expired active entitlement.
    */
-  private function createExpiredEntitlement(): BoostEntitlementInterface {
+  private function createExpiredEntitlement(?int $ends = NULL): BoostEntitlementInterface {
     $storage = $this->container->get('entity_type.manager')
       ->getStorage('myeventlane_boost_entitlement');
     $entitlement = $storage->create([
@@ -216,7 +297,7 @@ final class BoostExpiryCronKernelTest extends KernelTestBase {
       'uid' => $this->event->getOwnerId(),
       'event' => $this->event->id(),
       'starts' => time() - 3600,
-      'ends' => time() - 60,
+      'ends' => $ends ?? time() - 60,
       'status' => BoostEntitlementInterface::STATUS_ACTIVE,
       'source' => BoostEntitlementInterface::SOURCE_PRO,
     ]);

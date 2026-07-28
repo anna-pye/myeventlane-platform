@@ -15,7 +15,6 @@ use Drupal\Core\Queue\RequeueException;
 use Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager;
 use Drupal\myeventlane_pro\Service\VendorCommsResolver;
 use Psr\Log\LoggerInterface;
-use Throwable;
 
 /**
  * Queues and sends transactional messages. Single entry point; idempotent.
@@ -178,6 +177,18 @@ final class MessagingManager {
 
     $existing = $this->messageStorage->findByIdempotencyKey($idempotencyKey);
     if ($existing) {
+      if ($existing->status === 'failed'
+        && (int) $existing->attempts < self::MAX_DELIVERY_ATTEMPTS) {
+        $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+          'message_id' => $existing->id,
+        ]);
+        $this->logger->notice('MessagingManager::queue: retryable failed message requeued.', [
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+          'existing_id' => $existing->id,
+        ]);
+        return $existing->id;
+      }
       $this->logger->info('MessagingManager::queue: duplicate skipped (idempotent).', [
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
@@ -224,7 +235,7 @@ final class MessagingManager {
         'sent' => 0,
       ]);
     }
-    catch (Throwable $e) {
+    catch (\Throwable $e) {
       // A concurrent producer may have won the unique-key insert race.
       $existing = $this->messageStorage->findByIdempotencyKey($idempotencyKey);
       if ($existing !== NULL) {

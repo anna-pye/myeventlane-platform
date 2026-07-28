@@ -4,10 +4,22 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_messaging\Kernel;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Language\LanguageInterface;
+use Drupal\Core\Language\LanguageManagerInterface;
+use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\QueueInterface;
 use Drupal\KernelTests\KernelTestBase;
+use Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager;
+use Drupal\myeventlane_messaging\Service\MessagePreferenceStorage;
+use Drupal\myeventlane_messaging\Service\MessageRenderer;
 use Drupal\myeventlane_messaging\Service\MessageStorage;
+use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Psr\Log\LoggerInterface;
 
 /**
  * Tests MessageStorage provider tracking (create, update, lookup).
@@ -203,6 +215,114 @@ final class MessageStorageTest extends KernelTestBase {
     $this->assertSame('delivery_unknown', $message->status);
     $this->assertSame('0', (string) $message->claimed_at);
     $this->assertFalse($this->storage->claimForDelivery($id, 302));
+  }
+
+  /**
+   * Legacy backfill prefers a sent row and normalizes recipient casing.
+   */
+  public function testLegacyIdempotencyBackfillPrefersSentMessage(): void {
+    $context = ['order_id' => 42];
+    $failedId = $this->storage->create([
+      'template' => 'order_confirmation',
+      'channel' => 'email',
+      'recipient' => 'Anna@Example.com',
+      'context' => $context,
+      'context_hash' => 'legacy-failed-hash',
+      'status' => 'failed',
+      'created' => 1,
+    ]);
+    $sentId = $this->storage->create([
+      'template' => 'order_confirmation',
+      'channel' => 'email',
+      'recipient' => 'anna@example.com',
+      'context' => $context,
+      'context_hash' => 'legacy-sent-hash',
+      'status' => 'sent',
+      'created' => 2,
+      'sent' => 3,
+    ]);
+
+    myeventlane_messaging_update_10007();
+
+    $contextHash = hash(
+      'sha256',
+      'order_confirmation|anna@example.com|{"order_id":42}',
+    );
+    $canonicalKey = 'message:order_confirmation:' . $contextHash;
+    $failed = $this->storage->load($failedId);
+    $sent = $this->storage->load($sentId);
+    $this->assertSame('anna@example.com', $failed->recipient);
+    $this->assertSame('anna@example.com', $sent->recipient);
+    $this->assertSame($canonicalKey, $sent->idempotency_key);
+    $this->assertSame('legacy-duplicate:' . $failedId, $failed->idempotency_key);
+    $this->assertCount(
+      1,
+      $this->storage->findSentOrderConfirmationsForOrder(
+        42,
+        'ANNA@EXAMPLE.COM',
+      ),
+    );
+  }
+
+  /**
+   * Queueing a retryable failed occurrence reuses and requeues its row.
+   */
+  public function testFailedOccurrenceIsRequeuedWithoutDuplicateRow(): void {
+    $idempotencyKey = 'order_confirmation:order:42';
+    $id = $this->storage->create([
+      'template' => 'order_confirmation',
+      'channel' => 'email',
+      'recipient' => 'anna@example.com',
+      'context' => ['order_id' => 42],
+      'context_hash' => hash('sha256', 'failed-order-42'),
+      'idempotency_key' => $idempotencyKey,
+      'status' => 'failed',
+      'attempts' => 1,
+    ]);
+
+    $queue = $this->createMock(QueueInterface::class);
+    $queue->expects($this->once())
+      ->method('createItem')
+      ->with(['message_id' => $id]);
+    $queueFactory = $this->createMock(QueueFactory::class);
+    $queueFactory->method('get')
+      ->with('myeventlane_messaging')
+      ->willReturn($queue);
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturn(NULL);
+    $configFactory = $this->createMock(ConfigFactoryInterface::class);
+    $configFactory->method('get')->willReturn($config);
+    $language = $this->createMock(LanguageInterface::class);
+    $language->method('getId')->willReturn('en');
+    $languageManager = $this->createMock(LanguageManagerInterface::class);
+    $languageManager->method('getDefaultLanguage')->willReturn($language);
+
+    $manager = new MessagingManager(
+      $configFactory,
+      $languageManager,
+      $queueFactory,
+      $this->createMock(LoggerInterface::class),
+      (new \ReflectionClass(MessageRenderer::class))
+        ->newInstanceWithoutConstructor(),
+      $this->storage,
+      new MessagePreferenceStorage($this->container->get('database')),
+      (new \ReflectionClass(DeliveryProviderManager::class))
+        ->newInstanceWithoutConstructor(),
+      $this->createMock(EntityTypeManagerInterface::class),
+    );
+
+    $this->assertSame($id, $manager->queue(
+      'order_confirmation',
+      'Anna@Example.com',
+      ['order_id' => 42],
+      ['idempotency_key' => $idempotencyKey],
+    ));
+    $count = $this->container->get('database')
+      ->select('myeventlane_message', 'm')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertSame(1, (int) $count);
   }
 
 }

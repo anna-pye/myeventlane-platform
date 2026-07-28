@@ -80,15 +80,17 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
    * Claims each expired entitlement before sending its notification.
    */
   public function process(): void {
+    // Expiry is not notification-batch limited: promotion state must be
+    // correct even when more than 500 notifications are awaiting delivery.
+    $this->entitlementManager->expireEndedEntitlements();
+
     $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('status', [
-        BoostEntitlementInterface::STATUS_ACTIVE,
-        BoostEntitlementInterface::STATUS_EXPIRED,
-      ], 'IN')
+      ->condition('status', BoostEntitlementInterface::STATUS_EXPIRED)
       ->condition('ends', $this->time->getRequestTime(), '<=')
       ->condition('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT, '<>')
+      ->notExists('expiry_notified_at')
       ->range(0, 500)
       ->execute();
 
@@ -102,19 +104,33 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
   }
 
   /**
-   * Expires and notifies one entitlement under an exclusive lock.
+   * Notifies once for all simultaneously ended entitlements on an event.
    */
   private function processEntitlement(int $entitlementId): void {
-    $lockName = 'myeventlane_boost.expiry_notification.' . $entitlementId;
+    $storage = $this->entityTypeManager
+      ->getStorage('myeventlane_boost_entitlement');
+    $entitlement = $storage->load($entitlementId);
+    if (!$entitlement instanceof BoostEntitlementInterface) {
+      return;
+    }
+    $eventId = (int) ($entitlement->get('event')->target_id ?? 0);
+    if ($eventId <= 0) {
+      $this->logger->error('Boost expiry notification failed: entitlement @entitlement_id has no event.', [
+        '@entitlement_id' => $entitlementId,
+      ]);
+      return;
+    }
+
+    $lockName = 'myeventlane_boost.expiry_notification.event.' . $eventId;
     if (!$this->lock->acquire($lockName, self::LOCK_TTL)) {
-      $this->logger->info('Boost expiry notification skipped because entitlement @entitlement_id is already being processed.', [
+      $this->logger->info('Boost expiry notification skipped because event @event_id is already being processed.', [
+        '@event_id' => $eventId,
         '@entitlement_id' => $entitlementId,
       ]);
       return;
     }
 
     try {
-      $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
       $storage->resetCache([$entitlementId]);
       $entitlement = $storage->load($entitlementId);
       if (!$entitlement instanceof BoostEntitlementInterface) {
@@ -131,6 +147,33 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
         return;
       }
 
+      $activeIds = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event', $eventId)
+        ->condition('status', BoostEntitlementInterface::STATUS_ACTIVE)
+        ->condition('ends', $this->time->getRequestTime(), '>')
+        ->range(0, 1)
+        ->execute();
+      if ($activeIds !== []) {
+        return;
+      }
+
+      $pendingIds = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('event', $eventId)
+        ->condition('status', BoostEntitlementInterface::STATUS_EXPIRED)
+        ->condition('ends', $this->time->getRequestTime(), '<=')
+        ->condition(
+          'expiry_notification_status',
+          BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+          '<>',
+        )
+        ->notExists('expiry_notified_at')
+        ->execute();
+      if ($pendingIds === []) {
+        return;
+      }
+
       $event = $entitlement->get('event')->entity;
       if (!$event instanceof NodeInterface) {
         $this->logger->error('Boost expiry notification failed: entitlement @entitlement_id has no event.', [
@@ -139,30 +182,55 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
         return;
       }
 
-      $attempt = (int) ($entitlement->get('expiry_notification_attempts')->value ?? 0) + 1;
-      $entitlement->set('status', BoostEntitlementInterface::STATUS_EXPIRED);
-      $entitlement->set('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_PROCESSING);
-      $entitlement->set('expiry_notification_attempts', $attempt);
-      $entitlement->save();
-      $this->entitlementManager->refreshEventBoostState((int) $event->id());
+      $pendingEntitlements = $storage->loadMultiple($pendingIds);
+      $attempt = 0;
+      foreach ($pendingEntitlements as $pendingEntitlement) {
+        $nextAttempt = (int) ($pendingEntitlement
+          ->get('expiry_notification_attempts')->value ?? 0) + 1;
+        $attempt = max($attempt, $nextAttempt);
+        $pendingEntitlement->set(
+          'expiry_notification_status',
+          BoostEntitlementInterface::EXPIRY_NOTIFICATION_PROCESSING,
+        );
+        $pendingEntitlement->set(
+          'expiry_notification_attempts',
+          $nextAttempt,
+        );
+        $pendingEntitlement->save();
+      }
 
       if ($this->notifyVendor($event)) {
-        $entitlement->set('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT);
-        $entitlement->set('expiry_notified_at', $this->time->getRequestTime());
-        $entitlement->save();
-        $this->logger->notice('Sent boost expiry notification for entitlement @entitlement_id, event @event_id, attempt @attempt.', [
+        foreach ($pendingEntitlements as $pendingEntitlement) {
+          $pendingEntitlement->set(
+            'expiry_notification_status',
+            BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT,
+          );
+          $pendingEntitlement->set(
+            'expiry_notified_at',
+            $this->time->getRequestTime(),
+          );
+          $pendingEntitlement->save();
+        }
+        $this->logger->notice('Sent boost expiry notification once for @entitlement_count entitlement(s) on event @event_id, attempt @attempt.', [
           '@entitlement_id' => $entitlementId,
           '@event_id' => $event->id(),
           '@attempt' => $attempt,
+          '@entitlement_count' => count($pendingEntitlements),
         ]);
       }
       else {
-        $entitlement->set('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING);
-        $entitlement->save();
-        $this->logger->error('Boost expiry notification failed for entitlement @entitlement_id, event @event_id, attempt @attempt; retry remains pending.', [
+        foreach ($pendingEntitlements as $pendingEntitlement) {
+          $pendingEntitlement->set(
+            'expiry_notification_status',
+            BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING,
+          );
+          $pendingEntitlement->save();
+        }
+        $this->logger->error('Boost expiry notification failed for @entitlement_count entitlement(s) on event @event_id, attempt @attempt; retry remains pending.', [
           '@entitlement_id' => $entitlementId,
           '@event_id' => $event->id(),
           '@attempt' => $attempt,
+          '@entitlement_count' => count($pendingEntitlements),
         ]);
       }
     }

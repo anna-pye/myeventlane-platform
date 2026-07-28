@@ -249,6 +249,7 @@ final class MessageStorage {
    *   Rows with context as array; ordered by sent ascending (0 first).
    */
   public function findSentOrderConfirmationsForOrder(int $orderId, string $recipient): array {
+    $recipient = strtolower(trim($recipient));
     if ($orderId < 1 || $recipient === '') {
       return [];
     }
