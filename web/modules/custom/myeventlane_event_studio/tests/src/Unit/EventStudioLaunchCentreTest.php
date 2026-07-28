@@ -148,6 +148,20 @@ final class EventStudioLaunchCentreTest extends UnitTestCase {
     $this->assertStringContainsString('@media (max-width: 767px)', $scss);
   }
 
+  public function testMissionControlActionsRemainCompactAndAligned(): void {
+    $scss = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-mission-control.scss');
+    $this->assertIsString($scss);
+    $this->assertStringContainsString('.mel-event-studio-mission-control__details {', $scss);
+    $this->assertStringContainsString('flex: 0 1 auto', $scss);
+    $this->assertStringContainsString('width: auto', $scss);
+    $this->assertStringContainsString('min-width: 9rem', $scss);
+    $this->assertStringContainsString('white-space: nowrap', $scss);
+    $this->assertStringContainsString('body.mel-vendor details.mel-event-studio-mission-control__details', $scss);
+    $this->assertStringContainsString('align-self: center', $scss);
+    $this->assertStringContainsString('.mel-event-studio-mission-control__details-summary::before', $scss);
+    $this->assertStringContainsString('content: none !important', $scss);
+  }
+
   public function testThemeHookRegistersLaunchCentre(): void {
     $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.module');
     $this->assertIsString($module);

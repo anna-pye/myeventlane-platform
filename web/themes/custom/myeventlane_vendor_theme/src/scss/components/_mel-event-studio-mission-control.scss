@@ -133,6 +133,7 @@ body.mel-vendor .mel-event-studio-mission-control__next-title,
 }
 
 .mel-event-studio-mission-control__actions {
+  align-items: center;
   gap: $spacing-2 $spacing-4;
   margin-top: $spacing-1;
 }
@@ -149,6 +150,8 @@ body.mel-vendor .mel-event-studio-mission-control__next-title,
 .mel-event-studio-mission-control__cta.mel-btn--secondary,
 .mel-event-studio-mission-control__cta {
   min-height: 44px;
+  min-width: 9rem;
+  justify-content: center;
   background-color: $mel-shell-surface;
   border-color: $mel-ws-border-soft;
   color: $text-primary;
@@ -174,13 +177,47 @@ body.mel-vendor .mel-event-studio-mission-control__next-title,
 
 body.mel-vendor .mel-event-studio-mission-control__details > .mel-event-studio-mission-control__details-summary,
 .mel-event-studio-mission-control__details > .mel-event-studio-mission-control__details-summary {
+  width: auto;
+  min-width: 9rem;
+  max-width: 100%;
+  justify-content: center;
   min-height: 44px;
-  font-size: $font-size-meta;
+  padding: 0.625rem 0.875rem;
+  white-space: nowrap;
+  font-size: 0.9375rem;
   font-weight: $font-weight-semibold;
-  color: $text-secondary;
-  background: transparent;
-  border: 0;
+  color: $text-primary;
+  background: $mel-shell-surface;
+  border: 1px solid $mel-ws-border-soft;
+  border-radius: 20px;
   box-shadow: none;
+}
+
+.mel-event-studio-mission-control__details {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+  overflow: visible;
+}
+
+body.mel-vendor details.mel-event-studio-mission-control__details {
+  align-self: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.mel-event-studio-mission-control__details[open] {
+  flex: 1 1 100%;
+}
+
+.mel-event-studio-mission-control__details-summary::before {
+  display: none !important;
+  content: none !important;
 }
 
 .mel-event-studio-mission-control__details-summary:focus-visible {
