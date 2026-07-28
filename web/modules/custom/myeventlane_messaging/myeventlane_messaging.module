@@ -120,17 +120,18 @@ function myeventlane_messaging_email_branding_logo_url(): string {
   $theme_logo = $theme_settings->getSetting('logo.url', $default_theme);
 
   $candidates = [];
-  if ($theme_logo !== NULL && $theme_logo !== '') {
-    $candidates[] = _myeventlane_messaging_absolute_logo_url_from_setting((string) $theme_logo, $base, $file_url_generator);
-  }
-
   $extension_list = \Drupal::service('extension.list.theme');
   $theme_path = $extension_list->getPath($default_theme ?: 'myeventlane_theme');
   $drupal_root = \Drupal::root();
+  // Prefer a release-owned raster asset. Configured managed files can remain
+  // referenced after the underlying file has been removed from shared storage.
   foreach (['images/mel-email-logo.png', 'images/logo.png'] as $rel) {
     if ($theme_path !== '' && is_readable($drupal_root . '/' . $theme_path . '/' . $rel)) {
       $candidates[] = $base . '/' . $theme_path . '/' . $rel;
     }
+  }
+  if ($theme_logo !== NULL && $theme_logo !== '') {
+    $candidates[] = _myeventlane_messaging_absolute_logo_url_from_setting((string) $theme_logo, $base, $file_url_generator);
   }
 
   foreach ($candidates as $url) {

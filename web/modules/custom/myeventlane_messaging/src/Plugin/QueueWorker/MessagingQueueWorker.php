@@ -127,6 +127,7 @@ final class MessagingQueueWorker extends QueueWorkerBase implements ContainerFac
       $this->state->set(self::STATE_KEY_RUN_COUNT, $runCount + 1);
     }
     catch (\Throwable $e) {
+      $this->messagingManager->releaseFailedClaim($messageId);
       $this->logger->error('Messaging queue item failed. message_id=@id @message', [
         '@id' => $messageId,
         '@message' => $e->getMessage(),

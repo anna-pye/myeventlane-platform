@@ -18,6 +18,9 @@ interface DeliveryProviderInterface {
    *
    * @return bool
    *   TRUE if accepted/sent, FALSE otherwise.
+   *
+   * @throws \Throwable
+   *   When the provider outcome is uncertain and must not be retried blindly.
    */
   public function send(array $params): bool;
 

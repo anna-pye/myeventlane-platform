@@ -86,6 +86,8 @@ services:
       $entityTypeManager: '@entity_type.manager'
       $ticketLabelResolver: '@?myeventlane_core.ticket_label_resolver'
       $fileUrlGenerator: '@file_url_generator'
+      $currencyFormatter: '@commerce_price.currency_formatter'
+      $dateFormatter: '@date.formatter'
       $messagingManager: '@myeventlane_messaging.manager'
       $logger: '@logger.channel.myeventlane_messaging'
       $domainDetector: '@myeventlane_core.domain_detector'

@@ -26,4 +26,4 @@ Canonical Twig fragment: `wallet-buttons.html.twig` (theme hook `myeventlane_wal
 - Do not recreate, recolour, flip, animate, or shadow the badges.
 - Keep badges secondary to MEL product identity.
 - Maintain clear space; keep minimum height ~48px on interactive surfaces.
-- On very dark backgrounds, Apple artwork may sit on a light clear-space pad (see `css/wallet-badges.css`).
+- Do not add custom backgrounds, padding, shadows, or effects to either badge.

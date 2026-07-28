@@ -24,6 +24,26 @@ final class WalletActionBuilderTest extends UnitTestCase {
   private string $tempDir = '';
 
   /**
+   * Official wallet badge assets retain their required presentation contract.
+   */
+  public function testOfficialBadgePresentationContract(): void {
+    $moduleRoot = DRUPAL_ROOT . '/modules/custom/myeventlane_wallet';
+    $template = file_get_contents($moduleRoot . '/templates/wallet-buttons.html.twig');
+    $css = file_get_contents($moduleRoot . '/css/wallet-badges.css');
+    $googleSize = getimagesize($moduleRoot . '/assets/web/add-to-google-wallet.png');
+
+    $this->assertIsString($template);
+    $this->assertIsString($css);
+    $this->assertSame([283, 50], [$googleSize[0], $googleSize[1]]);
+    $this->assertStringContainsString('width="156"', $template);
+    $this->assertStringContainsString('width="272"', $template);
+    $this->assertSame(2, substr_count($template, 'height="48"'));
+    $this->assertStringContainsString('margin: 8px;', $css);
+    $this->assertStringNotContainsString('mel-wallet-badge__fallback', $template);
+    $this->assertStringNotContainsString('mel-wallet-badge__fallback', $css);
+  }
+
+  /**
    * {@inheritdoc}
    */
   protected function setUp(): void {

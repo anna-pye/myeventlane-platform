@@ -628,3 +628,48 @@ function myeventlane_boost_update_10009(): string {
     '@stats_renamed' => $stats_renamed,
   ]);
 }
+
+/**
+ * Adds idempotent expiry notification state to Boost entitlements.
+ */
+function myeventlane_boost_update_10010(): string {
+  $definitions = \Drupal::service('entity_field.manager')
+    ->getFieldStorageDefinitions('myeventlane_boost_entitlement');
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  foreach ([
+    'expiry_notification_status',
+    'expiry_notified_at',
+    'expiry_notification_attempts',
+  ] as $field_name) {
+    if (isset($definitions[$field_name])) {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        'myeventlane_boost_entitlement',
+        'myeventlane_boost',
+        $definitions[$field_name],
+      );
+    }
+  }
+
+  $database = \Drupal::database();
+  $database->update('myeventlane_boost_entitlement')
+    ->fields([
+      'expiry_notification_status' => 'pending',
+      'expiry_notification_attempts' => 0,
+    ])
+    ->execute();
+
+  $historical_expired = $database
+    ->update('myeventlane_boost_entitlement')
+    ->fields([
+      'expiry_notification_status' => 'sent',
+    ])
+    ->condition('status', 'expired')
+    ->execute();
+
+  return sprintf(
+    'Added Boost entitlement expiry notification state and marked %d historical expired entitlements as already handled.',
+    $historical_expired,
+  );
+}

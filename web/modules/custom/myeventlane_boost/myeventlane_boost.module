@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
-use Drupal\myeventlane_boost\Cron\BoostExpiryCron;
 use Drupal\myeventlane_boost\Cron\BoostExpiryReminderCron;
 use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 
@@ -184,9 +183,7 @@ function myeventlane_boost_page_attachments(array &$attachments): void {
  */
 function myeventlane_boost_cron(): void {
   // Process expired boosts.
-  \Drupal::service('class_resolver')
-    ->getInstanceFromDefinition(BoostExpiryCron::class)
-    ->process();
+  \Drupal::service('myeventlane_boost.cron.expiry')->process();
 
   // Send expiry reminder emails.
   \Drupal::service('class_resolver')

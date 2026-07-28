@@ -62,6 +62,12 @@ function myeventlane_messaging_schema() {
         'default' => '',
         'description' => 'Deterministic hash for idempotency (template + recipient + context).',
       ],
+      'idempotency_key' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Business occurrence key used to prevent duplicate messages.',
+      ],
       'scheduled_for' => [
         'type' => 'int',
         'size' => 'normal',
@@ -97,6 +103,13 @@ function myeventlane_messaging_schema() {
         'default' => 0,
         'description' => 'Unix timestamp when message was sent (0 if not sent).',
       ],
+      'claimed_at' => [
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when a worker atomically claimed delivery.',
+      ],
       'provider' => [
         'type' => 'varchar',
         'length' => 32,
@@ -113,6 +126,9 @@ function myeventlane_messaging_schema() {
       ],
     ],
     'primary key' => ['id'],
+    'unique keys' => [
+      'idempotency_key' => ['idempotency_key'],
+    ],
     'indexes' => [
       'context_hash_recipient_template' => ['context_hash', 'recipient', 'template'],
       'status_created' => ['status', 'created'],
@@ -306,5 +322,39 @@ function myeventlane_messaging_update_10005(): void {
   if (!$schema->indexExists($table, 'provider_message_id')) {
     $full = myeventlane_messaging_schema();
     $schema->addIndex($table, 'provider_message_id', ['provider_message_id'], $full[$table]);
+  }
+}
+
+/**
+ * Adds atomic business idempotency and worker claim state.
+ */
+function myeventlane_messaging_update_10006(): void {
+  $schema = \Drupal::database()->schema();
+  $table = 'myeventlane_message';
+
+  if (!$schema->tableExists($table)) {
+    return;
+  }
+
+  if (!$schema->fieldExists($table, 'idempotency_key')) {
+    $schema->addField($table, 'idempotency_key', [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Business occurrence key used to prevent duplicate messages.',
+    ]);
+  }
+  if (!$schema->fieldExists($table, 'claimed_at')) {
+    $schema->addField($table, 'claimed_at', [
+      'type' => 'int',
+      'size' => 'normal',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Unix timestamp when a worker atomically claimed delivery.',
+    ]);
+  }
+  if (!$schema->indexExists($table, 'idempotency_key')) {
+    $full = myeventlane_messaging_schema();
+    $schema->addUniqueKey($table, 'idempotency_key', ['idempotency_key']);
   }
 }

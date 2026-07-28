@@ -130,6 +130,27 @@ final class BoostEntitlement extends ContentEntityBase implements BoostEntitleme
       ->setLabel(new TranslatableMarkup('Amount paid'))
       ->setDescription(new TranslatableMarkup('Amount paid for this entitlement.'));
 
+    $fields['expiry_notification_status'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(new TranslatableMarkup('Expiry notification status'))
+      ->setDescription(new TranslatableMarkup('Delivery state for the entitlement expiry notification.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue(BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING)
+      ->setSetting('allowed_values', [
+        BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING => 'Pending',
+        BoostEntitlementInterface::EXPIRY_NOTIFICATION_PROCESSING => 'Processing',
+        BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT => 'Sent',
+      ]);
+
+    $fields['expiry_notified_at'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(new TranslatableMarkup('Expiry notified at'))
+      ->setDescription(new TranslatableMarkup('Timestamp when the expiry notification was sent successfully.'));
+
+    $fields['expiry_notification_attempts'] = BaseFieldDefinition::create('integer')
+      ->setLabel(new TranslatableMarkup('Expiry notification attempts'))
+      ->setDescription(new TranslatableMarkup('Number of attempted expiry notification deliveries.'))
+      ->setDefaultValue(0)
+      ->setSetting('unsigned', TRUE);
+
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(new TranslatableMarkup('Created'));
 

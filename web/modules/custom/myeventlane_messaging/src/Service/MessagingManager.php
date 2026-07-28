@@ -11,10 +11,11 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Language\LanguageManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
+use Drupal\Core\Queue\RequeueException;
 use Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager;
-use Drupal\myeventlane_messaging\Service\BrandResolverInterface;
 use Drupal\myeventlane_pro\Service\VendorCommsResolver;
 use Psr\Log\LoggerInterface;
+use Throwable;
 
 /**
  * Queues and sends transactional messages. Single entry point; idempotent.
@@ -25,6 +26,16 @@ final class MessagingManager {
    * The queue name used for message dispatch.
    */
   private const QUEUE_NAME = 'myeventlane_messaging';
+
+  /**
+   * Maximum provider delivery attempts before a terminal failure.
+   */
+  private const MAX_DELIVERY_ATTEMPTS = 5;
+
+  /**
+   * Seconds before an abandoned worker claim is considered stale.
+   */
+  private const DELIVERY_CLAIM_TTL = 900;
 
   /**
    * Templates that are always sent (transactional, not subject to opt-out).
@@ -89,6 +100,8 @@ final class MessagingManager {
    *   The preference storage.
    * @param \Drupal\myeventlane_messaging\Service\Delivery\DeliveryProviderManager $deliveryProviderManager
    *   The delivery provider manager.
+   * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
+   *   The entity type manager.
    * @param \Drupal\myeventlane_messaging\Service\UtmLinker|null $utmLinker
    *   Optional UTM linker (may be NULL if not yet in container).
    * @param \Drupal\myeventlane_messaging\Service\BrandResolverInterface|null $vendorBrandResolver
@@ -127,7 +140,8 @@ final class MessagingManager {
    * @param array $context
    *   The template context (must be serializable; no objects for hashing).
    * @param array $opts
-   *   Optional: langcode, attachments, scheduled_for, channel.
+   *   Optional: langcode, attachments, scheduled_for, channel, and
+   *   idempotency_key.
    *
    * @return string|null
    *   The message ID (UUID) if queued, NULL if skipped or failed. Caller may pass
@@ -136,9 +150,7 @@ final class MessagingManager {
   public function queue(string $type, string $to, array $context = [], array $opts = []): ?string {
     $eventId = isset($context['event_id']) && is_numeric($context['event_id']) ? (int) $context['event_id'] : NULL;
     $orderId = isset($context['order_id']) && is_numeric($context['order_id']) ? (int) $context['order_id'] : NULL;
-    $submissionId = isset($context['submission_id']) && is_numeric($context['submission_id']) ? (int) $context['submission_id'] : NULL;
-
-    $to = trim($to);
+    $to = strtolower(trim($to));
     if ($to === '') {
       $this->logger->warning('MessagingManager::queue: empty recipient skipped.', [
         'queue_name' => self::QUEUE_NAME,
@@ -156,7 +168,15 @@ final class MessagingManager {
     }
 
     $contextHash = $this->contextHash($type, $to, $context);
-    $existing = $this->messageStorage->findByContextHash($contextHash, $to, $type, ['queued', 'sent']);
+    $idempotencyKey = trim((string) ($opts['idempotency_key'] ?? ''));
+    if ($idempotencyKey === '') {
+      $idempotencyKey = sprintf('message:%s:%s', $type, $contextHash);
+    }
+    if (strlen($idempotencyKey) > 255) {
+      $idempotencyKey = 'sha256:' . hash('sha256', $idempotencyKey);
+    }
+
+    $existing = $this->messageStorage->findByIdempotencyKey($idempotencyKey);
     if ($existing) {
       $this->logger->info('MessagingManager::queue: duplicate skipped (idempotent).', [
         'queue_name' => self::QUEUE_NAME,
@@ -196,6 +216,7 @@ final class MessagingManager {
         'langcode' => $langcode,
         'context' => $storableContext,
         'context_hash' => $contextHash,
+        'idempotency_key' => $idempotencyKey,
         'scheduled_for' => $scheduledFor,
         'status' => 'queued',
         'attempts' => 0,
@@ -203,7 +224,18 @@ final class MessagingManager {
         'sent' => 0,
       ]);
     }
-    catch (\Throwable $e) {
+    catch (Throwable $e) {
+      // A concurrent producer may have won the unique-key insert race.
+      $existing = $this->messageStorage->findByIdempotencyKey($idempotencyKey);
+      if ($existing !== NULL) {
+        $this->logger->info('MessagingManager::queue: concurrent duplicate skipped (idempotent).', [
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+          'existing_id' => $existing->id,
+          'idempotency_key' => $idempotencyKey,
+        ]);
+        return NULL;
+      }
       $this->logger->error('Failed to create message record. @message', [
         '@message' => $e->getMessage(),
         'queue_name' => self::QUEUE_NAME,
@@ -263,6 +295,75 @@ final class MessagingManager {
       ]);
       return;
     }
+    $now = time();
+    $staleBefore = $now - self::DELIVERY_CLAIM_TTL;
+    if ($message->status === 'processing') {
+      if ((int) $message->claimed_at <= 0
+        || (int) $message->claimed_at > $staleBefore
+        || !$this->messageStorage->reclaimStaleProcessing(
+          $messageId,
+          $staleBefore,
+          $now,
+        )) {
+        $this->logger->info('Message is already claimed by another worker. message_id=@id', [
+          '@id' => $messageId,
+          'queue_name' => self::QUEUE_NAME,
+        ]);
+        return;
+      }
+      $this->logger->warning('Reclaimed stale pre-dispatch message after worker interruption. message_id=@id', [
+        '@id' => $messageId,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+    }
+    elseif ($message->status === 'dispatching') {
+      if ((int) $message->claimed_at > 0
+        && (int) $message->claimed_at <= $staleBefore
+        && $this->messageStorage->markStaleDispatchUnknown(
+          $messageId,
+          $staleBefore,
+        )) {
+        $this->logger->critical('Stale provider dispatch quarantined without retry to prevent a duplicate. message_id=@id', [
+          '@id' => $messageId,
+          'queue_name' => self::QUEUE_NAME,
+        ]);
+      }
+      else {
+        $this->logger->info('Message provider dispatch is already in progress. message_id=@id', [
+          '@id' => $messageId,
+          'queue_name' => self::QUEUE_NAME,
+        ]);
+      }
+      return;
+    }
+    elseif ($message->status === 'delivery_unknown') {
+      $this->logger->warning('Message delivery remains unknown and requires provider reconciliation. message_id=@id', [
+        '@id' => $messageId,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      return;
+    }
+    if ($message->status === 'failed_permanent'
+      || (int) $message->attempts >= self::MAX_DELIVERY_ATTEMPTS) {
+      $this->messageStorage->update($messageId, [
+        'status' => 'failed_permanent',
+        'claimed_at' => 0,
+      ]);
+      $this->logger->error('Message reached the maximum delivery attempts. message_id=@id attempts=@attempts', [
+        '@id' => $messageId,
+        '@attempts' => (int) $message->attempts,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      return;
+    }
+    if ($message->status !== 'processing'
+      && !$this->messageStorage->claimForDelivery($messageId, $now)) {
+      $this->logger->info('Message delivery claim was not acquired. message_id=@id', [
+        '@id' => $messageId,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      return;
+    }
 
     $type = $message->template;
     $to = $message->recipient;
@@ -295,7 +396,10 @@ final class MessagingManager {
         'queue_name' => self::QUEUE_NAME,
         'message_id' => $messageId,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'suppressed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'suppressed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
 
@@ -306,7 +410,10 @@ final class MessagingManager {
         '@type' => $type,
         'queue_name' => self::QUEUE_NAME,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'suppressed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'suppressed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
 
@@ -329,7 +436,10 @@ final class MessagingManager {
         '@len' => strlen($smsText),
         'queue_name' => self::QUEUE_NAME,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'suppressed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'suppressed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
 
@@ -380,7 +490,10 @@ final class MessagingManager {
         'message_id' => $messageId,
         'message_type' => $type,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
     $subject = Html::decodeEntities(strip_tags($subjectRaw));
@@ -393,7 +506,10 @@ final class MessagingManager {
         '@type' => $type,
         'queue_name' => self::QUEUE_NAME,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
 
@@ -404,7 +520,10 @@ final class MessagingManager {
         '@type' => $type,
         'queue_name' => self::QUEUE_NAME,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
 
@@ -426,7 +545,10 @@ final class MessagingManager {
         'message_id' => $messageId,
         'message_type' => $type,
       ]);
-      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ]);
       return;
     }
 
@@ -447,6 +569,7 @@ final class MessagingManager {
       'langcode' => $message->langcode,
       'attachments' => $opts['attachments'] ?? [],
       'mel_template_key' => $type,
+      'mel_message_id' => $messageId,
     ];
     if ($orderId !== NULL) {
       $params['mel_order_id'] = $orderId;
@@ -461,13 +584,39 @@ final class MessagingManager {
       $params['reply_to'] = $brand['reply_to'];
     }
 
-    $sent = $provider->send($params);
+    if (!$this->messageStorage->markDispatching($messageId, time())) {
+      $this->logger->error('Message lost its delivery claim before provider dispatch. message_id=@id', [
+        '@id' => $messageId,
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      return;
+    }
+
+    try {
+      $sent = $provider->send($params);
+    }
+    catch (\Throwable $e) {
+      $this->messageStorage->incrementAttempts($messageId);
+      $this->messageStorage->update($messageId, [
+        'status' => 'delivery_unknown',
+        'claimed_at' => 0,
+        'provider' => $provider->id(),
+      ]);
+      $this->logger->critical('Provider dispatch outcome is unknown; automatic retry suppressed. message_id=@id provider=@provider @message', [
+        '@id' => $messageId,
+        '@provider' => $provider->id(),
+        '@message' => $e->getMessage(),
+        'queue_name' => self::QUEUE_NAME,
+      ]);
+      return;
+    }
 
     $this->messageStorage->incrementAttempts($messageId);
     if ($sent) {
       $updates = [
         'status' => 'sent',
         'sent' => (int) time(),
+        'claimed_at' => 0,
         'provider' => $provider->id(),
       ];
       $providerMessageId = $provider->getLastProviderMessageId();
@@ -485,7 +634,10 @@ final class MessagingManager {
       ]);
     }
     else {
-      $this->messageStorage->update($messageId, ['status' => 'failed']);
+      $this->messageStorage->update($messageId, [
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ]);
       $this->logger->error('Failed sending message @type to @to. message_id=@id', [
         '@type' => $type,
         '@to' => $to,
@@ -493,6 +645,19 @@ final class MessagingManager {
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
         'order_id' => $orderId,
+      ]);
+      throw new RequeueException(sprintf('Delivery failed for message %s.', $messageId));
+    }
+  }
+
+  /**
+   * Releases a worker claim when delivery throws unexpectedly.
+   */
+  public function releaseFailedClaim(string $messageId): void {
+    if ($this->messageStorage->releaseFailedClaim($messageId)) {
+      $this->logger->warning('Released failed message delivery claim for retry. message_id=@id', [
+        '@id' => $messageId,
+        'queue_name' => self::QUEUE_NAME,
       ]);
     }
   }
@@ -514,7 +679,7 @@ final class MessagingManager {
     }
     // Legacy: no message_id. Create message and send once (no re-queue).
     $type = $payload['type'] ?? 'generic';
-    $to = $payload['to'] ?? '';
+    $to = strtolower(trim((string) ($payload['to'] ?? '')));
     $context = $payload['context'] ?? [];
     $opts = $payload['opts'] ?? [];
     if ($to === '') {
@@ -525,7 +690,14 @@ final class MessagingManager {
       return;
     }
     $contextHash = $this->contextHash($type, $to, $context);
-    $existing = $this->messageStorage->findByContextHash($contextHash, $to, $type, ['queued', 'sent']);
+    $idempotencyKey = trim((string) ($opts['idempotency_key'] ?? ''));
+    if ($idempotencyKey === '') {
+      $idempotencyKey = sprintf('message:%s:%s', $type, $contextHash);
+    }
+    if (strlen($idempotencyKey) > 255) {
+      $idempotencyKey = 'sha256:' . hash('sha256', $idempotencyKey);
+    }
+    $existing = $this->messageStorage->findByIdempotencyKey($idempotencyKey);
     if ($existing) {
       $this->sendMessage($existing->id);
       return;
@@ -543,6 +715,7 @@ final class MessagingManager {
         'langcode' => $langcode,
         'context' => $storableContext,
         'context_hash' => $contextHash,
+        'idempotency_key' => $idempotencyKey,
         'scheduled_for' => $now,
         'status' => 'queued',
         'attempts' => 0,

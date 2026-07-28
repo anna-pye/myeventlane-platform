@@ -107,6 +107,64 @@ final class PostmarkWebhookControllerTest extends KernelTestBase {
   }
 
   /**
+   * Delivery metadata reconciles an uncertain provider dispatch.
+   */
+  public function testDeliveryMetadataReconcilesUnknownDispatch(): void {
+    $id = $this->messageStorage->create([
+      'template' => 'test',
+      'channel' => 'email',
+      'recipient' => 'reconcile@example.com',
+      'context' => [],
+      'context_hash' => hash('sha256', 'reconcile-test'),
+      'status' => 'delivery_unknown',
+      'provider' => 'postmark',
+    ]);
+
+    $request = $this->buildRequest([
+      'MessageID' => 'reconciled-provider-id',
+      'Recipient' => 'reconcile@example.com',
+      'Metadata' => ['mel_message_id' => $id],
+    ], self::WEBHOOK_SECRET);
+
+    $response = $this->controller->delivery($request);
+    $this->assertSame(200, $response->getStatusCode());
+
+    $row = $this->messageStorage->load($id);
+    $this->assertSame('delivered', $row->status);
+    $this->assertSame('postmark', $row->provider);
+    $this->assertSame('reconciled-provider-id', $row->provider_message_id);
+    $this->assertGreaterThan(0, (int) $row->sent);
+  }
+
+  /**
+   * Metadata cannot reconcile a message for another recipient.
+   */
+  public function testDeliveryMetadataRequiresMatchingRecipient(): void {
+    $id = $this->messageStorage->create([
+      'template' => 'test',
+      'channel' => 'email',
+      'recipient' => 'expected@example.com',
+      'context' => [],
+      'context_hash' => hash('sha256', 'recipient-test'),
+      'status' => 'delivery_unknown',
+      'provider' => 'postmark',
+    ]);
+
+    $request = $this->buildRequest([
+      'MessageID' => 'wrong-recipient-provider-id',
+      'Recipient' => 'other@example.com',
+      'Metadata' => ['mel_message_id' => $id],
+    ], self::WEBHOOK_SECRET);
+
+    $response = $this->controller->delivery($request);
+    $this->assertSame(200, $response->getStatusCode());
+    $this->assertSame(
+      'delivery_unknown',
+      $this->messageStorage->load($id)->status,
+    );
+  }
+
+  /**
    * Bounce webhook updates known message status to bounced.
    */
   public function testBounceUpdatesKnownMessage(): void {

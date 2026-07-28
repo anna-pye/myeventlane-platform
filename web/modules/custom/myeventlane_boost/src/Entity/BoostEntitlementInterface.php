@@ -28,6 +28,21 @@ interface BoostEntitlementInterface extends ContentEntityInterface, EntityOwnerI
   public const STATUS_REVOKED = 'revoked';
 
   /**
+   * Expiry notification is eligible for delivery.
+   */
+  public const EXPIRY_NOTIFICATION_PENDING = 'pending';
+
+  /**
+   * Expiry notification delivery is currently being attempted.
+   */
+  public const EXPIRY_NOTIFICATION_PROCESSING = 'processing';
+
+  /**
+   * Expiry notification was sent successfully.
+   */
+  public const EXPIRY_NOTIFICATION_SENT = 'sent';
+
+  /**
    * Entitlement source generated from paid boost checkout.
    */
   public const SOURCE_ORDER = 'order';

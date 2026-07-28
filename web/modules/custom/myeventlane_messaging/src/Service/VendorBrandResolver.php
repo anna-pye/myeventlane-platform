@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_messaging\Service;
 
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\file\FileInterface;
@@ -19,7 +20,7 @@ use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
  * 2. Else if vendor entity provided → brand from vendor fields
  * 3. Else if event_id provided → load event → field_event_vendor → brand
  * 4. Else if order provided → resolve vendor via store/event → brand
- * 5. Else → MEL platform defaults
+ * 5. Else → MEL platform defaults.
  */
 final class VendorBrandResolver implements BrandResolverInterface {
 
@@ -80,6 +81,11 @@ final class VendorBrandResolver implements BrandResolverInterface {
     }
 
     $footerText = $this->getFieldValue($vendor, 'field_msg_footer');
+    $footerText = trim(preg_replace(
+      '/\s+/u',
+      ' ',
+      Html::decodeEntities(strip_tags($footerText)),
+    ) ?? '');
     if ($footerText === '') {
       $footerText = Brand::DEFAULT_FOOTER;
     }
@@ -172,6 +178,9 @@ final class VendorBrandResolver implements BrandResolverInterface {
 
     $file = $vendor->get($fieldName)->entity;
     if (!$file instanceof FileInterface) {
+      return '';
+    }
+    if (!is_readable($file->getFileUri())) {
       return '';
     }
 

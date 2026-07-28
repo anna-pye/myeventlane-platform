@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_messaging\Service;
 
+use CommerceGuys\Intl\Formatter\CurrencyFormatterInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Session\AccountInterface;
@@ -37,6 +39,8 @@ final class OrderConfirmationQueueBuilder {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ?TicketLabelResolver $ticketLabelResolver,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly CurrencyFormatterInterface $currencyFormatter,
+    private readonly DateFormatterInterface $dateFormatter,
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly DomainDetector $domainDetector,
@@ -113,7 +117,10 @@ final class OrderConfirmationQueueBuilder {
     $invoice = $this->taxInvoicePresentation->build($order);
     $booking_total = $pricing['total_formatted'] !== ''
       ? $pricing['total_formatted']
-      : $this->formatPrice((float) $order->getTotalPrice()->getNumber());
+      : $this->formatPrice(
+        (float) $order->getTotalPrice()->getNumber(),
+        $order->getTotalPrice()->getCurrencyCode(),
+      );
 
     // Customer presentation only — Commerce label() is "Order {number}".
     $order_number = trim((string) $order->getOrderNumber());
@@ -153,7 +160,12 @@ final class OrderConfirmationQueueBuilder {
       'is_paid' => $is_paid,
       'events' => $this->formatEventsForEmail($events),
       'ticket_items' => $this->formatTicketItemsForEmail($ticket_items),
-      'donation_total' => $donation_total > 0 ? $this->formatPrice($donation_total) : NULL,
+      'donation_total' => $donation_total > 0
+        ? $this->formatPrice(
+          $donation_total,
+          $order->getTotalPrice()->getCurrencyCode(),
+      )
+        : NULL,
       'order_subtotal_formatted' => $pricing['subtotal_formatted'],
       'order_tax_rows' => $pricing['tax_rows'],
       'order_fee_rows' => $pricing['fee_rows'],
@@ -340,14 +352,14 @@ final class OrderConfirmationQueueBuilder {
 
       if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
         $start_timestamp = strtotime($event->get('field_event_start')->value);
-        $start_date = date('j F Y', $start_timestamp);
-        $start_time = date('g:i a', $start_timestamp);
+        $start_date = $this->dateFormatter->format($start_timestamp, 'custom', 'j F Y');
+        $start_time = $this->dateFormatter->format($start_timestamp, 'custom', 'g:i a T');
       }
 
       if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
         $end_timestamp = strtotime($event->get('field_event_end')->value);
-        $end_date = date('j F Y', $end_timestamp);
-        $end_time = date('g:i a', $end_timestamp);
+        $end_date = $this->dateFormatter->format($end_timestamp, 'custom', 'j F Y');
+        $end_time = $this->dateFormatter->format($end_timestamp, 'custom', 'g:i a T');
       }
 
       if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
@@ -550,7 +562,12 @@ final class OrderConfirmationQueueBuilder {
       $formatted[] = [
         'title' => $label,
         'quantity' => (int) $item->getQuantity(),
-        'price' => $price ? $this->formatPrice((float) $price->getNumber()) : '$0.00',
+        'price' => $price
+          ? $this->formatPrice(
+            (float) $price->getNumber(),
+            $price->getCurrencyCode(),
+        )
+          : $this->formatPrice(0.0, 'AUD'),
         'attendees' => $attendees,
       ];
     }
@@ -971,8 +988,11 @@ final class OrderConfirmationQueueBuilder {
     return NULL;
   }
 
-  private function formatPrice(float $amount): string {
-    return '$' . number_format($amount, 2);
+  /**
+   * Formats an amount using the Commerce currency formatter.
+   */
+  private function formatPrice(float $amount, string $currencyCode): string {
+    return $this->currencyFormatter->format((string) $amount, $currencyCode);
   }
 
 }

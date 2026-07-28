@@ -30,7 +30,7 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
    */
   public function __construct(
     private readonly ClientFactory $httpClientFactory,
-    private readonly \Drupal\Core\Config\ConfigFactoryInterface $configFactory,
+    private readonly ConfigFactoryInterface $configFactory,
     private readonly LoggerInterface $logger,
   ) {}
 
@@ -86,6 +86,11 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
       'TextBody' => $textBody,
       'MessageStream' => $messageStream,
     ];
+    if (!empty($params['mel_message_id'])) {
+      $payload['Metadata'] = [
+        'mel_message_id' => (string) $params['mel_message_id'],
+      ];
+    }
 
     if (!empty($replyTo)) {
       $payload['ReplyTo'] = $replyTo;
@@ -174,10 +179,10 @@ final class PostmarkDeliveryProvider implements DeliveryProviderInterface {
       return FALSE;
     }
     catch (\Exception $e) {
-      $this->logger->error('Postmark send exception: @message', [
+      $this->logger->critical('Postmark dispatch outcome is unknown: @message', [
         '@message' => $e->getMessage(),
       ]);
-      return FALSE;
+      throw $e;
     }
   }
 

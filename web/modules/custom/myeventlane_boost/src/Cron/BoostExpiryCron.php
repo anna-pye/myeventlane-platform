@@ -7,20 +7,27 @@ namespace Drupal\myeventlane_boost\Cron;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Mail\MailManagerInterface;
-use Drupal\myeventlane_boost\BoostManager;
+use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
 use Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService;
 use Drupal\node\NodeInterface;
+use Drupal\user\UserInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Cron handler to expire boosted events and notify vendors.
  *
- * Uses canonical BoostManager to find expired boosts.
+ * Uses entitlement state as the notification idempotency authority.
  */
 final class BoostExpiryCron implements ContainerInjectionInterface {
+
+  /**
+   * Maximum lifetime of an expiry notification lock.
+   */
+  private const LOCK_TTL = 300.0;
 
   /**
    * Constructs a BoostExpiryCron.
@@ -33,18 +40,20 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
    *   The logger.
    * @param \Drupal\Core\Mail\MailManagerInterface $mailManager
    *   The mail manager.
-   * @param \Drupal\myeventlane_boost\BoostManager $boostManager
-   *   The boost manager.
    * @param \Drupal\myeventlane_boost\Service\BoostEntitlementManager $entitlementManager
    *   The entitlement manager.
+   * @param \Drupal\Core\Lock\LockBackendInterface $lock
+   *   The lock backend.
+   * @param \Drupal\myeventlane_notifications\Service\BusinessNotificationTriggerService|null $businessNotificationTrigger
+   *   Optional business notification trigger.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
     private readonly MailManagerInterface $mailManager,
-    private readonly BoostManager $boostManager,
     private readonly BoostEntitlementManager $entitlementManager,
+    private readonly LockBackendInterface $lock,
     private readonly ?BusinessNotificationTriggerService $businessNotificationTrigger = NULL,
   ) {}
 
@@ -57,8 +66,8 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       $container->get('datetime.time'),
       $container->get('logger.channel.myeventlane_boost'),
       $container->get('plugin.manager.mail'),
-      $container->get('myeventlane_boost.manager'),
       $container->get('myeventlane_boost.entitlement_manager'),
+      $container->get('lock'),
       $container->has('myeventlane_notifications.business_trigger')
         ? $container->get('myeventlane_notifications.business_trigger')
         : NULL,
@@ -68,59 +77,125 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
   /**
    * Process expired boosts.
    *
-   * Uses canonical BoostManager to find expired boosts, then clears them.
+   * Claims each expired entitlement before sending its notification.
    */
   public function process(): void {
-    // Use canonical API to get expired boosted events.
-    $nids = $this->boostManager->getExpiredBoostedEventIdsForStore(NULL, [
-      'access_check' => FALSE,
-      'limit' => 500,
-    ]);
+    $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('status', [
+        BoostEntitlementInterface::STATUS_ACTIVE,
+        BoostEntitlementInterface::STATUS_EXPIRED,
+      ], 'IN')
+      ->condition('ends', $this->time->getRequestTime(), '<=')
+      ->condition('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT, '<>')
+      ->range(0, 500)
+      ->execute();
 
-    if (empty($nids)) {
+    if (empty($ids)) {
       return;
     }
 
-    /** @var \Drupal\node\NodeInterface[] $nodes */
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-    $nodes = $nodeStorage->loadMultiple($nids);
-
-    $count = $this->entitlementManager->expireEndedEntitlements();
-    foreach ($nodes as $node) {
-      // Notify vendor.
-      $this->notifyVendor($node);
-    }
-
-    if ($count > 0) {
-      $this->logger->notice('Unboosted @count expired event(s) via cron.', ['@count' => $count]);
+    foreach (array_map('intval', $ids) as $entitlementId) {
+      $this->processEntitlement($entitlementId);
     }
   }
 
   /**
-   * Send expiration notification to the event owner.
+   * Expires and notifies one entitlement under an exclusive lock.
+   */
+  private function processEntitlement(int $entitlementId): void {
+    $lockName = 'myeventlane_boost.expiry_notification.' . $entitlementId;
+    if (!$this->lock->acquire($lockName, self::LOCK_TTL)) {
+      $this->logger->info('Boost expiry notification skipped because entitlement @entitlement_id is already being processed.', [
+        '@entitlement_id' => $entitlementId,
+      ]);
+      return;
+    }
+
+    try {
+      $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
+      $storage->resetCache([$entitlementId]);
+      $entitlement = $storage->load($entitlementId);
+      if (!$entitlement instanceof BoostEntitlementInterface) {
+        return;
+      }
+
+      if ((string) $entitlement->get('expiry_notification_status')->value === BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT
+        || !$entitlement->get('expiry_notified_at')->isEmpty()) {
+        return;
+      }
+
+      if ((int) ($entitlement->get('ends')->value ?? 0) > $this->time->getRequestTime()
+        || (string) $entitlement->get('status')->value === BoostEntitlementInterface::STATUS_REVOKED) {
+        return;
+      }
+
+      $event = $entitlement->get('event')->entity;
+      if (!$event instanceof NodeInterface) {
+        $this->logger->error('Boost expiry notification failed: entitlement @entitlement_id has no event.', [
+          '@entitlement_id' => $entitlementId,
+        ]);
+        return;
+      }
+
+      $attempt = (int) ($entitlement->get('expiry_notification_attempts')->value ?? 0) + 1;
+      $entitlement->set('status', BoostEntitlementInterface::STATUS_EXPIRED);
+      $entitlement->set('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_PROCESSING);
+      $entitlement->set('expiry_notification_attempts', $attempt);
+      $entitlement->save();
+      $this->entitlementManager->refreshEventBoostState((int) $event->id());
+
+      if ($this->notifyVendor($event)) {
+        $entitlement->set('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_SENT);
+        $entitlement->set('expiry_notified_at', $this->time->getRequestTime());
+        $entitlement->save();
+        $this->logger->notice('Sent boost expiry notification for entitlement @entitlement_id, event @event_id, attempt @attempt.', [
+          '@entitlement_id' => $entitlementId,
+          '@event_id' => $event->id(),
+          '@attempt' => $attempt,
+        ]);
+      }
+      else {
+        $entitlement->set('expiry_notification_status', BoostEntitlementInterface::EXPIRY_NOTIFICATION_PENDING);
+        $entitlement->save();
+        $this->logger->error('Boost expiry notification failed for entitlement @entitlement_id, event @event_id, attempt @attempt; retry remains pending.', [
+          '@entitlement_id' => $entitlementId,
+          '@event_id' => $event->id(),
+          '@attempt' => $attempt,
+        ]);
+      }
+    }
+    finally {
+      $this->lock->release($lockName);
+    }
+  }
+
+  /**
+   * Sends an expiration notification to the event owner.
    *
    * @param \Drupal\node\NodeInterface $node
    *   The event node.
    */
-  private function notifyVendor(NodeInterface $node): void {
+  private function notifyVendor(NodeInterface $node): bool {
     $owner = $node->getOwner();
     if ($owner === NULL) {
-      return;
+      return FALSE;
     }
 
     $email = $owner->getEmail();
     if (empty($email)) {
-      return;
+      return FALSE;
     }
 
     $params = [
       'node' => $node,
-      'vendor_name' => $owner->getDisplayName(),
+      'vendor_name' => $this->preferredRecipientName($owner),
     ];
 
     $langcode = $owner->getPreferredLangcode() ?: 'en';
 
-    $this->mailManager->mail(
+    $result = $this->mailManager->mail(
       'myeventlane_boost',
       'boost_expired',
       $email,
@@ -130,9 +205,28 @@ final class BoostExpiryCron implements ContainerInjectionInterface {
       TRUE
     );
 
-    if ($this->businessNotificationTrigger !== NULL && $owner !== NULL) {
+    $sent = !empty($result['result']);
+    if ($sent && $this->businessNotificationTrigger !== NULL) {
       $this->businessNotificationTrigger->onBoostCompleted($node, (int) $owner->id());
     }
+
+    return $sent;
+  }
+
+  /**
+   * Returns a human-facing recipient name without exposing an account handle.
+   */
+  private function preferredRecipientName(UserInterface $owner): string {
+    if ($owner->hasField('field_display_name')
+      && !$owner->get('field_display_name')->isEmpty()) {
+      $name = trim((string) $owner->get('field_display_name')->value);
+      if ($name !== '') {
+        return $name;
+      }
+    }
+
+    $displayName = trim($owner->getDisplayName());
+    return $displayName !== '' ? $displayName : 'there';
   }
 
 }
