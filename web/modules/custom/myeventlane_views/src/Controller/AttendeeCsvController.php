@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_views\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\Core\Routing\LocalRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_event_attendees\Service\MelAttendeeExportBuilder;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
@@ -56,12 +57,13 @@ final class AttendeeCsvController extends ControllerBase {
    * Builds a CSV response for attendees on an event.
    *
    * @return \Symfony\Component\HttpFoundation\Response|array
-   *   A CSV download response when `download_csv` is set, or the embedded view.
+   *   A CSV download response when `download_csv` is set, or a redirect to the
+   *   canonical organiser event portfolio.
    */
   public function handle(Request $request): Response|array {
     $eventIdRaw = $request->query->get('download_csv');
     if (!$eventIdRaw) {
-      return views_embed_view('attendee_answer', 'page_1');
+      return new LocalRedirectResponse('/vendor/events');
     }
 
     $eventId = (int) $eventIdRaw;

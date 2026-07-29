@@ -3,6 +3,7 @@ status: true
 dependencies:
   module:
     - myeventlane_rsvp
+    - node
 id: myeventlane_vendor_rsvps
 label: 'Vendor RSVP Submissions'
 module: views
@@ -23,6 +24,17 @@ display:
 
       title: 'RSVP Submissions'
 
+      relationships:
+        event_id:
+          id: event_id
+          table: rsvp_submission
+          field: event_id
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: standard
+          required: false
+
       access:
         type: myeventlane_rsvp_vendor_access
         options: { }
@@ -30,6 +42,19 @@ display:
       cache:
         type: tag
         options: { }
+
+      empty:
+        area_text_custom:
+          id: area_text_custom
+          table: views
+          field: area_text_custom
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: text_custom
+          empty: true
+          content: '<div class="mel-vendor-rsvps__empty" role="status"><h2>No RSVPs yet</h2><p>RSVPs will appear here as people respond. You can share your event link from the Event Editor.</p></div>'
+          tokenize: false
 
       query:
         type: views_query
@@ -46,12 +71,17 @@ display:
         options:
           columns:
             id: id
+            event_title: event_title
             attendee_name: attendee_name
             status: status
             changed: changed
           default: changed
           info:
             id:
+              sortable: true
+              align: ''
+              empty_column: false
+            event_title:
               sortable: true
               align: ''
               empty_column: false
@@ -65,6 +95,7 @@ display:
               empty_column: false
             changed:
               sortable: true
+              default_sort_order: desc
               align: ''
               empty_column: false
 
@@ -80,6 +111,15 @@ display:
           field: id
           label: 'RSVP ID'
           plugin_id: numeric
+
+        event_title:
+          id: title
+          table: node_field_data
+          field: title
+          relationship: event_id
+          label: 'Event'
+          empty: 'Legacy / unknown event'
+          plugin_id: field
 
         attendee_name:
           id: attendee_name

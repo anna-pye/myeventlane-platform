@@ -63,7 +63,10 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
         ->accessCheck(FALSE)
         ->condition('event', $eventId)
         ->condition('source', EventAttendee::SOURCE_TICKET)
-        ->condition('status', EventAttendee::STATUS_CONFIRMED)
+        ->condition('status', [
+          EventAttendee::STATUS_CONFIRMED,
+          EventAttendee::STATUS_CHECKED_IN,
+        ], 'IN')
         ->execute();
 
       if (empty($ids)) {
@@ -111,7 +114,10 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
         if ($attendee instanceof EventAttendee
           && $attendee->getEventId() === $eventId
           && $attendee->getSource() === EventAttendee::SOURCE_TICKET
-          && $attendee->getStatus() === EventAttendee::STATUS_CONFIRMED) {
+          && in_array($attendee->getStatus(), [
+            EventAttendee::STATUS_CONFIRMED,
+            EventAttendee::STATUS_CHECKED_IN,
+          ], TRUE)) {
           $vm = $this->vendorPresentation->buildVendorRowFromEventAttendee($attendee);
           return new TicketAttendee(
             $attendee,
@@ -128,7 +134,10 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
         ->accessCheck(FALSE)
         ->condition('event', $eventId)
         ->condition('source', EventAttendee::SOURCE_TICKET)
-        ->condition('status', EventAttendee::STATUS_CONFIRMED)
+        ->condition('status', [
+          EventAttendee::STATUS_CONFIRMED,
+          EventAttendee::STATUS_CHECKED_IN,
+        ], 'IN')
         ->condition('ticket_code', $identifier)
         ->range(0, 1)
         ->execute();
@@ -151,7 +160,10 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
         ->accessCheck(FALSE)
         ->condition('event', $eventId)
         ->condition('source', EventAttendee::SOURCE_TICKET)
-        ->condition('status', EventAttendee::STATUS_CONFIRMED)
+        ->condition('status', [
+          EventAttendee::STATUS_CONFIRMED,
+          EventAttendee::STATUS_CHECKED_IN,
+        ], 'IN')
         ->condition('email', $identifier)
         ->range(0, 1)
         ->execute();
@@ -192,7 +204,10 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
         ->accessCheck(FALSE)
         ->condition('event', $eventId)
         ->condition('source', EventAttendee::SOURCE_TICKET)
-        ->condition('status', EventAttendee::STATUS_CONFIRMED)
+        ->condition('status', [
+          EventAttendee::STATUS_CONFIRMED,
+          EventAttendee::STATUS_CHECKED_IN,
+        ], 'IN')
         ->count()
         ->execute();
     }
@@ -217,8 +232,7 @@ final class TicketAttendeeRepository implements AttendeeRepositoryInterface {
         ->accessCheck(FALSE)
         ->condition('event', $eventId)
         ->condition('source', EventAttendee::SOURCE_TICKET)
-        ->condition('status', EventAttendee::STATUS_CONFIRMED)
-        ->condition('checked_in', TRUE)
+        ->condition('status', EventAttendee::STATUS_CHECKED_IN)
         ->count()
         ->execute();
     }

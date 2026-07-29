@@ -106,7 +106,7 @@
       } %}
     {% endif %}
 
-    {% if page.homepage_latest %}
+    {% if mel_home_show_latest|default(false) %}
       {% include '@myeventlane_theme/components/layout/mel-section-shell.html.twig' with {
         section_class: 'mel-section--latest mel-section--discover',
         section_width_class: '',

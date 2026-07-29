@@ -28,11 +28,11 @@
           <strong>{{ orders|length }}</strong>
         </article>
         <article class="mel-studio-orders__metric">
-          <span>{{ 'Tickets sold'|t }}</span>
+          <span>{{ 'Items sold'|t }}</span>
           <strong>{{ totals.ticket_count }}</strong>
         </article>
         <article class="mel-studio-orders__metric">
-          <span>{{ 'Gross ticket sales'|t }}</span>
+          <span>{{ 'Gross sales'|t }}</span>
           <strong>{{ totals.net_sales }}</strong>
         </article>
         <article class="mel-studio-orders__metric mel-studio-orders__metric--accent">
@@ -45,7 +45,7 @@
       <div class="mel-table__head">
         <div>{{ 'Order'|t }}</div>
         <div>{{ 'Purchaser'|t }}</div>
-        <div>{{ 'Tickets'|t }}</div>
+        <div>{{ 'Items'|t }}</div>
         <div>{{ 'Sale'|t }}</div>
         <div>{{ 'Status'|t }}</div>
         <div>{{ 'Actions'|t }}</div>
@@ -61,7 +61,7 @@
               <strong>{{ row.purchaser_name }}</strong>
               <small>{{ row.purchaser_email }}</small>
             </div>
-            <div data-label="{{ 'Tickets'|t }}"><strong>{{ row.ticket_count }}</strong></div>
+            <div data-label="{{ 'Items'|t }}"><strong>{{ row.ticket_count }}</strong></div>
             <div data-label="{{ 'Sale'|t }}">
               <strong>{{ row.net_sales }}</strong>
               <small>{{ 'Fees'|t }} {{ row.fees }} · {{ 'Net'|t }} {{ row.total }}</small>
@@ -102,7 +102,7 @@
           <div class="mel-table__row">
             <div class="mel-text--bold" data-label="{{ 'Order'|t }}">{{ 'Total'|t }}</div>
             <div data-label="{{ 'Purchaser'|t }}"></div>
-            <div data-label="{{ 'Tickets'|t }}"><strong>{{ totals.ticket_count }}</strong></div>
+            <div data-label="{{ 'Items'|t }}"><strong>{{ totals.ticket_count }}</strong></div>
             <div data-label="{{ 'Sale'|t }}">
               <strong>{{ totals.net_sales }}</strong>
               <small>{{ 'Fees'|t }} {{ totals.fees }} · {{ 'Net'|t }} {{ totals.total }}</small>

@@ -186,8 +186,8 @@ hidden:
   field_location_latitude: true
   field_location_longitude: true
   field_location_place_id: true
-  field_mel_event_gallery: true
   field_mel_event_cover_media: true
+  field_mel_event_gallery: true
   field_mel_extras_book_placement: true
   field_mel_op_capabilities: true
   field_mel_page_style: true

@@ -46,6 +46,12 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: mel.$mel-ds-space-md;
   }
+
+  .mel-discovery .mel-event-grid.mel-grid--events:has(> :only-child),
+  .mel-browse__results .mel-event-grid.mel-grid--events:has(> :only-child) {
+    grid-template-columns: minmax(0, 360px);
+    justify-content: center;
+  }
 }
 
 @include breakpoints.mel-break(lg) {
@@ -55,5 +61,23 @@
   .mel-vendor__event-grid.mel-event-grid.mel-grid--events,
   .mel-home-discover .mel-event-grid.mel-grid--events {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mel-discovery .mel-event-grid.mel-grid--events:has(> :only-child),
+  .mel-browse__results .mel-event-grid.mel-grid--events:has(> :only-child) {
+    grid-template-columns: minmax(0, 320px);
+    justify-content: center;
+  }
+
+  .mel-discovery .mel-event-grid.mel-grid--events:has(> :first-child:nth-last-child(2)),
+  .mel-browse__results .mel-event-grid.mel-grid--events:has(> :first-child:nth-last-child(2)) {
+    grid-template-columns: repeat(2, minmax(0, 320px));
+    justify-content: center;
+  }
+
+  .mel-discovery .mel-event-grid.mel-grid--events:has(> :first-child:nth-last-child(3)),
+  .mel-browse__results .mel-event-grid.mel-grid--events:has(> :first-child:nth-last-child(3)) {
+    grid-template-columns: repeat(3, minmax(0, 320px));
+    justify-content: center;
   }
 }

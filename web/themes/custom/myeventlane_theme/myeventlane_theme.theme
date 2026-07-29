@@ -2097,6 +2097,21 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['mel_discovery_hero'] = _myeventlane_theme_build_discovery_hero($variables);
     $variables['mel_discovery_display_id'] = _myeventlane_theme_discovery_display_id($route);
     $variables['mel_discovery_show_context_filters'] = _myeventlane_theme_discovery_shows_context_filters($route);
+    $variables['mel_browse_active_filters'] = FALSE;
+    if ($route === 'view.upcoming_events.page_events') {
+      $query_all = \Drupal::request()->query->all();
+      foreach (['category', 'search', 'event_type', 'accessibility'] as $key) {
+        if (!array_key_exists($key, $query_all)) {
+          continue;
+        }
+        $value = $query_all[$key];
+        $values = is_array($value) ? $value : [$value];
+        if (array_filter($values, static fn($item): bool => $item !== NULL && $item !== '') !== []) {
+          $variables['mel_browse_active_filters'] = TRUE;
+          break;
+        }
+      }
+    }
   }
 
   // Site header: compact global header (desktop + mobile).
@@ -2241,6 +2256,10 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
         && isset($variables['page']['homepage_tonight'])
         && is_array($variables['page']['homepage_tonight'])
         && count(Element::children($variables['page']['homepage_tonight'])) > 0;
+      $variables['mel_home_show_latest'] = $homepageVisibility->viewDisplayHasResults('upcoming_events', 'homepage_latest')
+        && isset($variables['page']['homepage_latest'])
+        && is_array($variables['page']['homepage_latest'])
+        && count(Element::children($variables['page']['homepage_latest'])) > 0;
       $variables['mel_home_show_hidden_gems'] = $homepageVisibility->hasHiddenGemEvents()
         && isset($variables['page']['homepage_hidden_gems'])
         && is_array($variables['page']['homepage_hidden_gems'])
@@ -2257,6 +2276,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
       $variables['mel_home_show_free_rsvp'] = FALSE;
       $variables['mel_home_show_recommended'] = FALSE;
       $variables['mel_home_show_tonight'] = FALSE;
+      $variables['mel_home_show_latest'] = FALSE;
       $variables['mel_home_show_hidden_gems'] = FALSE;
       $variables['mel_home_show_community_favourites'] = FALSE;
     }
@@ -2623,11 +2643,49 @@ function myeventlane_theme_preprocess_views_view_fullcalendar(array &$variables)
 
   $entity_colors = _myeventlane_theme_calendar_entity_colors($view, $tax_field, $color_service);
 
+  // Event Studio stores these Commerce store datetime values as Sydney
+  // wall-clock values. fullcalendar_view assumes Drupal UTC storage and
+  // converts them a second time, shifting displayed event times. Restore the
+  // canonical raw values before FullCalendar receives its event payload.
+  $event_times = [];
+  foreach ($view->result as $row) {
+    if (!$row instanceof ResultRow || !isset($row->_entity)) {
+      continue;
+    }
+    $entity = $row->_entity;
+    if (!$entity instanceof NodeInterface || !$entity->hasField('field_event_start')) {
+      continue;
+    }
+    $starts = $entity->get('field_event_start')->getValue();
+    $ends = $entity->hasField('field_event_end')
+      ? $entity->get('field_event_end')->getValue()
+      : [];
+    foreach ($starts as $delta => $start) {
+      $event_times[$entity->id()][] = [
+        'start' => $start['value'] ?? NULL,
+        'end' => $ends[$delta]['value'] ?? NULL,
+      ];
+    }
+  }
+
+  $event_deltas = [];
   foreach ($options['events'] as &$event) {
     if (!is_array($event)) {
       continue;
     }
     $entity_id = $event['eid'] ?? NULL;
+    $delta = $event_deltas[$entity_id] ?? 0;
+    $canonical_times = $event_times[$entity_id][$delta] ?? NULL;
+    if (is_array($canonical_times) && !empty($canonical_times['start'])) {
+      $event['start'] = $canonical_times['start'];
+      if (!empty($canonical_times['end'])) {
+        $event['end'] = $canonical_times['end'];
+      }
+      else {
+        unset($event['end']);
+      }
+      $event_deltas[$entity_id] = $delta + 1;
+    }
     if ($entity_id === NULL || !isset($entity_colors[$entity_id])) {
       $palette = _myeventlane_theme_calendar_default_event_colors($color_service);
     }
@@ -3576,6 +3634,11 @@ function myeventlane_theme_preprocess_views_view(array &$variables): void {
       $total = is_countable($result) ? count($result) : 0;
     }
     $variables['mel_browse_result_count'] = (int) $total;
+    $variables['mel_browse_result_count_label'] = \Drupal::translation()->formatPlural(
+      (int) $total,
+      '1 event',
+      '@count events',
+    );
   }
 
   // Only process views on taxonomy term pages.

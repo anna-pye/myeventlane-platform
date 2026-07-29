@@ -43,6 +43,12 @@ final class AttendeeCsvExportAccessTest extends TestCase {
     $this->assertStringNotContainsString("access content", $routing);
   }
 
+  public function testLegacyListRedirectsToCanonicalEventPortfolio(): void {
+    $controller = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Controller/AttendeeCsvController.php');
+    $this->assertStringContainsString("new LocalRedirectResponse('/vendor/events')", $controller);
+    $this->assertStringNotContainsString("views_embed_view('attendee_answer'", $controller);
+  }
+
   /**
    * Mirrors AttendeeCsvExportAccess download branch.
    */
