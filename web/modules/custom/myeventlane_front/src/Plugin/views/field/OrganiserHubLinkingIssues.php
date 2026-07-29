@@ -39,17 +39,24 @@ final class OrganiserHubLinkingIssues extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function render(ResultRow $values): string {
+  public function query() {
+    // This is a calculated presentation field, not a database column.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values): array|string {
     $entity = $values->_entity ?? NULL;
     if (!$entity instanceof NodeInterface) {
       return '';
     }
     $issues = $this->editorial->getLinkingIssues($entity);
     if ($issues === []) {
-      return '<span class="status status--enabled">' . $this->t('OK') . '</span>';
+      return ['#markup' => '<span class="status status--enabled">' . $this->t('OK') . '</span>'];
     }
     $items = array_map(static fn (string $issue): string => '<li>' . htmlspecialchars($issue, ENT_QUOTES) . '</li>', $issues);
-    return '<ul class="mel-organiser-hub-admin__warnings">' . implode('', $items) . '</ul>';
+    return ['#markup' => '<ul class="mel-organiser-hub-admin__warnings">' . implode('', $items) . '</ul>'];
   }
 
 }

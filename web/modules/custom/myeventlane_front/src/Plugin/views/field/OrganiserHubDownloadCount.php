@@ -39,6 +39,13 @@ final class OrganiserHubDownloadCount extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
+  public function query() {
+    // This is a calculated presentation field, not a database column.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
   public function render(ResultRow $values): string {
     $entity = $values->_entity ?? NULL;
     if (!$entity instanceof NodeInterface) {

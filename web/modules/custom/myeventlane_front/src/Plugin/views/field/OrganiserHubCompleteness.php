@@ -41,17 +41,24 @@ final class OrganiserHubCompleteness extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function render(ResultRow $values): string {
+  public function query() {
+    // This is a calculated presentation field, not a database column.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values): array|string {
     $node = $this->getNode($values);
     if ($node === NULL) {
       return '';
     }
     $warnings = $this->editorial->getCompletenessWarnings($node);
     if ($warnings === []) {
-      return '<span class="status status--enabled">' . $this->t('Complete') . '</span>';
+      return ['#markup' => '<span class="status status--enabled">' . $this->t('Complete') . '</span>'];
     }
     $items = array_map(static fn (string $warning): string => '<li>' . htmlspecialchars($warning, ENT_QUOTES) . '</li>', $warnings);
-    return '<ul class="mel-organiser-hub-admin__warnings"><li class="visually-hidden">' . $this->t('Editorial warnings') . '</li>' . implode('', $items) . '</ul>';
+    return ['#markup' => '<ul class="mel-organiser-hub-admin__warnings"><li class="visually-hidden">' . $this->t('Editorial warnings') . '</li>' . implode('', $items) . '</ul>'];
   }
 
   private function getNode(ResultRow $values): ?NodeInterface {

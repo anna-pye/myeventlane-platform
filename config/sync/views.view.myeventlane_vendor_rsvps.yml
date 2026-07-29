@@ -4,6 +4,7 @@ status: true
 dependencies:
   module:
     - myeventlane_rsvp
+    - node
 _core:
   default_config_hash: KGpDY6o5J9ozP542Ol6yWt9B2baiT_uW0LO99v62g10
 id: myeventlane_vendor_rsvps
@@ -46,6 +47,14 @@ display:
           field: changed
           plugin_id: date
           label: Updated
+        event_title:
+          id: title
+          table: node_field_data
+          field: title
+          relationship: event_id
+          plugin_id: field
+          label: Event
+          empty: 'Legacy / unknown event'
       pager:
         type: full
         options:
@@ -103,6 +112,7 @@ display:
             attendee_name: attendee_name
             status: status
             changed: changed
+            event_title: event_title
           default: changed
           info:
             id:
@@ -119,6 +129,11 @@ display:
               empty_column: false
             changed:
               sortable: true
+              default_sort_order: desc
+              align: ''
+              empty_column: false
+            event_title:
+              sortable: true
               align: ''
               empty_column: false
       row:
@@ -127,7 +142,24 @@ display:
       query:
         type: views_query
         options: {  }
+      relationships:
+        event_id:
+          id: event_id
+          table: rsvp_submission
+          field: event_id
+          relationship: none
+          group_type: group
+          admin_label: ''
+          plugin_id: standard
+          required: false
       display_extenders: {  }
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+      tags: {  }
   page_1:
     id: page_1
     display_title: Page
@@ -141,3 +173,10 @@ display:
       path: dashboard/rsvps
       menu:
         type: none
+    cache_metadata:
+      max-age: -1
+      contexts:
+        - 'languages:language_content'
+        - 'languages:language_interface'
+        - url.query_args
+      tags: {  }

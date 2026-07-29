@@ -558,6 +558,17 @@
   gap: clamp(16px, 2.5vw, 22px);
   align-items: stretch;
 
+  // Keep sparse rails visually intentional instead of leaving empty columns.
+  &:has(> :only-child) {
+    grid-template-columns: minmax(0, 320px);
+    justify-content: center;
+  }
+
+  &:has(> :first-child:nth-last-child(2)) {
+    grid-template-columns: repeat(2, minmax(0, 320px));
+    justify-content: center;
+  }
+
   @media (width <= 1024px) {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -851,6 +862,11 @@
   min-width: 0;
   overflow: visible;
 
+  .mel-card-carousel--count-1 .swiper-wrapper,
+  .mel-card-carousel--count-2 .swiper-wrapper {
+    justify-content: center;
+  }
+
   .mel-card-carousel-shell--nav-below {
     .mel-card-carousel {
       padding: 0.5rem 0 0;
@@ -860,6 +876,12 @@
       .mel-event-card__link {
         touch-action: pan-x pan-y;
       }
+    }
+  }
+
+  @media (width <= 767px) {
+    .mel-card-carousel--count-2 .swiper-wrapper {
+      justify-content: flex-start;
     }
   }
 

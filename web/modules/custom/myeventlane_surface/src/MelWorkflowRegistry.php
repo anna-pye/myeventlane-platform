@@ -78,7 +78,7 @@ final class MelWorkflowRegistry {
         accessibilityNotes: 'Use clear heading hierarchy for saved lists; empty states describe next save action.',
         activationExactRoutes: ['view.mel_saved_events.page_1'],
         activationPathPrefixes: ['/my-saved-events'],
-        primaryCtaRouteName: 'view.mel_saved_events.page_1',
+        primaryCtaRouteName: 'view.upcoming_events.page_events',
         primaryCtaTitle: 'Browse events',
         delegateVendorNextStepToOnboardingManager: FALSE,
       ),

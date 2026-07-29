@@ -44,7 +44,14 @@ final class OrganiserHubCategoryCoverage extends FieldPluginBase {
   /**
    * {@inheritdoc}
    */
-  public function render(ResultRow $values): string {
+  public function query() {
+    // This is a calculated presentation field, not a database column.
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function render(ResultRow $values): array|string {
     $entity = $values->_entity ?? NULL;
     if (!$entity instanceof TermInterface) {
       return '';
@@ -54,11 +61,15 @@ final class OrganiserHubCategoryCoverage extends FieldPluginBase {
       return $this->t('No data');
     }
     $gap = !empty($row['gap']) ? ' <span class="status status--warning">' . $this->t('Gap') . '</span>' : '';
-    return $this->t('Playbooks: @p · Articles: @a · Downloads: @d', [
+    $summary = $this->t('Playbooks: @p · Articles: @a · Downloads: @d', [
       '@p' => (string) $row['playbook_count'],
       '@a' => (string) $row['article_count'],
       '@d' => (string) $row['download_count'],
-    ]) . $gap;
+    ]);
+    if ($gap === '') {
+      return (string) $summary;
+    }
+    return ['#markup' => $summary . $gap];
   }
 
   /**

@@ -78,7 +78,7 @@
       {% include '@myeventlane_theme/components/card-carousel/card-carousel.twig' with {
         items: carousel_items,
         carousel_id: 'mel-spotlight-carousel',
-        carousel_modifier: 'mel-card-carousel--spotlight',
+        carousel_modifier: 'mel-card-carousel--spotlight mel-card-carousel--count-' ~ carousel_items|length,
         nav_below: true,
       } only %}
     </div>

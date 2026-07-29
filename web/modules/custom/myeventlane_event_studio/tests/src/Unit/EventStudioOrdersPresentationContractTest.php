@@ -37,4 +37,17 @@ final class EventStudioOrdersPresentationContractTest extends TestCase {
     self::assertStringContainsString("{{ 'Fees'|t }} {{ row.fees }}", $template);
   }
 
+  public function testStudioOrdersDescribeAllEventLinkedItemsAccurately(): void {
+    $root = dirname(__DIR__, 7);
+    $template = file_get_contents($root . '/web/themes/custom/myeventlane_vendor_theme/templates/event/orders.html.twig');
+
+    self::assertIsString($template);
+    self::assertStringContainsString("{{ 'Items sold'|t }}", $template);
+    self::assertStringContainsString("{{ 'Gross sales'|t }}", $template);
+    self::assertStringContainsString("{{ 'Items'|t }}", $template);
+    self::assertStringNotContainsString("{{ 'Tickets sold'|t }}", $template);
+    self::assertStringNotContainsString("{{ 'Gross ticket sales'|t }}", $template);
+    self::assertStringNotContainsString("{{ 'Tickets'|t }}", $template);
+  }
+
 }

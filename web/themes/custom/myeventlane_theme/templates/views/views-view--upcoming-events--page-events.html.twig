@@ -22,7 +22,7 @@
 
     {% if mel_browse_result_count is defined %}
       <p class="mel-browse-results-count" role="status">
-        {{ '@count events'|t({'@count': mel_browse_result_count}) }}
+        {{ mel_browse_result_count_label|default('@count events'|t({'@count': mel_browse_result_count})) }}
       </p>
     {% endif %}
 

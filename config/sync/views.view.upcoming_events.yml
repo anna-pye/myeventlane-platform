@@ -2171,10 +2171,10 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_event_type:
-          id: field_event_type
+        field_event_type_value:
+          id: field_event_type_value
           table: node__field_event_type
-          field: field_event_type
+          field: field_event_type_value
           relationship: none
           group_type: group
           admin_label: ''
@@ -3143,10 +3143,10 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-        field_event_type:
-          id: field_event_type
+        field_event_type_value:
+          id: field_event_type_value
           table: node__field_event_type
-          field: field_event_type
+          field: field_event_type_value
           relationship: none
           group_type: group
           admin_label: ''

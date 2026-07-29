@@ -121,9 +121,8 @@ function initMelCardCarousels(context) {
     createCarousel(carousel, {
       slidesPerView: 1.15,
       spaceBetween: 12,
-      // Keep swipe enabled whenever there is more than one slide; never fit all
-      // slides in view at desktop (slidesPerView: 4 + 4 slides => isLocked: true).
-      watchOverflow: false,
+      centeredInsufficientSlides: true,
+      watchOverflow: true,
       grabCursor: true,
       simulateTouch: true,
       touchEventsTarget: 'container',

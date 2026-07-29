@@ -1,0 +1,93 @@
+uuid: 3b73e0f6-abf6-4ed7-8833-a3d07fa12adf
+langcode: en
+status: true
+dependencies:
+  config:
+    - taxonomy.vocabulary.organiser_hub_categories
+  module:
+    - myeventlane_front
+    - taxonomy
+    - user
+id: mel_organiser_hub_coverage
+label: 'MEL Organiser Hub Coverage'
+module: views
+description: 'Category coverage report for the organiser hub.'
+tag: myeventlane_front
+base_table: taxonomy_term_field_data
+base_field: tid
+display:
+  default:
+    id: default
+    display_title: Default
+    display_plugin: default
+    position: 0
+    display_options:
+      title: 'Organiser Hub coverage'
+      fields:
+        name:
+          id: name
+          table: taxonomy_term_field_data
+          field: name
+          entity_type: taxonomy_term
+          entity_field: name
+          plugin_id: term_name
+          label: Category
+          type: string
+          settings:
+            link_to_entity: false
+        organiser_hub_category_coverage:
+          id: organiser_hub_category_coverage
+          table: taxonomy_term_field_data
+          field: organiser_hub_category_coverage
+          plugin_id: organiser_hub_category_coverage
+          label: Coverage
+      pager:
+        type: none
+        options:
+          offset: 0
+      access:
+        type: perm
+        options:
+          perm: 'access content overview'
+      cache:
+        type: tag
+        options: {  }
+      sorts:
+        name:
+          id: name
+          table: taxonomy_term_field_data
+          field: name
+          entity_type: taxonomy_term
+          entity_field: name
+          plugin_id: standard
+          order: ASC
+      filters:
+        vid:
+          id: vid
+          table: taxonomy_term_field_data
+          field: vid
+          entity_type: taxonomy_term
+          entity_field: vid
+          plugin_id: bundle
+          value:
+            organiser_hub_categories: organiser_hub_categories
+      style:
+        type: table
+      row:
+        type: fields
+      query:
+        type: views_query
+        options: {  }
+  page_coverage:
+    id: page_coverage
+    display_title: Coverage
+    display_plugin: page
+    position: 1
+    display_options:
+      display_extenders: {  }
+      path: admin/content/organiser-hub/coverage
+      menu:
+        type: tab
+        title: Coverage
+        weight: 5
+        menu_name: admin
