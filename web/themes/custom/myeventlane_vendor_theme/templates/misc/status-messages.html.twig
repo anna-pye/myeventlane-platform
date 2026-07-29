@@ -1,0 +1,82 @@
+{#
+/**
+ * @file
+ * MyEventLane organiser notifications.
+ *
+ * Status and information messages are short-lived toasts. Warnings and errors
+ * remain in the page until the organiser dismisses them.
+ */
+#}
+
+{% set toast_types = ['status', 'info'] %}
+{% set notification_labels = {
+  status: 'Done'|t,
+  info: 'Update'|t,
+  warning: 'Needs attention'|t,
+  error: 'Something went wrong'|t
+} %}
+
+<div data-drupal-messages class="mel-status-notifications">
+  <div class="mel-status-notifications__toasts" aria-label="{{ 'Notifications'|t }}">
+    {% for type, messages in message_list %}
+      {% if type in toast_types %}
+        {% for message in messages %}
+          <section
+            class="mel-status-notice mel-status-notice--{{ type }} mel-status-notice--toast"
+            role="status"
+            aria-atomic="true"
+            data-mel-status-notice
+            data-mel-status-auto-dismiss="6000"
+          >
+            <span class="mel-status-notice__icon" aria-hidden="true">
+              {% if type == 'status' %}✓{% else %}i{% endif %}
+            </span>
+            <div class="mel-status-notice__content">
+              <span class="mel-status-notice__label">{{ notification_labels[type] }}</span>
+              <div class="mel-status-notice__message">{{ message }}</div>
+            </div>
+            <button
+              class="mel-status-notice__dismiss"
+              type="button"
+              aria-label="{{ 'Dismiss notification'|t }}"
+              data-mel-status-dismiss
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </section>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </div>
+
+  <div class="mel-status-notifications__banners">
+    {% for type, messages in message_list %}
+      {% if type not in toast_types %}
+        {% for message in messages %}
+          <section
+            class="mel-status-notice mel-status-notice--{{ type }} mel-status-notice--banner"
+            role="{{ type == 'error' ? 'alert' : 'status' }}"
+            aria-atomic="true"
+            data-mel-status-notice
+          >
+            <span class="mel-status-notice__icon" aria-hidden="true">
+              {% if type == 'error' %}!{% else %}⚠{% endif %}
+            </span>
+            <div class="mel-status-notice__content">
+              <span class="mel-status-notice__label">{{ notification_labels[type]|default('Notice'|t) }}</span>
+              <div class="mel-status-notice__message">{{ message }}</div>
+            </div>
+            <button
+              class="mel-status-notice__dismiss"
+              type="button"
+              aria-label="{{ 'Dismiss notification'|t }}"
+              data-mel-status-dismiss
+            >
+              <span aria-hidden="true">&times;</span>
+            </button>
+          </section>
+        {% endfor %}
+      {% endif %}
+    {% endfor %}
+  </div>
+</div>

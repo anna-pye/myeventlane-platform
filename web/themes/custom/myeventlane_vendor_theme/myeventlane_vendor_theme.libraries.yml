@@ -9,6 +9,7 @@ global:
       dist/main.css: {}
   js:
     dist/main.js: { attributes: { type: module } }
+    js/mel-status-notifications.js: {}
   dependencies:
     - core/drupal
     - core/once

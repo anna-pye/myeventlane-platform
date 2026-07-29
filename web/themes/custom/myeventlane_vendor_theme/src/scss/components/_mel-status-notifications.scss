@@ -1,0 +1,184 @@
+/**
+ * Organiser status notifications.
+ *
+ * Success/info messages float below the organiser header. Warning/error
+ * messages stay in normal page flow so important guidance is not lost.
+ */
+
+.mel-status-notifications {
+  --mel-notice-bg: #fffdfb;
+  --mel-notice-border: #dfe4ea;
+  --mel-notice-ink: #293241;
+  --mel-notice-accent: #6b7280;
+
+  position: relative;
+  z-index: 35;
+}
+
+.mel-status-notifications__toasts {
+  position: fixed;
+  top: calc(var(--drupal-displace-offset-top, 0px) + 5.25rem);
+  right: 1.5rem;
+  display: grid;
+  gap: 0.75rem;
+  width: min(25rem, calc(100vw - 3rem));
+  pointer-events: none;
+  z-index: 510;
+}
+
+.mel-status-notifications__banners {
+  display: grid;
+  gap: 0.75rem;
+  width: 100%;
+  margin-block-end: 1rem;
+}
+
+.mel-status-notice {
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr) 2.75rem;
+  align-items: start;
+  gap: 0.75rem;
+  padding: 0.875rem 0.75rem 0.875rem 1rem;
+  color: var(--mel-notice-ink);
+  background: var(--mel-notice-bg);
+  border: 1px solid var(--mel-notice-border);
+  border-left: 4px solid var(--mel-notice-accent);
+  border-radius: 1rem;
+  box-shadow: 0 12px 32px rgb(41 50 65 / 12%);
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 180ms ease, transform 180ms ease;
+  pointer-events: auto;
+
+  &--status {
+    --mel-notice-bg: #f3fbf6;
+    --mel-notice-border: #cce8d5;
+    --mel-notice-accent: #27844f;
+  }
+
+  &--info {
+    --mel-notice-bg: #eef6ff;
+    --mel-notice-border: #cfe1f6;
+    --mel-notice-accent: #3974a8;
+  }
+
+  &--warning {
+    --mel-notice-bg: #fff8e8;
+    --mel-notice-border: #efd7a0;
+    --mel-notice-accent: #a96612;
+  }
+
+  &--error {
+    --mel-notice-bg: #fff2ef;
+    --mel-notice-border: #f2c4ba;
+    --mel-notice-accent: #b13b2c;
+  }
+
+  &--banner {
+    width: 100%;
+    box-shadow: 0 6px 18px rgb(41 50 65 / 7%);
+  }
+
+  &.is-leaving {
+    opacity: 0;
+    transform: translateY(-0.5rem);
+  }
+}
+
+.mel-status-notice__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: #fff;
+  background: var(--mel-notice-accent);
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.mel-status-notice__content {
+  min-width: 0;
+  padding-block: 0.125rem;
+}
+
+.mel-status-notice__label {
+  display: block;
+  margin-block-end: 0.125rem;
+  color: var(--mel-notice-accent);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.mel-status-notice__message {
+  color: var(--mel-notice-ink);
+  font-size: 0.9375rem;
+  font-weight: 650;
+  line-height: 1.45;
+
+  a {
+    color: inherit;
+    text-decoration: underline !important;
+    text-underline-offset: 0.15em;
+  }
+}
+
+.mel-status-notice__dismiss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  margin: -0.125rem -0.125rem 0 0;
+  padding: 0;
+  color: #536174;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+
+  &:hover {
+    color: #293241;
+    background: rgb(41 50 65 / 7%);
+  }
+
+  &:focus-visible {
+    outline: 3px solid #f26d5b;
+    outline-offset: 2px;
+  }
+}
+
+@media (max-width: 47.99rem) {
+  .mel-status-notifications__toasts {
+    top: calc(var(--drupal-displace-offset-top, 0px) + 4.5rem);
+    right: 0.75rem;
+    left: 0.75rem;
+    width: auto;
+  }
+
+  .mel-status-notice {
+    grid-template-columns: 2.25rem minmax(0, 1fr) 2.75rem;
+    gap: 0.625rem;
+    padding-left: 0.75rem;
+    border-radius: 0.875rem;
+  }
+
+  .mel-status-notice__icon {
+    width: 2.25rem;
+    height: 2.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-status-notice {
+    transition: none;
+  }
+}
