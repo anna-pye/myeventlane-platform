@@ -105,8 +105,8 @@ permissions:
   - manage_refunds
   - 'purchase boost for events'
   - request_refunds
-  - 'resolve vendor escalations'
   - 'resend ticket emails'
+  - 'resolve vendor escalations'
   - 'reuse mel_ticket_type entities'
   - 'scan qr codes'
   - 'toggle check-in status'

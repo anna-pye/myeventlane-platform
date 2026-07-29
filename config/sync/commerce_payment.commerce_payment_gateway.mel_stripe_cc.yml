@@ -23,5 +23,5 @@ conditions:
     configuration:
       matching_strategy: any
       roles:
-        administrator: administrator
+        - administrator
 conditionOperator: AND
