@@ -23,14 +23,14 @@ use Drupal\myeventlane_page_visuals\Entity\PageVisualInterface;
 final class PageVisualResolver {
 
   /**
-   * Desktop discovery hero derivative (16:9, max 1600×900).
+   * Desktop Page Visual derivative; preserves panoramic artwork composition.
    */
-  private const STYLE_HERO_DESKTOP = 'mel_event_hero_featured';
+  private const STYLE_HERO_DESKTOP = 'mel_page_visual_hero_desktop';
 
   /**
-   * Mobile discovery hero derivative (16:9, 800×450).
+   * Mobile Page Visual derivative; preserves composition at a smaller width.
    */
-  private const STYLE_HERO_MOBILE = 'mel_event_card_featured';
+  private const STYLE_HERO_MOBILE = 'mel_page_visual_hero_mobile';
 
   /**
    * The entity type manager.

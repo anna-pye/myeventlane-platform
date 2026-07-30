@@ -1,0 +1,18 @@
+uuid: 4265b25c-165d-46bc-b0f5-e7472da38b75
+langcode: en
+status: true
+dependencies:
+  module:
+    - image
+name: mel_page_visual_hero_mobile
+label: 'MEL page visual hero (mobile panorama)'
+effects:
+  75fd8511-27ae-4ec3-a18d-0d82cc5a1fa7:
+    uuid: 75fd8511-27ae-4ec3-a18d-0d82cc5a1fa7
+    id: image_scale
+    weight: 0
+    data:
+      width: 960
+      height: null
+      upscale: false
+pipeline: __default__

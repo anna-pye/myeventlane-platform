@@ -1,0 +1,18 @@
+uuid: cb483947-8f68-46ea-9097-9b9224ed9b25
+langcode: en
+status: true
+dependencies:
+  module:
+    - image
+name: mel_page_visual_hero_desktop
+label: 'MEL page visual hero (desktop panorama)'
+effects:
+  d70e7e8a-2d90-4ea8-be2b-9592d0a7f7bf:
+    uuid: d70e7e8a-2d90-4ea8-be2b-9592d0a7f7bf
+    id: image_scale
+    weight: 0
+    data:
+      width: 2048
+      height: null
+      upscale: false
+pipeline: __default__

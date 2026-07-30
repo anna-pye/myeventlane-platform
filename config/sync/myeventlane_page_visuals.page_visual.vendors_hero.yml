@@ -5,8 +5,8 @@ dependencies: {  }
 id: vendors_hero
 label: 'Vendors Directory Hero'
 route_name: myeventlane_vendor.public_list
-media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
-media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+media_uuid_desktop: e256728a-7f74-4d72-a560-2a020afe5890
+media_uuid_mobile: e256728a-7f74-4d72-a560-2a020afe5890
 hide_on_mobile: false
 alt_text: 'Event organisers on MyEventLane'
 enabled: true

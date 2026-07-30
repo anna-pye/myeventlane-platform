@@ -5,8 +5,8 @@ dependencies: {  }
 id: community_hero
 label: 'Community Favourites Hero'
 route_name: view.upcoming_events.page_popular
-media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
-media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+media_uuid_desktop: 210e8304-8fde-4c4b-88a5-a6fe4ba6e51f
+media_uuid_mobile: 210e8304-8fde-4c4b-88a5-a6fe4ba6e51f
 hide_on_mobile: false
-alt_text: 'Community favourites on MyEventLane'
+alt_text: 'Popular community events on MyEventLane'
 enabled: true

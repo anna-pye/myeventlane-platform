@@ -5,8 +5,8 @@ dependencies: {  }
 id: calendar_hero
 label: 'Calendar Hero '
 route_name: view.events_calendar.page_calendar
-media_uuid_desktop: f4d2cbae-0193-4e89-afe8-3c6c68c74436
-media_uuid_mobile: eceaab72-191d-4eef-83e6-b1f617fb2083
+media_uuid_desktop: b502d32e-ac30-445e-99e6-db2178a721b9
+media_uuid_mobile: b502d32e-ac30-445e-99e6-db2178a721b9
 hide_on_mobile: false
-alt_text: 'My EvenLane Calendar '
+alt_text: 'Browse the MyEventLane events calendar'
 enabled: true

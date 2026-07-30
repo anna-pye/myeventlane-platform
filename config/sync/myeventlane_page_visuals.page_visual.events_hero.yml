@@ -5,8 +5,8 @@ dependencies: {  }
 id: events_hero
 label: 'Events Hero'
 route_name: view.upcoming_events.page_events
-media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
-media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+media_uuid_desktop: bad6f206-739e-4276-8054-d6b1b9645c03
+media_uuid_mobile: bad6f206-739e-4276-8054-d6b1b9645c03
 hide_on_mobile: false
-alt_text: 'My EvenLane Events '
+alt_text: 'Browse all events on MyEventLane'
 enabled: true
