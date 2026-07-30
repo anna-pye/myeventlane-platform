@@ -16,10 +16,10 @@ use Drupal\views\ViewExecutableFactory;
 /**
  * Resolves homepage hero, spotlight, and cross-rail deduplication sets.
  *
- * Hero = top promoted upcoming event (same sort as front_featured_events).
- * Spotlight = Community Spotlight roster (front_featured_events:block_featured).
+ * Hero = branded Page Visual with no reserved event.
+ * Spotlight = all marketplace-ready boosted upcoming events.
  * Lower rails exclude higher-priority sections (cascade):
- * Hero → Tonight → Hidden Gems → Discover → Community Spotlight →
+ * Branded hero → Tonight → Hidden Gems → Discover → Community Spotlight →
  * Community Favourites → Upcoming Highlights → Free RSVP → More Events To Explore.
  *
  * Downstream exclusions use getFeaturedBlockEventIds() for the spotlight roster,
@@ -50,11 +50,6 @@ final class HomepageMerchandising {
       'block_1',
     ],
   ];
-
-  /**
-   * @var list<int>|null
-   */
-  private ?array $heroEventIds = NULL;
 
   /**
    * @var list<int>|null
@@ -198,22 +193,19 @@ final class HomepageMerchandising {
   }
 
   /**
-   * Hero event NIDs (single lead promoted event).
+   * Event NIDs used by the branded homepage hero.
+   *
+   * The homepage hero does not render an event, so it must not reserve one
+   * from Community Spotlight.
    *
    * @return list<int>
    */
   public function getHeroEventIds(): array {
-    if ($this->heroEventIds !== NULL) {
-      return $this->heroEventIds;
-    }
-
-    $promoted = $this->loadMarketplaceReadyPromotedUpcomingEventIds();
-    $this->heroEventIds = $promoted !== [] ? [(int) reset($promoted)] : [];
-    return $this->heroEventIds;
+    return [];
   }
 
   /**
-   * Spotlight event NIDs (all boosted except hero).
+   * Spotlight event NIDs (all marketplace-ready boosted upcoming events).
    *
    * @return list<int>
    */
@@ -222,12 +214,7 @@ final class HomepageMerchandising {
       return $this->spotlightEventIds;
     }
 
-    $promoted = $this->loadMarketplaceReadyPromotedUpcomingEventIds();
-    $hero = $this->getHeroEventIds();
-    if ($hero !== []) {
-      $promoted = array_values(array_diff($promoted, $hero));
-    }
-    $this->spotlightEventIds = $promoted;
+    $this->spotlightEventIds = $this->loadMarketplaceReadyPromotedUpcomingEventIds();
     return $this->spotlightEventIds;
   }
 
