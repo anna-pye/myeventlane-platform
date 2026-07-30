@@ -48,14 +48,14 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: 34% 44%;
-  transform: scale(1.12);
-  transform-origin: 34% 44%;
+  object-position: right center;
+  transform: none;
+  transform-origin: right center;
 
   @include breakpoints.mel-break(md, max) {
-    object-position: 42% 48%;
-    transform: scale(1.08);
-    transform-origin: 42% 48%;
+    object-position: right center;
+    transform: none;
+    transform-origin: right center;
   }
 }
 

@@ -1,0 +1,12 @@
+uuid: 39409b4f-b655-4f01-8cfc-c4713f4ad630
+langcode: en
+status: true
+dependencies: {  }
+id: free_events_hero
+label: 'Free Events Hero'
+route_name: view.upcoming_events.page_free
+media_uuid_desktop: 536b5dbf-e2f9-4f3b-8e45-a47cf923649d
+media_uuid_mobile: 536b5dbf-e2f9-4f3b-8e45-a47cf923649d
+hide_on_mobile: false
+alt_text: 'Free events on MyEventLane'
+enabled: true
