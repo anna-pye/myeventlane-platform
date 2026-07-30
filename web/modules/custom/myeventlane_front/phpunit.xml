@@ -12,6 +12,7 @@
       <file>tests/src/Unit/BlogCtaTest.php</file>
       <file>tests/src/Unit/BlogReadingTimeTest.php</file>
       <file>tests/src/Unit/BlogStructuredDataAuthorTest.php</file>
+      <file>tests/src/Unit/HomepageSpotlightPlacementContractTest.php</file>
       <file>tests/src/Unit/OrganiserHubCoverageTest.php</file>
       <file>tests/src/Unit/PlaybookQueryServiceTest.php</file>
     </testsuite>
