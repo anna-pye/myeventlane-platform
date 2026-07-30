@@ -1,0 +1,12 @@
+uuid: 6f244f55-33b4-482e-9db7-9c71ea493173
+langcode: en
+status: true
+dependencies: {  }
+id: this_weekend_hero
+label: 'This Weekend Hero'
+route_name: view.upcoming_events.page_this_weekend
+media_uuid_desktop: 52c0caf3-fb35-4971-a536-ec89d4578f76
+media_uuid_mobile: 52c0caf3-fb35-4971-a536-ec89d4578f76
+hide_on_mobile: false
+alt_text: 'Events happening this weekend on MyEventLane'
+enabled: true

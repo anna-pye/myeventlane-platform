@@ -1,0 +1,12 @@
+uuid: 7a5d0d70-91a5-43f0-902f-710f3ccac401
+langcode: en
+status: true
+dependencies: {  }
+id: today_hero
+label: 'Today Hero'
+route_name: view.upcoming_events.page_today
+media_uuid_desktop: 37c50ac5-fca4-4c9d-a6fb-18a76dd1b623
+media_uuid_mobile: 37c50ac5-fca4-4c9d-a6fb-18a76dd1b623
+hide_on_mobile: false
+alt_text: 'Events happening today on MyEventLane'
+enabled: true

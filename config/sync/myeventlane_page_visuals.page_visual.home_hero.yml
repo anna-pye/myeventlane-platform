@@ -5,8 +5,8 @@ dependencies: {  }
 id: home_hero
 label: 'Home Hero'
 route_name: system.front_page
-media_uuid_desktop: a0f88922-e659-4b97-90c9-5475d8731ab2
-media_uuid_mobile: null
+media_uuid_desktop: f7c407ab-d61f-4ddb-8aa0-a6351e3139ea
+media_uuid_mobile: aab99776-7bba-475c-a2a6-822aadaa263c
 hide_on_mobile: false
-alt_text: 'Community festival with live music, markets, and families enjoying local events.'
+alt_text: 'Discover community events on MyEventLane'
 enabled: true

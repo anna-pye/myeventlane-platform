@@ -27,14 +27,6 @@
 
 .mel-home-hero--discovery {
   margin-bottom: 0;
-
-  // Page Visual artwork is authored as a panorama. Keep the right-side brand
-  // mark in frame and avoid the homepage's decorative zoom.
-  .mel-home-hero__media-img {
-    object-position: right center;
-    transform: none;
-    transform-origin: right center;
-  }
 }
 
 .mel-home-hero__text--subtitle {

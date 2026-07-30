@@ -5,8 +5,8 @@ dependencies: {  }
 id: hidden_gems_hero
 label: 'Hidden Gems Hero'
 route_name: view.upcoming_events.page_hidden_gems
-media_uuid_desktop: 02d27bad-4790-4dce-8b91-9e09d9c48836
-media_uuid_mobile: bd727d04-bb71-48e1-8061-a1f9aa92a72e
+media_uuid_desktop: 6978d7ac-da52-4a05-9dd7-2a77243d75d8
+media_uuid_mobile: 6978d7ac-da52-4a05-9dd7-2a77243d75d8
 hide_on_mobile: false
-alt_text: 'Hidden gems on MyEventLane'
+alt_text: 'Hidden gem events on MyEventLane'
 enabled: true
