@@ -22,7 +22,7 @@
       <p class="mel-empty__text">{{ 'When organisers publish on MyEventLane, they appear here. You can still browse events on the marketplace.'|t }}</p>
       <p class="mel-empty__next">
         <a class="mel-btn mel-btn--primary" href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
-        <a class="mel-link" href="{{ path('<front>') }}">{{ 'Back to homepage'|t }}</a>
+        <a class="mel-btn mel-btn--secondary" href="{{ path('myeventlane_vendor.create_event_gateway') }}">{{ 'Become an organiser'|t }}</a>
       </p>
     </div>
   {% endif %}

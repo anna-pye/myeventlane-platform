@@ -25,6 +25,7 @@ final class PostLoginRouter {
     private readonly OnboardingManager $onboardingManager,
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
     private readonly IdentityIntentResolver $identityIntentResolver,
+    private readonly PostLoginRoutePolicy $routePolicy,
     private readonly LoggerChannelInterface $logger,
     private readonly RouteHelper $routeHelper,
     private readonly UserDataInterface $userData,
@@ -66,17 +67,16 @@ final class PostLoginRouter {
       $intent = $this->applyPendingCreateEventIntentFromUserData($uid, $intent);
     }
 
-    if ($intent === IdentityIntentResolver::INTENT_CREATE_EVENT) {
-      $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
+    $intent_route = $this->routePolicy->routeForIntent($intent);
+    if ($intent_route !== NULL) {
       $this->logger->notice(
-        'PostLoginRouter: create_event intent → myeventlane_event_studio.create uid=@uid vendor_count=@count',
+        'PostLoginRouter: create_event intent → create-event gateway uid=@uid',
         [
           '@uid' => (string) $uid,
-          '@count' => (string) count($vendor_ids),
         ],
       );
       return $this->safeUrlFromRoute(
-        'myeventlane_event_studio.create',
+        $intent_route,
         [],
         $uid,
         $intent,
@@ -84,14 +84,34 @@ final class PostLoginRouter {
       );
     }
 
+    $explicit_destination = $this->routePolicy->safeExplicitDestination($request, $uid);
+    if ($explicit_destination !== NULL) {
+      $this->logger->notice(
+        'PostLoginRouter: preserved internal destination uid=@uid intent=@intent decision=@decision route=@route',
+        $this->routerLogContext(
+          $uid,
+          $intent,
+          PostLoginDecision::EXPLICIT_INTERNAL_DESTINATION,
+          PostLoginDecision::ROUTE_LOG_NA,
+        ),
+      );
+      try {
+        return Url::fromUserInput($explicit_destination);
+      }
+      catch (\InvalidArgumentException) {
+        // The policy has already rejected unsafe input. Fall through to the
+        // account-aware default if Drupal cannot construct the internal URL.
+      }
+    }
+
     $vendor_ids = $this->userVendorMembershipQuery->getVendorIdsForUser($uid);
     if ($vendor_ids === []) {
       return $this->safeUrlFromRoute(
-        'myeventlane_vendor.onboard.profile',
+        $this->routePolicy->defaultRoute(FALSE, FALSE),
         [],
         $uid,
         $intent,
-        PostLoginDecision::NO_VENDOR_ONBOARD_PROFILE,
+        PostLoginDecision::CUSTOMER_ACCOUNT,
       );
     }
 
@@ -102,7 +122,7 @@ final class PostLoginRouter {
 
     if (!$is_complete) {
       return $this->safeUrlFromRoute(
-        'myeventlane_event_studio.create',
+        $this->routePolicy->defaultRoute(TRUE, FALSE),
         [],
         $uid,
         $intent,
@@ -111,7 +131,7 @@ final class PostLoginRouter {
     }
 
     return $this->safeUrlFromRoute(
-      'myeventlane_vendor.console.dashboard',
+      $this->routePolicy->defaultRoute(TRUE, TRUE),
       [],
       $uid,
       $intent,

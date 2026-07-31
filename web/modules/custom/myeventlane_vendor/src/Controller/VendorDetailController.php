@@ -176,7 +176,7 @@ final class VendorDetailController extends ControllerBase {
     }
 
     if (!$vendor->hasField($visibility_field)) {
-      return TRUE;
+      return FALSE;
     }
 
     return !$vendor->get($visibility_field)->isEmpty() && (bool) $vendor->get($visibility_field)->value;

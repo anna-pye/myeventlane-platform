@@ -29,8 +29,20 @@ class VendorAccessControlHandler extends EntityAccessControlHandler {
 
     switch ($operation) {
       case 'view':
-        // Public viewing is allowed for all authenticated users.
-        return AccessResult::allowedIfHasPermission($account, 'access content');
+        $ownerId = (int) $entity->getOwnerId();
+        $accountId = (int) $account->id();
+        if ($ownerId > 0 && $ownerId === $accountId) {
+          return AccessResult::allowed()
+            ->cachePerUser()
+            ->addCacheableDependency($entity);
+        }
+
+        return AccessResult::allowedIf(
+          $entity->isPublicProfilePublished()
+          && $account->hasPermission('access content')
+        )
+          ->cachePerPermissions()
+          ->addCacheableDependency($entity);
 
       case 'update':
       case 'delete':

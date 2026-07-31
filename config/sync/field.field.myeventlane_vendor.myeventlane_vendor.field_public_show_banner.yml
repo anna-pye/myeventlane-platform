@@ -1,0 +1,24 @@
+uuid: b12c5277-122e-4ec3-9405-233c7c28c5f1
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_public_show_banner
+  module:
+    - options
+id: myeventlane_vendor.myeventlane_vendor.field_public_show_banner
+field_name: field_public_show_banner
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Show banner publicly'
+description: 'Whether to display the organiser banner on the public organiser page.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean

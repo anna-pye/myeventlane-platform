@@ -284,7 +284,7 @@ class VendorSettingsForm extends FormBase {
     $form['page_header']['lede'] = [
       '#type' => 'html_tag',
       '#tag' => 'p',
-      '#value' => $this->t('Update your organisation details, contact email, public profile, and notification defaults.'),
+      '#value' => $this->t('Manage what visitors see and keep your organiser details up to date.'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__header-lede', 'mel-settings-header__lede']],
     ];
     $form['page_header']['back'] = [
@@ -320,23 +320,37 @@ class VendorSettingsForm extends FormBase {
     // Replace vendor subdomain with main domain if present.
     $public_url_string = preg_replace('#^https?://vendor\.#', 'https://', $public_url_string);
 
+    $profile_is_published = $vendor->hasField('field_public_profile_published')
+      && (bool) $this->getFieldValue($vendor, 'field_public_profile_published', FALSE);
+    $status_label = $profile_is_published ? $this->t('Published') : $this->t('Private');
+    $status_class = $profile_is_published
+      ? 'mel-vendor-settings-v2__pill--success'
+      : 'mel-vendor-settings-v2__pill--warning';
+    $status_message = $profile_is_published
+      ? $this->t('Your organiser profile can appear in the public directory. Review the visibility choices below to control which optional details visitors can see.')
+      : $this->t('Only you and authorised MyEventLane staff can view these organiser details. Publish the profile below when you are ready.');
+
     $form['preview_link'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['vendor-preview-link-wrapper']],
+      '#attributes' => ['class' => ['vendor-preview-link-wrapper', 'mel-vendor-settings-v2__status-card']],
       '#weight' => -998,
+    ];
+    $form['preview_link']['status'] = [
+      '#markup' => '<div class="mel-vendor-settings-v2__status-copy"><span class="mel-vendor-settings-v2__pill ' . $status_class . '">' . $status_label . '</span><p>' . $status_message . '</p></div>',
+      '#weight' => -10,
     ];
 
     $form['preview_link']['link'] = [
       '#type' => 'link',
-      '#title' => $this->t('Preview public profile'),
+      '#title' => $this->t('Preview profile'),
       '#url' => Url::fromUri($public_url_string),
       '#attributes' => [
         'class' => ['button', 'button--secondary', 'vendor-preview-link', 'mel-btn', 'mel-btn--secondary', 'mel-vendor-settings-v2__preview-link'],
         'target' => '_blank',
         'rel' => 'noopener noreferrer',
       ],
-      '#prefix' => '<div class="vendor-preview-banner mel-vendor-settings-v2__preview"><span class="preview-icon" aria-hidden="true">👁</span>',
-      '#suffix' => '<span class="preview-hint">' . $this->t('See how your profile looks to visitors') . '</span></div>',
+      '#prefix' => '<div class="vendor-preview-banner mel-vendor-settings-v2__preview">',
+      '#suffix' => '</div>',
     ];
 
     // Onboarding panel at top when not invite-ready (non-blocking).
@@ -398,10 +412,10 @@ class VendorSettingsForm extends FormBase {
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
     $form['#attached']['library'][] = 'myeventlane_vendor_settings/settings_form';
 
+    $this->buildPublicSettingsSection($form, $form_state, $vendor);
     $this->buildProfileSection($form, $form_state, $vendor);
     $this->buildVisualAssetsSection($form, $form_state, $vendor);
     $this->buildContactSection($form, $form_state, $vendor);
-    $this->buildPublicSettingsSection($form, $form_state, $vendor);
     $this->buildVenuesSection($form, $form_state, $vendor);
     $this->buildCommerceSection($form, $form_state, $vendor);
     $this->buildTeamSection($form, $form_state, $vendor);
@@ -455,12 +469,12 @@ class VendorSettingsForm extends FormBase {
   private function buildProfileSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['profile'] = [
       '#type' => 'details',
-      '#title' => $this->t('Public profile'),
-      '#open' => TRUE,
+      '#title' => $this->t('Profile content'),
+      '#open' => FALSE,
       '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
     ];
     $form['profile']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Your display name, story, and links shown on your public organiser page.') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Add the name, story and links used on your organiser page. Visibility is controlled separately above.') . '</p>',
       '#weight' => -10,
     ];
     $form['profile']['name'] = [
@@ -630,8 +644,8 @@ class VendorSettingsForm extends FormBase {
   private function buildVisualAssetsSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['visual_assets'] = [
       '#type' => 'details',
-      '#title' => $this->t('Logo & brand colour'),
-      '#open' => TRUE,
+      '#title' => $this->t('Logo, banner & brand colour'),
+      '#open' => FALSE,
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'visual-assets',
@@ -723,7 +737,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'email',
         '#title' => $this->t('Contact email'),
         '#default_value' => $this->getFieldValue($vendor, 'field_email', ''),
-        '#description' => $this->t('Public contact email address.'),
+        '#description' => $this->t('Kept private unless you choose “Show email on public page” under Profile privacy & visibility.'),
         '#attributes' => ['class' => ['mel-vendor-settings-v2__field']],
       ];
     }
@@ -733,7 +747,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'tel',
         '#title' => $this->t('Phone number'),
         '#default_value' => $this->getFieldValue($vendor, 'field_phone', ''),
-        '#description' => $this->t('Contact phone number.'),
+        '#description' => $this->t('Kept private unless you choose to show it publicly.'),
         '#attributes' => ['class' => ['mel-vendor-settings-v2__field']],
       ];
     }
@@ -743,7 +757,7 @@ class VendorSettingsForm extends FormBase {
         '#type' => 'textfield',
         '#title' => $this->t('Address'),
         '#default_value' => $this->getFieldValue($vendor, 'field_address', ''),
-        '#description' => $this->t('Business address.'),
+        '#description' => $this->t('Kept private unless you choose to show your address or location publicly.'),
         '#attributes' => ['class' => ['mel-vendor-settings-v2__field']],
       ];
     }
@@ -814,17 +828,37 @@ class VendorSettingsForm extends FormBase {
   private function buildPublicSettingsSection(array &$form, FormStateInterface $form_state, Vendor $vendor): void {
     $form['public_page'] = [
       '#type' => 'details',
-      '#title' => $this->t('Public page visibility'),
-      '#open' => FALSE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#title' => $this->t('Profile privacy & visibility'),
+      '#open' => TRUE,
+      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section', 'mel-vendor-settings-v2__section--privacy']],
     ];
     $form['public_page']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Choose which profile fields appear on your public organiser page.') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Your profile stays private until you publish it. You remain in control and can change these choices at any time.') . '</p>',
       '#weight' => -9,
     ];
 
+    if ($vendor->hasField('field_public_profile_published')) {
+      $form['public_page']['published'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Publish my organiser profile'),
+        '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_profile_published', FALSE),
+        '#description' => $this->t('When enabled, your organiser name and profile can appear in the public organiser directory. Turn this off at any time to remove it from public view.'),
+        '#attributes' => ['class' => ['mel-vendor-settings-v2__publish-toggle']],
+      ];
+    }
+
+    $form['public_page']['optional_details'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Optional public details'),
+      '#attributes' => ['class' => ['mel-vendor-settings-v2__visibility-options']],
+    ];
+    $form['public_page']['optional_details']['_help'] = [
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('These choices only take effect while your organiser profile is published. Leave sensitive details off unless visitors need them.') . '</p>',
+      '#weight' => -10,
+    ];
+
     if ($vendor->hasField('field_public_show_email')) {
-      $form['public_page']['show_email'] = [
+      $form['public_page']['optional_details']['show_email'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show email on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_email', FALSE),
@@ -832,7 +866,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_public_show_phone')) {
-      $form['public_page']['show_phone'] = [
+      $form['public_page']['optional_details']['show_phone'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show phone on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_phone', FALSE),
@@ -840,7 +874,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_public_show_location')) {
-      $form['public_page']['show_location'] = [
+      $form['public_page']['optional_details']['show_location'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show address/location on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_location', FALSE),
@@ -848,7 +882,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_website') && $vendor->hasField('field_public_show_website')) {
-      $form['public_page']['show_website'] = [
+      $form['public_page']['optional_details']['show_website'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show website on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_website', FALSE),
@@ -857,7 +891,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_social_links') && $vendor->hasField('field_public_show_social_links')) {
-      $form['public_page']['show_social_links'] = [
+      $form['public_page']['optional_details']['show_social_links'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show social media links on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_social_links', FALSE),
@@ -866,7 +900,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_summary') && $vendor->hasField('field_public_show_summary')) {
-      $form['public_page']['show_summary'] = [
+      $form['public_page']['optional_details']['show_summary'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show summary on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_summary', FALSE),
@@ -875,7 +909,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_description') && $vendor->hasField('field_public_show_description')) {
-      $form['public_page']['show_description'] = [
+      $form['public_page']['optional_details']['show_description'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show description on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_description', FALSE),
@@ -884,7 +918,7 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_banner_image') && $vendor->hasField('field_public_show_banner')) {
-      $form['public_page']['show_banner'] = [
+      $form['public_page']['optional_details']['show_banner'] = [
         '#type' => 'checkbox',
         '#title' => $this->t('Show banner image on public page'),
         '#default_value' => (bool) $this->getFieldValue($vendor, 'field_public_show_banner', FALSE),
@@ -1673,14 +1707,15 @@ class VendorSettingsForm extends FormBase {
 
     // Save public page settings.
     $public_fields = [
-      'field_public_show_email' => ['public_page', 'show_email'],
-      'field_public_show_phone' => ['public_page', 'show_phone'],
-      'field_public_show_location' => ['public_page', 'show_location'],
-      'field_public_show_website' => ['public_page', 'show_website'],
-      'field_public_show_social_links' => ['public_page', 'show_social_links'],
-      'field_public_show_summary' => ['public_page', 'show_summary'],
-      'field_public_show_description' => ['public_page', 'show_description'],
-      'field_public_show_banner' => ['public_page', 'show_banner'],
+      'field_public_profile_published' => ['public_page', 'published'],
+      'field_public_show_email' => ['public_page', 'optional_details', 'show_email'],
+      'field_public_show_phone' => ['public_page', 'optional_details', 'show_phone'],
+      'field_public_show_location' => ['public_page', 'optional_details', 'show_location'],
+      'field_public_show_website' => ['public_page', 'optional_details', 'show_website'],
+      'field_public_show_social_links' => ['public_page', 'optional_details', 'show_social_links'],
+      'field_public_show_summary' => ['public_page', 'optional_details', 'show_summary'],
+      'field_public_show_description' => ['public_page', 'optional_details', 'show_description'],
+      'field_public_show_banner' => ['public_page', 'optional_details', 'show_banner'],
     ];
 
     foreach ($public_fields as $field_name => $form_path) {
