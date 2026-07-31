@@ -187,6 +187,7 @@ jobs:
             'MEL_RELEASE_IDENTIFIER="${{ github.run_id }}.${{ github.run_attempt }}" \' \
             'RUN_UPDB=1 \' \
             'RUN_CIM=1 \' \
+            'CIM_ALLOWED_DIFFERENCES="crop.type.focal_point,flag.flag.following,image.style.mel_vendor_logo,views.view.flag_followers" \' \
             'ARTIFACT_PATH="$temp_dir" \' \
             'bash scripts/deploy/remote-deploy.sh' \
             | ssh -i ~/.ssh/id_ed25519 "${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}" bash -s
