@@ -285,6 +285,7 @@ function myeventlane_auth_register_page_is_create_event_flow(Request $request): 
  * theme, including Gin Login on /user/register.
  */
 function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateInterface $form_state, string $form_id): void {
+  $is_public_registration = !\Drupal::currentUser()->hasPermission('administer users');
   $is_vendor_registration = \Drupal::request()->query->get('vendor') === '1'
     || str_contains((string) \Drupal::request()->query->get('destination', ''), '/vendor/onboard');
 
@@ -301,8 +302,11 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
     }
   }
 
-  if ($is_vendor_registration) {
-    $form_state->set('is_vendor_registration', TRUE);
+  if ($is_public_registration) {
+    $form_state->set('is_public_registration', TRUE);
+    if ($is_vendor_registration) {
+      $form_state->set('is_vendor_registration', TRUE);
+    }
     if (isset($form['account']['name'])) {
       $form['account']['name']['#access'] = FALSE;
     }
@@ -311,12 +315,37 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
     }
     // Must run before RegisterForm::validateForm() copies values and entity validates.
     $form['#validate'] ??= [];
-    array_unshift($form['#validate'], 'myeventlane_auth_vendor_register_set_username_from_mail');
+    array_unshift($form['#validate'], 'myeventlane_auth_public_register_prepare_identity');
     $existing_vendor_cache = $form['#cache']['contexts'] ?? [];
     $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing_vendor_cache, [
       'url.query_args:vendor',
       'url.query_args:destination',
     ])));
+
+    $form['mel_registration_privacy'] = [
+      '#type' => 'container',
+      '#weight' => -20,
+      '#attributes' => [
+        'class' => ['mel-registration-privacy'],
+        'role' => 'note',
+      ],
+      'message' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => t('Your account details stay private. Public community profiles are optional and can be created later. We’ll email you a secure link to verify your address and choose a password.'),
+      ],
+    ];
+
+    if ($is_vendor_registration) {
+      $form['mel_intent'] = [
+        '#type' => 'hidden',
+        '#value' => IdentityIntentResolver::INTENT_CREATE_EVENT,
+      ];
+      $form['actions']['submit']['#submit'] ??= [];
+      if (!in_array('myeventlane_auth_user_register_form_post_save_redirect', $form['actions']['submit']['#submit'], TRUE)) {
+        $form['actions']['submit']['#submit'][] = 'myeventlane_auth_user_register_form_post_save_redirect';
+      }
+    }
   }
   foreach (['field_marketing', 'field_vendor'] as $key) {
     if (isset($form[$key])) {
@@ -382,19 +411,30 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
 }
 
 /**
- * Sets username from email for vendor onboarding registration.
+ * Prepares private identity fields for public self-registration.
  */
-function myeventlane_auth_vendor_register_set_username_from_mail(array &$form, FormStateInterface $form_state): void {
-  if (!$form_state->get('is_vendor_registration')) {
+function myeventlane_auth_public_register_prepare_identity(array &$form, FormStateInterface $form_state): void {
+  if (!$form_state->get('is_public_registration')) {
     return;
   }
-  $mail = trim((string) $form_state->getValue('mail'));
-  if ($mail === '') {
+
+  /** @var \Drupal\myeventlane_auth\Service\PublicRegistrationUsernameGenerator $generator */
+  $generator = \Drupal::service('myeventlane_auth.public_registration_username_generator');
+  $username = $generator->generate();
+  $form_state->setValue('name', $username);
+
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
     return;
   }
-  $local = strstr($mail, '@', TRUE);
-  $base = preg_replace('/[^a-z0-9._-]+/i', '_', is_string($local) && $local !== '' ? $local : $mail) ?: 'vendor';
-  $form_state->setValue('name', substr($base, 0, 60));
+  $account = $form_object->getEntity();
+  if (!$account instanceof UserInterface) {
+    return;
+  }
+  $account->setUsername($username);
+  if ($account->hasField('field_display_name') && $account->get('field_display_name')->isEmpty()) {
+    $account->set('field_display_name', t('Member'));
+  }
 }
 
 /**
@@ -409,9 +449,6 @@ function myeventlane_auth_vendor_register_set_username_from_mail(array &$form, F
  * and PostLoginRouter merge it on first login (see IdentityIntentResolver::USER_DATA_PENDING_MEL_INTENT).
  */
 function myeventlane_auth_user_register_form_post_save_redirect(array &$form, FormStateInterface $form_state): void {
-  if ($form_state->get('is_vendor_registration')) {
-    return;
-  }
   if ($form_state->getValue('administer_users')) {
     return;
   }

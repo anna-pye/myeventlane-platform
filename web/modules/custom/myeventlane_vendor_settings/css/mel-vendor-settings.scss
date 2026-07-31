@@ -150,9 +150,8 @@
 
 .mel-vendor-settings-v2__preview {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--mel-space-3, 0.75rem);
+  flex: 0 0 auto;
 }
 
 .mel-vendor-settings-v2__pill {
@@ -178,4 +177,177 @@
   margin: 0 0 var(--mel-space-3, 0.75rem);
   font-size: 0.875rem;
   color: var(--mel-color-text-secondary, #637185);
+}
+
+.mel-vendor-settings-v2__status-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mel-space-5, 1.25rem);
+  padding: var(--mel-space-4, 1rem);
+  margin-block-end: var(--mel-space-5, 1.25rem);
+  border: 1px solid var(--mel-color-border, #e9e3de);
+  border-radius: 16px;
+  background: var(--mel-color-bg, #fff);
+}
+
+.mel-vendor-settings-v2__status-copy {
+  min-width: 0;
+}
+
+.mel-vendor-settings-v2__status-copy p {
+  margin: var(--mel-space-2, 0.5rem) 0 0;
+  color: var(--mel-color-text-secondary, #637185);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.mel-vendor-settings-v2__section--privacy {
+  border-color: rgba(110, 126, 242, 0.32);
+  background: #fbfaff;
+}
+
+.mel-vendor-settings-v2__publish-toggle {
+  font-weight: 700;
+}
+
+.mel-vendor-settings-v2__visibility-options {
+  margin-block-start: var(--mel-space-5, 1.25rem);
+  padding: var(--mel-space-4, 1rem);
+  border: 1px solid var(--mel-color-border, #e9e3de);
+  border-radius: 12px;
+  background: var(--mel-color-bg, #fff);
+}
+
+.mel-vendor-settings-v2__visibility-options legend {
+  padding-inline: var(--mel-space-2, 0.5rem);
+  font-weight: 700;
+}
+
+/*
+ * Drupal's details template on this route renders fields as direct children,
+ * without the usual .details-wrapper. Give every section a reliable content
+ * inset so controls never sit against the card border.
+ */
+#vendor-settings-form details.mel-card > :not(summary) {
+  margin-inline: var(--mel-space-6, 1.5rem);
+}
+
+#vendor-settings-form details.mel-card > summary + * {
+  margin-block-start: var(--mel-space-5, 1.25rem);
+}
+
+#vendor-settings-form details.mel-card > :last-child {
+  margin-block-end: var(--mel-space-6, 1.5rem);
+}
+
+#vendor-settings-form input[type="text"],
+#vendor-settings-form input[type="email"],
+#vendor-settings-form input[type="tel"],
+#vendor-settings-form input[type="url"],
+#vendor-settings-form input[type="password"],
+#vendor-settings-form textarea,
+#vendor-settings-form select {
+  min-height: 3rem;
+  padding: 0.75rem 0.875rem !important;
+  border: 1px solid #d8d2cc !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(41, 50, 65, 0.04);
+}
+
+#vendor-settings-form textarea {
+  line-height: 1.55;
+}
+
+#vendor-settings-form input[type="text"]:hover,
+#vendor-settings-form input[type="email"]:hover,
+#vendor-settings-form input[type="tel"]:hover,
+#vendor-settings-form input[type="url"]:hover,
+#vendor-settings-form input[type="password"]:hover,
+#vendor-settings-form textarea:hover,
+#vendor-settings-form select:hover {
+  border-color: #b9b0a8 !important;
+}
+
+#vendor-settings-form input[type="text"]:focus,
+#vendor-settings-form input[type="email"]:focus,
+#vendor-settings-form input[type="tel"]:focus,
+#vendor-settings-form input[type="url"]:focus,
+#vendor-settings-form input[type="password"]:focus,
+#vendor-settings-form textarea:focus,
+#vendor-settings-form select:focus {
+  border-color: var(--mel-color-accent-coral, #f26d5b) !important;
+  box-shadow: 0 0 0 3px rgba(242, 109, 91, 0.16) !important;
+}
+
+#vendor-settings-form .form-item > label {
+  margin-block-end: 0.45rem;
+  color: var(--mel-color-text, #293241);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+#vendor-settings-form .form-item__description,
+#vendor-settings-form .description {
+  max-width: 42rem;
+  margin-block-start: 0.5rem;
+  color: var(--mel-color-text-secondary, #637185);
+  line-height: 1.45;
+}
+
+#vendor-settings-form .form-type-checkbox {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  column-gap: 0.75rem;
+  align-items: start;
+  padding: 0.75rem;
+  margin-block-end: 0.5rem;
+  border: 1px solid #ece6e1;
+  border-radius: 12px;
+  background: #fff;
+}
+
+#vendor-settings-form .form-type-checkbox input[type="checkbox"] {
+  grid-column: 1;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.1rem 0 0;
+  accent-color: var(--mel-color-accent-coral, #f26d5b);
+}
+
+#vendor-settings-form .form-type-checkbox label {
+  grid-column: 2;
+  margin: 0;
+  line-height: 1.35;
+}
+
+#vendor-settings-form .form-type-checkbox .description,
+#vendor-settings-form .form-type-checkbox .form-item__description {
+  grid-column: 2;
+  margin-block-start: 0.35rem;
+}
+
+@media (max-width: 47.99rem) {
+  .mel-vendor-settings-v2__status-card {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .mel-vendor-settings-v2__preview .button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  #vendor-settings-form details.mel-card > :not(summary) {
+    margin-inline: var(--mel-space-4, 1rem);
+  }
+
+  #vendor-settings-form details.mel-card > :last-child {
+    margin-block-end: var(--mel-space-4, 1rem);
+  }
+
+  #vendor-settings-form #edit-public-page-optional-details {
+    padding: var(--mel-space-3, 0.75rem);
+  }
 }

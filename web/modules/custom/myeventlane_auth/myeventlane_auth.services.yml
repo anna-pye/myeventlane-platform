@@ -19,6 +19,15 @@ services:
   myeventlane_auth.identity_intent_resolver:
     class: Drupal\myeventlane_auth\Service\IdentityIntentResolver
 
+  myeventlane_auth.public_registration_username_generator:
+    class: Drupal\myeventlane_auth\Service\PublicRegistrationUsernameGenerator
+    arguments:
+      - '@entity_type.manager'
+      - '@uuid'
+
+  myeventlane_auth.post_login_route_policy:
+    class: Drupal\myeventlane_auth\Service\PostLoginRoutePolicy
+
   myeventlane_auth.post_auth_redirect_resolver:
     class: Drupal\myeventlane_auth\Service\PostAuthRedirectResolver
     arguments:
@@ -34,6 +43,7 @@ services:
       - '@myeventlane_onboarding.manager'
       - '@myeventlane_vendor.user_vendor_membership_query'
       - '@myeventlane_auth.identity_intent_resolver'
+      - '@myeventlane_auth.post_login_route_policy'
       - '@logger.channel.myeventlane_auth'
       - '@myeventlane_core.route_helper'
       - '@user.data'

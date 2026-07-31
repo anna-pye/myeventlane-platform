@@ -1,0 +1,18 @@
+uuid: e6c94101-de05-4d28-af11-e9c940911824
+langcode: en
+status: true
+dependencies:
+  module:
+    - options
+id: myeventlane_vendor.field_public_profile_published
+field_name: field_public_profile_published
+entity_type: myeventlane_vendor
+type: boolean
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

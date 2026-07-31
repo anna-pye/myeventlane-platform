@@ -22,11 +22,15 @@
       <span class="mel-footer-dashboard__balance">{{ 'Payout balance'|t }}: {{ footer_context.payout_balance|default('$0.00') }}</span>
     </div>
     <nav class="mel-footer-dashboard__links" aria-label="{{ 'Account links'|t }}">
-      <a class="mel-footer-dashboard__link" href="/user">{{ 'Profile'|t }}</a>
-      {% if footer_context.vendor_console_urls.settings|default('') %}
-        <a class="mel-footer-dashboard__link" href="{{ footer_context.vendor_console_urls.settings }}">{{ 'Settings'|t }}</a>
+      {% if logged_in %}
+        <a class="mel-footer-dashboard__link" href="/user">{{ 'Profile'|t }}</a>
+        {% if footer_context.vendor_console_urls.settings|default('') %}
+          <a class="mel-footer-dashboard__link" href="{{ footer_context.vendor_console_urls.settings }}">{{ 'Settings'|t }}</a>
+        {% endif %}
+        <a class="mel-footer-dashboard__link" href="/user/logout">{{ 'Log out'|t }}</a>
+      {% else %}
+        <a class="mel-footer-dashboard__link" href="/user/login">{{ 'Sign in'|t }}</a>
       {% endif %}
-      <a class="mel-footer-dashboard__link" href="/user/logout">{{ 'Log out'|t }}</a>
     </nav>
   </div>
 </footer>

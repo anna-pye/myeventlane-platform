@@ -22,10 +22,9 @@ final class PostLoginDecision {
    */
   public const PASSWORD_RESET_CONTINUE_USER_EDIT = 'password_reset_continue_user_edit';
 
-  /**
-   * No vendor membership: start organiser profile onboarding (not customer dashboard).
-   */
-  public const NO_VENDOR_ONBOARD_PROFILE = 'no_vendor_onboard_profile';
+  public const CUSTOMER_ACCOUNT = 'customer_account';
+
+  public const EXPLICIT_INTERNAL_DESTINATION = 'explicit_internal_destination';
 
   public const VENDOR_ONBOARDING_INCOMPLETE = 'vendor_onboarding_incomplete';
 

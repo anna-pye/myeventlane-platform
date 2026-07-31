@@ -307,6 +307,15 @@ class Vendor extends ContentEntityBase implements EntityChangedInterface, Entity
   }
 
   /**
+   * Returns whether the organiser explicitly published their public profile.
+   */
+  public function isPublicProfilePublished(): bool {
+    return $this->hasField('field_public_profile_published')
+      && !$this->get('field_public_profile_published')->isEmpty()
+      && (bool) $this->get('field_public_profile_published')->value;
+  }
+
+  /**
    * Gets the created time.
    *
    * @return int

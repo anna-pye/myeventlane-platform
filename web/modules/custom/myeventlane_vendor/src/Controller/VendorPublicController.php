@@ -50,6 +50,7 @@ class VendorPublicController extends ControllerBase {
     $storage = $this->entityTypeManagerService->getStorage('myeventlane_vendor');
     $query = $storage->getQuery()
       ->accessCheck(TRUE)
+      ->condition('field_public_profile_published', 1)
       ->sort('name');
 
     $count_query = clone $query;

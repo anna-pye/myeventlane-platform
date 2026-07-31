@@ -1,0 +1,24 @@
+uuid: faaf4494-237d-4f2a-9e92-491823994e4c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_public_show_description
+  module:
+    - options
+id: myeventlane_vendor.myeventlane_vendor.field_public_show_description
+field_name: field_public_show_description
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Show description publicly'
+description: 'Whether to display the organiser description on the public organiser page.'
+required: false
+translatable: false
+default_value:
+  -
+    value: 0
+default_value_callback: ''
+settings:
+  on_label: 'Yes'
+  off_label: 'No'
+field_type: boolean
