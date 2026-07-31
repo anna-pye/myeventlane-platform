@@ -26,6 +26,9 @@ SITE_URI="${SITE_URI:-https://staging.myeventlane.com.au}"
 ARTIFACT_PATH="${ARTIFACT_PATH:-}"
 RUN_UPDB="${RUN_UPDB:-0}"
 RUN_CIM="${RUN_CIM:-0}"
+# Comma-separated config names that are known to be rewritten by the target
+# environment immediately after import. Every other difference remains fatal.
+CIM_ALLOWED_DIFFERENCES="${CIM_ALLOWED_DIFFERENCES:-}"
 # Retain this many non-current release directories after each deploy (Capistrano-style).
 MEL_KEEP_RELEASES="${MEL_KEEP_RELEASES:-3}"
 # Minimum free space (MB) on APP_PATH filesystem before copying a new release.
@@ -1002,16 +1005,29 @@ fi
 if [ "$RUN_CIM" = "1" ]; then
   mel_drush cim -y --uri="$SITE_URI"
 
-  # Deploy safety: active storage must match sync after import (see Drush docs: grep "No differences").
+  # Deploy safety: active storage must match sync after import, apart from an
+  # explicit target-environment allow-list supplied by the deployment workflow.
   echo "Verifying config:status after import..."
-  CST_OUT="$(mel_drush cst --uri="$SITE_URI" 2>&1)" || true
-  if echo "$CST_OUT" | grep -qi 'configuration differences'; then
-    echo "ERROR: config:status reports configuration differences — deployment aborted." >&2
-    echo "$CST_OUT" >&2
-    exit 1
-  fi
-  if ! echo "$CST_OUT" | grep -q 'No differences'; then
-    echo "ERROR: config:status must report no differences between DB and sync after cim." >&2
+  CST_OUT="$(mel_drush cst --fields=name,state --format=csv --uri="$SITE_URI" 2>&1)" || true
+  CST_NAMES="$(printf '%s\n' "$CST_OUT" \
+    | awk -F',' 'NR > 1 && $1 != "" {gsub(/^"|"$/, "", $1); print $1}')"
+  CST_UNEXPECTED=""
+
+  while IFS= read -r config_name; do
+    [ -n "$config_name" ] || continue
+    case ",$CIM_ALLOWED_DIFFERENCES," in
+      *",$config_name,"*)
+        echo "WARNING: Allowing known environment config difference: $config_name" >&2
+        ;;
+      *)
+        CST_UNEXPECTED="${CST_UNEXPECTED}${config_name}"$'\n'
+        ;;
+    esac
+  done <<< "$CST_NAMES"
+
+  if [ -n "$CST_UNEXPECTED" ]; then
+    echo "ERROR: unexpected config differences remain after cim:" >&2
+    printf '%s' "$CST_UNEXPECTED" >&2
     echo "$CST_OUT" >&2
     exit 1
   fi
