@@ -505,16 +505,11 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     '#weight' => -50,
   ];
 
-  foreach (['field_display_name', 'user_picture', 'field_pronouns', 'field_city'] as $key) {
-    if (!isset($form[$key])) {
-      continue;
-    }
-    $element = $form[$key];
-    unset($form[$key]);
-    $element['#parents'] = [$key];
-    $element['#weight'] = $element['#weight'] ?? 0;
-    $form['mel_settings_profile'][$key] = $element;
-  }
+  _myeventlane_account_group_entity_fields(
+    $form,
+    ['field_display_name', 'user_picture', 'field_pronouns', 'field_city'],
+    'mel_settings_profile',
+  );
 
   if (!empty($form['account']) && is_array($form['account'])) {
     foreach (['mail', 'name'] as $key) {
@@ -662,15 +657,11 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     $form['mel_settings_preferences']['timezone'] = $element;
   }
 
-  foreach (['field_accessibility_preferences', 'social_auth'] as $key) {
-    if (!isset($form[$key])) {
-      continue;
-    }
-    $element = $form[$key];
-    unset($form[$key]);
-    $element['#parents'] = [$key];
-    $form['mel_settings_preferences'][$key] = $element;
-  }
+  _myeventlane_account_group_entity_fields(
+    $form,
+    ['field_accessibility_preferences', 'social_auth'],
+    'mel_settings_preferences',
+  );
 
   $prefs_more = _myeventlane_account_customer_settings_preference_links();
   if ($prefs_more !== []) {
@@ -717,6 +708,31 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
   if (isset($form['actions'])) {
     $form['actions']['#weight'] = 200;
     $form['actions']['#attributes']['class'][] = 'mel-account-settings__actions';
+  }
+}
+
+/**
+ * Visually groups top-level entity fields without breaking value extraction.
+ *
+ * EntityFormDisplay expects configurable field widgets to remain at their
+ * original top-level keys when it extracts submitted values. Drupal's #group
+ * API renders those same elements inside the requested card while preserving
+ * their form structure and #parents.
+ *
+ * @param array<string, mixed> $form
+ *   The complete user entity form.
+ * @param string[] $field_keys
+ *   Top-level form element keys to group when present.
+ * @param string $group
+ *   The top-level container key that should render the elements.
+ */
+function _myeventlane_account_group_entity_fields(array &$form, array $field_keys, string $group): void {
+  foreach ($field_keys as $key) {
+    if (!isset($form[$key]) || !is_array($form[$key])) {
+      continue;
+    }
+
+    $form[$key]['#group'] = $group;
   }
 }
 
