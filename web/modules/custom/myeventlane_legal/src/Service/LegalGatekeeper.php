@@ -82,8 +82,19 @@ final class LegalGatekeeper {
    * Checks whether the current user's vendor has accepted vendor terms.
    */
   public function hasVendorAcceptedTerms(): bool {
+    return $this->getVendorTermsAcceptedAt() !== NULL;
+  }
+
+  /**
+   * Returns the authoritative vendor Terms acceptance timestamp.
+   */
+  public function getVendorTermsAcceptedAt(): ?int {
     $vendor = $this->getCurrentVendorOrNull();
-    return $vendor && $this->vendorHasAcceptedTerms($vendor);
+    if (!$vendor || !$this->vendorHasAcceptedTerms($vendor)) {
+      return NULL;
+    }
+
+    return (int) $vendor->get('field_vendor_terms_accepted_at')->value;
   }
 
   /**
