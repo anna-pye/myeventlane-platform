@@ -1,0 +1,6 @@
+myeventlane_notifications.preferences:
+  path: '/account-test/notifications'
+  defaults:
+    _controller: '\Drupal\myeventlane_account_test\Controller\TestController::page'
+  requirements:
+    _access: 'TRUE'

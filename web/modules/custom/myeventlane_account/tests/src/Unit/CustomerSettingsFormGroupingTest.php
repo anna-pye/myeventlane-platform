@@ -48,4 +48,43 @@ final class CustomerSettingsFormGroupingTest extends TestCase {
     $this->assertArrayNotHasKey('field_missing', $form);
   }
 
+  /**
+   * Ensures core account controls retain their original submitted parents.
+   */
+  public function testNestedAccountFieldsRetainTheirOriginalParents(): void {
+    require_once dirname(__DIR__, 3) . '/myeventlane_account.module';
+
+    $form = [
+      'mel_settings_profile' => [
+        '#type' => 'container',
+      ],
+      'account' => [
+        '#type' => 'container',
+        'mail' => [
+          '#type' => 'email',
+          '#parents' => ['mail'],
+        ],
+        'name' => [
+          '#type' => 'textfield',
+          '#parents' => ['name'],
+        ],
+      ],
+    ];
+
+    _myeventlane_account_group_nested_fields(
+      $form,
+      'account',
+      ['mail', 'name', 'missing'],
+      'mel_settings_profile',
+    );
+
+    $this->assertArrayHasKey('mail', $form['account']);
+    $this->assertArrayHasKey('name', $form['account']);
+    $this->assertSame(['mail'], $form['account']['mail']['#parents']);
+    $this->assertSame(['name'], $form['account']['name']['#parents']);
+    $this->assertSame('mel_settings_profile', $form['account']['mail']['#group']);
+    $this->assertSame('mel_settings_profile', $form['account']['name']['#group']);
+    $this->assertArrayNotHasKey('missing', $form['account']);
+  }
+
 }
