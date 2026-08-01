@@ -9,7 +9,6 @@ declare(strict_types=1);
 
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
-use Drupal\Core\Render\Element;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
@@ -511,17 +510,12 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     'mel_settings_profile',
   );
 
-  if (!empty($form['account']) && is_array($form['account'])) {
-    foreach (['mail', 'name'] as $key) {
-      if (!isset($form['account'][$key])) {
-        continue;
-      }
-      $element = $form['account'][$key];
-      unset($form['account'][$key]);
-      $element['#parents'] = ['account', $key];
-      $form['mel_settings_profile'][$key] = $element;
-    }
-  }
+  _myeventlane_account_group_nested_fields(
+    $form,
+    'account',
+    ['mail', 'name'],
+    'mel_settings_profile',
+  );
 
   $form['mel_settings_security'] = [
     '#type' => 'container',
@@ -539,17 +533,12 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     '#weight' => -50,
   ];
 
-  if (!empty($form['account']) && is_array($form['account'])) {
-    foreach (['current_pass', 'pass'] as $key) {
-      if (!isset($form['account'][$key])) {
-        continue;
-      }
-      $element = $form['account'][$key];
-      unset($form['account'][$key]);
-      $element['#parents'] = ['account', $key];
-      $form['mel_settings_security'][$key] = $element;
-    }
-  }
+  _myeventlane_account_group_nested_fields(
+    $form,
+    'account',
+    ['current_pass', 'pass'],
+    'mel_settings_security',
+  );
 
   try {
     $reset_url = Url::fromRoute('user.pass');
@@ -695,16 +684,6 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     $form['mel_settings_support']['body'] = $support + ['#weight' => 0];
   }
 
-  if (isset($form['account'])) {
-    $account_children = Element::children($form['account']);
-    if ($account_children === []) {
-      unset($form['account']);
-    }
-    else {
-      $form['account']['#access'] = FALSE;
-    }
-  }
-
   if (isset($form['actions'])) {
     $form['actions']['#weight'] = 200;
     $form['actions']['#attributes']['class'][] = 'mel-account-settings__actions';
@@ -733,6 +712,33 @@ function _myeventlane_account_group_entity_fields(array &$form, array $field_key
     }
 
     $form[$key]['#group'] = $group;
+  }
+}
+
+/**
+ * Visually groups nested controls while preserving their submitted values.
+ *
+ * Drupal's user account container is not a tree, so controls such as mail and
+ * name submit as top-level values. Moving them and assigning new #parents
+ * changes those values to account[mail] and account[name], which prevents the
+ * core user form from validating and saving the entity.
+ *
+ * @param array<string, mixed> $form
+ *   The complete user entity form.
+ * @param string $parent_key
+ *   The original parent container key.
+ * @param string[] $field_keys
+ *   Child form element keys to group when present.
+ * @param string $group
+ *   The top-level container key that should render the elements.
+ */
+function _myeventlane_account_group_nested_fields(array &$form, string $parent_key, array $field_keys, string $group): void {
+  foreach ($field_keys as $key) {
+    if (!isset($form[$parent_key][$key]) || !is_array($form[$parent_key][$key])) {
+      continue;
+    }
+
+    $form[$parent_key][$key]['#group'] = $group;
   }
 }
 

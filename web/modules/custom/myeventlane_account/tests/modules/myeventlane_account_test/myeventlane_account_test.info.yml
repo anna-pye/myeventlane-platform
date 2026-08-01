@@ -1,0 +1,8 @@
+name: 'MyEventLane Account Test'
+type: module
+description: 'Test-only integration hooks for MyEventLane account forms.'
+package: Testing
+core_version_requirement: ^11
+
+dependencies:
+  - drupal:user
