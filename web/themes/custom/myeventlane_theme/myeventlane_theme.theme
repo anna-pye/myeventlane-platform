@@ -361,12 +361,27 @@ function myeventlane_theme_preprocess(array &$variables, string $hook): void {
     return;
   }
 
-  // Form templates carry Drupal render arrays and Attribute data; do not run the
-  // generic string walker here. Walking those trees has caused
-  // InvalidArgumentException for keys like data-drupal-selector (must live under
-  // #attributes only). Form strings already go through t().
-  if (str_starts_with($hook, 'form')) {
-    return;
+  // Form templates and their child elements carry submitted values as ordinary
+  // template variables. The generic language walker must not touch them: for
+  // example, rewriting the hidden value user_form to member_form prevents
+  // Drupal from recognising and submitting the form. Labels already go through
+  // t(), so form wording does not depend on this generic fallback.
+  $form_theme_hooks = [
+    'form',
+    'input',
+    'textarea',
+    'select',
+    'checkboxes',
+    'radios',
+    'form_element',
+    'form_element_label',
+    'fieldset',
+    'details',
+  ];
+  foreach ($form_theme_hooks as $form_theme_hook) {
+    if ($hook === $form_theme_hook || str_starts_with($hook, $form_theme_hook . '__')) {
+      return;
+    }
   }
 
   // Email wrappers carry rendered HTML with canonical hrefs (e.g. /vendors/…).
