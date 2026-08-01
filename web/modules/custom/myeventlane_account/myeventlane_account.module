@@ -470,6 +470,11 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
   if (isset($form['account']['roles'])) {
     $form['account']['roles']['#access'] = FALSE;
   }
+  // Commerce store ownership is managed through Organiser Studio. It is an
+  // internal relationship and must not leak into the customer settings UI.
+  if (isset($form['field_vendor_store'])) {
+    $form['field_vendor_store']['#access'] = FALSE;
+  }
 
   if (isset($form['account']['name'])) {
     $form['account']['name']['#title'] = t('Sign-in username');
@@ -486,11 +491,14 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     $form['account']['pass']['#description'] = t('Leave blank to keep your current password.');
   }
 
-  $card_attr = ['class' => ['mel-account-settings__card']];
+  $card_attr = ['class' => ['mel-account-settings__card', 'mel-account-settings__section']];
 
   $form['mel_settings_profile'] = [
     '#type' => 'container',
-    '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-profile-title'],
+    '#attributes' => $card_attr + [
+      'aria-labelledby' => 'mel-settings-profile-title',
+      'data-mel-settings-card' => 'profile',
+    ],
     '#weight' => -200,
   ];
   $form['mel_settings_profile']['_title'] = [
@@ -510,22 +518,18 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     'mel_settings_profile',
   );
 
-  _myeventlane_account_group_nested_fields(
-    $form,
-    'account',
-    ['mail', 'name'],
-    'mel_settings_profile',
-  );
-
   $form['mel_settings_security'] = [
     '#type' => 'container',
-    '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-security-title'],
+    '#attributes' => $card_attr + [
+      'aria-labelledby' => 'mel-settings-security-title',
+      'data-mel-settings-card' => 'security',
+    ],
     '#weight' => -190,
   ];
   $form['mel_settings_security']['_title'] = [
     '#type' => 'html_tag',
     '#tag' => 'h2',
-    '#value' => t('Security'),
+    '#value' => t('Account & security'),
     '#attributes' => [
       'id' => 'mel-settings-security-title',
       'class' => ['mel-account-settings__heading'],
@@ -536,7 +540,13 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
   _myeventlane_account_group_nested_fields(
     $form,
     'account',
-    ['current_pass', 'pass'],
+    ['mail', 'name', 'current_pass', 'pass'],
+    'mel_settings_security',
+  );
+
+  _myeventlane_account_group_entity_fields(
+    $form,
+    ['social_auth'],
     'mel_settings_security',
   );
 
@@ -569,7 +579,10 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
   if (isset($form['contact']) || $prefs_link !== []) {
     $form['mel_settings_notifications'] = [
       '#type' => 'container',
-      '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-notify-title'],
+      '#attributes' => $card_attr + [
+        'aria-labelledby' => 'mel-settings-notify-title',
+        'data-mel-settings-card' => 'notifications',
+      ],
       '#weight' => -180,
     ];
     $form['mel_settings_notifications']['_title'] = [
@@ -597,7 +610,10 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
 
   $form['mel_settings_preferences'] = [
     '#type' => 'container',
-    '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-prefs-title'],
+    '#attributes' => $card_attr + [
+      'aria-labelledby' => 'mel-settings-prefs-title',
+      'data-mel-settings-card' => 'preferences',
+    ],
     '#weight' => -170,
   ];
   $form['mel_settings_preferences']['_title'] = [
@@ -648,9 +664,17 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
 
   _myeventlane_account_group_entity_fields(
     $form,
-    ['field_accessibility_preferences', 'social_auth'],
+    ['field_accessibility_preferences'],
     'mel_settings_preferences',
   );
+  if (isset($form['field_accessibility_preferences']['#attributes']['class'])) {
+    $classes = &$form['field_accessibility_preferences']['#attributes']['class'];
+    $classes = is_array($classes) ? $classes : [$classes];
+    $classes[] = 'mel-account-settings__accessibility';
+  }
+  elseif (isset($form['field_accessibility_preferences'])) {
+    $form['field_accessibility_preferences']['#attributes']['class'] = ['mel-account-settings__accessibility'];
+  }
 
   $prefs_more = _myeventlane_account_customer_settings_preference_links();
   if ($prefs_more !== []) {
@@ -668,7 +692,10 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
   if ($support !== []) {
     $form['mel_settings_support'] = [
       '#type' => 'container',
-      '#attributes' => $card_attr + ['aria-labelledby' => 'mel-settings-support-title'],
+      '#attributes' => [
+        'class' => ['mel-account-settings__card', 'mel-account-settings__support'],
+        'aria-labelledby' => 'mel-settings-support-title',
+      ],
       '#weight' => -160,
     ];
     $form['mel_settings_support']['_title'] = [
@@ -687,6 +714,7 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
   if (isset($form['actions'])) {
     $form['actions']['#weight'] = 200;
     $form['actions']['#attributes']['class'][] = 'mel-account-settings__actions';
+    $form['actions']['#attributes']['aria-live'] = 'polite';
   }
 }
 
