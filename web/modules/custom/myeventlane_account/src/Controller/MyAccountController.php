@@ -173,7 +173,10 @@ final class MyAccountController extends ControllerBase {
       '#intro' => $this->t('Personal details, sign-in security, and how we stay in touch.'),
       '#form' => $form,
       '#attached' => [
-        'library' => ['myeventlane_theme/global-styling'],
+        'library' => [
+          'myeventlane_theme/global-styling',
+          'myeventlane_theme/account-settings-hub',
+        ],
       ],
     ];
     $cache->applyTo($build);

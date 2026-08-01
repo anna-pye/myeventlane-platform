@@ -10,8 +10,13 @@
  */
 #}
 <div class="mel-account-settings mel-form-system mel-form-system--customer-settings">
-  {% if intro %}
-    <p class="mel-account-settings__intro">{{ intro }}</p>
-  {% endif %}
+  <section class="mel-account-settings__overview" aria-labelledby="mel-account-overview-title">
+    <div class="mel-account-settings__overview-avatar" data-mel-settings-avatar aria-hidden="true"></div>
+    <div class="mel-account-settings__overview-copy">
+      <span class="mel-account-settings__privacy-badge">{{ 'Private account'|t }}</span>
+      <h2 id="mel-account-overview-title">{{ 'Your profile'|t }}</h2>
+      <p data-mel-settings-overview>{{ 'Keep your details current for smoother bookings and relevant event suggestions.'|t }}</p>
+    </div>
+  </section>
   {{ form }}
 </div>

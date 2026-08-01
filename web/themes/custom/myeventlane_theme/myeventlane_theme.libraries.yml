@@ -15,6 +15,13 @@ global-styling:
     - core/once
     - myeventlane_theme/skeleton
 
+account-settings-hub:
+  js:
+    js/account-settings-hub.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+
 # Event card grid: skeleton → content swap (see src/js/skeleton.js).
 skeleton:
   js:
