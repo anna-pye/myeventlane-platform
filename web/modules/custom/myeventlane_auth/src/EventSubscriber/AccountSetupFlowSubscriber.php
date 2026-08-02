@@ -13,7 +13,7 @@ use Symfony\Component\HttpKernel\KernelEvents;
  */
 final class AccountSetupFlowSubscriber implements EventSubscriberInterface {
 
-  private const SESSION_KEY = 'mel_account_setup_uid';
+  public const SESSION_KEY = 'mel_account_setup_uid';
 
   /**
    * {@inheritdoc}

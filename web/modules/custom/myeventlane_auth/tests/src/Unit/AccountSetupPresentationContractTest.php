@@ -32,11 +32,13 @@ final class AccountSetupPresentationContractTest extends TestCase {
     $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_auth.module');
     self::assertIsString($module);
 
-    self::assertStringContainsString("get('mel_account_setup_uid')", $module);
+    self::assertStringContainsString('get(AccountSetupFlowSubscriber::SESSION_KEY)', $module);
     self::assertStringContainsString("t('Set up your account')", $module);
     self::assertStringContainsString("t('Continue')", $module);
     self::assertStringContainsString('function myeventlane_auth_mail_alter', $module);
     self::assertStringContainsString("'register_no_approval_required'", $module);
+    self::assertStringNotContainsString("remove('mel_account_setup_uid')", $module);
+    self::assertStringContainsString('remove(AccountSetupFlowSubscriber::SESSION_KEY)', $module);
 
     $subscriber = file_get_contents(dirname(__DIR__, 3) . '/src/EventSubscriber/AccountSetupFlowSubscriber.php');
     self::assertIsString($subscriber);
@@ -47,6 +49,10 @@ final class AccountSetupPresentationContractTest extends TestCase {
     self::assertIsString($template);
     self::assertStringContainsString("mel_account_setup|default(false)", $template);
     self::assertStringContainsString("'Reset your password'|t", $template);
+
+    $hub_script = file_get_contents(dirname(__DIR__, 7) . '/web/themes/custom/myeventlane_theme/js/account-settings-hub.js');
+    self::assertIsString($hub_script);
+    self::assertStringContainsString("toggle && !invalidCard.classList.contains('is-editing')", $hub_script);
   }
 
 }
