@@ -14,6 +14,19 @@ use PHPUnit\Framework\TestCase;
 final class CustomerSettingsFormGroupingTest extends TestCase {
 
   /**
+   * Ensures the settings form and its submit actions render exactly once.
+   */
+  public function testSettingsTemplateUsesCanonicalFormChildren(): void {
+    $template = file_get_contents(dirname(__DIR__, 7) . '/web/themes/custom/myeventlane_theme/templates/form/form--user-profile-form.html.twig');
+    self::assertIsString($template);
+
+    self::assertStringContainsString("{% if attributes.hasClass('mel-account-settings-form') %}\n    {{ children }}", $template);
+    self::assertSame(2, substr_count($template, '{{ children }}'));
+    self::assertStringNotContainsString('{{ element.', $template);
+    self::assertStringNotContainsString('{{ element|without', $template);
+  }
+
+  /**
    * Ensures visual grouping preserves entity field structure and parents.
    */
   public function testEntityFieldsRemainAtTheirOriginalKeys(): void {
