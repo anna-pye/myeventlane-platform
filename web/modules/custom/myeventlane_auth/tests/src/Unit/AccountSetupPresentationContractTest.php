@@ -62,6 +62,23 @@ final class AccountSetupPresentationContractTest extends TestCase {
   }
 
   /**
+   * Create-event setup returns through the public organiser gateway.
+   */
+  public function testCreateEventPasswordSetupUsesOrganiserGateway(): void {
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_auth.module');
+    self::assertIsString($module);
+
+    $start = strpos($module, 'function myeventlane_auth_reset_redirect_submit');
+    $end = strpos($module, 'function myeventlane_auth_form_user_login_form_alter', $start);
+    self::assertIsInt($start);
+    self::assertIsInt($end);
+    $handler = substr($module, $start, $end - $start);
+
+    self::assertStringContainsString("'myeventlane_vendor.create_event_gateway'", $handler);
+    self::assertStringNotContainsString("'myeventlane_event_studio.create'", $handler);
+  }
+
+  /**
    * A normal recovery link clears abandoned account-setup presentation state.
    */
   public function testPasswordRecoveryClearsStaleAccountSetupIntent(): void {
