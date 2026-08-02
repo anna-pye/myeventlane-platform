@@ -4,7 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_auth\Unit;
 
+use Drupal\myeventlane_auth\EventSubscriber\AccountSetupFlowSubscriber;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\HttpKernel\Event\RequestEvent;
+use Symfony\Component\HttpKernel\HttpKernelInterface;
 
 /**
  * Protects the distinction between account setup and password reset.
@@ -53,6 +59,29 @@ final class AccountSetupPresentationContractTest extends TestCase {
     $hub_script = file_get_contents(dirname(__DIR__, 7) . '/web/themes/custom/myeventlane_theme/js/account-settings-hub.js');
     self::assertIsString($hub_script);
     self::assertStringContainsString("toggle && !invalidCard.classList.contains('is-editing')", $hub_script);
+  }
+
+  /**
+   * A normal recovery link clears abandoned account-setup presentation state.
+   */
+  public function testPasswordRecoveryClearsStaleAccountSetupIntent(): void {
+    $session = new Session(new MockArraySessionStorage());
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $subscriber = new AccountSetupFlowSubscriber();
+
+    $setup_request = Request::create('/user/reset/123?mel_flow=account_setup');
+    $setup_request->setSession($session);
+    $setup_request->attributes->set('_route', 'user.reset');
+    $setup_request->attributes->set('uid', '123');
+    $subscriber->onRequest(new RequestEvent($kernel, $setup_request, HttpKernelInterface::MAIN_REQUEST));
+    self::assertSame('123', $session->get(AccountSetupFlowSubscriber::SESSION_KEY));
+
+    $recovery_request = Request::create('/user/reset/123');
+    $recovery_request->setSession($session);
+    $recovery_request->attributes->set('_route', 'user.reset');
+    $recovery_request->attributes->set('uid', '123');
+    $subscriber->onRequest(new RequestEvent($kernel, $recovery_request, HttpKernelInterface::MAIN_REQUEST));
+    self::assertFalse($session->has(AccountSetupFlowSubscriber::SESSION_KEY));
   }
 
 }

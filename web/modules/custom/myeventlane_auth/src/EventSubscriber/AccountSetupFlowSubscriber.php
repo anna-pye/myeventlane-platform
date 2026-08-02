@@ -34,8 +34,14 @@ final class AccountSetupFlowSubscriber implements EventSubscriberInterface {
     $route = $request->attributes->get('_route');
     $uid = (string) $request->attributes->get('uid', '');
 
-    if ($route === 'user.reset' && $request->query->get('mel_flow') === 'account_setup' && $uid !== '') {
-      $request->getSession()->set(self::SESSION_KEY, $uid);
+    if ($route === 'user.reset' && $uid !== '') {
+      $session = $request->getSession();
+      if ($request->query->get('mel_flow') === 'account_setup') {
+        $session->set(self::SESSION_KEY, $uid);
+      }
+      else {
+        $session->remove(self::SESSION_KEY);
+      }
       return;
     }
 
