@@ -49,4 +49,27 @@ final class VendorSettingsPresentationContractTest extends TestCase {
     }
   }
 
+  /**
+   * Ensures the profile hub enhances rather than replaces the Drupal form.
+   */
+  public function testOrganiserProfileHubKeepsTheCanonicalFormContract(): void {
+    $module_root = dirname(__DIR__, 4) . '/myeventlane_vendor_settings';
+    $form = file_get_contents($module_root . '/src/Form/VendorSettingsForm.php');
+    $library = file_get_contents($module_root . '/myeventlane_vendor_settings.libraries.yml');
+    $script = file_get_contents($module_root . '/js/mel-organiser-profile-hub.js');
+    self::assertIsString($form);
+    self::assertIsString($library);
+    self::assertIsString($script);
+
+    foreach (['public', 'profile', 'visual', 'contact', 'venues', 'business', 'team', 'notifications'] as $card) {
+      self::assertStringContainsString("'data-mel-organiser-card' => '$card'", $form);
+    }
+
+    self::assertStringContainsString("'#type' => 'submit'", $form);
+    self::assertStringContainsString("'#value' => \$this->t('Save changes')", $form);
+    self::assertStringContainsString('js/mel-organiser-profile-hub.js', $library);
+    self::assertStringContainsString('input[name="public_page[published]"]', $script);
+    self::assertStringContainsString("actions.hidden = true", $script);
+  }
+
 }

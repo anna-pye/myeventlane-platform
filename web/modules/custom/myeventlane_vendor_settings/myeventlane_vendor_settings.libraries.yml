@@ -1,10 +1,11 @@
 settings_form:
-  version: 1.x
+  version: 2.0.0
   css:
     theme:
       css/mel-vendor-settings.css: {}
   js:
     js/mel-disable-ajax.js: {}
+    js/mel-organiser-profile-hub.js: {}
   dependencies:
     - core/once
     - myeventlane_vendor_theme/global-styling

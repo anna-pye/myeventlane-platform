@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor_settings\Form;
 
 use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Component\Utility\Html;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -330,13 +331,44 @@ class VendorSettingsForm extends FormBase {
       ? $this->t('Your organiser profile can appear in the public directory. Review the visibility choices below to control which optional details visitors can see.')
       : $this->t('Only you and authorised MyEventLane staff can view these organiser details. Publish the profile below when you are ready.');
 
+    $profile_checks = [
+      trim((string) $vendor->getName()) !== '',
+      trim((string) $this->getFieldValue($vendor, 'field_summary', '')) !== '',
+      trim((string) $this->getFieldValue($vendor, 'field_description', '')) !== '',
+      trim((string) $this->getFieldValue($vendor, 'field_website', '')) !== '',
+      !$vendor->hasField('field_email')
+      || trim((string) $this->getFieldValue($vendor, 'field_email', '')) !== '',
+    ];
+    $profile_complete = count(array_filter($profile_checks));
+    $profile_total = count($profile_checks);
+    $profile_percentage = (int) round(($profile_complete / $profile_total) * 100);
+
     $form['preview_link'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['vendor-preview-link-wrapper', 'mel-vendor-settings-v2__status-card']],
       '#weight' => -998,
     ];
+    $overview_markup = sprintf(
+      '<div class="mel-vendor-settings-v2__status-copy">'
+      . '<span class="mel-vendor-settings-v2__eyebrow">%s</span>'
+      . '<h2>%s</h2><div class="mel-vendor-settings-v2__status-row">'
+      . '<span class="mel-vendor-settings-v2__pill %s">%s</span>'
+      . '<span class="mel-vendor-settings-v2__completeness">%s</span></div>'
+      . '<div class="mel-vendor-settings-v2__progress" role="progressbar" '
+      . 'aria-label="%s" aria-valuemin="0" aria-valuemax="100" aria-valuenow="%d">'
+      . '<span style="width:%d%%"></span></div><p>%s</p></div>',
+      Html::escape((string) $this->t('Organiser profile')),
+      Html::escape($vendor->getName()),
+      $status_class,
+      Html::escape((string) $status_label),
+      Html::escape((string) $this->t('@percentage% complete', ['@percentage' => $profile_percentage])),
+      Html::escape((string) $this->t('Profile completeness')),
+      $profile_percentage,
+      $profile_percentage,
+      Html::escape((string) $status_message),
+    );
     $form['preview_link']['status'] = [
-      '#markup' => '<div class="mel-vendor-settings-v2__status-copy"><span class="mel-vendor-settings-v2__pill ' . $status_class . '">' . $status_label . '</span><p>' . $status_message . '</p></div>',
+      '#markup' => $overview_markup,
       '#weight' => -10,
     ];
 
@@ -424,7 +456,7 @@ class VendorSettingsForm extends FormBase {
     $form['actions'] = [
       '#type' => 'actions',
       '#weight' => 100,
-      '#attributes' => ['class' => ['mel-form__actions']],
+      '#attributes' => ['class' => ['mel-form__actions', 'mel-organiser-profile-hub__save']],
     ];
 
     $form['actions']['submit'] = [
@@ -471,7 +503,10 @@ class VendorSettingsForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('Profile content'),
       '#open' => FALSE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
+        'data-mel-organiser-card' => 'profile',
+      ],
     ];
     $form['profile']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Add the name, story and links used on your organiser page. Visibility is controlled separately above.') . '</p>',
@@ -649,6 +684,7 @@ class VendorSettingsForm extends FormBase {
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'visual-assets',
+        'data-mel-organiser-card' => 'visual',
       ],
     ];
     $form['visual_assets']['_intro'] = [
@@ -725,7 +761,10 @@ class VendorSettingsForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('Contact & email identity'),
       '#open' => FALSE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section']],
+      '#attributes' => [
+        'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
+        'data-mel-organiser-card' => 'contact',
+      ],
     ];
     $form['contact']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('How attendees reach you and how outgoing emails are addressed.') . '</p>',
@@ -829,8 +868,16 @@ class VendorSettingsForm extends FormBase {
     $form['public_page'] = [
       '#type' => 'details',
       '#title' => $this->t('Profile privacy & visibility'),
-      '#open' => TRUE,
-      '#attributes' => ['class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section', 'mel-vendor-settings-v2__section--privacy']],
+      '#open' => FALSE,
+      '#attributes' => [
+        'class' => [
+          'mel-card',
+          'mel-vendor-settings__card',
+          'mel-vendor-settings-v2__section',
+          'mel-vendor-settings-v2__section--privacy',
+        ],
+        'data-mel-organiser-card' => 'public',
+      ],
     ];
     $form['public_page']['_intro'] = [
       '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Your profile stays private until you publish it. You remain in control and can change these choices at any time.') . '</p>',
@@ -938,6 +985,7 @@ class VendorSettingsForm extends FormBase {
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'venues',
+        'data-mel-organiser-card' => 'venues',
       ],
     ];
     $form['venues']['_intro'] = [
@@ -973,6 +1021,7 @@ class VendorSettingsForm extends FormBase {
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'business',
+        'data-mel-organiser-card' => 'business',
       ],
     ];
     $form['store']['_intro'] = [
@@ -1029,6 +1078,7 @@ class VendorSettingsForm extends FormBase {
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'mel-vendor-settings-team-ajax',
+        'data-mel-organiser-card' => 'team',
       ],
     ];
     $form['team']['_intro'] = [
@@ -1084,10 +1134,11 @@ class VendorSettingsForm extends FormBase {
     $form['preferences'] = [
       '#type' => 'details',
       '#title' => $this->t('Notifications'),
-      '#open' => TRUE,
+      '#open' => FALSE,
       '#attributes' => [
         'class' => ['mel-card', 'mel-vendor-settings__card', 'mel-vendor-settings-v2__section'],
         'id' => 'notifications',
+        'data-mel-organiser-card' => 'notifications',
       ],
     ];
     $form['preferences']['notifications'] = [
