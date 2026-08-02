@@ -139,4 +139,14 @@ final class AccountSetupPresentationContractTest extends TestCase {
     self::assertSame('123', $session->get(AccountSetupFlowSubscriber::SESSION_KEY));
   }
 
+  /**
+   * Drupal destination middleware cannot replace the intent-aware redirect.
+   */
+  public function testPostLoginControllerConsumesResolvedDestination(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/MelPostLoginController.php');
+    self::assertIsString($controller);
+    self::assertStringContainsString("query->remove('destination')", $controller);
+    self::assertStringContainsString('resolveDestination', $controller);
+  }
+
 }

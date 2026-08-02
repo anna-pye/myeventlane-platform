@@ -33,6 +33,10 @@ final class MelPostLoginController extends ControllerBase {
    */
   public function handle(Request $request): RedirectResponse {
     $destination = $this->postLoginRouter->resolveDestination($this->currentUser()->getAccount(), $request);
+    // The router has already validated and applied any explicit destination.
+    // Remove it before Drupal's destination middleware can overwrite the
+    // intent-aware response (notably create_event -> /create-event).
+    $request->query->remove('destination');
     return new RedirectResponse($destination->toString());
   }
 

@@ -1,4 +1,17 @@
 services:
+  myeventlane_auth.email_user_authentication:
+    class: Drupal\myeventlane_auth\Service\EmailUserAuthentication
+    decorates: user.auth
+    arguments:
+      - '@myeventlane_auth.email_user_authentication.inner'
+      - '@entity_type.manager'
+
+  myeventlane_auth.social_login_provider_availability:
+    class: Drupal\myeventlane_auth\Service\SocialLoginProviderAvailability
+    arguments:
+      - '@config.factory'
+      - '@module_handler'
+
   logger.channel.myeventlane_auth:
     parent: logger.channel_base
     arguments: ['myeventlane_auth']

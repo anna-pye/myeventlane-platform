@@ -802,6 +802,19 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
     }
   }
 
+  // The public identity is the verified email address. Drupal's generated
+  // account name remains private and is resolved by EmailUserAuthentication.
+  if (isset($form['name'])) {
+    $form['name']['#type'] = 'email';
+    $form['name']['#title'] = t('Email address');
+    $form['name']['#description'] = t('Use the email address connected to your MyEventLane account.');
+    $form['name']['#attributes']['autocomplete'] = 'email';
+    $form['name']['#attributes']['inputmode'] = 'email';
+  }
+  $form['#validate'][] = 'myeventlane_auth_email_login_error_validate';
+
+  myeventlane_auth_add_social_login_controls($form, $request);
+
   $raw_intent = myeventlane_auth_resolve_mel_intent_for_login_request($request);
 
   if ($raw_intent !== '') {
@@ -875,6 +888,100 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
 
   $existing = $form['#cache']['contexts'] ?? [];
   $form['#cache']['contexts'] = array_values(array_unique(array_merge($existing, $intent_cache_contexts)));
+}
+
+/**
+ * Adds configured social providers without exposing unconfigured controls.
+ */
+function myeventlane_auth_add_social_login_controls(array &$form, Request $request): void {
+  /** @var \Drupal\myeventlane_auth\Service\SocialLoginProviderAvailability $availability */
+  $availability = \Drupal::service('myeventlane_auth.social_login_provider_availability');
+  $providers = [];
+  if ($availability->googleIsAvailable()) {
+    $providers['google'] = t('Continue with Google');
+  }
+  if ($availability->appleIsAvailable()) {
+    $providers['apple'] = t('Continue with Apple');
+  }
+  if ($providers === []) {
+    return;
+  }
+
+  $form['#attached']['library'][] = 'myeventlane_auth/social_login';
+
+  $preserved_query = myeventlane_auth_auth_entry_preserved_query($request);
+  $continue_url = Url::fromRoute('myeventlane_auth.mel_continue', [], [
+    'query' => $preserved_query,
+  ])->toString();
+
+  $form['mel_social_login'] = [
+    '#type' => 'container',
+    '#weight' => -40,
+    '#attributes' => [
+      'class' => ['mel-social-login'],
+      'aria-label' => t('Other sign-in options'),
+    ],
+    '#cache' => [
+      'contexts' => [
+        'url.query_args:destination',
+        'url.query_args:mel_intent',
+        'url.query_args:intent',
+      ],
+      'tags' => [
+        'config:social_auth_google.settings',
+        'config:social_auth_apple.settings',
+      ],
+    ],
+  ];
+
+  foreach ($providers as $provider => $label) {
+    $form['mel_social_login'][$provider] = [
+      '#type' => 'link',
+      '#title' => $label,
+      '#url' => Url::fromRoute('social_auth.network.redirect', [
+        'network' => $provider,
+      ], [
+        'query' => ['destination' => $continue_url],
+      ]),
+      '#attributes' => [
+        'class' => [
+          'mel-social-login__button',
+          'mel-social-login__button--' . $provider,
+        ],
+      ],
+    ];
+  }
+
+  $form['mel_social_login']['divider'] = [
+    '#type' => 'html_tag',
+    '#tag' => 'div',
+    '#value' => '<span>' . t('or sign in with email') . '</span>',
+    '#attributes' => [
+      'class' => ['mel-social-login__divider'],
+      'aria-hidden' => 'true',
+    ],
+    '#weight' => 20,
+  ];
+}
+
+/**
+ * Keeps failed-login language email-first and avoids account enumeration.
+ */
+function myeventlane_auth_email_login_error_validate(array &$form, FormStateInterface $form_state): void {
+  $errors = $form_state->getErrors();
+  if (!isset($errors['name'])) {
+    return;
+  }
+
+  $form_state->clearErrors();
+  foreach ($errors as $key => $error) {
+    if ($key !== 'name') {
+      $form_state->setErrorByName($key, $error);
+    }
+  }
+  $form_state->setErrorByName('name', t('The email address or password is not recognised. <a href=":password">Forgot your password?</a>', [
+    ':password' => Url::fromRoute('user.pass')->toString(),
+  ]));
 }
 
 /**

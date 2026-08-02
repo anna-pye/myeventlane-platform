@@ -1,0 +1,60 @@
+/**
+ * @file
+ * Email-first login: configured social provider controls.
+ */
+
+.mel-social-login {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.mel-social-login__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 52px;
+  padding: 12px 16px;
+  border: 2px solid #e9e3de;
+  border-radius: 999px;
+  background: #fff;
+  color: #24303a;
+  font-weight: 600;
+  text-decoration: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.1s ease;
+}
+
+.mel-social-login__button:hover {
+  border-color: #cbbdb2;
+  text-decoration: none;
+  transform: translateY(-1px);
+}
+
+.mel-social-login__button:focus-visible {
+  outline: 3px solid #7c83fd;
+  outline-offset: 2px;
+}
+
+.mel-social-login__button--apple {
+  background: #111;
+  border-color: #111;
+  color: #fff;
+}
+
+.mel-social-login__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #5b6670;
+  font-size: 14px;
+  text-align: center;
+}
+
+.mel-social-login__divider::before,
+.mel-social-login__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e9e3de;
+}
