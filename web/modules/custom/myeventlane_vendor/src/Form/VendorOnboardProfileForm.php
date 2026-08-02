@@ -12,6 +12,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
+use Drupal\myeventlane_legal\Service\LegalGatekeeper;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -52,6 +53,7 @@ final class VendorOnboardProfileForm extends FormBase {
     AccountProxyInterface $current_user,
     TimeInterface $time,
     LegalSettingsService $legal_settings,
+    private readonly LegalGatekeeper $legalGatekeeper,
   ) {
     $this->onboardingManager = $onboarding_manager;
     $this->currentUser = $current_user;
@@ -68,6 +70,7 @@ final class VendorOnboardProfileForm extends FormBase {
       $container->get('current_user'),
       $container->get('datetime.time'),
       $container->get('myeventlane_legal.settings'),
+      $container->get('myeventlane_legal.gatekeeper'),
     );
   }
 
@@ -98,7 +101,7 @@ final class VendorOnboardProfileForm extends FormBase {
     // and Form API submit processing is reliable (root #tree breaks POST rebuild).
     // Step metadata for form--organiser-onboard-profile-form.html.twig preprocess.
     $form['#step_number'] = 2;
-    $form['#total_steps'] = 7;
+    $form['#total_steps'] = 3;
     $form['#step_title'] = $this->t('Let’s get your organiser set up 👋');
     $form['#step_description'] = $this->t('This helps people trust your events.');
     $form['#attributes']['class'][] = 'mel-onboard-form';
@@ -141,10 +144,16 @@ final class VendorOnboardProfileForm extends FormBase {
       ],
     ];
 
+    $accepted_at = $this->legalGatekeeper->getVendorTermsAcceptedAt();
+    $vendor_terms_url = $this->legalSettings->getVendorTermsUrl();
     $form['terms_accepted'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('I agree to the Vendor Terms of Service'),
-      '#default_value' => !empty($flags['terms_accepted']) || (!empty($flags['vendor_terms_accepted_at']) && (int) $flags['vendor_terms_accepted_at'] > 0),
+      '#title' => $vendor_terms_url !== ''
+        ? $this->t('I agree to the <a href=":url" target="_blank" rel="noopener">Vendor Terms of Service</a>', [':url' => $vendor_terms_url])
+        : $this->t('I agree to the Vendor Terms of Service'),
+      '#default_value' => $accepted_at !== NULL
+        || !empty($flags['terms_accepted'])
+        || (!empty($flags['vendor_terms_accepted_at']) && (int) $flags['vendor_terms_accepted_at'] > 0),
       '#required' => TRUE,
     ];
 
@@ -196,7 +205,11 @@ final class VendorOnboardProfileForm extends FormBase {
     $flags['terms_accepted'] = !empty($values['terms_accepted']);
 
     if ($flags['terms_accepted']) {
-      $flags['vendor_terms_accepted_at'] = (int) $this->time->getRequestTime();
+      // The vendor entity is the legal source of truth. Preserve an existing
+      // acceptance timestamp instead of recording a misleading re-acceptance
+      // when a returning organiser submits this form.
+      $flags['vendor_terms_accepted_at'] = $this->legalGatekeeper->getVendorTermsAcceptedAt()
+        ?? (int) $this->time->getRequestTime();
       $flags['vendor_terms_version'] = $this->legalSettings->getVendorTermsVersion();
       if ($this->legalSettings->storeVendorIpUa()) {
         $request = $this->getRequest();

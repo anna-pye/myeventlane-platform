@@ -207,7 +207,7 @@ myeventlane_vendor.onboard.account:
 myeventlane_vendor.onboard.profile:
   path: '/vendor/onboard/profile'
   defaults:
-    _form: '\Drupal\myeventlane_vendor\Form\VendorOnboardProfileForm'
+    _controller: '\Drupal\myeventlane_vendor\Controller\VendorOnboardProfileController::profile'
     _title: 'Set up your organiser profile'
   requirements:
     _permission: 'access content'

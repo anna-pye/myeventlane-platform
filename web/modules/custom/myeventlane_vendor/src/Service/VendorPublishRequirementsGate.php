@@ -70,10 +70,6 @@ final class VendorPublishRequirementsGate {
       $reasons[] = (string) $this->t('Complete your organiser profile before publishing.');
     }
 
-    if (!$this->eventStudioCreate->isVendorStripeConnected($vendor, $uid, $account)) {
-      $reasons[] = (string) $this->t('Connect Stripe before publishing your event.');
-    }
-
     return $reasons;
   }
 
