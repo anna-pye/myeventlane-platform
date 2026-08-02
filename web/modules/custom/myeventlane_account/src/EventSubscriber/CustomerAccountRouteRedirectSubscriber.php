@@ -67,8 +67,21 @@ final class CustomerAccountRouteRedirectSubscriber implements EventSubscriberInt
     }
 
     if ($route === 'entity.user.edit_form') {
-      $url = Url::fromRoute('myeventlane_account.settings', ['user' => $parameterUser->id()])->toString();
-      $event->setResponse(new RedirectResponse($url, 301));
+      $request = $event->getRequest();
+      $query = [];
+      foreach (['pass-reset-token', 'check_logged_in'] as $key) {
+        $value = $request->query->get($key);
+        if (is_string($value) && $value !== '') {
+          $query[$key] = $value;
+        }
+      }
+      $url = Url::fromRoute(
+        'myeventlane_account.settings',
+        ['user' => $parameterUser->id()],
+        ['query' => $query],
+      )->toString();
+      // A one-time password token must never be cached as a permanent redirect.
+      $event->setResponse(new RedirectResponse($url, 302));
       return;
     }
 

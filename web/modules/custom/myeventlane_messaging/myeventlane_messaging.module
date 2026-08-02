@@ -125,7 +125,7 @@ function myeventlane_messaging_email_branding_logo_url(): string {
   $drupal_root = \Drupal::root();
   // Prefer a release-owned raster asset. Configured managed files can remain
   // referenced after the underlying file has been removed from shared storage.
-  foreach (['images/mel-email-logo.png', 'images/logo.png'] as $rel) {
+  foreach (['images/myeventlane-logo.png', 'images/mel-email-logo.png', 'images/logo.png'] as $rel) {
     if ($theme_path !== '' && is_readable($drupal_root . '/' . $theme_path . '/' . $rel)) {
       $candidates[] = $base . '/' . $theme_path . '/' . $rel;
     }

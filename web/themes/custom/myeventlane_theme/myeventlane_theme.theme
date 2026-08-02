@@ -5280,6 +5280,38 @@ function myeventlane_theme_preprocess_mimemail_message(array &$variables): void 
   $variables['logo_path'] = function_exists('myeventlane_messaging_email_branding_logo_url')
     ? myeventlane_messaging_email_branding_logo_url()
     : '';
+
+  // Mime Mail does not provide a generic `url` Twig variable. Registration
+  // links are part of the user mail body, so expose the one-time link to the
+  // dedicated account-setup template explicitly.
+  $registration_keys = [
+    'register_admin_created',
+    'register_no_approval_required',
+    'register-admin-created',
+    'register-no-approval-required',
+  ];
+  if (($variables['module'] ?? '') !== 'user'
+    || !in_array($variables['key'] ?? '', $registration_keys, TRUE)) {
+    return;
+  }
+
+  $body = $variables['body'] ?? '';
+  if (is_array($body)) {
+    $body = implode("\n", array_map(
+      static fn ($part): string => is_scalar($part) || $part instanceof \Stringable
+        ? (string) $part
+        : '',
+      $body,
+    ));
+  }
+
+  $variables['account_setup_url'] = (string) ($variables['params']['account_setup_url'] ?? '');
+  if ($variables['account_setup_url'] !== '') {
+    return;
+  }
+  if (preg_match('~https?://[^\s<>"\']+/user/reset/[^\s<>"\']+~', (string) $body, $matches)) {
+    $variables['account_setup_url'] = rtrim($matches[0], '.,);');
+  }
 }
 
 /**

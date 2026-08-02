@@ -63,6 +63,11 @@ services:
     tags:
       - { name: event_subscriber }
 
+  myeventlane_auth.account_setup_flow_subscriber:
+    class: Drupal\myeventlane_auth\EventSubscriber\AccountSetupFlowSubscriber
+    tags:
+      - { name: event_subscriber }
+
   # Disabled: hub wrap moved to MelPostLoginSessionRedirectSubscriber (request phase after session commit).
   myeventlane_auth.post_login_hub_redirect_subscriber:
     class: Drupal\myeventlane_auth\EventSubscriber\PostLoginHubRedirectSubscriber
