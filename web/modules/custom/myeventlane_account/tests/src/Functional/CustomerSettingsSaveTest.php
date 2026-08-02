@@ -7,6 +7,7 @@ namespace Drupal\Tests\myeventlane_account\Functional;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\Tests\BrowserTestBase;
+use Drupal\user\UserInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -60,7 +61,7 @@ final class CustomerSettingsSaveTest extends BrowserTestBase {
   }
 
   /**
-   * Ensures profile values persist and core account values stay top-level.
+   * Ensures profile and password values persist using top-level account inputs.
    */
   public function testCustomerSettingsSaveAndReload(): void {
     $account = $this->drupalCreateUser();
@@ -73,9 +74,13 @@ final class CustomerSettingsSaveTest extends BrowserTestBase {
     $this->assertSession()->fieldExists('name');
     $this->assertSession()->fieldNotExists('account[name]');
 
+    $password = 'MEL-functional-settings-save!';
     $this->submitForm([
       'field_display_name[0][value]' => 'Customer Test',
       'field_city[0][value]' => 'Sydney',
+      'current_pass' => $account->passRaw,
+      'pass[pass1]' => $password,
+      'pass[pass2]' => $password,
     ], 'Save');
 
     $this->assertSession()->pageTextContains('The changes have been saved.');
@@ -83,6 +88,19 @@ final class CustomerSettingsSaveTest extends BrowserTestBase {
     $this->drupalGet('/user/' . $account->id() . '/edit');
     $this->assertSession()->fieldValueEquals('field_display_name[0][value]', 'Customer Test');
     $this->assertSession()->fieldValueEquals('field_city[0][value]', 'Sydney');
+
+    $saved = $this->container->get('entity_type.manager')->getStorage('user')->loadUnchanged($account->id());
+    self::assertInstanceOf(UserInterface::class, $saved);
+    self::assertTrue(\Drupal::service('password')->check($password, $saved->getPassword()));
+
+    $this->drupalLogout();
+    $this->drupalGet('/user/login');
+    $this->submitForm([
+      'name' => $account->getAccountName(),
+      'pass' => $password,
+    ], 'Log in');
+    $this->drupalGet('/user/' . $account->id() . '/edit');
+    $this->assertSession()->statusCodeEquals(200);
   }
 
 }

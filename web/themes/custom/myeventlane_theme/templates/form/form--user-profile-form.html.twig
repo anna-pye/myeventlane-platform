@@ -6,13 +6,8 @@
  */
 #}
 <form{{ attributes }}>
-  {{ element.form_build_id }}
-  {{ element.form_token }}
-  {{ element.form_id }}
-
   {% if attributes.hasClass('mel-account-settings-form') %}
-    {{ element|without('actions', 'form_id', 'form_token', 'form_build_id') }}
-    {{ element.actions }}
+    {{ children }}
   {% else %}
     <div class="mel-auth-card mel-auth-card--reset">
 
@@ -25,11 +20,7 @@
       </p>
 
       <div class="mel-auth-form">
-        {{ element|without('actions', 'form_id', 'form_token', 'form_build_id') }}
-      </div>
-
-      <div class="mel-auth-actions">
-        {{ element.actions }}
+        {{ children }}
       </div>
 
     </div>
