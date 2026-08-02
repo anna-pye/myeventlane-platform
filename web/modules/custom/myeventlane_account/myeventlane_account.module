@@ -467,6 +467,8 @@ function myeventlane_account_form_user_form_alter(array &$form, FormStateInterfa
  * Preserves user entity form submit/validate by keeping original #parents on moved elements.
  */
 function _myeventlane_account_customer_settings_form_alter(array &$form, FormStateInterface $form_state): void {
+  $is_first_use_setup = _myeventlane_account_is_first_use_setup($form, $form_state);
+
   if (isset($form['account']['roles'])) {
     $form['account']['roles']['#access'] = FALSE;
   }
@@ -479,10 +481,19 @@ function _myeventlane_account_customer_settings_form_alter(array &$form, FormSta
   if (isset($form['account']['name'])) {
     $form['account']['name']['#title'] = t('Sign-in username');
     $form['account']['name']['#description'] = t('Your unique username for signing in.');
+    if ($is_first_use_setup) {
+      $form['account']['name']['#access'] = FALSE;
+    }
   }
   if (isset($form['account']['mail'])) {
-    $form['account']['mail']['#title'] = t('Email');
-    $form['account']['mail']['#description'] = t('Used for bookings, receipts, and updates you opt into.');
+    $form['account']['mail']['#title'] = $is_first_use_setup ? t('Sign-in email') : t('Email');
+    $form['account']['mail']['#description'] = $is_first_use_setup
+      ? t('Your verified email for signing in, bookings, and receipts.')
+      : t('Used for bookings, receipts, and updates you opt into.');
+    if ($is_first_use_setup) {
+      $form['account']['mail']['#attributes']['readonly'] = 'readonly';
+      $form['account']['mail']['#attributes']['aria-readonly'] = 'true';
+    }
   }
   if (isset($form['account']['current_pass'])) {
     $form['account']['current_pass']['#description'] = t('Required when you change your email or password.');
@@ -520,6 +531,10 @@ function _myeventlane_account_customer_settings_form_alter(array &$form, FormSta
     'mel_settings_profile',
   );
 
+  if ($is_first_use_setup && isset($form['field_display_name']['widget'][0]['value'])) {
+    $form['field_display_name']['widget'][0]['value']['#required'] = TRUE;
+  }
+
   $form['mel_settings_security'] = [
     '#type' => 'container',
     '#attributes' => $card_attr + [
@@ -552,6 +567,10 @@ function _myeventlane_account_customer_settings_form_alter(array &$form, FormSta
         '#markup' => '<p>' . t('Choose and confirm your new password to continue. You do not need to enter a current password.') . '</p>',
       ],
     ];
+  }
+
+  if ($is_first_use_setup) {
+    $form['#attributes']['data-mel-account-setup'] = 'true';
   }
 
   _myeventlane_account_group_nested_fields(
@@ -734,7 +753,32 @@ function _myeventlane_account_customer_settings_form_alter(array &$form, FormSta
     $form['actions']['#weight'] = 200;
     $form['actions']['#attributes']['class'][] = 'mel-account-settings__actions';
     $form['actions']['#attributes']['aria-live'] = 'polite';
+    if ($is_first_use_setup && isset($form['actions']['submit'])) {
+      $form['actions']['submit']['#value'] = t('Finish account setup');
+    }
   }
+}
+
+/**
+ * Whether this user form is the explicit first-use account setup journey.
+ */
+function _myeventlane_account_is_first_use_setup(array $form, FormStateInterface $form_state): bool {
+  if (!$form_state->get('user_pass_reset')) {
+    return FALSE;
+  }
+
+  $form_object = $form_state->getFormObject();
+  if (!is_object($form_object) || !method_exists($form_object, 'getEntity')) {
+    return FALSE;
+  }
+  $account = $form_object->getEntity();
+  if (!$account instanceof \Drupal\user\UserInterface || $account->id() === NULL) {
+    return FALSE;
+  }
+
+  $request = \Drupal::request();
+  return $request->hasSession()
+    && (string) $request->getSession()->get('mel_account_setup_uid') === (string) $account->id();
 }
 
 /**

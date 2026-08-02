@@ -39,7 +39,7 @@ final class AccountSetupFlowSubscriber implements EventSubscriberInterface {
       if ($request->query->get('mel_flow') === 'account_setup') {
         $session->set(self::SESSION_KEY, $uid);
       }
-      else {
+      elseif ($request->isMethod('GET')) {
         $session->remove(self::SESSION_KEY);
       }
       return;
