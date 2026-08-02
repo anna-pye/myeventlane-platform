@@ -209,6 +209,7 @@ final class MelEmailLayoutService {
       return $trim;
     }
     $escaped = Html::escape($trim);
+    $escaped = $this->linkifyUrls($escaped);
     $paragraphs = preg_split("/\r\n\r\n|\n\n/", $escaped, -1, PREG_SPLIT_NO_EMPTY);
     if ($paragraphs === FALSE) {
       return '<p class="mel-body" style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#293241;">' . nl2br($escaped) . '</p>';
@@ -218,6 +219,23 @@ final class MelEmailLayoutService {
       $blocks[] = '<p class="mel-body" style="margin:0 0 16px 0;font-size:16px;line-height:1.6;color:#293241;">' . nl2br(trim((string) $p)) . '</p>';
     }
     return implode("\n", $blocks);
+  }
+
+  /**
+   * Converts escaped plain-text URLs into safe HTML links.
+   */
+  private function linkifyUrls(string $escaped): string {
+    return (string) preg_replace_callback(
+      '~https?://[^\s<]+~i',
+      static function (array $matches): string {
+        $candidate = (string) ($matches[0] ?? '');
+        $url = rtrim($candidate, '.,;:!?)');
+        $suffix = substr($candidate, strlen($url));
+        return '<a href="' . $url . '" style="color:#5360bf;text-decoration:underline;word-break:break-all;">'
+          . $url . '</a>' . $suffix;
+      },
+      $escaped,
+    );
   }
 
   private function isLikelyHtml(string $s): bool {

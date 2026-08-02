@@ -141,6 +141,19 @@
   }
 }
 
+// Password setup is a required onboarding step, not a secondary settings edit.
+// Give it the full content column so labels, guidance, and password controls do
+// not collapse into the narrow half-width desktop card.
+.mel-account-settings-form[data-mel-password-setup='true'] {
+  [data-mel-settings-card='security'] {
+    grid-column: 1 / -1;
+  }
+
+  [data-mel-settings-card='security'] .mel-account-settings__editor {
+    max-width: 46rem;
+  }
+}
+
 .mel-account-settings__heading {
   max-width: calc(100% - 5rem);
   margin: 0;

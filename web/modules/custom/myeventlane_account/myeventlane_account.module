@@ -450,7 +450,7 @@ function myeventlane_account_form_user_form_alter(array &$form, FormStateInterfa
 
   if ($is_customer_settings) {
     $form['#attributes']['class'][] = 'mel-account-settings-form';
-    _myeventlane_account_customer_settings_form_alter($form);
+    _myeventlane_account_customer_settings_form_alter($form, $form_state);
     return;
   }
 
@@ -466,7 +466,7 @@ function myeventlane_account_form_user_form_alter(array &$form, FormStateInterfa
  *
  * Preserves user entity form submit/validate by keeping original #parents on moved elements.
  */
-function _myeventlane_account_customer_settings_form_alter(array &$form): void {
+function _myeventlane_account_customer_settings_form_alter(array &$form, FormStateInterface $form_state): void {
   if (isset($form['account']['roles'])) {
     $form['account']['roles']['#access'] = FALSE;
   }
@@ -488,7 +488,9 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     $form['account']['current_pass']['#description'] = t('Required when you change your email or password.');
   }
   if (isset($form['account']['pass'])) {
-    $form['account']['pass']['#description'] = t('Leave blank to keep your current password.');
+    $form['account']['pass']['#description'] = $form_state->get('user_pass_reset')
+      ? t('Choose a strong password and enter it twice.')
+      : t('Leave blank to keep your current password.');
   }
 
   $card_attr = ['class' => ['mel-account-settings__card', 'mel-account-settings__section']];
@@ -537,6 +539,21 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
     '#weight' => -50,
   ];
 
+  if ($form_state->get('user_pass_reset')) {
+    $form['#attributes']['data-mel-password-setup'] = 'true';
+    $form['mel_settings_security']['_password_setup_notice'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-account-settings__setup-notice'],
+        'role' => 'status',
+      ],
+      '#weight' => -40,
+      'message' => [
+        '#markup' => '<p>' . t('Choose and confirm your new password to continue. You do not need to enter a current password.') . '</p>',
+      ],
+    ];
+  }
+
   _myeventlane_account_group_nested_fields(
     $form,
     'account',
@@ -558,7 +575,9 @@ function _myeventlane_account_customer_settings_form_alter(array &$form): void {
       $reset_link['#attributes'] = [];
     }
     $reset_link['#attributes']['class'][] = 'mel-account-settings__inline-link';
-    $form['mel_settings_security']['_reset_link'] = $reset_link;
+    if (!$form_state->get('user_pass_reset')) {
+      $form['mel_settings_security']['_reset_link'] = $reset_link;
+    }
   }
   catch (\Throwable) {
   }

@@ -32,15 +32,15 @@ password_reset:
 
     --  [site:name] team
 register_admin_created:
-  subject: 'An administrator created an account for you at [site:name]'
+  subject: 'Set up your [site:name] account'
   body: |-
     [user:display-name],
 
-    A site administrator at [site:name] has created an account for you. You may now log in by clicking this link or copying and pasting it into your browser:
+    A MyEventLane administrator has created your account. Use this secure link to choose your password and finish setting up your account:
 
-    [user:one-time-login-url]
+    [user:one-time-login-url]?mel_flow=account_setup
 
-    This link can only be used once to log in and will lead you to a page where you can set your password.
+    This setup link can only be used once.
 
     After setting your password, you will be able to log in at [site:login-url] in the future using:
 
@@ -49,15 +49,15 @@ register_admin_created:
 
     --  [site:name] team
 register_no_approval_required:
-  subject: 'Account details for [user:display-name] at [site:name]'
+  subject: 'Set up your [site:name] account'
   body: |-
     [user:display-name],
 
-    Thank you for registering at [site:name]. You may now log in by clicking this link or copying and pasting it into your browser:
+    Thank you for joining [site:name]. Use this secure link to choose your password and finish setting up your account:
 
-    [user:one-time-login-url]
+    [user:one-time-login-url]?mel_flow=account_setup
 
-    This link can only be used once to log in and will lead you to a page where you can set your password.
+    This setup link can only be used once.
 
     After setting your password, you will be able to log in at [site:login-url] in the future using:
 

@@ -1,125 +1,66 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Welcome to MyEventLane</title>
-</head>
-<body style="margin:0; padding:0; background:#fef5ec; font-family: Arial, sans-serif;">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>{{ subject|striptags }}</title>
+  </head>
+  <body style="margin:0; padding:0; background:#fef5ec;">
+    {% set setup_url = params.account_setup_url|default(account_setup_url|default('')) %}
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background:#fef5ec; padding:24px 0;">
+      <tr>
+        <td align="center" style="padding:0 12px;">
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="600" style="width:600px; max-width:600px; background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 12px 28px rgba(0,0,0,0.08);">
+            {% if logo_path|default('') %}
+              <tr>
+                <td style="padding:24px 28px 8px; text-align:left;">
+                  <img src="{{ logo_path }}" alt="MyEventLane" width="140" style="display:block; height:auto; border:0; outline:none; text-decoration:none;" />
+                </td>
+              </tr>
+            {% endif %}
 
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#fef5ec; padding:20px;">
-    <tr>
-      <td align="center">
+            <tr>
+              <td style="padding:18px 28px 8px; font-family:Nunito, Arial, sans-serif; color:#293241;">
+                <div style="font-size:24px; line-height:1.25; font-weight:700;">Set up your MyEventLane account</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0 28px 22px; font-family:Nunito, Arial, sans-serif; font-size:15px; line-height:1.55; color:#4b5563;">
+                Set your password to finish creating your account. This secure link can only be used once.
+              </td>
+            </tr>
 
-        <table width="480" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:16px; padding:24px; box-shadow:0 4px 12px rgba(0,0,0,0.06);">
+            {% if setup_url %}
+              <tr>
+                <td style="padding:0 28px 24px;">
+                  <a href="{{ setup_url }}" style="display:inline-block; background:#f26d5b; color:#ffffff; padding:14px 24px; border-radius:999px; text-decoration:none; font-family:Nunito, Arial, sans-serif; font-weight:700; font-size:16px;">
+                    Set up my account
+                  </a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding:0 28px 26px; font-family:Nunito, Arial, sans-serif; font-size:12px; line-height:1.5; color:#6b7280;">
+                  If the button does not work, copy and paste this link into your browser:<br />
+                  <a href="{{ setup_url }}" style="color:#6e7ef2; word-break:break-all;">{{ setup_url }}</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td style="padding:0 28px 26px; font-family:Nunito, Arial, sans-serif; font-size:14px; line-height:1.5; color:#9b1c1c;">
+                  We could not create your secure setup link. Please request a new account email or contact MyEventLane support.
+                </td>
+              </tr>
+            {% endif %}
 
-          <!-- Logo -->
-          <tr>
-            <td align="center" style="padding-bottom:16px;">
-              <img src="https://myeventlane.com.au/themes/custom/myeventlane_theme/logo.png" width="160" alt="MyEventLane">
-            </td>
-          </tr>
-
-          <!-- Headline -->
-          <tr>
-            <td align="center" style="font-size:22px; font-weight:700; color:#2c3e50; padding-bottom:8px;">
-              Welcome to MyEventLane 🎉
-            </td>
-          </tr>
-
-          <!-- Subtext -->
-          <tr>
-            <td align="center" style="font-size:15px; color:#555; padding-bottom:24px;">
-              You’re one step away from discovering and creating amazing events.
-            </td>
-          </tr>
-
-          <!-- CTA BUTTON -->
-          <tr>
-            <td align="center" style="padding-bottom:24px;">
-              <a href="{{ url }}" style="
-                display:inline-block;
-                background:#f26d5b;
-                color:#ffffff;
-                padding:14px 24px;
-                border-radius:999px;
-                text-decoration:none;
-                font-weight:600;
-                font-size:16px;
-              ">
-                Continue to MyEventLane
-              </a>
-            </td>
-          </tr>
-
-          <!-- Info -->
-          <tr>
-            <td style="font-size:14px; color:#666; text-align:center; padding-bottom:16px;">
-              This secure link will log you in instantly and let you set your password.
-            </td>
-          </tr>
-
-          <!-- Divider -->
-          <tr>
-            <td style="border-top:1px solid #eee; padding-top:16px;"></td>
-          </tr>
-
-          <!-- Next Steps -->
-          <tr>
-            <td style="font-size:14px; color:#2c3e50; text-align:center; padding-bottom:12px;">
-              What would you like to do next?
-            </td>
-          </tr>
-
-          <tr>
-            <td align="center" style="padding-bottom:20px;">
-
-              <a href="https://myeventlane.com.au/events" style="
-                display:inline-block;
-                margin:6px;
-                padding:10px 16px;
-                border-radius:999px;
-                background:#f4f4f4;
-                color:#333;
-                text-decoration:none;
-                font-size:14px;
-              ">Browse Events</a>
-
-              <a href="https://myeventlane.com.au/create-event" style="
-                display:inline-block;
-                margin:6px;
-                padding:10px 16px;
-                border-radius:999px;
-                background:#6e7ef2;
-                color:#ffffff;
-                text-decoration:none;
-                font-size:14px;
-              ">Create an Event</a>
-
-            </td>
-          </tr>
-
-          <!-- Fallback -->
-          <tr>
-            <td style="font-size:12px; color:#999; text-align:center;">
-              Or copy and paste this link into your browser:<br>
-              <span style="word-break:break-all;">{{ url }}</span>
-            </td>
-          </tr>
-
-        </table>
-
-        <!-- Footer -->
-        <table width="480" style="margin-top:16px;">
-          <tr>
-            <td style="font-size:12px; color:#aaa; text-align:center;">
-              MyEventLane — Discover. Create. Connect.
-            </td>
-          </tr>
-        </table>
-
-      </td>
-    </tr>
-  </table>
-
-</body>
+            <tr>
+              <td style="padding:16px 28px; font-family:Nunito, Arial, sans-serif; font-size:12px; line-height:1.4; color:#6b7280; border-top:1px solid rgba(0,0,0,0.06);">
+                You are receiving this email because a MyEventLane account was created for this address.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
 </html>

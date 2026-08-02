@@ -145,10 +145,17 @@
           });
         }
 
+        if (form.dataset.melPasswordSetup === 'true') {
+          const securityToggle = form.querySelector('[data-mel-settings-card="security"] [data-mel-settings-toggle]');
+          if (securityToggle) {
+            securityToggle.click();
+          }
+        }
+
         const invalidCard = cards.find((card) => card.querySelector('.error, [aria-invalid="true"]'));
         if (invalidCard) {
           const toggle = invalidCard.querySelector('[data-mel-settings-toggle]');
-          if (toggle) {
+          if (toggle && !invalidCard.classList.contains('is-editing')) {
             toggle.click();
           }
         }
