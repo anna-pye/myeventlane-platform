@@ -61,6 +61,7 @@
         }
 
         const cards = Array.from(form.querySelectorAll('[data-mel-settings-card]'));
+        const isAccountSetup = form.dataset.melAccountSetup === 'true';
 
         const closeCard = (card) => {
           card.classList.remove('is-editing');
@@ -80,6 +81,25 @@
           const summary = card.querySelector('[data-mel-settings-summary]');
           if (summary && summaries[key]) {
             summary.textContent = summaries[key](form);
+          }
+        };
+
+        const openCard = (card, focusFirstControl = false) => {
+          const button = card.querySelector('[data-mel-settings-toggle]');
+          const editor = card.querySelector('[data-mel-settings-editor]');
+          card.classList.add('is-editing');
+          if (button) {
+            button.setAttribute('aria-expanded', 'true');
+            button.textContent = Drupal.t('Done');
+          }
+          if (editor) {
+            editor.hidden = false;
+            if (focusFirstControl) {
+              const firstControl = editor.querySelector('input:not([type="hidden"]), select, textarea, button, a');
+              if (firstControl) {
+                firstControl.focus({preventScroll: true});
+              }
+            }
           }
         };
 
@@ -117,16 +137,15 @@
 
           toggle.addEventListener('click', () => {
             const opening = !card.classList.contains('is-editing');
-            cards.forEach(closeCard);
+            if (!opening) {
+              closeCard(card);
+              return;
+            }
+            if (!isAccountSetup) {
+              cards.forEach(closeCard);
+            }
             if (opening) {
-              card.classList.add('is-editing');
-              toggle.setAttribute('aria-expanded', 'true');
-              toggle.textContent = Drupal.t('Done');
-              editor.hidden = false;
-              const firstControl = editor.querySelector('input:not([type="hidden"]), select, textarea, button, a');
-              if (firstControl) {
-                firstControl.focus({preventScroll: true});
-              }
+              openCard(card, true);
             }
           });
         });
@@ -145,7 +164,19 @@
           });
         }
 
-        if (form.dataset.melPasswordSetup === 'true') {
+        if (isAccountSetup) {
+          ['profile', 'security'].forEach((key) => {
+            const card = form.querySelector(`[data-mel-settings-card="${key}"]`);
+            if (card) {
+              openCard(card);
+            }
+          });
+          const actions = form.querySelector('.mel-account-settings__actions');
+          if (actions) {
+            actions.classList.add('is-visible');
+          }
+        }
+        else if (form.dataset.melPasswordSetup === 'true') {
           const securityToggle = form.querySelector('[data-mel-settings-card="security"] [data-mel-settings-toggle]');
           if (securityToggle) {
             securityToggle.click();

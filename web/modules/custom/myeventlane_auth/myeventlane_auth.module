@@ -678,6 +678,7 @@ function myeventlane_auth_form_user_form_alter(array &$form, FormStateInterface 
       ];
     }
     $form['actions']['submit']['#submit'][] = 'myeventlane_auth_reset_redirect_submit';
+    $form['actions']['submit']['#submit'][] = 'myeventlane_auth_account_setup_complete_submit';
   }
 }
 
@@ -727,6 +728,32 @@ function myeventlane_auth_reset_redirect_submit(array &$form, FormStateInterface
       ],
     ],
   );
+}
+
+/**
+ * Clears first-use presentation state after the account form saves.
+ */
+function myeventlane_auth_account_setup_complete_submit(array &$form, FormStateInterface $form_state): void {
+  $form_object = $form_state->getFormObject();
+  if (!$form_object instanceof EntityFormInterface) {
+    return;
+  }
+  $account = $form_object->getEntity();
+  if (!$account instanceof UserInterface || $account->id() === NULL) {
+    return;
+  }
+
+  $request = \Drupal::request();
+  if (!$request->hasSession()) {
+    return;
+  }
+  $session = $request->getSession();
+  if ($session->get(AccountSetupFlowSubscriber::SESSION_KEY) === (string) $account->id()) {
+    $session->remove(AccountSetupFlowSubscriber::SESSION_KEY);
+    if ($form_state->getRedirect() === NULL) {
+      $form_state->setRedirect('myeventlane_account.dashboard');
+    }
+  }
 }
 
 /**
@@ -857,12 +884,6 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
  */
 function myeventlane_auth_user_login(UserInterface $account): void {
   $request = \Drupal::request();
-  if ($request->hasSession()) {
-    $session = $request->getSession();
-    if ($session->get(AccountSetupFlowSubscriber::SESSION_KEY) === (string) $account->id()) {
-      $session->remove(AccountSetupFlowSubscriber::SESSION_KEY);
-    }
-  }
   if (myeventlane_auth_is_password_reset_flow($request)) {
     \Drupal::logger('myeventlane_auth')->notice('Skipping MEL post-login routing for password reset flow.');
     return;

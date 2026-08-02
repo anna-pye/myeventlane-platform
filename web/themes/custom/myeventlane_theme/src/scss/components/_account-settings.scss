@@ -154,6 +154,19 @@
   }
 }
 
+.mel-account-settings-form[data-mel-account-setup='true'] {
+  [data-mel-settings-card='profile'],
+  [data-mel-settings-card='security'] {
+    grid-column: 1 / -1;
+  }
+
+  .mel-account-settings__actions {
+    visibility: visible;
+    opacity: 1;
+    transform: none;
+  }
+}
+
 .mel-account-settings__heading {
   max-width: calc(100% - 5rem);
   margin: 0;

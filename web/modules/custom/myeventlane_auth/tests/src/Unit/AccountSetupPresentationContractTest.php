@@ -45,6 +45,8 @@ final class AccountSetupPresentationContractTest extends TestCase {
     self::assertStringContainsString("'register_no_approval_required'", $module);
     self::assertStringNotContainsString("remove('mel_account_setup_uid')", $module);
     self::assertStringContainsString('remove(AccountSetupFlowSubscriber::SESSION_KEY)', $module);
+    self::assertStringContainsString("['#submit'][] = 'myeventlane_auth_account_setup_complete_submit'", $module);
+    self::assertStringContainsString("setRedirect('myeventlane_account.dashboard')", $module);
 
     $subscriber = file_get_contents(dirname(__DIR__, 3) . '/src/EventSubscriber/AccountSetupFlowSubscriber.php');
     self::assertIsString($subscriber);
@@ -79,6 +81,24 @@ final class AccountSetupPresentationContractTest extends TestCase {
   }
 
   /**
+   * First-use settings open profile and security without exposing usernames.
+   */
+  public function testFirstUseSettingsPresentationContract(): void {
+    $account_module = file_get_contents(dirname(__DIR__, 7) . '/web/modules/custom/myeventlane_account/myeventlane_account.module');
+    self::assertIsString($account_module);
+    self::assertStringContainsString("data-mel-account-setup'] = 'true'", $account_module);
+    self::assertStringContainsString("['#access'] = FALSE", $account_module);
+    self::assertStringContainsString("t('Sign-in email')", $account_module);
+    self::assertStringContainsString("t('Finish account setup')", $account_module);
+    self::assertStringContainsString("['#required'] = TRUE", $account_module);
+
+    $hub_script = file_get_contents(dirname(__DIR__, 7) . '/web/themes/custom/myeventlane_theme/js/account-settings-hub.js');
+    self::assertIsString($hub_script);
+    self::assertStringContainsString("['profile', 'security'].forEach", $hub_script);
+    self::assertStringContainsString("form.dataset.melAccountSetup === 'true'", $hub_script);
+  }
+
+  /**
    * A normal recovery link clears abandoned account-setup presentation state.
    */
   public function testPasswordRecoveryClearsStaleAccountSetupIntent(): void {
@@ -99,6 +119,24 @@ final class AccountSetupPresentationContractTest extends TestCase {
     $recovery_request->attributes->set('uid', '123');
     $subscriber->onRequest(new RequestEvent($kernel, $recovery_request, HttpKernelInterface::MAIN_REQUEST));
     self::assertFalse($session->has(AccountSetupFlowSubscriber::SESSION_KEY));
+  }
+
+  /**
+   * Submitting Continue preserves first-use intent for the settings form.
+   */
+  public function testAccountSetupContinuePreservesIntent(): void {
+    $session = new Session(new MockArraySessionStorage());
+    $session->set(AccountSetupFlowSubscriber::SESSION_KEY, '123');
+    $kernel = $this->createMock(HttpKernelInterface::class);
+    $subscriber = new AccountSetupFlowSubscriber();
+
+    $continue_request = Request::create('/user/reset/123', 'POST');
+    $continue_request->setSession($session);
+    $continue_request->attributes->set('_route', 'user.reset');
+    $continue_request->attributes->set('uid', '123');
+    $subscriber->onRequest(new RequestEvent($kernel, $continue_request, HttpKernelInterface::MAIN_REQUEST));
+
+    self::assertSame('123', $session->get(AccountSetupFlowSubscriber::SESSION_KEY));
   }
 
 }
