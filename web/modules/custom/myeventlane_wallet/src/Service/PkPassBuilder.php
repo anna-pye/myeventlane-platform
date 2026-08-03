@@ -153,6 +153,11 @@ final class PkPassBuilder {
       $pass['relevantDate'] = $relevant_date;
     }
 
+    $expiration_date = $presentation['expiration_date'];
+    if ($expiration_date !== NULL) {
+      $pass['expirationDate'] = $expiration_date;
+    }
+
     if ($presentation['locations'] !== []) {
       $pass['locations'] = $presentation['locations'];
     }

@@ -165,6 +165,12 @@ $melGetEnv = static function (string $name): string {
   return '';
 };
 
+// Social sign-in may authenticate an existing MyEventLane account only.
+// Account creation remains in the consent-first MEL registration workflow.
+// Keep this as a runtime invariant so saving a provider form cannot silently
+// change the global Social Auth behaviour to provider-led registration.
+$config['social_auth.settings']['user_allowed'] = 'login';
+
 $mel_stripe_secret = $melGetEnv('MEL_STRIPE_SECRET_KEY');
 if ($mel_stripe_secret !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;

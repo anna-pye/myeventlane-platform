@@ -14,7 +14,9 @@
   align-items: center;
   justify-content: center;
   width: 100%;
+  max-width: 375px;
   min-height: 52px;
+  margin-inline: auto;
   padding: 12px 16px;
   border: 2px solid #e9e3de;
   border-radius: 999px;
@@ -37,9 +39,22 @@
 }
 
 .mel-social-login__button--apple {
-  background: #111;
-  border-color: #111;
-  color: #fff;
+  min-height: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+}
+
+.mel-social-login__button--apple:hover {
+  border-color: transparent;
+}
+
+.mel-social-login__apple-artwork {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 375 / 52;
 }
 
 .mel-social-login__divider {

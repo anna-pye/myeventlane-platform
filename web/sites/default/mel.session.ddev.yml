@@ -6,7 +6,9 @@ parameters:
     gc_divisor: 100
     gc_maxlifetime: 200000
     cookie_lifetime: 2000000
-    cookie_samesite: Lax
+    # Apple returns scoped authorisation responses with a cross-site POST.
+    # SameSite=None keeps the OAuth state session available for that callback.
+    cookie_samesite: None
     name_suffix: ''
     cookie_httponly: true
     cookie_domain: '.myeventlane.ddev.site'

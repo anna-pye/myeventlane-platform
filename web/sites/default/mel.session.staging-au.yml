@@ -8,7 +8,8 @@ parameters:
     gc_divisor: 100
     gc_maxlifetime: 200000
     cookie_lifetime: 2000000
-    cookie_samesite: Lax
+    # Required for Apple's scope-bearing form_post OAuth callback.
+    cookie_samesite: None
     name_suffix: ''
     cookie_httponly: true
     cookie_domain: '.staging.myeventlane.com.au'

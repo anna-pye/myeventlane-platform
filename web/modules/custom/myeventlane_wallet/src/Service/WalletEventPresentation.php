@@ -30,6 +30,7 @@ final class WalletEventPresentation {
    *   event_label: string,
    *   event_ticket: array<string, mixed>,
    *   relevant_date: string|null,
+   *   expiration_date: string|null,
    *   locations: list<array{latitude: float, longitude: float, relevantText: string}>,
    *   semantics: array<string, mixed>
    * }
@@ -156,6 +157,7 @@ final class WalletEventPresentation {
       'event_label' => $event_label,
       'event_ticket' => $event_ticket,
       'relevant_date' => $event_start,
+      'expiration_date' => $event_end,
       'locations' => $locations,
       'semantics' => $semantics,
     ];
