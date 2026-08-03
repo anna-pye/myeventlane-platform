@@ -26,8 +26,11 @@ final class SocialLoginProviderAvailability {
     }
 
     $config = $this->configFactory->get('social_auth_google.settings');
-    return $this->hasValue($config->get('client_id'))
-      && $this->hasValue($config->get('client_secret'));
+    $clientId = $config->get('client_id');
+    return $this->hasValue($clientId)
+      && str_ends_with((string) $clientId, '.apps.googleusercontent.com')
+      && $this->hasValue($config->get('client_secret'))
+      && $this->hasOAuth2Defaults($config->get('scopes'), $config->get('endpoints'));
   }
 
   /**
@@ -45,7 +48,8 @@ final class SocialLoginProviderAvailability {
       }
     }
 
-    return is_readable((string) $config->get('key_file_path'));
+    return is_readable((string) $config->get('key_file_path'))
+      && $this->hasOAuth2Defaults($config->get('scopes'), $config->get('endpoints'));
   }
 
   /**
@@ -53,6 +57,13 @@ final class SocialLoginProviderAvailability {
    */
   private function hasValue(mixed $value): bool {
     return is_string($value) && trim($value) !== '';
+  }
+
+  /**
+   * Whether contrib's strictly typed OAuth2 settings are initialised.
+   */
+  private function hasOAuth2Defaults(mixed $scopes, mixed $endpoints): bool {
+    return is_string($scopes) && is_string($endpoints);
   }
 
 }

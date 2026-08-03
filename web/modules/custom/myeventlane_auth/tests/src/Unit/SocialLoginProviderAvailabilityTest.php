@@ -21,12 +21,19 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
    * @covers ::appleIsAvailable
    */
   public function testProvidersFailClosedUntilEveryCredentialExists(): void {
-    $google = $this->config(['client_id' => 'google-id', 'client_secret' => '']);
+    $google = $this->config([
+      'client_id' => 'google-id.apps.googleusercontent.com',
+      'client_secret' => '',
+      'scopes' => '',
+      'endpoints' => '',
+    ]);
     $apple = $this->config([
       'client_id' => 'apple-id',
       'team_id' => 'team-id',
       'key_file_id' => 'key-id',
       'key_file_path' => '',
+      'scopes' => '',
+      'endpoints' => '',
     ]);
     $factory = $this->configFactory($google, $apple);
     $modules = $this->createMock(ModuleHandlerInterface::class);
@@ -42,7 +49,38 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
    * @covers ::appleIsAvailable
    */
   public function testConfiguredProvidersAreAvailable(): void {
-    $google = $this->config(['client_id' => 'google-id', 'client_secret' => 'secret']);
+    $google = $this->config([
+      'client_id' => 'google-id.apps.googleusercontent.com',
+      'client_secret' => 'secret',
+      'scopes' => '',
+      'endpoints' => '',
+    ]);
+    $apple = $this->config([
+      'client_id' => 'apple-id',
+      'team_id' => 'team-id',
+      'key_file_id' => 'key-id',
+      'key_file_path' => __FILE__,
+      'scopes' => '',
+      'endpoints' => '',
+    ]);
+    $factory = $this->configFactory($google, $apple);
+    $modules = $this->createMock(ModuleHandlerInterface::class);
+    $modules->method('moduleExists')->willReturn(TRUE);
+
+    $availability = new SocialLoginProviderAvailability($factory, $modules);
+    self::assertTrue($availability->googleIsAvailable());
+    self::assertTrue($availability->appleIsAvailable());
+  }
+
+  /**
+   * @covers ::googleIsAvailable
+   * @covers ::appleIsAvailable
+   */
+  public function testProvidersFailClosedWithUninitialisedOAuth2Settings(): void {
+    $google = $this->config([
+      'client_id' => 'google-id.apps.googleusercontent.com',
+      'client_secret' => 'secret',
+    ]);
     $apple = $this->config([
       'client_id' => 'apple-id',
       'team_id' => 'team-id',
@@ -54,8 +92,26 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
     $modules->method('moduleExists')->willReturn(TRUE);
 
     $availability = new SocialLoginProviderAvailability($factory, $modules);
-    self::assertTrue($availability->googleIsAvailable());
-    self::assertTrue($availability->appleIsAvailable());
+    self::assertFalse($availability->googleIsAvailable());
+    self::assertFalse($availability->appleIsAvailable());
+  }
+
+  /**
+   * @covers ::googleIsAvailable
+   */
+  public function testGoogleFailsClosedWithPlaceholderClientId(): void {
+    $google = $this->config([
+      'client_id' => 'google-id',
+      'client_secret' => 'secret',
+      'scopes' => '',
+      'endpoints' => '',
+    ]);
+    $factory = $this->configFactory($google, $this->config([]));
+    $modules = $this->createMock(ModuleHandlerInterface::class);
+    $modules->method('moduleExists')->willReturn(TRUE);
+
+    $availability = new SocialLoginProviderAvailability($factory, $modules);
+    self::assertFalse($availability->googleIsAvailable());
   }
 
   /**
