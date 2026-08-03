@@ -901,7 +901,7 @@ function myeventlane_auth_add_social_login_controls(array &$form, Request $reque
     $providers['google'] = t('Continue with Google');
   }
   if ($availability->appleIsAvailable()) {
-    $providers['apple'] = t('Continue with Apple');
+    $providers['apple'] = t('Sign in with Apple');
   }
   if ($providers === []) {
     return;
@@ -935,9 +935,27 @@ function myeventlane_auth_add_social_login_controls(array &$form, Request $reque
   ];
 
   foreach ($providers as $provider => $label) {
+    $title = $label;
+    if ($provider === 'apple') {
+      // Apple generated this artwork. The reviewed local copy avoids a third-
+      // party request before the person has made a cookie/privacy choice.
+      $title = [
+        '#type' => 'html_tag',
+        '#tag' => 'img',
+        '#attributes' => [
+          'src' => base_path() . 'modules/custom/myeventlane_auth/images/sign-in-with-apple@2x.png',
+          'alt' => (string) $label,
+          'width' => '375',
+          'height' => '52',
+          'class' => ['mel-social-login__apple-artwork'],
+          'loading' => 'eager',
+          'decoding' => 'async',
+        ],
+      ];
+    }
     $form['mel_social_login'][$provider] = [
       '#type' => 'link',
-      '#title' => $label,
+      '#title' => $title,
       '#url' => Url::fromRoute('social_auth.network.redirect', [
         'network' => $provider,
       ], [
@@ -948,6 +966,7 @@ function myeventlane_auth_add_social_login_controls(array &$form, Request $reque
           'mel-social-login__button',
           'mel-social-login__button--' . $provider,
         ],
+        'aria-label' => (string) $label,
       ],
     ];
   }

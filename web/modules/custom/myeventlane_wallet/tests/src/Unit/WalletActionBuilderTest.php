@@ -41,6 +41,16 @@ final class WalletActionBuilderTest extends UnitTestCase {
     $this->assertStringContainsString('margin: 8px;', $css);
     $this->assertStringNotContainsString('mel-wallet-badge__fallback', $template);
     $this->assertStringNotContainsString('mel-wallet-badge__fallback', $css);
+
+    $passAssets = array_map('basename', glob($moduleRoot . '/assets/pass/*') ?: []);
+    sort($passAssets);
+    $this->assertSame([
+      'icon.png',
+      'icon@2x.png',
+      'icon@3x.png',
+      'logo.png',
+      'logo@2x.png',
+    ], $passAssets, 'Pass bundles must contain only reviewed Apple Wallet artwork.');
   }
 
   /**

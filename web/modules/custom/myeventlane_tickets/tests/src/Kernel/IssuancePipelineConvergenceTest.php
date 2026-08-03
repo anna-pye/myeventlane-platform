@@ -392,6 +392,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertSame('MyEventLane', $pass['organizationName']);
     $this->assertSame('MyEventLane', $pass['logoText']);
     $this->assertArrayHasKey('relevantDate', $pass);
+    $this->assertArrayHasKey('expirationDate', $pass);
 
     $zip = new ZipArchive();
     $this->assertTrue($zip->open($path) === TRUE);

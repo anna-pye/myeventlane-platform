@@ -149,4 +149,31 @@ final class AccountSetupPresentationContractTest extends TestCase {
     self::assertStringContainsString('resolveDestination', $controller);
   }
 
+  /**
+   * Apple form_post keeps its state session and uses Apple's supplied button.
+   */
+  public function testAppleSignInComplianceContract(): void {
+    $root = dirname(__DIR__, 7);
+    foreach (glob($root . '/web/sites/default/mel.session.*.yml') ?: [] as $session_config) {
+      $yaml = file_get_contents($session_config);
+      self::assertIsString($yaml);
+      self::assertStringContainsString('cookie_samesite: None', $yaml, $session_config);
+    }
+
+    $settings = file_get_contents($root . '/web/sites/default/settings.mel_shared_session.php');
+    self::assertIsString($settings);
+    self::assertStringContainsString("\$config['social_auth.settings']['user_allowed'] = 'login';", $settings);
+
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_auth.module');
+    self::assertIsString($module);
+    self::assertStringContainsString('images/sign-in-with-apple@2x.png', $module);
+    self::assertStringContainsString("t('Sign in with Apple')", $module);
+    self::assertStringContainsString("'alt' => (string) \$label", $module);
+    self::assertStringContainsString("'aria-label' => (string) \$label", $module);
+
+    $button = dirname(__DIR__, 3) . '/images/sign-in-with-apple@2x.png';
+    self::assertFileExists($button);
+    self::assertSame([750, 104], array_slice(getimagesize($button), 0, 2));
+  }
+
 }
