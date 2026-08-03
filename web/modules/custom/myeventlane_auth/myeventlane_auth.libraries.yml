@@ -3,3 +3,9 @@ login_create_event_intent:
   css:
     theme:
       css/login-create-event-intent.css: {}
+
+# Configured Google/Apple controls on user.login (Gin Login + any active theme).
+social_login:
+  css:
+    theme:
+      css/social-login.css: {}
