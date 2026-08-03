@@ -171,6 +171,45 @@ $melGetEnv = static function (string $name): string {
 // change the global Social Auth behaviour to provider-led registration.
 $config['social_auth.settings']['user_allowed'] = 'login';
 
+// Social provider credentials are environment-owned. Config imports must not
+// remove working sign-in credentials or place secrets in config/sync.
+//
+// Apple:
+//   MEL_SOCIAL_APPLE_CLIENT_ID
+//   MEL_SOCIAL_APPLE_TEAM_ID
+//   MEL_SOCIAL_APPLE_KEY_FILE_ID
+//   MEL_SOCIAL_APPLE_KEY_FILE_PATH
+// Google:
+//   MEL_SOCIAL_GOOGLE_CLIENT_ID
+//   MEL_SOCIAL_GOOGLE_CLIENT_SECRET
+//
+// Provider availability fails closed until every required value is present.
+$mel_social_apple = [
+  'client_id' => $melGetEnv('MEL_SOCIAL_APPLE_CLIENT_ID'),
+  'team_id' => $melGetEnv('MEL_SOCIAL_APPLE_TEAM_ID'),
+  'key_file_id' => $melGetEnv('MEL_SOCIAL_APPLE_KEY_FILE_ID'),
+  'key_file_path' => $melGetEnv('MEL_SOCIAL_APPLE_KEY_FILE_PATH'),
+];
+foreach ($mel_social_apple as $key => $value) {
+  if ($value !== '') {
+    $config['social_auth_apple.settings'][$key] = $value;
+  }
+}
+$config['social_auth_apple.settings']['scopes'] = '';
+$config['social_auth_apple.settings']['endpoints'] = '';
+
+$mel_social_google = [
+  'client_id' => $melGetEnv('MEL_SOCIAL_GOOGLE_CLIENT_ID'),
+  'client_secret' => $melGetEnv('MEL_SOCIAL_GOOGLE_CLIENT_SECRET'),
+];
+foreach ($mel_social_google as $key => $value) {
+  if ($value !== '') {
+    $config['social_auth_google.settings'][$key] = $value;
+  }
+}
+$config['social_auth_google.settings']['scopes'] = '';
+$config['social_auth_google.settings']['endpoints'] = '';
+
 $mel_stripe_secret = $melGetEnv('MEL_STRIPE_SECRET_KEY');
 if ($mel_stripe_secret !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;

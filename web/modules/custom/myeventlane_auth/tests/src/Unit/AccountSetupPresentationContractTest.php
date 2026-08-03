@@ -163,6 +163,18 @@ final class AccountSetupPresentationContractTest extends TestCase {
     $settings = file_get_contents($root . '/web/sites/default/settings.mel_shared_session.php');
     self::assertIsString($settings);
     self::assertStringContainsString("\$config['social_auth.settings']['user_allowed'] = 'login';", $settings);
+    foreach ([
+      'MEL_SOCIAL_APPLE_CLIENT_ID',
+      'MEL_SOCIAL_APPLE_TEAM_ID',
+      'MEL_SOCIAL_APPLE_KEY_FILE_ID',
+      'MEL_SOCIAL_APPLE_KEY_FILE_PATH',
+      'MEL_SOCIAL_GOOGLE_CLIENT_ID',
+      'MEL_SOCIAL_GOOGLE_CLIENT_SECRET',
+    ] as $environmentName) {
+      self::assertStringContainsString($environmentName, $settings);
+    }
+    self::assertStringContainsString("\$config['social_auth_apple.settings']['scopes'] = '';", $settings);
+    self::assertStringContainsString("\$config['social_auth_google.settings']['scopes'] = '';", $settings);
 
     $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_auth.module');
     self::assertIsString($module);
