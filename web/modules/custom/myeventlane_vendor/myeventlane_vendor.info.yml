@@ -18,6 +18,7 @@ dependencies:
   - drupal:text
   - drupal:image
   - drupal:link
+  - drupal:media
   - drupal:user
   - drupal:views
   - drupal:field_ui

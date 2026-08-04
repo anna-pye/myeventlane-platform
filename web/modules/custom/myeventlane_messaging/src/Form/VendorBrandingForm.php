@@ -14,6 +14,7 @@ use Drupal\file\FileInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -133,14 +134,14 @@ final class VendorBrandingForm extends FormBase {
       );
       $form['branding']['logo'] = [
         '#type' => 'managed_file',
-        '#title' => $this->t('Logo'),
+        '#title' => $this->t('Email logo override'),
         '#upload_location' => 'public://vendor_logos/',
         '#upload_validators' => [
           'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
           'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
         ],
         '#default_value' => $logo_default,
-        '#description' => $this->t('Square PNG, JPG or WebP works best. Maximum 5 MB. This appears in message headers and your organiser profile.'),
+        '#description' => $this->t('Optional. Used in message headers instead of your organiser logo. Square PNG, JPG or WebP works best; maximum 5 MB.'),
         '#wrapper_attributes' => ['class' => ['mel-vendor-brand-v2__asset-field']],
       ];
     }
@@ -356,13 +357,7 @@ final class VendorBrandingForm extends FormBase {
    * Finds the vendor logo field this form can save.
    */
   private function getLogoFieldName(Vendor $vendor): string {
-    foreach (['field_msg_logo', 'field_vendor_logo', 'field_logo_image'] as $field_name) {
-      if ($vendor->hasField($field_name)) {
-        return $field_name;
-      }
-    }
-
-    return '';
+    return VendorImageFieldPolicy::emailOverrideField($vendor);
   }
 
   /**

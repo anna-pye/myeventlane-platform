@@ -11,6 +11,7 @@ use Drupal\file\FileInterface;
 use Drupal\myeventlane_messaging\ValueObject\Brand;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 
 /**
  * Resolves vendor branding for messages from Vendor entity fields.
@@ -98,13 +99,12 @@ final class VendorBrandResolver implements BrandResolverInterface {
       $accentColor = Brand::DEFAULT_ACCENT_COLOR;
     }
 
-    // Logo URL from field_msg_logo, fallback to field_vendor_logo.
-    $logoUrl = $this->getLogoUrl($vendor, 'field_msg_logo');
-    if ($logoUrl === '') {
-      $logoUrl = $this->getLogoUrl($vendor, 'field_vendor_logo');
-    }
-    if ($logoUrl === '') {
-      $logoUrl = $this->getLogoUrl($vendor, 'field_logo_image');
+    $logoUrl = '';
+    foreach (VendorImageFieldPolicy::EMAIL_LOGO_FIELDS as $fieldName) {
+      $logoUrl = $this->getLogoUrl($vendor, $fieldName);
+      if ($logoUrl !== '') {
+        break;
+      }
     }
 
     return new Brand(

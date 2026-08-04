@@ -10,6 +10,8 @@ dependencies:
     - comment
     - contextual
     - file
+    - media
+    - myeventlane_vendor
     - node
     - path
     - system
@@ -23,10 +25,13 @@ weight: -8
 is_admin: false
 permissions:
   - 'access administration pages'
+  - 'access all myeventlane media assets'
   - 'access content overview'
   - 'access contextual links'
   - 'access files overview'
+  - 'access media overview'
   - 'access toolbar'
+  - 'administer media'
   - 'administer url aliases'
   - 'create article content'
   - 'create page content'

@@ -444,6 +444,7 @@ services:
       - '@myeventlane_event_studio.question_template_manager'
       - '@request_stack'
       - '@file.repository'
+      - '@myeventlane_vendor.organiser_media_access'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService

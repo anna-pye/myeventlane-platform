@@ -27,6 +27,7 @@ use Drupal\myeventlane_event\Service\EventPasscodeAccess;
 use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager;
+use Drupal\myeventlane_vendor\Service\OrganiserMediaAccess;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\media\MediaInterface;
@@ -73,6 +74,7 @@ final class EventStudioSaveService {
     private readonly ?EventStudioQuestionTemplateManager $questionTemplateManager = NULL,
     private readonly ?RequestStack $requestStack = NULL,
     private readonly ?FileRepositoryInterface $fileRepository = NULL,
+    private readonly ?OrganiserMediaAccess $organiserMediaAccess = NULL,
   ) {}
 
   /**
@@ -90,6 +92,10 @@ final class EventStudioSaveService {
       || !$this->fileRepository instanceof FileRepositoryInterface
     ) {
       return ['node' => NULL, 'errors' => ['Saved image selection is not available.']];
+    }
+    if ($this->organiserMediaAccess instanceof OrganiserMediaAccess
+      && !$this->organiserMediaAccess->canSelect($media)) {
+      return ['node' => NULL, 'errors' => ['Choose an image uploaded by your organiser account.']];
     }
 
     $source_field = (string) ($media->getSource()->getConfiguration()['source_field'] ?? '');
@@ -1528,6 +1534,16 @@ final class EventStudioSaveService {
 
       $final_value = $items->getValue();
       $final_ids = $this->brandingGalleryMediaIdsFromField($final_value);
+      $new_ids = array_values(array_diff($final_ids, $before_ids));
+      if ($new_ids !== [] && $this->organiserMediaAccess instanceof OrganiserMediaAccess) {
+        $selected_media = $this->entityTypeManager->getStorage('media')->loadMultiple($new_ids);
+        foreach ($new_ids as $media_id) {
+          $media = $selected_media[$media_id] ?? NULL;
+          if (!$media instanceof MediaInterface || !$this->organiserMediaAccess->canSelect($media)) {
+            return ['One or more gallery images are not available to your organiser account.'];
+          }
+        }
+      }
       $node->set('field_mel_event_gallery', $final_value);
 
       $this->logger->info('Branding gallery save for node @nid: before=@before submitted=@submitted final=@final', [

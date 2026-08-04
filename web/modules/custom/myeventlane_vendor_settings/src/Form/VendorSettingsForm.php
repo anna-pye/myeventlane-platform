@@ -21,6 +21,7 @@ use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\myeventlane_vendor\Form\FormActionUrlFixer;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -692,13 +693,7 @@ class VendorSettingsForm extends FormBase {
       '#weight' => -10,
     ];
 
-    $logo_field = '';
-    foreach (['field_msg_logo', 'field_vendor_logo', 'field_logo_image'] as $candidate) {
-      if ($vendor->hasField($candidate)) {
-        $logo_field = $candidate;
-        break;
-      }
-    }
+    $logo_field = VendorImageFieldPolicy::canonicalPublicLogoField($vendor);
 
     if ($logo_field !== '') {
       $logo_default = [];
