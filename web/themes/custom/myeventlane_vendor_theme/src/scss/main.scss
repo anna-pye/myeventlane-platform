@@ -56,6 +56,7 @@
   @include meta.load-css('components/badges');
   @include meta.load-css('components/lists');
   @include meta.load-css('components/upload');
+  @include meta.load-css('components/media-library-modal');
   @include meta.load-css('components/inline-actions');
   @include meta.load-css('components/empty-states');
   @include meta.load-css('components/console');
