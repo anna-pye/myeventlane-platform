@@ -445,6 +445,12 @@ services:
       - '@request_stack'
       - '@file.repository'
       - '@myeventlane_vendor.organiser_media_access'
+      - '@myeventlane_event_studio.event_cover_media_manager'
+
+  myeventlane_event_studio.event_cover_media_manager:
+    class: Drupal\myeventlane_event_studio\Service\EventCoverMediaManager
+    arguments:
+      - '@entity_type.manager'
 
   myeventlane_event_studio.readiness:
     class: Drupal\myeventlane_event_studio\Service\EventReadinessService

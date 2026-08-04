@@ -5,6 +5,8 @@ core_version_requirement: ^11
 package: MyEventLane
 
 dependencies:
+  - drupal:media
+  - drupal:media_library
   - drupal:node
   - myeventlane_legal:myeventlane_legal
   - myeventlane_vendor:myeventlane_vendor
