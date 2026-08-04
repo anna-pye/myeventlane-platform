@@ -4,13 +4,42 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_location\Form;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_location\Service\LocationProviderManager;
+use Drupal\myeventlane_location\Service\MapKitTokenGenerator;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Configuration form for MyEventLane location settings.
  */
 final class LocationSettingsForm extends ConfigFormBase {
+
+  /**
+   * Constructs a LocationSettingsForm.
+   */
+  public function __construct(
+    ConfigFactoryInterface $config_factory,
+    TypedConfigManagerInterface $typed_config_manager,
+    private readonly MapKitTokenGenerator $tokenGenerator,
+    private readonly LocationProviderManager $providerManager,
+  ) {
+    parent::__construct($config_factory, $typed_config_manager);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('config.factory'),
+      $container->get('config.typed'),
+      $container->get('myeventlane_location.mapkit_token_generator'),
+      $container->get('myeventlane_location.provider_manager'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -31,6 +60,18 @@ final class LocationSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('myeventlane_location.settings');
+
+    $form['status'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Integration status'),
+      '#open' => TRUE,
+      '#weight' => -10,
+    ];
+
+    $form['status']['summary'] = [
+      '#theme' => 'item_list',
+      '#items' => $this->buildStatusItems(),
+    ];
 
     $form['provider'] = [
       '#type' => 'details',
@@ -89,14 +130,14 @@ final class LocationSettingsForm extends ConfigFormBase {
     $form['apple_maps']['apple_maps_private_key'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Private key (PEM format)'),
-      '#description' => $this->t('The private key file content in PEM format. For security, consider storing this in settings.php or environment variables instead. See README for details.'),
+      '#description' => $this->t('The private key file content in PEM format (-----BEGIN PRIVATE KEY----- …). For security, prefer settings.php constants: MYEVENTLANE_APPLE_MAPS_TEAM_ID, MYEVENTLANE_APPLE_MAPS_KEY_ID, MYEVENTLANE_APPLE_MAPS_PRIVATE_KEY, and optionally MYEVENTLANE_APPLE_MAPS_ORIGIN.'),
       '#default_value' => $config->get('apple_maps_private_key') ?? '',
       '#rows' => 10,
     ];
 
     $form['security_note'] = [
       '#type' => 'markup',
-      '#markup' => '<div class="messages messages--warning"><p><strong>' . $this->t('Security note:') . '</strong> ' . $this->t('API keys and private keys should ideally be stored in settings.php or environment variables, not in the database. See the module README for configuration examples.') . '</p></div>',
+      '#markup' => '<div class="messages messages--warning"><p><strong>' . $this->t('Security note:') . '</strong> ' . $this->t('API keys and private keys should ideally be stored in settings.php or environment variables, not in the database.') . '</p></div>',
     ];
 
     return parent::buildForm($form, $form_state);
@@ -115,6 +156,46 @@ final class LocationSettingsForm extends ConfigFormBase {
       ->save();
 
     parent::submitForm($form, $form_state);
+  }
+
+  /**
+   * Builds human-readable status lines for the settings form.
+   *
+   * @return array<int, string|\Drupal\Component\Render\MarkupInterface>
+   *   Status list items.
+   */
+  private function buildStatusItems(): array {
+    $items = [];
+    $provider = $this->providerManager->getDefaultProvider();
+    $items[] = $this->t('Default provider: @provider', [
+      '@provider' => $provider === 'apple_maps' ? 'Apple Maps (MapKit JS)' : 'Google Maps',
+    ]);
+
+    if ($provider === 'google_maps') {
+      $items[] = $this->providerManager->isProviderConfigured('google_maps')
+        ? $this->t('Google Maps API key: configured')
+        : $this->t('Google Maps API key: missing');
+      return $items;
+    }
+
+    if (!$this->tokenGenerator->isConfigured()) {
+      $items[] = $this->t('Apple Maps credentials: incomplete (need Team ID, Key ID, and private key)');
+      return $items;
+    }
+
+    $token = $this->tokenGenerator->generateToken();
+    if ($token === '') {
+      $items[] = $this->t('Apple Maps credentials: present, but JWT signing failed. Check watchdog (myeventlane_location) and PEM key format.');
+      return $items;
+    }
+
+    $parts = explode('.', $token);
+    $items[] = $this->t('Apple Maps MapKit JWT: generated successfully (@segments segments, @length chars)', [
+      '@segments' => (string) count($parts),
+      '@length' => (string) strlen($token),
+    ]);
+
+    return $items;
   }
 
 }
