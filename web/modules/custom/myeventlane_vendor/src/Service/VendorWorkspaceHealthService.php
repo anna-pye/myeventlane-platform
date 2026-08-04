@@ -181,7 +181,7 @@ final class VendorWorkspaceHealthService {
     $configured = FALSE;
     if ($vendor instanceof Vendor) {
       $hasLogo = FALSE;
-      foreach (['field_vendor_logo', 'field_msg_logo', 'field_logo_image'] as $logoField) {
+      foreach (VendorImageFieldPolicy::EMAIL_LOGO_FIELDS as $logoField) {
         if ($vendor->hasField($logoField) && !$vendor->get($logoField)->isEmpty()) {
           $hasLogo = TRUE;
           break;

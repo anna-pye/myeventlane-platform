@@ -29,11 +29,6 @@ final class VendorCardBuilder {
    */
   private const LOGO_IMAGE_STYLE = 'mel_vendor_logo';
 
-  /**
-   * Candidate logo fields in preference order.
-   */
-  private const LOGO_FIELD_NAMES = ['field_logo_image', 'field_vendor_logo'];
-
   private const DESCRIPTION_LIMIT = 120;
 
   private const NEW_ORGANISER_DAYS = 30;
@@ -231,7 +226,11 @@ final class VendorCardBuilder {
    *   A render array, or NULL when no logo exists.
    */
   public function buildLogo(EntityInterface $entity): ?array {
-    return $this->buildStyledImage($entity, self::LOGO_FIELD_NAMES, self::LOGO_IMAGE_STYLE);
+    return $this->buildStyledImage(
+      $entity,
+      VendorImageFieldPolicy::PUBLIC_LOGO_FIELDS,
+      self::LOGO_IMAGE_STYLE,
+    );
   }
 
   /**
@@ -246,7 +245,7 @@ final class VendorCardBuilder {
       return NULL;
     }
 
-    foreach (self::LOGO_FIELD_NAMES as $field_name) {
+    foreach (VendorImageFieldPolicy::PUBLIC_LOGO_FIELDS as $field_name) {
       if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty()) {
         $file = $entity->get($field_name)->entity;
         if ($file !== NULL) {

@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -55,8 +56,8 @@ final class VendorBrandingForm extends FormBase {
     ];
 
     // Logo field.
-    if ($vendor->hasField('field_vendor_logo') || $vendor->hasField('field_logo_image')) {
-      $logo_field = $vendor->hasField('field_vendor_logo') ? 'field_vendor_logo' : 'field_logo_image';
+    $logo_field = VendorImageFieldPolicy::canonicalPublicLogoField($vendor);
+    if ($logo_field !== '') {
       $existing_logo_fid = NULL;
       if ($vendor->hasField($logo_field) && !$vendor->get($logo_field)->isEmpty()) {
         $existing_logo_fid = $vendor->get($logo_field)->target_id;

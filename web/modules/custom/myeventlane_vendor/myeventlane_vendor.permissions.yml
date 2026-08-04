@@ -14,3 +14,8 @@ access vendor dashboard:
 use pro financial analytics:
   title: 'Use Pro financial analytics'
   description: 'Access Pro-only financial analytics routes and insights.'
+
+access all myeventlane media assets:
+  title: 'Access all MyEventLane media assets'
+  description: 'Browse and select platform and organiser media across ownership boundaries.'
+  restrict access: true

@@ -54,6 +54,11 @@ services:
       - '@entity_type.manager'
       - '@entity_field.manager'
 
+  myeventlane_vendor.organiser_media_access:
+    class: Drupal\myeventlane_vendor\Service\OrganiserMediaAccess
+    arguments:
+      - '@current_user'
+
   myeventlane_vendor.event_studio_create:
     class: Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService
     arguments:
