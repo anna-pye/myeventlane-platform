@@ -12,11 +12,15 @@
 (function (Drupal, drupalSettings, once) {
   'use strict';
 
-  const SETTINGS = (drupalSettings && drupalSettings.myeventlaneLocation) ? drupalSettings.myeventlaneLocation : {};
-  const DEBUG = !!SETTINGS.debug;
+  function getSettings() {
+    const live = (window.drupalSettings && window.drupalSettings.myeventlaneLocation)
+      ? window.drupalSettings.myeventlaneLocation
+      : ((drupalSettings && drupalSettings.myeventlaneLocation) ? drupalSettings.myeventlaneLocation : {});
+    return live || {};
+  }
 
   function log(...args) {
-    if (DEBUG && window.console) console.log('[MEL Location]', ...args);
+    if (getSettings().debug && window.console) console.log('[MEL Location]', ...args);
   }
   function warn(...args) {
     if (window.console) console.warn('[MEL Location]', ...args);
@@ -24,11 +28,14 @@
   function error(...args) {
     if (window.console) console.error('[MEL Location]', ...args);
   }
-  
-  // Always log critical initialization info
-  if (window.console && !SETTINGS.provider && !SETTINGS.debug) {
-    console.warn('[MEL Location] SETTINGS.provider is not set. Provider:', SETTINGS.provider, 'Full SETTINGS:', SETTINGS);
-  }
+
+  // Always log critical initialization info.
+  (function () {
+    const SETTINGS = getSettings();
+    if (window.console && !SETTINGS.provider && !SETTINGS.debug) {
+      console.warn('[MEL Location] SETTINGS.provider is not set. Provider:', SETTINGS.provider, 'Full SETTINGS:', SETTINGS);
+    }
+  })();
 
   /**
    * ------------------------------------------------------------------------
@@ -809,7 +816,7 @@
   }
 
   function setupGoogleAutocomplete(searchInput, form, widgetRoot) {
-    const apiKey = SETTINGS.google_maps_api_key;
+    const apiKey = getSettings().google_maps_api_key;
     if (!apiKey) {
       error('Google provider selected but SETTINGS.google_maps_api_key missing.');
       return;
@@ -977,9 +984,14 @@
   }
 
   function setupAppleAutocomplete(searchInput, form, widgetRoot) {
+    const SETTINGS = getSettings();
     const token = SETTINGS.apple_maps_token;
     if (!token) {
-      error('Apple provider selected but SETTINGS.apple_maps_token missing.');
+      error('Apple provider selected but SETTINGS.apple_maps_token missing.', SETTINGS);
+      return;
+    }
+
+    if (searchInput.dataset.melAutocompleteAttached === '1' || searchInput.dataset.melAppleAttached === '1') {
       return;
     }
 
@@ -989,8 +1001,9 @@
 
         if (searchInput.dataset.melAppleAttached === '1') return;
         searchInput.dataset.melAppleAttached = '1';
+        searchInput.dataset.melAutocompleteAttached = '1';
 
-        // Simple suggestion dropdown
+        // Simple suggestion dropdown.
         const wrapper = searchInput.parentElement;
         if (!wrapper) return;
 
@@ -998,6 +1011,7 @@
 
         const list = document.createElement('div');
         list.className = 'myeventlane-location-suggestions';
+        list.setAttribute('role', 'listbox');
         list.style.cssText = 'position:absolute;left:0;right:0;top:100%;background:#fff;border:1px solid #ccc;max-height:240px;overflow:auto;z-index:1000;display:none;';
         wrapper.appendChild(list);
 
@@ -1006,6 +1020,7 @@
             new mapkit.Coordinate(-25.2744, 133.7751),
             new mapkit.CoordinateSpan(40, 40)
           ),
+          getsUserLocation: false,
         });
 
         let t = null;
@@ -1020,7 +1035,13 @@
           clearTimeout(t);
           t = setTimeout(() => {
             searchService.search(q, (err, data) => {
-              if (err || !data || !data.places) {
+              if (err) {
+                error('Apple MapKit search failed', err);
+                list.style.display = 'none';
+                list.innerHTML = '';
+                return;
+              }
+              if (!data || !data.places) {
                 list.style.display = 'none';
                 list.innerHTML = '';
                 return;
@@ -1030,14 +1051,16 @@
               const places = data.places.slice(0, 6);
               for (const p of places) {
                 const item = document.createElement('div');
+                item.setAttribute('role', 'option');
                 item.style.cssText = 'padding:10px;border-bottom:1px solid #eee;cursor:pointer;';
                 item.textContent = p.name + (p.formattedAddressLines ? ' — ' + p.formattedAddressLines.join(', ') : '');
                 item.addEventListener('click', () => {
                   list.style.display = 'none';
                   list.innerHTML = '';
-                  searchInput.value = p.name;
-
                   const comps = extractAppleComponents(p);
+                  const formatted = p.formattedAddressLines ? p.formattedAddressLines.join(', ') : '';
+                  searchInput.value = formatted || p.name || '';
+
                   const lat = p.coordinate ? p.coordinate.latitude : null;
                   const lng = p.coordinate ? p.coordinate.longitude : null;
 
@@ -1053,7 +1076,7 @@
                     populateVenueAddress(form, comps);
                   }
 
-                  // Dispatch custom event for venue-selection.js to handle venue-specific logic
+                  // Event Studio + venue-selection listeners.
                   const placeSelectedEvent = new CustomEvent('place_selected', {
                     detail: {
                       place: p,
@@ -1130,7 +1153,7 @@
     if (!isVisible(input)) {
       return;
     }
-    const provider = SETTINGS.provider || 'google_maps';
+    const provider = getSettings().provider || 'google_maps';
     if (provider === 'google_maps') {
       setupGoogleAutocomplete(input, form, null);
     }
@@ -1188,7 +1211,7 @@
     // Set default country to AU if empty.
     ensureDefaultCountry(form, widgetRoot);
 
-    const provider = SETTINGS.provider || 'google_maps';
+    const provider = getSettings().provider || 'google_maps';
 
     log('Initializing provider:', provider, 'Form:', form);
 
@@ -1209,7 +1232,7 @@
   Drupal.behaviors.myeventlaneLocationAutocomplete = {
     attach(context) {
       log('Drupal.behaviors.myeventlaneLocationAutocomplete.attach called, context:', context);
-      log('SETTINGS:', SETTINGS);
+      log('SETTINGS:', getSettings());
       
       // Target forms that contain our address search field OR field_location wrapper.
       const candidates = [];
