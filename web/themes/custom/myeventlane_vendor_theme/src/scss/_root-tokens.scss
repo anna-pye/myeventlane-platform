@@ -72,4 +72,62 @@
   --mel-es-panel-bg: #ffffff;
   --mel-es-panel-gap: 24px;
   --mel-es-panel-padding: 24px;
+
+  /*
+   * Gin compatibility values used by AJAX-loaded dialog and Media Library
+   * components. They stay inside the vendor theme and map to MEL's tokens;
+   * the full Gin admin theme is intentionally not loaded here.
+   */
+  --gin-bg-app: var(--mel-bg);
+  --gin-bg-input: var(--mel-surface);
+  --gin-bg-layer: var(--mel-surface);
+  --gin-bg-layer2: var(--mel-surface-2);
+  --gin-bg-layer3: var(--mel-surface);
+  --gin-border-color: #e9e3de;
+  --gin-border-color-form-element: #9aa3aa;
+  --gin-border-color-layer2: #e9e3de;
+  --gin-border-color-table-header: rgba(36, 48, 58, 0.24);
+  --gin-border-xs: 4px;
+  --gin-border-s: 6px;
+  --gin-border-m: var(--mel-radius-1);
+  --gin-border-l: 12px;
+  --gin-border-xl: var(--mel-radius-2);
+  --gin-color-button-text: #fff;
+  --gin-color-danger: #c44545;
+  --gin-color-disabled: #6f777e;
+  --gin-color-disabled-bg: #ece9e6;
+  --gin-color-disabled-border: #d4cfca;
+  --gin-color-focus: rgba(255, 107, 74, 0.28);
+  --gin-color-focus-border: var(--mel-focus);
+  --gin-color-primary: var(--mel-coral);
+  --gin-color-primary-active: #cf4f3d;
+  --gin-color-primary-hover: #e55c49;
+  --gin-color-primary-light: rgba(255, 107, 74, 0.14);
+  --gin-color-primary-light-active: rgba(255, 107, 74, 0.24);
+  --gin-color-text: var(--mel-text);
+  --gin-color-text-light: var(--mel-muted);
+  --gin-color-title: var(--mel-text);
+  --gin-font-size-xxs: 0.75rem;
+  --gin-font-size-xs: 0.8125rem;
+  --gin-font-size-s: 0.875rem;
+  --gin-font-size: 1rem;
+  --gin-font-size-l: 1.125rem;
+  --gin-font-weight-semibold: 600;
+  --gin-font-weight-bold: 700;
+  --gin-font-weight-heavy: 700;
+  --gin-link-decoration-style: solid;
+  --gin-max-line-length: 80ch;
+  --gin-pattern: rgba(36, 48, 58, 0.1);
+  --gin-pattern-fallback: var(--mel-surface-2);
+  --gin-pattern-square: 0.5rem;
+  --gin-shadow-l1: var(--mel-shadow-1);
+  --gin-spacing-xxs: var(--mel-space-1);
+  --gin-spacing-xs: var(--mel-space-2);
+  --gin-spacing-s: var(--mel-space-3);
+  --gin-spacing-m: var(--mel-space-4);
+  --gin-spacing-l: var(--mel-space-5);
+  --gin-spacing-xl: var(--mel-space-6);
+  --gin-spacing-density-s: var(--mel-space-3);
+  --gin-switch: #3f9b6c;
+  --gin-transition: 0.15s ease;
 }
