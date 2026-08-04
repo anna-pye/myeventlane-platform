@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_venue\Controller;
 
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\myeventlane_venue\Entity\Venue;
@@ -67,8 +68,18 @@ class VendorVenuesController extends ControllerBase {
     $venues = $this->accessResolver->getAccessibleVenues($this->currentUser());
 
     $rows = [];
+    $cacheTags = ['myeventlane_venue_list'];
     foreach ($venues as $venue) {
       $rows[] = $this->buildVenueRow($venue);
+      $cacheTags = Cache::mergeTags($cacheTags, $venue->getCacheTags());
+      $imageMedia = $venue->getImageMedia();
+      $imageFile = $venue->getImageFile();
+      if ($imageMedia !== NULL) {
+        $cacheTags = Cache::mergeTags($cacheTags, $imageMedia->getCacheTags());
+      }
+      elseif ($imageFile !== NULL) {
+        $cacheTags = Cache::mergeTags($cacheTags, $imageFile->getCacheTags());
+      }
     }
 
     $build = [
@@ -80,7 +91,7 @@ class VendorVenuesController extends ControllerBase {
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['myeventlane_venue_list'],
+        'tags' => $cacheTags,
       ],
     ];
 

@@ -102,3 +102,121 @@ function myeventlane_venue_update_10001(): void {
     '@entity' => $entity_type_id,
   ]);
 }
+
+/**
+ * Adds Media Library venue images and migrates legacy direct-file images.
+ */
+function myeventlane_venue_update_10002(array &$sandbox): string {
+  $entity_type_id = 'myeventlane_venue';
+  $field_name = 'image_media';
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  if (!isset($sandbox['ids'])) {
+    $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+    $definition = \Drupal\myeventlane_venue\Entity\Venue::baseFieldDefinitions($entity_type)[$field_name] ?? NULL;
+    if ($definition === NULL) {
+      throw new \RuntimeException('Venue image_media base field definition is missing.');
+    }
+
+    if (!$update_manager->getFieldStorageDefinition($field_name, $entity_type_id)) {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        $entity_type_id,
+        'myeventlane_venue',
+        $definition,
+      );
+      \Drupal::entityTypeManager()->clearCachedDefinitions();
+    }
+
+    $venue_storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
+    $sandbox['ids'] = array_values($venue_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->sort('id')
+      ->execute());
+    $sandbox['index'] = 0;
+    $sandbox['migrated'] = 0;
+    $sandbox['reused'] = 0;
+    $sandbox['created'] = 0;
+    $sandbox['skipped'] = 0;
+  }
+
+  $ids = $sandbox['ids'];
+  $total = count($ids);
+  $limit = min($sandbox['index'] + 25, $total);
+  $venue_storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
+  $media_storage = \Drupal::entityTypeManager()->getStorage('media');
+
+  while ($sandbox['index'] < $limit) {
+    $venue_id = (int) $ids[$sandbox['index']];
+    $venue = $venue_storage->load($venue_id);
+    if ($venue === NULL
+      || !$venue->hasField($field_name)
+      || !$venue->get($field_name)->isEmpty()
+      || !$venue->hasField('image')
+      || $venue->get('image')->isEmpty()) {
+      $sandbox['skipped']++;
+      $sandbox['index']++;
+      continue;
+    }
+
+    $legacy_item = $venue->get('image')->first();
+    $file = $legacy_item?->entity;
+    if (!$file instanceof \Drupal\file\FileInterface) {
+      \Drupal::logger('myeventlane_venue')->warning(
+        'Venue @venue legacy image could not be migrated because its file is missing.',
+        ['@venue' => (string) $venue_id],
+      );
+      $sandbox['skipped']++;
+      $sandbox['index']++;
+      continue;
+    }
+
+    $owner_id = max(0, (int) $venue->getOwnerId());
+    $existing = $media_storage->loadByProperties([
+      'bundle' => 'image',
+      'uid' => $owner_id,
+      'field_media_image.target_id' => (int) $file->id(),
+    ]);
+    $media = $existing ? reset($existing) : NULL;
+
+    if (!$media instanceof \Drupal\media\MediaInterface) {
+      $alt = trim((string) ($legacy_item?->alt ?? ''));
+      if ($alt === '') {
+        $alt = (string) $venue->label();
+      }
+      $media = $media_storage->create([
+        'bundle' => 'image',
+        'uid' => $owner_id,
+        'name' => $file->getFilename(),
+        'field_media_image' => [
+          'target_id' => (int) $file->id(),
+          'alt' => $alt,
+          'title' => (string) ($legacy_item?->title ?? ''),
+        ],
+      ]);
+      $media->save();
+      $sandbox['created']++;
+    }
+    else {
+      $sandbox['reused']++;
+    }
+
+    $venue->set($field_name, ['target_id' => (int) $media->id()]);
+    $venue->save();
+    $sandbox['migrated']++;
+    $sandbox['index']++;
+  }
+
+  $sandbox['#finished'] = $total === 0 ? 1 : $sandbox['index'] / $total;
+  if ($sandbox['#finished'] < 1) {
+    return sprintf('Migrated %d of %d venue records to Media Library images.', $sandbox['index'], $total);
+  }
+
+  return sprintf(
+    'Venue image Media migration complete: %d migrated, %d Media created, %d reused, %d skipped.',
+    $sandbox['migrated'],
+    $sandbox['created'],
+    $sandbox['reused'],
+    $sandbox['skipped'],
+  );
+}

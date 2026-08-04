@@ -4,14 +4,41 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_venue\Form;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\ContentEntityForm;
+use Drupal\Core\Entity\EntityRepositoryInterface;
+use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\media\MediaInterface;
+use Drupal\myeventlane_vendor\Service\OrganiserMediaAccess;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
  * Form handler for the Venue entity add/edit forms.
  */
 class VenueForm extends ContentEntityForm {
+
+  public function __construct(
+    EntityRepositoryInterface $entity_repository,
+    EntityTypeBundleInfoInterface $entity_type_bundle_info,
+    TimeInterface $time,
+    protected OrganiserMediaAccess $organiserMediaAccess,
+  ) {
+    parent::__construct($entity_repository, $entity_type_bundle_info, $time);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('entity.repository'),
+      $container->get('entity_type.bundle.info'),
+      $container->get('datetime.time'),
+      $container->get('myeventlane_vendor.organiser_media_access'),
+    );
+  }
 
   /**
    * {@inheritdoc}
@@ -23,6 +50,40 @@ class VenueForm extends ContentEntityForm {
     $form['#attributes']['class'][] = 'mel-venue-form';
 
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    $original_media_id = $this->entity->hasField('image_media') && !$this->entity->get('image_media')->isEmpty()
+      ? (int) $this->entity->get('image_media')->target_id
+      : 0;
+    $entity = parent::validateForm($form, $form_state);
+    if (!$entity->hasField('image_media') || $entity->get('image_media')->isEmpty()) {
+      return $entity;
+    }
+
+    $media = $entity->get('image_media')->entity;
+    $selected_media_id = $media instanceof MediaInterface ? (int) $media->id() : 0;
+    $is_unchanged_selection = $selected_media_id > 0 && $selected_media_id === $original_media_id;
+    if (!$is_unchanged_selection
+      && (!$media instanceof MediaInterface || !$this->organiserMediaAccess->canSelect($media))) {
+      if (isset($form['image_media'])) {
+        $form_state->setError(
+          $form['image_media'],
+          $this->t('Choose a venue image uploaded by your organiser account.'),
+        );
+      }
+      else {
+        $form_state->setErrorByName(
+          'image_media',
+          $this->t('Choose a venue image uploaded by your organiser account.'),
+        );
+      }
+    }
+
+    return $entity;
   }
 
   /**

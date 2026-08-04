@@ -20,6 +20,7 @@ final class MediaRoleBoundaryConfigTest extends TestCase {
   public function testContentEditorHasFullMediaManagementAccess(): void {
     $permissions = $this->rolePermissions('content_editor');
 
+    self::assertContains('access files overview', $permissions);
     self::assertContains('access media overview', $permissions);
     self::assertContains('access all myeventlane media assets', $permissions);
     self::assertContains('administer media', $permissions);
@@ -33,8 +34,29 @@ final class MediaRoleBoundaryConfigTest extends TestCase {
 
     self::assertNotContains('access all myeventlane media assets', $permissions);
     self::assertNotContains('administer media', $permissions);
+    self::assertNotContains('access files overview', $permissions);
     self::assertNotContains('access content overview', $permissions);
     self::assertNotContains('access toolbar', $permissions);
+  }
+
+  /**
+   * Verifies the core Files overview is permission-gated, not owner-filtered.
+   */
+  public function testFilesOverviewPermissionRemainsStaffOnly(): void {
+    $root = dirname(__DIR__, 7);
+    $path = $root . '/web/core/modules/file/config/optional/views.view.files.yml';
+    self::assertFileExists($path);
+
+    $data = Yaml::parseFile($path);
+    self::assertIsArray($data);
+    self::assertSame('admin/content/files', $data['display']['page_1']['display_options']['path'] ?? NULL);
+    self::assertSame(
+      'access files overview',
+      $data['display']['default']['display_options']['access']['options']['perm'] ?? NULL,
+    );
+
+    self::assertNotContains('access files overview', $this->rolePermissions('vendor'));
+    self::assertContains('access files overview', $this->rolePermissions('content_editor'));
   }
 
   /**

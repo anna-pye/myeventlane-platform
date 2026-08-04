@@ -5,6 +5,8 @@
  *
  * Available variables:
  * - venue: The venue entity.
+ * - image_url: URL for the canonical Media-backed venue image.
+ * - image_alt: Alt text from Media, legacy image data, or the venue name.
  * - can_edit: Boolean indicating if the user can edit.
  * - edit_url: URL object for editing the venue.
  * - locations: Array of venue locations.
@@ -17,9 +19,8 @@
     {# Hero section with image and title #}
     <section class="mel-venue-hero" aria-labelledby="mel-venue-title">
       <div class="mel-venue-hero__media">
-        {% if venue.image.entity %}
-          {% set image_url = file_url(venue.image.entity.fileuri) %}
-          <img src="{{ image_url }}" alt="{{ venue.name.value }}" class="mel-venue-hero__image" loading="eager">
+        {% if image_url %}
+          <img src="{{ image_url }}" alt="{{ image_alt }}" class="mel-venue-hero__image" loading="eager">
         {% else %}
           <div class="mel-venue-hero__placeholder" aria-hidden="true">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="64" height="64">

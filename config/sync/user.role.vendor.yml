@@ -59,7 +59,6 @@ permissions:
   - 'access checkout'
   - 'access commerce_order overview'
   - 'access contextual links'
-  - 'access files overview'
   - 'access vendor console'
   - 'access vendor dashboard'
   - 'access vendor venues'
