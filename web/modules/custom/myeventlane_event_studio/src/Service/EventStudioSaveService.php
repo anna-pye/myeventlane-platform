@@ -75,6 +75,7 @@ final class EventStudioSaveService {
     private readonly ?RequestStack $requestStack = NULL,
     private readonly ?FileRepositoryInterface $fileRepository = NULL,
     private readonly ?OrganiserMediaAccess $organiserMediaAccess = NULL,
+    private readonly ?EventCoverMediaManager $eventCoverMediaManager = NULL,
   ) {}
 
   /**
@@ -374,11 +375,17 @@ final class EventStudioSaveService {
 
     $this->applyOptionalCoordinates($node, $payload);
 
+    $cover_media_sync = NULL;
     if ($this->shouldApplyHeroImagePayload($payload)) {
+      $previous_hero_fid = $this->brandingHeroFidFromNode($node);
+      $previous_cover_media_id = $node->hasField('field_mel_event_cover_media')
+        ? (int) ($node->get('field_mel_event_cover_media')->target_id ?? 0)
+        : 0;
       $image_errors = $this->applyHeroImagePayload($node, $payload, $draft);
       if ($image_errors !== []) {
         return $this->abortSectionScopedSave($image_errors, $payload);
       }
+      $cover_media_sync = [$previous_hero_fid, $previous_cover_media_id];
     }
 
     if (array_key_exists('event_highlights_items_state', $payload)) {
@@ -415,6 +422,17 @@ final class EventStudioSaveService {
       $eligibility = $this->publishEligibilityEvaluator->evaluate($node, $account);
       if (!$eligibility['allowed']) {
         return $this->abortSectionScopedSave($eligibility['messages'], $payload);
+      }
+    }
+
+    if ($cover_media_sync !== NULL) {
+      $cover_media_errors = $this->captureDirectCoverMedia(
+        $node,
+        $cover_media_sync[0],
+        $cover_media_sync[1],
+      );
+      if ($cover_media_errors !== []) {
+        return $this->abortSectionScopedSave($cover_media_errors, $payload);
       }
     }
 
@@ -1364,17 +1382,6 @@ final class EventStudioSaveService {
       }
     }
 
-    $cover_media_errors = $this->saveBrandingCoverMediaField(
-      $node,
-      $mel_structure,
-      $form_state,
-      $fid,
-      $previous_hero_fid,
-    );
-    if ($cover_media_errors !== []) {
-      return ['node' => NULL, 'errors' => $cover_media_errors, 'warnings' => []];
-    }
-
     $gallery_errors = $this->saveBrandingGalleryField($node, $mel_structure, $form_state);
     if ($gallery_errors !== []) {
       return ['node' => NULL, 'errors' => $gallery_errors, 'warnings' => []];
@@ -1386,6 +1393,17 @@ final class EventStudioSaveService {
     );
     if ($style_errors !== []) {
       return ['node' => NULL, 'errors' => $style_errors, 'warnings' => []];
+    }
+
+    $cover_media_errors = $this->saveBrandingCoverMediaField(
+      $node,
+      $mel_structure,
+      $form_state,
+      $this->brandingHeroFidFromNode($node),
+      $previous_hero_fid,
+    );
+    if ($cover_media_errors !== []) {
+      return ['node' => NULL, 'errors' => $cover_media_errors, 'warnings' => []];
     }
 
     $final_target_id = $node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()
@@ -1421,15 +1439,21 @@ final class EventStudioSaveService {
   }
 
   /**
-   * Persists Media Library provenance when it matches the saved cover file.
+   * Persists Media Library provenance for selected and directly uploaded covers.
    *
-   * Direct uploads remain supported. If a direct upload replaces a saved-media
-   * cover, the stale media reference is cleared while field_event_image remains
-   * the public rendering source of truth.
-   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The event being saved.
    * @param array<string, mixed> $mel_structure
+   *   The Event Studio form structure.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The submitted form state.
+   * @param int $saved_hero_fid
+   *   The cover file ID currently assigned to the event.
+   * @param int $previous_hero_fid
+   *   The cover file ID assigned before this save.
    *
    * @return list<string>
+   *   User-facing validation errors.
    */
   private function saveBrandingCoverMediaField(
     NodeInterface $node,
@@ -1442,37 +1466,50 @@ final class EventStudioSaveService {
       return [];
     }
 
-    $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
-    $widget = $display instanceof EntityFormDisplay
-      ? $display->getRenderer('field_mel_event_cover_media')
-      : NULL;
-    if (!$widget instanceof WidgetInterface || !isset($mel_structure['field_mel_event_cover_media'])) {
-      return [];
-    }
+    $previous_cover_media_id = (int) ($node->get('field_mel_event_cover_media')->target_id ?? 0);
 
     try {
-      $mel_form = $this->normalizeBrandingMelFormStructure($mel_structure);
-      $items = $node->get('field_mel_event_cover_media');
-      $widget->extractFormValues($items, $mel_form, $form_state);
-
       $matching_value = [];
-      foreach ($items->referencedEntities() as $media) {
-        $source_field = method_exists($media, 'getSource')
-          ? (string) ($media->getSource()->getConfiguration()['source_field'] ?? '')
-          : '';
-        if ($source_field === '' || !$media->hasField($source_field)) {
-          continue;
-        }
-        $media_fid = (int) ($media->get($source_field)->target_id ?? 0);
-        $already_applied_media = (int) ($node->get('field_mel_event_cover_media')->target_id ?? 0) === (int) $media->id()
-          && $saved_hero_fid > 0
-          && $saved_hero_fid === $previous_hero_fid;
-        if (($saved_hero_fid > 0 && $media_fid === $saved_hero_fid) || $already_applied_media) {
-          $matching_value = [['target_id' => (int) $media->id()]];
-          break;
+      $display = $this->entityTypeManager->getStorage('entity_form_display')->load('node.event.studio_branding');
+      $widget = $display instanceof EntityFormDisplay
+        ? $display->getRenderer('field_mel_event_cover_media')
+        : NULL;
+      if ($widget instanceof WidgetInterface && isset($mel_structure['field_mel_event_cover_media'])) {
+        $mel_form = $this->normalizeBrandingMelFormStructure($mel_structure);
+        $items = $node->get('field_mel_event_cover_media');
+        $widget->extractFormValues($items, $mel_form, $form_state);
+
+        foreach ($items->referencedEntities() as $media) {
+          if (!$media instanceof MediaInterface) {
+            continue;
+          }
+          $media_fid = $this->eventCoverMediaManager instanceof EventCoverMediaManager
+            ? $this->eventCoverMediaManager->sourceFileId($media)
+            : 0;
+          $already_applied_media = $previous_cover_media_id === (int) $media->id()
+            && $saved_hero_fid > 0
+            && $saved_hero_fid === $previous_hero_fid;
+          if (($saved_hero_fid > 0 && $media_fid === $saved_hero_fid) || $already_applied_media) {
+            $matching_value = [['target_id' => (int) $media->id()]];
+            break;
+          }
         }
       }
-      $node->set('field_mel_event_cover_media', $matching_value);
+
+      if ($saved_hero_fid < 1) {
+        $node->set('field_mel_event_cover_media', []);
+        return [];
+      }
+      if ($matching_value !== []) {
+        $node->set('field_mel_event_cover_media', $matching_value);
+        return [];
+      }
+      if ($saved_hero_fid === $previous_hero_fid && $previous_cover_media_id > 0) {
+        $node->set('field_mel_event_cover_media', [['target_id' => $previous_cover_media_id]]);
+        return [];
+      }
+
+      return $this->captureDirectCoverMedia($node, $previous_hero_fid, $previous_cover_media_id);
     }
     catch (\Throwable $e) {
       $this->logger->error('Branding saved-cover media persistence failed for node @nid: @message', [
@@ -1480,6 +1517,61 @@ final class EventStudioSaveService {
         '@message' => $e->getMessage(),
       ]);
       return ['Could not save the selected Media Library image.'];
+    }
+
+    return [];
+  }
+
+  /**
+   * Captures a changed direct upload while preserving selected-media provenance.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The event being saved.
+   * @param int $previous_hero_fid
+   *   The cover file ID assigned before this save.
+   * @param int $previous_cover_media_id
+   *   The Media ID assigned before this save.
+   *
+   * @return list<string>
+   *   User-facing validation errors.
+   */
+  private function captureDirectCoverMedia(
+    NodeInterface $node,
+    int $previous_hero_fid,
+    int $previous_cover_media_id,
+  ): array {
+    if (!$node->hasField('field_mel_event_cover_media')) {
+      return [];
+    }
+    if (!$node->hasField('field_event_image') || $node->get('field_event_image')->isEmpty()) {
+      $node->set('field_mel_event_cover_media', []);
+      return [];
+    }
+
+    $saved_hero_fid = $this->brandingHeroFidFromNode($node);
+    if ($saved_hero_fid === $previous_hero_fid && $previous_cover_media_id > 0) {
+      $node->set('field_mel_event_cover_media', [['target_id' => $previous_cover_media_id]]);
+      return [];
+    }
+    if (!$this->eventCoverMediaManager instanceof EventCoverMediaManager) {
+      $this->logger->error('Event cover Media capture service is unavailable for node @nid.', [
+        '@nid' => (string) $node->id(),
+      ]);
+      return ['The cover image could not be added to Media Library. Try again.'];
+    }
+
+    try {
+      $capture = $this->eventCoverMediaManager->capture($node);
+      $node->set('field_mel_event_cover_media', [[
+        'target_id' => (int) $capture['media']->id(),
+      ]]);
+    }
+    catch (\Throwable $e) {
+      $this->logger->error('Event cover Media capture failed for node @nid: @message', [
+        '@nid' => (string) $node->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      return ['The cover image could not be added to Media Library. Try again.'];
     }
 
     return [];

@@ -1,12 +1,21 @@
 <?php
 
+/**
+ * @file
+ * Post-update hooks for MyEventLane Event Studio.
+ */
+
 declare(strict_types=1);
 
 use Drupal\Core\Image\ImageFactory;
+use Drupal\Core\Utility\UpdateException;
 use Drupal\crop\Entity\Crop;
 use Drupal\crop\CropInterface;
 use Drupal\file\FileInterface;
 use Drupal\focal_point\FocalPointManagerInterface;
+use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
+use Drupal\myeventlane_event_studio\Service\EventCoverMediaManager;
+use Drupal\node\NodeInterface;
 
 /**
  * Backfill event_hero crops for legacy focal-only hero images.
@@ -157,6 +166,102 @@ function myeventlane_event_studio_post_update_backfill_event_hero_from_focal(arr
     '@total' => $sandbox['total'],
     '@created' => $sandbox['created'],
   ]);
+}
+
+/**
+ * Captures legacy event cover files as organiser-owned Image Media.
+ *
+ * The field_event_image field remains the public rendering source
+ * and rollback path. This update only fills field_mel_event_cover_media when it
+ * is empty, and reuses Media only when both organiser and source file match.
+ */
+function myeventlane_event_studio_post_update_backfill_event_cover_media(array &$sandbox): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $node_storage = $entity_type_manager->getStorage('node');
+  $logger = \Drupal::logger('myeventlane_event_studio');
+  $manager = \Drupal::service('myeventlane_event_studio.event_cover_media_manager');
+  assert($manager instanceof EventCoverMediaManager);
+
+  if (!isset($sandbox['ids'])) {
+    $sandbox['ids'] = array_values($node_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', 'event')
+      ->exists('field_event_image')
+      ->notExists('field_mel_event_cover_media')
+      ->sort('nid')
+      ->execute());
+    $sandbox['index'] = 0;
+    $sandbox['migrated'] = 0;
+    $sandbox['created'] = 0;
+    $sandbox['reused'] = 0;
+    $sandbox['skipped'] = 0;
+    $sandbox['errors'] = 0;
+  }
+
+  $total = count($sandbox['ids']);
+  $limit = min($sandbox['index'] + 20, $total);
+  while ($sandbox['index'] < $limit) {
+    $nid = (int) $sandbox['ids'][$sandbox['index']];
+    $sandbox['index']++;
+    $event = $node_storage->load($nid);
+
+    if (!$event instanceof NodeInterface
+      || !$event->hasField('field_event_image')
+      || $event->get('field_event_image')->isEmpty()
+      || !$event->hasField('field_mel_event_cover_media')
+      || !$event->get('field_mel_event_cover_media')->isEmpty()) {
+      $sandbox['skipped']++;
+      continue;
+    }
+
+    try {
+      $capture = $manager->capture($event);
+      $event->set('field_mel_event_cover_media', [
+        [
+          'target_id' => (int) $capture['media']->id(),
+        ],
+      ]);
+      EventNodeRevisionSave::prepare($event, 'Backfilled event cover Media Library provenance.');
+      $event->save();
+      $sandbox[$capture['created'] ? 'created' : 'reused']++;
+      $sandbox['migrated']++;
+    }
+    catch (\Throwable $e) {
+      $sandbox['errors']++;
+      $logger->error('Event cover Media backfill failed for event @nid: @message', [
+        '@nid' => (string) $nid,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  $sandbox['#finished'] = $total === 0 ? 1 : $sandbox['index'] / $total;
+  if ($sandbox['#finished'] < 1) {
+    return sprintf(
+      'Captured event covers for %d of %d events (%d Media created, %d reused, %d errors).',
+      $sandbox['index'],
+      $total,
+      $sandbox['created'],
+      $sandbox['reused'],
+      $sandbox['errors'],
+    );
+  }
+
+  if ($sandbox['errors'] > 0) {
+    throw new UpdateException(sprintf(
+      'Event cover Media backfill stopped with %d errors. Review the myeventlane_event_studio log and rerun updates.',
+      $sandbox['errors'],
+    ));
+  }
+
+  return sprintf(
+    'Event cover Media backfill complete: %d migrated, %d Media created, %d reused, %d skipped, %d errors.',
+    $sandbox['migrated'],
+    $sandbox['created'],
+    $sandbox['reused'],
+    $sandbox['skipped'],
+    $sandbox['errors'],
+  );
 }
 
 /**
