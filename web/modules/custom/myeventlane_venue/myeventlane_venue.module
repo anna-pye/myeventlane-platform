@@ -31,6 +31,8 @@ function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
     'myeventlane_venue_page' => [
       'variables' => [
         'venue' => NULL,
+        'image_url' => NULL,
+        'image_alt' => '',
         'can_edit' => FALSE,
         'edit_url' => NULL,
         'locations' => [],

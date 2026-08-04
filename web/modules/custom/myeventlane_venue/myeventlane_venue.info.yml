@@ -6,6 +6,8 @@ version: 1.0.1
 core_version_requirement: ^10 || ^11
 
 dependencies:
+  - drupal:media
+  - drupal:media_library
   - drupal:user
   - myeventlane_vendor:myeventlane_vendor
   - myeventlane_location:myeventlane_location

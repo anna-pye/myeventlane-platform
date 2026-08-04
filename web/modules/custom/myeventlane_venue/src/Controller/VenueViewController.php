@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_venue\Controller;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
@@ -55,15 +56,27 @@ class VenueViewController extends ControllerBase {
    *   Render array.
    */
   public function view(Venue $myeventlane_venue): array {
+    $image_file = $myeventlane_venue->getImageFile();
+    $image_media = $myeventlane_venue->getImageMedia();
+    $cache_tags = $myeventlane_venue->getCacheTags();
+    if ($image_media !== NULL) {
+      $cache_tags = Cache::mergeTags($cache_tags, $image_media->getCacheTags());
+    }
+    elseif ($image_file !== NULL) {
+      $cache_tags = Cache::mergeTags($cache_tags, $image_file->getCacheTags());
+    }
+
     $build = [
       '#theme' => 'myeventlane_venue_page',
       '#venue' => $myeventlane_venue,
+      '#image_url' => $myeventlane_venue->getImageUrl('large') ?? $myeventlane_venue->getImageUrl(),
+      '#image_alt' => $myeventlane_venue->getImageAlt(),
       '#can_edit' => $this->canEdit($myeventlane_venue),
       '#edit_url' => $this->getEditUrl($myeventlane_venue),
       '#locations' => $this->getLocations($myeventlane_venue),
       '#events' => $this->getEvents($myeventlane_venue),
       '#cache' => [
-        'tags' => $myeventlane_venue->getCacheTags(),
+        'tags' => $cache_tags,
         'contexts' => ['user', 'url'],
       ],
       '#attached' => [

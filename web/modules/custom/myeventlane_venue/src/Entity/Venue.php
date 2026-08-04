@@ -11,6 +11,8 @@ use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
 use Drupal\user\EntityOwnerInterface;
 use Drupal\user\EntityOwnerTrait;
 
@@ -210,10 +212,11 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
-    // Venue image.
+    // Legacy venue image. Retained as a hidden migration fallback while venue
+    // imagery moves to owner-attributed Image Media entities.
     $fields['image'] = BaseFieldDefinition::create('image')
-      ->setLabel(new TranslatableMarkup('Venue image'))
-      ->setDescription(new TranslatableMarkup('An image representing this venue.'))
+      ->setLabel(new TranslatableMarkup('Legacy venue image'))
+      ->setDescription(new TranslatableMarkup('Legacy direct-file venue image retained for migration fallback.'))
       ->setSettings([
         'file_directory' => 'venues',
         'alt_field' => TRUE,
@@ -221,16 +224,44 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
         'max_filesize' => '5 MB',
         'file_extensions' => 'png jpg jpeg gif webp',
       ])
-      ->setDisplayOptions('form', [
-        'type' => 'image_image',
-        'weight' => 6,
-      ])
       ->setDisplayOptions('view', [
         'label' => 'hidden',
         'type' => 'image',
         'weight' => -5,
         'settings' => [
           'image_style' => 'large',
+        ],
+      ])
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    // Canonical venue image in Media Library.
+    $fields['image_media'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Venue image'))
+      ->setDescription(new TranslatableMarkup('Choose an image from your Media Library or upload a reusable venue image.'))
+      ->setSetting('target_type', 'media')
+      ->setSetting('handler', 'default:media')
+      ->setSetting('handler_settings', [
+        'target_bundles' => [
+          'image' => 'image',
+        ],
+        'sort' => [
+          'field' => '_none',
+          'direction' => 'ASC',
+        ],
+        'auto_create' => FALSE,
+        'auto_create_bundle' => '',
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'media_library_widget',
+        'weight' => 6,
+      ])
+      ->setDisplayOptions('view', [
+        'label' => 'hidden',
+        'type' => 'entity_reference_entity_view',
+        'weight' => -5,
+        'settings' => [
+          'view_mode' => 'default',
         ],
       ])
       ->setDisplayConfigurable('form', TRUE)
@@ -508,7 +539,19 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
    *   TRUE if an image is set.
    */
   public function hasImage(): bool {
-    return !$this->get('image')->isEmpty();
+    return $this->getImageFile() instanceof FileInterface;
+  }
+
+  /**
+   * Gets the canonical venue image Media entity.
+   */
+  public function getImageMedia(): ?MediaInterface {
+    if (!$this->hasField('image_media') || $this->get('image_media')->isEmpty()) {
+      return NULL;
+    }
+
+    $media = $this->get('image_media')->entity;
+    return $media instanceof MediaInterface ? $media : NULL;
   }
 
   /**
@@ -517,11 +560,49 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
    * @return \Drupal\file\FileInterface|null
    *   The file entity or NULL.
    */
-  public function getImageFile(): ?\Drupal\file\FileInterface {
-    if ($this->hasImage()) {
-      return $this->get('image')->entity;
+  public function getImageFile(): ?FileInterface {
+    $media = $this->getImageMedia();
+    if ($media instanceof MediaInterface) {
+      $source_field = (string) ($media->getSource()->getConfiguration()['source_field'] ?? '');
+      $file = $source_field !== '' && $media->hasField($source_field)
+        ? $media->get($source_field)->entity
+        : NULL;
+      if ($file instanceof FileInterface) {
+        return $file;
+      }
     }
+
+    if ($this->hasField('image') && !$this->get('image')->isEmpty()) {
+      $file = $this->get('image')->entity;
+      return $file instanceof FileInterface ? $file : NULL;
+    }
+
     return NULL;
+  }
+
+  /**
+   * Gets accessible alt text for the canonical or legacy venue image.
+   */
+  public function getImageAlt(): string {
+    $media = $this->getImageMedia();
+    if ($media instanceof MediaInterface) {
+      $source_field = (string) ($media->getSource()->getConfiguration()['source_field'] ?? '');
+      $alt = $source_field !== '' && $media->hasField($source_field)
+        ? trim((string) ($media->get($source_field)->alt ?? ''))
+        : '';
+      if ($alt !== '') {
+        return $alt;
+      }
+    }
+
+    if ($this->hasField('image') && !$this->get('image')->isEmpty()) {
+      $alt = trim((string) ($this->get('image')->alt ?? ''));
+      if ($alt !== '') {
+        return $alt;
+      }
+    }
+
+    return $this->getName();
   }
 
   /**
