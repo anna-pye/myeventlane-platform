@@ -8,4 +8,5 @@ dependencies:
   - drupal:file
   - drupal:media
   - drupal:media_library
+  - drupal:taxonomy
   - myeventlane_core:myeventlane_core

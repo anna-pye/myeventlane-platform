@@ -1,0 +1,31 @@
+uuid: 54bda190-5fdc-4dc2-8469-01b1489f52e7
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.taxonomy_term.field_category_media
+    - media.type.image
+    - taxonomy.vocabulary.categories
+  module:
+    - media
+id: taxonomy_term.categories.field_category_media
+field_name: field_category_media
+entity_type: taxonomy_term
+bundle: categories
+label: 'Category image'
+description: 'Choose an image from Media Library or upload a reusable platform category image.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

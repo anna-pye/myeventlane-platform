@@ -20,6 +20,8 @@ use Drupal\Core\Routing\RouteNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
+use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
 use Drupal\taxonomy\TermInterface;
 use Drupal\views\ViewExecutable;
 use Drupal\file\Entity\File;
@@ -3513,7 +3515,7 @@ function myeventlane_theme_preprocess_taxonomy_term(array &$variables): void {
 
     $variables['mel_category_slug'] = $category_slug;
 
-    // Banner URL: term field_category_image, then Page Visuals for this route.
+    // Banner URL: category Media/legacy fallback, then route Page Visuals.
     $banner_url = _myeventlane_theme_get_category_term_hero_url($term);
     if ($banner_url === NULL && \Drupal::hasService('myeventlane.page_visual_resolver')) {
       $page_visual = \Drupal::service('myeventlane.page_visual_resolver')
@@ -4181,8 +4183,8 @@ function _myeventlane_theme_build_discovery_hero(array $variables): array {
 /**
  * Applies hero image URLs from Page Visuals (single canonical source).
  *
- * Category routes may override with field_category_image on the active term
- * (content-owned image, not a parallel admin chain).
+ * Category routes may override with the active term's Media image, retaining
+ * the legacy direct image only as a migration fallback.
  */
 function _myeventlane_theme_apply_page_visual_hero(array &$variables, ?string $route = NULL): void {
   $route = $route ?? \Drupal::routeMatch()->getRouteName();
@@ -4210,22 +4212,49 @@ function _myeventlane_theme_apply_page_visual_hero(array &$variables, ?string $r
 }
 
 /**
- * Category term hero image from field_category_image when file exists on disk.
+ * Category term hero image from Media, with the legacy file as rollback.
  */
 function _myeventlane_theme_get_category_term_hero_url(?TermInterface $term = NULL): ?string {
   $term = $term ?? _myeventlane_theme_get_active_category_term();
   if (!$term instanceof TermInterface || $term->bundle() !== 'categories') {
     return NULL;
   }
-  if (!$term->hasField('field_category_image') || $term->get('field_category_image')->isEmpty()) {
-    return NULL;
-  }
-  $cat_files = $term->get('field_category_image')->referencedEntities();
-  $file = !empty($cat_files) ? reset($cat_files) : NULL;
-  if (!$file || !file_exists($file->getFileUri())) {
+
+  $file = _myeventlane_theme_get_category_term_hero_file($term);
+  if (!$file instanceof FileInterface) {
     return NULL;
   }
   return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+}
+
+/**
+ * Resolves the canonical category image file, preferring Media provenance.
+ */
+function _myeventlane_theme_get_category_term_hero_file(TermInterface $term): ?FileInterface {
+  if ($term->bundle() !== 'categories') {
+    return NULL;
+  }
+
+  if ($term->hasField('field_category_media') && !$term->get('field_category_media')->isEmpty()) {
+    $media = $term->get('field_category_media')->entity;
+    if ($media instanceof MediaInterface
+      && $media->hasField('field_media_image')
+      && !$media->get('field_media_image')->isEmpty()) {
+      $file = $media->get('field_media_image')->entity;
+      if ($file instanceof FileInterface && file_exists($file->getFileUri())) {
+        return $file;
+      }
+    }
+  }
+
+  if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
+    $file = $term->get('field_category_image')->entity;
+    if ($file instanceof FileInterface && file_exists($file->getFileUri())) {
+      return $file;
+    }
+  }
+
+  return NULL;
 }
 
 /**
@@ -4247,13 +4276,7 @@ function _myeventlane_theme_get_listing_hero_url(?string $route): ?string {
   if ($route === 'entity.taxonomy_term.canonical') {
     $term = \Drupal::routeMatch()->getParameter('taxonomy_term');
     if ($term instanceof TermInterface && $term->bundle() === 'categories') {
-      if ($term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-        $canon_files = $term->get('field_category_image')->referencedEntities();
-        $file = !empty($canon_files) ? reset($canon_files) : NULL;
-        if ($file && file_exists($file->getFileUri())) {
-          return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
-        }
-      }
+      return _myeventlane_theme_get_category_term_hero_url($term);
     }
   }
   return NULL;
@@ -4849,15 +4872,10 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
     $referenced_entities = $category_field->referencedEntities();
     if (!empty($referenced_entities)) {
       $term = reset($referenced_entities);
-      if ($term && $term->hasField('field_category_image') && !$term->get('field_category_image')->isEmpty()) {
-        $category_files = $term->get('field_category_image')->referencedEntities();
-        $file = !empty($category_files) ? reset($category_files) : NULL;
-        if ($file instanceof File) {
-          $uri = $file->getFileUri();
-          $real_cat_uri = $uri !== '' ? $file_system->realpath($uri) : FALSE;
-          if ($real_cat_uri !== FALSE && is_file($real_cat_uri)) {
-            $image_url = $file_url_generator->generateAbsoluteString($uri);
-          }
+      if ($term instanceof TermInterface) {
+        $file = _myeventlane_theme_get_category_term_hero_file($term);
+        if ($file instanceof FileInterface) {
+          $image_url = $file_url_generator->generateAbsoluteString($file->getFileUri());
         }
       }
     }
