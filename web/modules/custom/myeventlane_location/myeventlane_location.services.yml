@@ -5,6 +5,7 @@ services:
     arguments:
       - '@config.factory'
       - '@logger.factory'
+      - '@myeventlane_location.mapkit_token_generator'
 
   # MapKit token generator - generates JWT tokens for Apple Maps.
   myeventlane_location.mapkit_token_generator:

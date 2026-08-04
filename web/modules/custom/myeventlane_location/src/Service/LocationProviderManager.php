@@ -15,17 +15,18 @@ final class LocationProviderManager {
 
   /**
    * The config factory.
-   *
-   * @var \Drupal\Core\Config\ConfigFactoryInterface
    */
   private ConfigFactoryInterface $configFactory;
 
   /**
    * The logger channel.
-   *
-   * @var \Drupal\Core\Logger\LoggerChannelInterface
    */
   private LoggerChannelInterface $logger;
+
+  /**
+   * MapKit JWT token generator.
+   */
+  private MapKitTokenGenerator $tokenGenerator;
 
   /**
    * Constructs a LocationProviderManager.
@@ -34,13 +35,17 @@ final class LocationProviderManager {
    *   The config factory.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
    *   The logger factory.
+   * @param \Drupal\myeventlane_location\Service\MapKitTokenGenerator $token_generator
+   *   MapKit JWT token generator.
    */
   public function __construct(
     ConfigFactoryInterface $config_factory,
     LoggerChannelFactoryInterface $logger_factory,
+    MapKitTokenGenerator $token_generator,
   ) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('myeventlane_location');
+    $this->tokenGenerator = $token_generator;
   }
 
   /**
@@ -145,8 +150,11 @@ final class LocationProviderManager {
   /**
    * Gets public-safe settings for frontend JavaScript.
    *
+   * For Apple Maps this includes a short-lived MapKit JWT. The private key is
+   * never exposed to the browser.
+   *
    * @return array
-   *   An array with provider and public API keys (never private keys).
+   *   An array with provider and public API keys / tokens.
    */
   public function getFrontendSettings(): array {
     $provider = $this->getDefaultProvider();
@@ -158,10 +166,16 @@ final class LocationProviderManager {
       $settings['google_maps_api_key'] = $this->getGoogleMapsApiKey();
     }
     elseif ($provider === 'apple_maps') {
-      // For Apple Maps, we only expose Team ID and Key ID.
-      // The JWT token is generated server-side.
+      // Team/Key IDs are non-secret identifiers; JWT is required by MapKit JS.
       $settings['apple_maps_team_id'] = $this->getAppleMapsTeamId();
       $settings['apple_maps_key_id'] = $this->getAppleMapsKeyId();
+      $token = $this->tokenGenerator->generateToken();
+      if ($token !== '') {
+        $settings['apple_maps_token'] = $token;
+      }
+      else {
+        $this->logger->warning('Apple Maps is the default provider but MapKit JWT generation returned an empty token.');
+      }
     }
 
     return $settings;
