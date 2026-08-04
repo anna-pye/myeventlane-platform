@@ -4,12 +4,14 @@ status: true
 dependencies:
   config:
     - field.field.taxonomy_term.categories.field_category_image
+    - field.field.taxonomy_term.categories.field_category_media
     - field.field.taxonomy_term.categories.field_category_pill_color
     - field.field.taxonomy_term.categories.field_mel_slug
     - image.style.thumbnail
     - taxonomy.vocabulary.categories
   module:
     - image
+    - media_library
     - path
     - text
 id: taxonomy_term.categories.default
@@ -25,13 +27,13 @@ content:
       rows: 5
       placeholder: ''
     third_party_settings: {  }
-  field_category_image:
-    type: image_image
+  field_category_media:
+    type: media_library_widget
     weight: 4
     region: content
     settings:
-      progress_indicator: throbber
-      preview_image_style: thumbnail
+      media_types:
+        - image
     third_party_settings: {  }
   field_category_pill_color:
     type: options_select
@@ -75,4 +77,5 @@ content:
     settings:
       display_label: true
     third_party_settings: {  }
-hidden: {  }
+hidden:
+  field_category_image: true

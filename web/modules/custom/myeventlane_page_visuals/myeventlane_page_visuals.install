@@ -8,6 +8,12 @@ declare(strict_types=1);
  */
 
 use Drupal\Core\File\FileSystemInterface;
+use Drupal\Core\Utility\UpdateException;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\myeventlane_page_visuals\Service\CategoryImageMediaManager;
+use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\taxonomy\TermInterface;
 
 /**
  * Implements hook_install().
@@ -114,4 +120,154 @@ function myeventlane_page_visuals_update_9002(): string {
  */
 function myeventlane_page_visuals_update_9003(): string {
   return myeventlane_page_visuals_ensure_upload_directory();
+}
+
+/**
+ * Adds category Image Media and backfills legacy direct-file images.
+ */
+function myeventlane_page_visuals_update_9004(array &$sandbox): string {
+  myeventlane_page_visuals_ensure_category_media_field();
+
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $term_storage = $entity_type_manager->getStorage('taxonomy_term');
+  $logger = \Drupal::logger('myeventlane_page_visuals');
+  $manager = \Drupal::service('myeventlane.category_image_media_manager');
+  assert($manager instanceof CategoryImageMediaManager);
+
+  if (!isset($sandbox['ids'])) {
+    $sandbox['ids'] = array_values($term_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('vid', 'categories')
+      ->exists('field_category_image')
+      ->notExists('field_category_media')
+      ->sort('tid')
+      ->execute());
+    $sandbox['index'] = 0;
+    $sandbox['migrated'] = 0;
+    $sandbox['created'] = 0;
+    $sandbox['reused'] = 0;
+    $sandbox['skipped'] = 0;
+    $sandbox['errors'] = 0;
+  }
+
+  $total = count($sandbox['ids']);
+  $limit = min($sandbox['index'] + 20, $total);
+  while ($sandbox['index'] < $limit) {
+    $tid = (int) $sandbox['ids'][$sandbox['index']];
+    $sandbox['index']++;
+    $term = $term_storage->load($tid);
+
+    if (!$term instanceof TermInterface
+      || !$term->hasField('field_category_image')
+      || $term->get('field_category_image')->isEmpty()
+      || !$term->hasField('field_category_media')
+      || !$term->get('field_category_media')->isEmpty()) {
+      $sandbox['skipped']++;
+      continue;
+    }
+
+    try {
+      $capture = $manager->capture($term);
+      $term->set('field_category_media', [
+        ['target_id' => (int) $capture['media']->id()],
+      ]);
+      $term->save();
+      $sandbox[$capture['created'] ? 'created' : 'reused']++;
+      $sandbox['migrated']++;
+    }
+    catch (\Throwable $e) {
+      $sandbox['errors']++;
+      $logger->error('Category image Media backfill failed for term @tid: @message', [
+        '@tid' => (string) $tid,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  $sandbox['#finished'] = $total === 0 ? 1 : $sandbox['index'] / $total;
+  if ($sandbox['#finished'] < 1) {
+    return sprintf(
+      'Captured category images for %d of %d terms (%d Media created, %d reused, %d errors).',
+      $sandbox['index'],
+      $total,
+      $sandbox['created'],
+      $sandbox['reused'],
+      $sandbox['errors'],
+    );
+  }
+
+  if ($sandbox['errors'] > 0) {
+    throw new UpdateException(sprintf(
+      'Category image Media backfill stopped with %d errors. Review the myeventlane_page_visuals log and rerun updates.',
+      $sandbox['errors'],
+    ));
+  }
+
+  return sprintf(
+    'Category image Media backfill complete: %d migrated, %d Media created, %d reused, %d skipped, %d errors.',
+    $sandbox['migrated'],
+    $sandbox['created'],
+    $sandbox['reused'],
+    $sandbox['skipped'],
+    $sandbox['errors'],
+  );
+}
+
+/**
+ * Ensures the category Media field exists before the deployment config import.
+ */
+function myeventlane_page_visuals_ensure_category_media_field(): void {
+  $entity_type = 'taxonomy_term';
+  $bundle = 'categories';
+  $field_name = 'field_category_media';
+
+  $storage = FieldStorageConfig::loadByName($entity_type, $field_name);
+  if ($storage === NULL) {
+    FieldStorageConfig::create([
+      'uuid' => 'd2530565-98a1-46e5-83f7-736b7524d7f2',
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'type' => 'entity_reference',
+      'settings' => ['target_type' => 'media'],
+      'cardinality' => 1,
+      'translatable' => FALSE,
+    ])->save();
+  }
+
+  $field = FieldConfig::loadByName($entity_type, $bundle, $field_name);
+  if ($field === NULL) {
+    FieldConfig::create([
+      'uuid' => '54bda190-5fdc-4dc2-8469-01b1489f52e7',
+      'field_name' => $field_name,
+      'entity_type' => $entity_type,
+      'bundle' => $bundle,
+      'label' => 'Category image',
+      'description' => 'Choose an image from Media Library or upload a reusable platform category image.',
+      'required' => FALSE,
+      'translatable' => FALSE,
+      'settings' => [
+        'handler' => 'default:media',
+        'handler_settings' => [
+          'target_bundles' => ['image' => 'image'],
+          'sort' => ['field' => '_none', 'direction' => 'ASC'],
+          'auto_create' => FALSE,
+          'auto_create_bundle' => '',
+        ],
+      ],
+    ])->save();
+  }
+
+  $display = EntityFormDisplay::load('taxonomy_term.categories.default');
+  if ($display !== NULL) {
+    $display->setComponent($field_name, [
+      'type' => 'media_library_widget',
+      'weight' => 4,
+      'region' => 'content',
+      'settings' => ['media_types' => ['image']],
+    ]);
+    $display->removeComponent('field_category_image');
+    $display->save();
+  }
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
 }

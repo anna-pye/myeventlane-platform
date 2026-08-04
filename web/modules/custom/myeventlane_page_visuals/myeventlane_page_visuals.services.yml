@@ -16,6 +16,12 @@ services:
       - '@current_user'
       - '@logger.channel.myeventlane_page_visuals'
 
+  myeventlane.category_image_media_manager:
+    class: Drupal\myeventlane_page_visuals\Service\CategoryImageMediaManager
+    arguments:
+      - '@entity_type.manager'
+      - '@file_system'
+
   logger.channel.myeventlane_page_visuals:
     parent: logger.channel_base
     arguments: ['myeventlane_page_visuals']
