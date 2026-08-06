@@ -12,6 +12,8 @@ use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Exception\UnsupportedBrandMediaFileException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Captures and resolves organiser brand images as reusable Image Media.
@@ -48,12 +50,13 @@ final class VendorBrandMediaManager {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly FileSystemInterface $fileSystem,
+    private readonly LoggerInterface $logger,
   ) {}
 
   /**
    * Captures one legacy organiser asset as owner-scoped Image Media.
    *
-   * @return array{media: \Drupal\media\MediaInterface, created: bool, source_field: string, conflict: bool}
+   * @return array{status: 'captured', media: \Drupal\media\MediaInterface, created: bool, source_field: string, conflict: bool}
    *   Capture result and provenance details.
    */
   public function capture(Vendor $vendor, string $assetType): array {
@@ -90,6 +93,7 @@ final class VendorBrandMediaManager {
     $media = $existing ? reset($existing) : NULL;
     if ($media instanceof MediaInterface) {
       return [
+        'status' => 'captured',
         'media' => $media,
         'created' => FALSE,
         'source_field' => $source['field'],
@@ -127,6 +131,7 @@ final class VendorBrandMediaManager {
     $media->save();
 
     return [
+      'status' => 'captured',
       'media' => $media,
       'created' => TRUE,
       'source_field' => $source['field'],
@@ -144,8 +149,9 @@ final class VendorBrandMediaManager {
    * @param bool $clearWhenEmpty
    *   Clear the Media reference when the corresponding form cleared its file.
    *
-   * @return array<string, array{media: \Drupal\media\MediaInterface, created: bool, source_field: string, conflict: bool}|null>
-   *   Results keyed by asset type; NULL means the reference was cleared/empty.
+   * @return array<string, array{status: 'captured', media: \Drupal\media\MediaInterface, created: bool, source_field: string, conflict: bool}|array{status: 'unsupported', source_field: string, reason: string}|null>
+   *   Results keyed by asset type. Unsupported files retain their legacy
+   *   fallback; NULL means the reference was cleared/empty.
    */
   public function synchroniseFromLegacy(Vendor $vendor, array $assetTypes, bool $clearWhenEmpty = TRUE): array {
     $results = [];
@@ -156,7 +162,8 @@ final class VendorBrandMediaManager {
         continue;
       }
 
-      if ($this->legacySource($vendor, $assetType) === NULL) {
+      $legacySource = $this->legacySource($vendor, $assetType);
+      if ($legacySource === NULL) {
         if ($clearWhenEmpty) {
           $vendor->set($mediaField, []);
         }
@@ -164,7 +171,26 @@ final class VendorBrandMediaManager {
         continue;
       }
 
-      $capture = $this->capture($vendor, $assetType);
+      try {
+        $capture = $this->capture($vendor, $assetType);
+      }
+      catch (UnsupportedBrandMediaFileException $e) {
+        $this->logger->warning(
+          'Organiser @vendor_id legacy @asset in @field was retained without Media capture: @message',
+          [
+            '@vendor_id' => (string) $vendor->id(),
+            '@asset' => $definition['label'],
+            '@field' => $legacySource['field'],
+            '@message' => $e->getMessage(),
+          ],
+        );
+        $results[$assetType] = [
+          'status' => 'unsupported',
+          'source_field' => $legacySource['field'],
+          'reason' => $e->getMessage(),
+        ];
+        continue;
+      }
       $vendor->set($mediaField, [['target_id' => (int) $capture['media']->id()]]);
       $results[$assetType] = $capture;
     }
@@ -277,7 +303,7 @@ final class VendorBrandMediaManager {
     $extension = strtolower((string) pathinfo($file->getFilename(), PATHINFO_EXTENSION));
     $allowed = preg_split('/\s+/', strtolower(trim($extensions))) ?: [];
     if ($extension === '' || !in_array($extension, $allowed, TRUE)) {
-      throw new \RuntimeException(sprintf(
+      throw new UnsupportedBrandMediaFileException(sprintf(
         'File %d uses .%s, which the Image media type does not allow (%s).',
         (int) $file->id(),
         $extension !== '' ? $extension : 'unknown',

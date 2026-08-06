@@ -1141,6 +1141,7 @@ function myeventlane_vendor_update_10023(array &$sandbox): string {
     $sandbox['reused'] = 0;
     $sandbox['skipped'] = 0;
     $sandbox['conflicts'] = 0;
+    $sandbox['unsupported'] = 0;
     $sandbox['errors'] = 0;
   }
 
@@ -1174,6 +1175,10 @@ function myeventlane_vendor_update_10023(array &$sandbox): string {
       try {
         $result = $manager->synchroniseFromLegacy($vendor, [$assetType], FALSE)[$assetType] ?? NULL;
         if ($result === NULL) {
+          continue;
+        }
+        if (($result['status'] ?? '') === 'unsupported') {
+          $sandbox['unsupported']++;
           continue;
         }
         $changed = TRUE;
@@ -1217,11 +1222,12 @@ function myeventlane_vendor_update_10023(array &$sandbox): string {
   $sandbox['#finished'] = $total === 0 ? 1 : $sandbox['index'] / $total;
   if ($sandbox['#finished'] < 1) {
     return sprintf(
-      'Checked %d of %d organisers (%d Media created, %d reused, %d conflicts, %d errors).',
+      'Checked %d of %d organisers (%d Media created, %d reused, %d unsupported legacy files retained, %d conflicts, %d errors).',
       $sandbox['index'],
       $total,
       $sandbox['created'],
       $sandbox['reused'],
+      $sandbox['unsupported'],
       $sandbox['conflicts'],
       $sandbox['errors'],
     );
@@ -1235,11 +1241,12 @@ function myeventlane_vendor_update_10023(array &$sandbox): string {
   }
 
   return sprintf(
-    'Organiser brand Media backfill complete: %d organiser records updated, %d Media created, %d reused, %d skipped, %d legacy-logo conflicts reported, %d errors.',
+    'Organiser brand Media backfill complete: %d organiser records updated, %d Media created, %d reused, %d skipped, %d unsupported legacy files retained, %d legacy-logo conflicts reported, %d errors.',
     $sandbox['migrated'],
     $sandbox['created'],
     $sandbox['reused'],
     $sandbox['skipped'],
+    $sandbox['unsupported'],
     $sandbox['conflicts'],
     $sandbox['errors'],
   );

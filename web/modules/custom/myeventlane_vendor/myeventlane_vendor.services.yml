@@ -65,6 +65,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@file_system'
+      - '@logger.channel.myeventlane_vendor'
 
   myeventlane_vendor.event_studio_create:
     class: Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService
