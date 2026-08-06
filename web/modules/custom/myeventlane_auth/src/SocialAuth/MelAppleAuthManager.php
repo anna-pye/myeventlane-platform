@@ -42,6 +42,9 @@ final class MelAppleAuthManager extends AppleAuthManager {
   public function authenticate(): void {
     $code = $this->request?->query->get('code');
     if (!is_string($code) || $code === '') {
+      $code = $this->request?->request->get('code');
+    }
+    if (!is_string($code) || $code === '') {
       return;
     }
 
