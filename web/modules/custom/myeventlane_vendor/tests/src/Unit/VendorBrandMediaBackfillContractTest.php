@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_vendor\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\Group;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Protects organiser brand Media capture, backfill, and fallback contracts.
@@ -38,6 +39,42 @@ final class VendorBrandMediaBackfillContractTest extends UnitTestCase {
     self::assertSame(3, substr_count($display, 'type: media_library_widget'));
     foreach (['field_vendor_logo', 'field_logo_image', 'field_banner_image', 'field_msg_logo'] as $legacyField) {
       self::assertStringContainsString($legacyField . ': true', $display);
+    }
+  }
+
+  /**
+   * Display config stays canonical after Drupal recalculates field visibility.
+   */
+  public function testVendorDisplaysIncludeAllHiddenPublicControlsInCanonicalOrder(): void {
+    $root = dirname(__DIR__, 7);
+    $displayNames = [
+      'core.entity_form_display.myeventlane_vendor.myeventlane_vendor.default',
+      'core.entity_view_display.myeventlane_vendor.myeventlane_vendor.default',
+      'core.entity_view_display.myeventlane_vendor.myeventlane_vendor.full',
+    ];
+    $publicControlFields = [
+      'field_public_profile_published',
+      'field_public_show_banner',
+      'field_public_show_description',
+      'field_public_show_social_links',
+      'field_public_show_summary',
+      'field_public_show_website',
+    ];
+
+    foreach ($displayNames as $displayName) {
+      $display = Yaml::parseFile($root . '/config/sync/' . $displayName . '.yml');
+      self::assertIsArray($display);
+      self::assertIsArray($display['hidden'] ?? NULL);
+      foreach ($publicControlFields as $fieldName) {
+        self::assertArrayHasKey($fieldName, $display['hidden'], $displayName);
+      }
+
+      foreach (['content', 'hidden'] as $section) {
+        $fieldNames = array_keys($display[$section] ?? []);
+        $sortedFieldNames = $fieldNames;
+        sort($sortedFieldNames, SORT_STRING);
+        self::assertSame($sortedFieldNames, $fieldNames, $displayName . ':' . $section);
+      }
     }
   }
 
