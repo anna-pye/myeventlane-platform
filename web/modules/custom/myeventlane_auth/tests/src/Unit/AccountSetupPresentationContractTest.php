@@ -182,6 +182,13 @@ final class AccountSetupPresentationContractTest extends TestCase {
     self::assertStringContainsString("t('Sign in with Apple')", $module);
     self::assertStringContainsString("'alt' => (string) \$label", $module);
     self::assertStringContainsString("'aria-label' => (string) \$label", $module);
+    self::assertStringContainsString('myeventlane_auth_social_api_network_info_alter', $module);
+    self::assertStringContainsString('MelAppleAuthManager::class', $module);
+
+    $manager = file_get_contents(dirname(__DIR__, 3) . '/src/SocialAuth/MelAppleAuthManager.php');
+    self::assertIsString($manager);
+    self::assertStringContainsString("'nonce' => \$nonce", $manager);
+    self::assertStringContainsString('AppleIdentityTokenValidator', $manager);
 
     $button = dirname(__DIR__, 3) . '/images/sign-in-with-apple@2x.png';
     self::assertFileExists($button);

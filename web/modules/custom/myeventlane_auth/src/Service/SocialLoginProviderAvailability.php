@@ -48,7 +48,12 @@ final class SocialLoginProviderAvailability {
       }
     }
 
-    return is_readable((string) $config->get('key_file_path'))
+    $teamId = trim((string) $config->get('team_id'));
+    $keyId = trim((string) $config->get('key_file_id'));
+
+    return preg_match('/^[A-Z0-9]{10}$/', $teamId) === 1
+      && preg_match('/^[A-Z0-9]{10}$/', $keyId) === 1
+      && is_readable((string) $config->get('key_file_path'))
       && $this->hasOAuth2Defaults($config->get('scopes'), $config->get('endpoints'));
   }
 

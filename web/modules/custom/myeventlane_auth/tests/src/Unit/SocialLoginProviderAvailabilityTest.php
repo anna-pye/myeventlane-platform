@@ -29,8 +29,8 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
     ]);
     $apple = $this->config([
       'client_id' => 'apple-id',
-      'team_id' => 'team-id',
-      'key_file_id' => 'key-id',
+      'team_id' => 'WT8K739P63',
+      'key_file_id' => 'G82FTJW6MN',
       'key_file_path' => '',
       'scopes' => '',
       'endpoints' => '',
@@ -57,8 +57,8 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
     ]);
     $apple = $this->config([
       'client_id' => 'apple-id',
-      'team_id' => 'team-id',
-      'key_file_id' => 'key-id',
+      'team_id' => 'WT8K739P63',
+      'key_file_id' => 'G82FTJW6MN',
       'key_file_path' => __FILE__,
       'scopes' => '',
       'endpoints' => '',
@@ -83,8 +83,8 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
     ]);
     $apple = $this->config([
       'client_id' => 'apple-id',
-      'team_id' => 'team-id',
-      'key_file_id' => 'key-id',
+      'team_id' => 'WT8K739P63',
+      'key_file_id' => 'G82FTJW6MN',
       'key_file_path' => __FILE__,
     ]);
     $factory = $this->configFactory($google, $apple);
@@ -112,6 +112,26 @@ final class SocialLoginProviderAvailabilityTest extends UnitTestCase {
 
     $availability = new SocialLoginProviderAvailability($factory, $modules);
     self::assertFalse($availability->googleIsAvailable());
+  }
+
+  /**
+   * @covers ::appleIsAvailable
+   */
+  public function testAppleFailsClosedWithMalformedKeyId(): void {
+    $apple = $this->config([
+      'client_id' => 'com.myeventlane.myeventlane',
+      'team_id' => 'WT8K739P63',
+      'key_file_id' => 'SHORTKEY1',
+      'key_file_path' => __FILE__,
+      'scopes' => '',
+      'endpoints' => '',
+    ]);
+    $factory = $this->configFactory($this->config([]), $apple);
+    $modules = $this->createMock(ModuleHandlerInterface::class);
+    $modules->method('moduleExists')->willReturn(TRUE);
+
+    $availability = new SocialLoginProviderAvailability($factory, $modules);
+    self::assertFalse($availability->appleIsAvailable());
   }
 
   /**
