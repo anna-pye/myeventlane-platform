@@ -33,13 +33,13 @@ final class VendorBrandingForm extends FormBase {
    * Constructs the vendor branding form.
    */
   public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly AccountProxyInterface $currentUser,
-    private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
-    private readonly LoggerInterface $logger,
-    private readonly CurrentVendorResolverInterface $vendorResolver,
-    private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
-    private readonly VendorBrandMediaManager $brandMediaManager,
+    protected EntityTypeManagerInterface $entityTypeManager,
+    protected AccountProxyInterface $currentUser,
+    protected CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    protected LoggerInterface $logger,
+    protected CurrentVendorResolverInterface $vendorResolver,
+    protected UserVendorMembershipQuery $userVendorMembershipQuery,
+    protected VendorBrandMediaManager $brandMediaManager,
   ) {}
 
   /**
