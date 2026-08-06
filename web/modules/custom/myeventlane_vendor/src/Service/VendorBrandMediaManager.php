@@ -12,6 +12,7 @@ use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
 use Drupal\media\MediaTypeInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Exception\UnavailableBrandMediaFileException;
 use Drupal\myeventlane_vendor\Exception\UnsupportedBrandMediaFileException;
 use Psr\Log\LoggerInterface;
 
@@ -72,12 +73,12 @@ final class VendorBrandMediaManager {
       ? $this->entityTypeManager->getStorage('file')->load($fid)
       : NULL;
     if (!$file instanceof FileInterface) {
-      throw new \RuntimeException(sprintf('%s file %d could not be loaded.', ucfirst($definition['label']), $fid));
+      throw new UnavailableBrandMediaFileException(sprintf('%s file %d could not be loaded.', ucfirst($definition['label']), $fid));
     }
 
     $realpath = $this->fileSystem->realpath($file->getFileUri());
     if ($realpath === FALSE || !is_file($realpath)) {
-      throw new \RuntimeException(sprintf('%s file %d is missing from storage.', ucfirst($definition['label']), $fid));
+      throw new UnavailableBrandMediaFileException(sprintf('%s file %d is missing from storage.', ucfirst($definition['label']), $fid));
     }
 
     [$mediaType, $sourceField] = $this->imageMediaSource();
@@ -149,9 +150,9 @@ final class VendorBrandMediaManager {
    * @param bool $clearWhenEmpty
    *   Clear the Media reference when the corresponding form cleared its file.
    *
-   * @return array<string, array{status: 'captured', media: \Drupal\media\MediaInterface, created: bool, source_field: string, conflict: bool}|array{status: 'unsupported', source_field: string, reason: string}|null>
-   *   Results keyed by asset type. Unsupported files retain their legacy
-   *   fallback; NULL means the reference was cleared/empty.
+   * @return array<string, array{status: 'captured', media: \Drupal\media\MediaInterface, created: bool, source_field: string, conflict: bool}|array{status: 'unsupported'|'unavailable', source_field: string, reason: string}|null>
+   *   Results keyed by asset type. Unsupported or unavailable files retain
+   *   their legacy reference; NULL means the reference was cleared/empty.
    */
   public function synchroniseFromLegacy(Vendor $vendor, array $assetTypes, bool $clearWhenEmpty = TRUE): array {
     $results = [];
@@ -174,18 +175,22 @@ final class VendorBrandMediaManager {
       try {
         $capture = $this->capture($vendor, $assetType);
       }
-      catch (UnsupportedBrandMediaFileException $e) {
+      catch (UnsupportedBrandMediaFileException | UnavailableBrandMediaFileException $e) {
+        $status = $e instanceof UnsupportedBrandMediaFileException
+          ? 'unsupported'
+          : 'unavailable';
         $this->logger->warning(
-          'Organiser @vendor_id legacy @asset in @field was retained without Media capture: @message',
+          'Organiser @vendor_id legacy @asset in @field was retained as @status without Media capture: @message',
           [
             '@vendor_id' => (string) $vendor->id(),
             '@asset' => $definition['label'],
             '@field' => $legacySource['field'],
+            '@status' => $status,
             '@message' => $e->getMessage(),
           ],
         );
         $results[$assetType] = [
-          'status' => 'unsupported',
+          'status' => $status,
           'source_field' => $legacySource['field'],
           'reason' => $e->getMessage(),
         ];
