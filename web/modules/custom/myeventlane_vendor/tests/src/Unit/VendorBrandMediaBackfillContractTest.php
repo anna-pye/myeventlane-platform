@@ -52,7 +52,8 @@ final class VendorBrandMediaBackfillContractTest extends UnitTestCase {
     self::assertStringContainsString('synchroniseFromLegacy($vendor, [$assetType], FALSE)', $update);
     self::assertStringContainsString('throw new UpdateException', $update);
     self::assertStringContainsString("\$sandbox['unsupported']", $update);
-    self::assertStringContainsString('unsupported legacy files retained', $update);
+    self::assertStringContainsString("\$sandbox['unavailable']", $update);
+    self::assertStringContainsString('unavailable legacy files retained', $update);
     self::assertStringContainsString('legacy-logo conflicts reported', $update);
     foreach (['field_vendor_logo', 'field_logo_image', 'field_banner_image', 'field_msg_logo'] as $legacyField) {
       self::assertStringNotContainsString("delete('{$legacyField}')", $update);
