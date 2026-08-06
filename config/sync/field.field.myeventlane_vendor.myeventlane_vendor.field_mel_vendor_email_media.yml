@@ -1,0 +1,30 @@
+uuid: 44bf3562-7b10-43e7-961e-a50836d25f97
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_mel_vendor_email_media
+    - media.type.image
+  module:
+    - media
+id: myeventlane_vendor.myeventlane_vendor.field_mel_vendor_email_media
+field_name: field_mel_vendor_email_media
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Email logo override'
+description: 'Optional reusable email logo. When empty, messages use the organiser logo.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

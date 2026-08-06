@@ -52,6 +52,7 @@ services:
       - '@config.factory'
       - '@myeventlane_vendor.current_vendor_resolver'
       - '@file_url_generator'
+      - '@myeventlane_vendor.brand_media_manager'
 
   myeventlane_messaging.utm_linker:
     class: Drupal\myeventlane_messaging\Service\UtmLinker

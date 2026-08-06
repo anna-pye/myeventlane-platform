@@ -1,0 +1,30 @@
+uuid: 1c9118f2-cfe4-437a-80eb-c27eb14cd1ec
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_mel_vendor_logo_media
+    - media.type.image
+  module:
+    - media
+id: myeventlane_vendor.myeventlane_vendor.field_mel_vendor_logo_media
+field_name: field_mel_vendor_logo_media
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Organiser logo'
+description: 'Reusable organiser logo captured in Media Library. The retained direct-file fields remain available for rollback.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings:
+  handler: 'default:media'
+  handler_settings:
+    target_bundles:
+      image: image
+    sort:
+      field: _none
+      direction: ASC
+    auto_create: false
+    auto_create_bundle: ''
+field_type: entity_reference

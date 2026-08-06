@@ -8,6 +8,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
 use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -22,11 +23,17 @@ final class VendorBrandingForm extends FormBase {
   protected EntityTypeManagerInterface $entityTypeManager;
 
   /**
+   * Captures retained direct files as reusable organiser Media.
+   */
+  protected VendorBrandMediaManager $brandMediaManager;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): static {
     $instance = new static();
     $instance->entityTypeManager = $container->get('entity_type.manager');
+    $instance->brandMediaManager = $container->get('myeventlane_vendor.brand_media_manager');
     return $instance;
   }
 
@@ -58,10 +65,8 @@ final class VendorBrandingForm extends FormBase {
     // Logo field.
     $logo_field = VendorImageFieldPolicy::canonicalPublicLogoField($vendor);
     if ($logo_field !== '') {
-      $existing_logo_fid = NULL;
-      if ($vendor->hasField($logo_field) && !$vendor->get($logo_field)->isEmpty()) {
-        $existing_logo_fid = $vendor->get($logo_field)->target_id;
-      }
+      $existing_logo_fid = $this->brandMediaManager
+        ->fileForAsset($vendor, VendorBrandMediaManager::ASSET_PUBLIC_LOGO)?->id();
 
       $form['logo'] = [
         '#type' => 'managed_file',
@@ -69,7 +74,7 @@ final class VendorBrandingForm extends FormBase {
         '#default_value' => $existing_logo_fid ? [$existing_logo_fid] : [],
         '#upload_location' => 'public://vendor-assets/',
         '#upload_validators' => [
-          'FileExtension' => ['extensions' => 'png jpg jpeg gif svg webp'],
+          'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
           'FileImageDimensions' => ['maxDimensions' => '2000x2000', 'minDimensions' => '100x100'],
         ],
         '#description' => $this->t('Your organisation logo. Recommended size: 400x400px. Square format works best.'),
@@ -82,10 +87,8 @@ final class VendorBrandingForm extends FormBase {
 
     // Banner image field.
     if ($vendor->hasField('field_banner_image')) {
-      $existing_banner_fid = NULL;
-      if (!$vendor->get('field_banner_image')->isEmpty()) {
-        $existing_banner_fid = $vendor->get('field_banner_image')->target_id;
-      }
+      $existing_banner_fid = $this->brandMediaManager
+        ->fileForAsset($vendor, VendorBrandMediaManager::ASSET_BANNER)?->id();
 
       $form['banner'] = [
         '#type' => 'managed_file',
@@ -180,7 +183,12 @@ final class VendorBrandingForm extends FormBase {
       }
     }
 
-    // Save the vendor.
+    $this->brandMediaManager->synchroniseFromLegacy($vendor, [
+      VendorBrandMediaManager::ASSET_PUBLIC_LOGO,
+      VendorBrandMediaManager::ASSET_BANNER,
+    ]);
+
+    // Save the direct-file rollback fields and canonical Media references.
     $vendor->save();
 
     // Redirect to next step.

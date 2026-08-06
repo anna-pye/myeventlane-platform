@@ -11,6 +11,12 @@ use Drupal\Core\Entity\ContentEntityInterface;
  */
 final class VendorImageFieldPolicy {
 
+  public const PUBLIC_LOGO_MEDIA_FIELD = 'field_mel_vendor_logo_media';
+
+  public const BANNER_MEDIA_FIELD = 'field_mel_vendor_banner_media';
+
+  public const EMAIL_LOGO_MEDIA_FIELD = 'field_mel_vendor_email_media';
+
   public const PUBLIC_LOGO_FIELDS = [
     'field_vendor_logo',
     'field_logo_image',
@@ -26,6 +32,12 @@ final class VendorImageFieldPolicy {
    * Returns the canonical public logo field, with legacy schema fallback.
    */
   public static function canonicalPublicLogoField(ContentEntityInterface $vendor): string {
+    foreach (self::PUBLIC_LOGO_FIELDS as $fieldName) {
+      if ($vendor->hasField($fieldName) && !$vendor->get($fieldName)->isEmpty()) {
+        return $fieldName;
+      }
+    }
+
     foreach (self::PUBLIC_LOGO_FIELDS as $fieldName) {
       if ($vendor->hasField($fieldName)) {
         return $fieldName;

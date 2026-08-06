@@ -19,6 +19,7 @@ dependencies:
   - drupal:image
   - drupal:link
   - drupal:media
+  - drupal:media_library
   - drupal:user
   - drupal:views
   - drupal:field_ui

@@ -44,6 +44,7 @@ final class VendorCardBuilder {
     private readonly TimeInterface $time,
     private readonly AccountProxyInterface $currentUser,
     private readonly VendorFollowService $vendorFollowService,
+    private readonly VendorBrandMediaManager $brandMediaManager,
   ) {}
 
   /**
@@ -79,7 +80,10 @@ final class VendorCardBuilder {
   }
 
   /**
+   * Builds follow-control data for an organiser card.
+   *
    * @return array<string, mixed>
+   *   Template variables for the follow control.
    */
   private function buildVendorFollowVariables(Vendor $vendor): array {
     $vid = (int) $vendor->id();
@@ -220,17 +224,40 @@ final class VendorCardBuilder {
   }
 
   /**
-   * Builds the organiser logo render array using the canonical logo image style.
+   * Builds the organiser logo with Media-first direct-file fallback.
    *
    * @return array|null
    *   A render array, or NULL when no logo exists.
    */
   public function buildLogo(EntityInterface $entity): ?array {
-    return $this->buildStyledImage(
-      $entity,
-      VendorImageFieldPolicy::PUBLIC_LOGO_FIELDS,
-      self::LOGO_IMAGE_STYLE,
-    );
+    if (!$entity instanceof Vendor) {
+      return $this->buildStyledImage($entity, VendorImageFieldPolicy::PUBLIC_LOGO_FIELDS, self::LOGO_IMAGE_STYLE);
+    }
+
+    $items = $this->brandMediaManager->imageItemsForAsset($entity, VendorBrandMediaManager::ASSET_PUBLIC_LOGO);
+    return $items?->view([
+      'type' => 'image',
+      'label' => 'hidden',
+      'settings' => [
+        'image_style' => self::LOGO_IMAGE_STYLE,
+        'image_link' => '',
+      ],
+    ]);
+  }
+
+  /**
+   * Builds the organiser banner with Media-first legacy fallback.
+   */
+  public function buildBanner(Vendor $vendor): ?array {
+    $items = $this->brandMediaManager->imageItemsForAsset($vendor, VendorBrandMediaManager::ASSET_BANNER);
+    return $items?->view([
+      'type' => 'image',
+      'label' => 'hidden',
+      'settings' => [
+        'image_style' => 'large',
+        'image_link' => '',
+      ],
+    ]);
   }
 
   /**
@@ -245,12 +272,14 @@ final class VendorCardBuilder {
       return NULL;
     }
 
+    if ($entity instanceof Vendor) {
+      $file = $this->brandMediaManager->fileForAsset($entity, VendorBrandMediaManager::ASSET_PUBLIC_LOGO);
+      return $file !== NULL ? $style->buildUrl($file->getFileUri()) : NULL;
+    }
+
     foreach (VendorImageFieldPolicy::PUBLIC_LOGO_FIELDS as $field_name) {
-      if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty()) {
-        $file = $entity->get($field_name)->entity;
-        if ($file !== NULL) {
-          return $style->buildUrl($file->getFileUri());
-        }
+      if ($entity->hasField($field_name) && !$entity->get($field_name)->isEmpty() && $entity->get($field_name)->entity !== NULL) {
+        return $style->buildUrl($entity->get($field_name)->entity->getFileUri());
       }
     }
 

@@ -14,6 +14,7 @@ use Drupal\file\FileInterface;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
 use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -38,6 +39,7 @@ final class VendorBrandingForm extends FormBase {
     private readonly LoggerInterface $logger,
     private readonly CurrentVendorResolverInterface $vendorResolver,
     private readonly UserVendorMembershipQuery $userVendorMembershipQuery,
+    private readonly VendorBrandMediaManager $brandMediaManager,
   ) {}
 
   /**
@@ -51,6 +53,7 @@ final class VendorBrandingForm extends FormBase {
       $container->get('logger.channel.myeventlane_messaging'),
       $container->get('myeventlane_vendor.current_vendor_resolver'),
       $container->get('myeventlane_vendor.user_vendor_membership_query'),
+      $container->get('myeventlane_vendor.brand_media_manager'),
     );
   }
 
@@ -126,7 +129,11 @@ final class VendorBrandingForm extends FormBase {
     ];
 
     if ($form['logo_field_name']['#value'] !== '') {
-      $logo_default = $this->getManagedFileDefaultValue($vendor, $form['logo_field_name']['#value']);
+      $logo_default = $this->getManagedFileDefaultValue(
+        $vendor,
+        $form['logo_field_name']['#value'],
+        VendorBrandMediaManager::ASSET_EMAIL_LOGO,
+      );
       $form['branding']['logo_preview'] = $this->buildAssetPreview(
         $logo_default,
         (string) $this->t('@name logo preview', ['@name' => $vendor->label()]),
@@ -147,7 +154,11 @@ final class VendorBrandingForm extends FormBase {
     }
 
     if ($vendor->hasField('field_banner_image')) {
-      $banner_default = $this->getManagedFileDefaultValue($vendor, 'field_banner_image');
+      $banner_default = $this->getManagedFileDefaultValue(
+        $vendor,
+        'field_banner_image',
+        VendorBrandMediaManager::ASSET_BANNER,
+      );
       $form['branding']['banner_preview'] = $this->buildAssetPreview(
         $banner_default,
         (string) $this->t('@name banner preview', ['@name' => $vendor->label()]),
@@ -255,6 +266,11 @@ final class VendorBrandingForm extends FormBase {
       $this->saveManagedFileField($vendor, 'field_banner_image', $values['banner'] ?? [], 'banner');
       $this->savePrimaryColor($vendor, $values['primary_color'] ?? self::DEFAULT_PRIMARY_COLOR);
 
+      $this->brandMediaManager->synchroniseFromLegacy($vendor, [
+        VendorBrandMediaManager::ASSET_EMAIL_LOGO,
+        VendorBrandMediaManager::ASSET_BANNER,
+      ]);
+
       $vendor->save();
 
       $this->cacheTagsInvalidator->invalidateTags([
@@ -361,12 +377,24 @@ final class VendorBrandingForm extends FormBase {
   }
 
   /**
-   * Gets the managed_file default value for an entity reference field.
+   * Gets the Media-first managed_file default for a retained direct field.
+   *
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
+   *   The organiser whose asset is displayed.
+   * @param string $field_name
+   *   Retained direct-file field used when no Media reference exists.
+   * @param string $asset_type
+   *   Canonical Media asset type.
    *
    * @return array<int>
    *   File IDs for the managed file element.
    */
-  private function getManagedFileDefaultValue(Vendor $vendor, string $field_name): array {
+  private function getManagedFileDefaultValue(Vendor $vendor, string $field_name, string $asset_type): array {
+    $mediaFile = $this->brandMediaManager->fileForAsset($vendor, $asset_type);
+    if ($mediaFile !== NULL) {
+      return [(int) $mediaFile->id()];
+    }
+
     if ($field_name === '' || !$vendor->hasField($field_name) || $vendor->get($field_name)->isEmpty()) {
       return [];
     }
@@ -438,8 +466,14 @@ final class VendorBrandingForm extends FormBase {
   /**
    * Saves a managed_file field value and marks the file permanent.
    *
+   * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
+   *   The organiser being updated.
+   * @param string $field_name
+   *   The retained direct-file field name.
    * @param array<mixed>|mixed $file_ids
    *   Managed file element value.
+   * @param string $asset_type
+   *   Asset label used for logging.
    */
   private function saveManagedFileField(Vendor $vendor, string $field_name, mixed $file_ids, string $asset_type): void {
     if ($field_name === '' || !$vendor->hasField($field_name)) {

@@ -10,8 +10,8 @@ use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\file\FileInterface;
 use Drupal\myeventlane_messaging\ValueObject\Brand;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
-use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 
 /**
  * Resolves vendor branding for messages from Vendor entity fields.
@@ -34,11 +34,14 @@ final class VendorBrandResolver implements BrandResolverInterface {
    *   The current vendor resolver.
    * @param \Drupal\Core\File\FileUrlGeneratorInterface $fileUrlGenerator
    *   The file URL generator.
+   * @param \Drupal\myeventlane_vendor\Service\VendorBrandMediaManager $brandMediaManager
+   *   Resolves canonical organiser Media with legacy fallback.
    */
   public function __construct(
     private readonly ConfigFactoryInterface $configFactory,
     private readonly CurrentVendorResolverInterface $vendorResolver,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly VendorBrandMediaManager $brandMediaManager,
   ) {}
 
   /**
@@ -99,13 +102,7 @@ final class VendorBrandResolver implements BrandResolverInterface {
       $accentColor = Brand::DEFAULT_ACCENT_COLOR;
     }
 
-    $logoUrl = '';
-    foreach (VendorImageFieldPolicy::EMAIL_LOGO_FIELDS as $fieldName) {
-      $logoUrl = $this->getLogoUrl($vendor, $fieldName);
-      if ($logoUrl !== '') {
-        break;
-      }
-    }
+    $logoUrl = $this->getLogoUrl($vendor);
 
     return new Brand(
       fromName: $fromName,
@@ -161,22 +158,17 @@ final class VendorBrandResolver implements BrandResolverInterface {
   }
 
   /**
-   * Gets the logo URL from an image field.
+   * Gets the Media-first logo URL with retained direct-file fallback.
    *
    * @param \Drupal\myeventlane_vendor\Entity\Vendor $vendor
    *   The vendor entity.
-   * @param string $fieldName
-   *   The image field name.
    *
    * @return string
    *   Absolute URL to the logo, or empty string.
    */
-  private function getLogoUrl(Vendor $vendor, string $fieldName): string {
-    if (!$vendor->hasField($fieldName) || $vendor->get($fieldName)->isEmpty()) {
-      return '';
-    }
-
-    $file = $vendor->get($fieldName)->entity;
+  private function getLogoUrl(Vendor $vendor): string {
+    $file = $this->brandMediaManager->fileForAsset($vendor, VendorBrandMediaManager::ASSET_EMAIL_LOGO)
+      ?? $this->brandMediaManager->fileForAsset($vendor, VendorBrandMediaManager::ASSET_PUBLIC_LOGO);
     if (!$file instanceof FileInterface) {
       return '';
     }
