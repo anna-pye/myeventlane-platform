@@ -21,6 +21,7 @@ use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\myeventlane_vendor\Form\FormActionUrlFixer;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
+use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
 use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -71,6 +72,11 @@ class VendorSettingsForm extends FormBase {
   protected RouteProviderInterface $routeProvider;
 
   /**
+   * Captures retained direct files as reusable organiser Media.
+   */
+  protected VendorBrandMediaManager $brandMediaManager;
+
+  /**
    * Dedupes onboarding panel when MELWorkflowSystem already renders primary region.
    */
   protected ?MelWorkflowManager $melWorkflowManager = NULL;
@@ -93,6 +99,7 @@ class VendorSettingsForm extends FormBase {
     $instance->userVendorMembershipQuery = $container->get('myeventlane_vendor.user_vendor_membership_query');
     $instance->accessManager = $container->get('access_manager');
     $instance->routeProvider = $container->get('router.route_provider');
+    $instance->brandMediaManager = $container->get('myeventlane_vendor.brand_media_manager');
     $instance->melWorkflowManager = $container->has('myeventlane_surface.workflow_manager')
       ? $container->get('myeventlane_surface.workflow_manager')
       : NULL;
@@ -696,17 +703,16 @@ class VendorSettingsForm extends FormBase {
     $logo_field = VendorImageFieldPolicy::canonicalPublicLogoField($vendor);
 
     if ($logo_field !== '') {
-      $logo_default = [];
-      if (!$vendor->get($logo_field)->isEmpty()) {
-        $logo_default = [$vendor->get($logo_field)->target_id];
-      }
+      $logo_file = $this->brandMediaManager
+        ->fileForAsset($vendor, VendorBrandMediaManager::ASSET_PUBLIC_LOGO);
+      $logo_default = $logo_file !== NULL ? [(int) $logo_file->id()] : [];
       $form['visual_assets']['logo'] = [
         '#type' => 'managed_file',
         '#title' => $this->t('Logo'),
         '#default_value' => $logo_default,
         '#upload_location' => 'public://vendor-assets/',
         '#upload_validators' => [
-          'FileExtension' => ['extensions' => 'png jpg jpeg gif svg webp'],
+          'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
           'FileSizeLimit' => ['fileLimit' => 5 * 1024 * 1024],
         ],
         '#description' => $this->t('Your organisation logo. Recommended size: 400×400px. Square format works best.'),
@@ -718,10 +724,9 @@ class VendorSettingsForm extends FormBase {
     }
 
     if ($vendor->hasField('field_banner_image')) {
-      $banner_default = [];
-      if (!$vendor->get('field_banner_image')->isEmpty()) {
-        $banner_default = [$vendor->get('field_banner_image')->target_id];
-      }
+      $banner_file = $this->brandMediaManager
+        ->fileForAsset($vendor, VendorBrandMediaManager::ASSET_BANNER);
+      $banner_default = $banner_file !== NULL ? [(int) $banner_file->id()] : [];
       $form['visual_assets']['banner'] = [
         '#type' => 'managed_file',
         '#title' => $this->t('Banner image'),
@@ -1890,6 +1895,10 @@ class VendorSettingsForm extends FormBase {
     }
 
     try {
+      $this->brandMediaManager->synchroniseFromLegacy($vendor, [
+        VendorBrandMediaManager::ASSET_PUBLIC_LOGO,
+        VendorBrandMediaManager::ASSET_BANNER,
+      ]);
       $vendor->save();
 
       $this->logger->notice('VendorSettingsForm SUBMIT SUCCESS vendor_id=@vid', [

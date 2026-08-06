@@ -83,7 +83,9 @@ final class VendorDetailController extends ControllerBase {
       '#content' => $content,
       '#label' => $myeventlane_vendor->label(),
       '#vendor_id' => (int) $myeventlane_vendor->id(),
-      '#banner' => $content['field_banner_image'] ?? NULL,
+      '#banner' => $this->canShowVisibilitySetting($myeventlane_vendor, 'field_public_show_banner')
+        ? $this->vendorCardBuilder->buildBanner($myeventlane_vendor)
+        : NULL,
       '#logo' => $this->vendorCardBuilder->buildLogo($myeventlane_vendor),
       '#tagline' => $this->vendorCardBuilder->fieldText($myeventlane_vendor, ['field_tagline', 'field_summary']),
       '#description' => $content['field_vendor_bio'] ?? $content['field_description'] ?? NULL,
@@ -180,6 +182,15 @@ final class VendorDetailController extends ControllerBase {
     }
 
     return !$vendor->get($visibility_field)->isEmpty() && (bool) $vendor->get($visibility_field)->value;
+  }
+
+  /**
+   * Checks a public visibility toggle for a Media-first logical asset.
+   */
+  private function canShowVisibilitySetting(Vendor $vendor, string $visibilityField): bool {
+    return $vendor->hasField($visibilityField)
+      && !$vendor->get($visibilityField)->isEmpty()
+      && (bool) $vendor->get($visibilityField)->value;
   }
 
   /**

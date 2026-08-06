@@ -47,6 +47,7 @@ services:
       - '@datetime.time'
       - '@current_user'
       - '@myeventlane_core.vendor_follow'
+      - '@myeventlane_vendor.brand_media_manager'
 
   myeventlane_vendor.user_vendor_membership_query:
     class: Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery
@@ -58,6 +59,12 @@ services:
     class: Drupal\myeventlane_vendor\Service\OrganiserMediaAccess
     arguments:
       - '@current_user'
+
+  myeventlane_vendor.brand_media_manager:
+    class: Drupal\myeventlane_vendor\Service\VendorBrandMediaManager
+    arguments:
+      - '@entity_type.manager'
+      - '@file_system'
 
   myeventlane_vendor.event_studio_create:
     class: Drupal\myeventlane_vendor\Service\VendorEventStudioCreateService

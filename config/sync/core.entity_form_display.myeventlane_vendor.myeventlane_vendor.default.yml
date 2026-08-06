@@ -11,6 +11,9 @@ dependencies:
     - field.field.myeventlane_vendor.myeventlane_vendor.field_description
     - field.field.myeventlane_vendor.myeventlane_vendor.field_email
     - field.field.myeventlane_vendor.myeventlane_vendor.field_logo_image
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_banner_media
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_email_media
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_logo_media
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_accent_color
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_footer
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_from_email
@@ -41,6 +44,7 @@ dependencies:
   module:
     - image
     - link
+    - media_library
     - myeventlane_vendor
     - path
     - telephone
@@ -79,13 +83,13 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
-  field_banner_image:
-    type: image_image
+  field_mel_vendor_banner_media:
+    type: media_library_widget
     weight: 7
     region: content
     settings:
-      progress_indicator: throbber
-      preview_image_style: thumbnail
+      media_types:
+        - image
     third_party_settings: {  }
   field_business_name:
     type: string_textfield
@@ -111,13 +115,21 @@ content:
       placeholder: ''
       size: 60
     third_party_settings: {  }
-  field_logo_image:
-    type: image_image
+  field_mel_vendor_email_media:
+    type: media_library_widget
     weight: 8
     region: content
     settings:
-      progress_indicator: throbber
-      preview_image_style: thumbnail
+      media_types:
+        - image
+    third_party_settings: {  }
+  field_mel_vendor_logo_media:
+    type: media_library_widget
+    weight: 6
+    region: content
+    settings:
+      media_types:
+        - image
     third_party_settings: {  }
   field_owner:
     type: entity_reference_autocomplete
@@ -207,12 +219,14 @@ content:
       placeholder: ''
     third_party_settings: {  }
 hidden:
+  field_banner_image: true
   field_accent_colour: true
   field_msg_accent_color: true
   field_msg_footer: true
   field_msg_from_email: true
   field_msg_from_name: true
   field_msg_logo: true
+  field_logo_image: true
   field_msg_reply_to: true
   field_pref_email_digest: true
   field_pref_email_on_order: true

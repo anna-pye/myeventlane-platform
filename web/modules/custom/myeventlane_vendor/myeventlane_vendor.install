@@ -6,7 +6,11 @@
  */
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
+use Drupal\Core\Utility\UpdateException;
+use Drupal\field\Entity\FieldConfig;
+use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
 use Drupal\user\Entity\User;
 
 /**
@@ -1113,6 +1117,215 @@ function myeventlane_vendor_update_10022(): string {
   $role->save();
 
   return 'Removed the global Files overview permission from the Vendor role.';
+}
+
+/**
+ * Adds organiser brand Media fields and backfills retained direct images.
+ */
+function myeventlane_vendor_update_10023(array &$sandbox): string {
+  myeventlane_vendor_ensure_brand_media_fields();
+
+  $storage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
+  $manager = \Drupal::service('myeventlane_vendor.brand_media_manager');
+  assert($manager instanceof VendorBrandMediaManager);
+  $logger = \Drupal::logger('myeventlane_vendor');
+
+  if (!isset($sandbox['ids'])) {
+    $sandbox['ids'] = array_values($storage->getQuery()
+      ->accessCheck(FALSE)
+      ->sort('id')
+      ->execute());
+    $sandbox['index'] = 0;
+    $sandbox['migrated'] = 0;
+    $sandbox['created'] = 0;
+    $sandbox['reused'] = 0;
+    $sandbox['skipped'] = 0;
+    $sandbox['conflicts'] = 0;
+    $sandbox['errors'] = 0;
+  }
+
+  $assetTypes = [
+    VendorBrandMediaManager::ASSET_PUBLIC_LOGO,
+    VendorBrandMediaManager::ASSET_BANNER,
+    VendorBrandMediaManager::ASSET_EMAIL_LOGO,
+  ];
+  $total = count($sandbox['ids']);
+  $limit = min($sandbox['index'] + 20, $total);
+  while ($sandbox['index'] < $limit) {
+    $vendorId = (int) $sandbox['ids'][$sandbox['index']];
+    $sandbox['index']++;
+    $vendor = $storage->load($vendorId);
+    if (!$vendor instanceof Vendor) {
+      $sandbox['skipped']++;
+      continue;
+    }
+
+    $changed = FALSE;
+    foreach ($assetTypes as $assetType) {
+      $mediaField = match ($assetType) {
+        VendorBrandMediaManager::ASSET_PUBLIC_LOGO => 'field_mel_vendor_logo_media',
+        VendorBrandMediaManager::ASSET_BANNER => 'field_mel_vendor_banner_media',
+        VendorBrandMediaManager::ASSET_EMAIL_LOGO => 'field_mel_vendor_email_media',
+      };
+      if (!$vendor->hasField($mediaField) || !$vendor->get($mediaField)->isEmpty()) {
+        continue;
+      }
+
+      try {
+        $result = $manager->synchroniseFromLegacy($vendor, [$assetType], FALSE)[$assetType] ?? NULL;
+        if ($result === NULL) {
+          continue;
+        }
+        $changed = TRUE;
+        $sandbox[$result['created'] ? 'created' : 'reused']++;
+        if ($result['conflict']) {
+          $sandbox['conflicts']++;
+          $logger->warning(
+            'Organiser @vendor_id has different files in field_vendor_logo and field_logo_image. Backfill preserved both direct fields and selected field_vendor_logo for canonical Media.',
+            ['@vendor_id' => (string) $vendorId],
+          );
+        }
+      }
+      catch (\Throwable $e) {
+        $sandbox['errors']++;
+        $logger->error('Organiser brand Media backfill failed for organiser @vendor_id asset @asset: @message', [
+          '@vendor_id' => (string) $vendorId,
+          '@asset' => $assetType,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    if ($changed) {
+      try {
+        $vendor->save();
+        $sandbox['migrated']++;
+      }
+      catch (\Throwable $e) {
+        $sandbox['errors']++;
+        $logger->error('Organiser brand Media references could not be saved for organiser @vendor_id: @message', [
+          '@vendor_id' => (string) $vendorId,
+          '@message' => $e->getMessage(),
+        ]);
+      }
+    }
+    else {
+      $sandbox['skipped']++;
+    }
+  }
+
+  $sandbox['#finished'] = $total === 0 ? 1 : $sandbox['index'] / $total;
+  if ($sandbox['#finished'] < 1) {
+    return sprintf(
+      'Checked %d of %d organisers (%d Media created, %d reused, %d conflicts, %d errors).',
+      $sandbox['index'],
+      $total,
+      $sandbox['created'],
+      $sandbox['reused'],
+      $sandbox['conflicts'],
+      $sandbox['errors'],
+    );
+  }
+
+  if ($sandbox['errors'] > 0) {
+    throw new UpdateException(sprintf(
+      'Organiser brand Media backfill stopped with %d errors. No legacy fields were deleted; review the myeventlane_vendor log and rerun updates.',
+      $sandbox['errors'],
+    ));
+  }
+
+  return sprintf(
+    'Organiser brand Media backfill complete: %d organiser records updated, %d Media created, %d reused, %d skipped, %d legacy-logo conflicts reported, %d errors.',
+    $sandbox['migrated'],
+    $sandbox['created'],
+    $sandbox['reused'],
+    $sandbox['skipped'],
+    $sandbox['conflicts'],
+    $sandbox['errors'],
+  );
+}
+
+/**
+ * Ensures brand Media fields exist before deployment config import runs.
+ */
+function myeventlane_vendor_ensure_brand_media_fields(): void {
+  $fields = [
+    'field_mel_vendor_logo_media' => [
+      'storage_uuid' => '9c1e8678-10a2-4073-b384-113d1cbedd64',
+      'field_uuid' => '1c9118f2-cfe4-437a-80eb-c27eb14cd1ec',
+      'label' => 'Organiser logo',
+      'description' => 'Reusable organiser logo captured in Media Library. The retained direct-file fields remain available for rollback.',
+      'weight' => 6,
+    ],
+    'field_mel_vendor_banner_media' => [
+      'storage_uuid' => '65e70200-c0a5-462e-bd40-291d003a2b31',
+      'field_uuid' => '7e309331-3fb0-4b2a-b1f1-c679b4dff342',
+      'label' => 'Organiser banner',
+      'description' => 'Reusable organiser banner captured in Media Library. The retained direct-file field remains available for rollback.',
+      'weight' => 7,
+    ],
+    'field_mel_vendor_email_media' => [
+      'storage_uuid' => '2c0b583a-b960-4260-bc7b-bf9025d223e7',
+      'field_uuid' => '44bf3562-7b10-43e7-961e-a50836d25f97',
+      'label' => 'Email logo override',
+      'description' => 'Optional reusable email logo. When empty, messages use the organiser logo.',
+      'weight' => 8,
+    ],
+  ];
+
+  foreach ($fields as $fieldName => $definition) {
+    if (FieldStorageConfig::loadByName('myeventlane_vendor', $fieldName) === NULL) {
+      FieldStorageConfig::create([
+        'uuid' => $definition['storage_uuid'],
+        'field_name' => $fieldName,
+        'entity_type' => 'myeventlane_vendor',
+        'type' => 'entity_reference',
+        'settings' => ['target_type' => 'media'],
+        'cardinality' => 1,
+        'translatable' => FALSE,
+      ])->save();
+    }
+
+    if (FieldConfig::loadByName('myeventlane_vendor', 'myeventlane_vendor', $fieldName) === NULL) {
+      FieldConfig::create([
+        'uuid' => $definition['field_uuid'],
+        'field_name' => $fieldName,
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => $definition['label'],
+        'description' => $definition['description'],
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'settings' => [
+          'handler' => 'default:media',
+          'handler_settings' => [
+            'target_bundles' => ['image' => 'image'],
+            'sort' => ['field' => '_none', 'direction' => 'ASC'],
+            'auto_create' => FALSE,
+            'auto_create_bundle' => '',
+          ],
+        ],
+      ])->save();
+    }
+  }
+
+  $display = EntityFormDisplay::load('myeventlane_vendor.myeventlane_vendor.default');
+  if ($display !== NULL) {
+    foreach ($fields as $fieldName => $definition) {
+      $display->setComponent($fieldName, [
+        'type' => 'media_library_widget',
+        'weight' => $definition['weight'],
+        'region' => 'content',
+        'settings' => ['media_types' => ['image']],
+      ]);
+    }
+    foreach (['field_vendor_logo', 'field_logo_image', 'field_banner_image', 'field_msg_logo'] as $legacyField) {
+      $display->removeComponent($legacyField);
+    }
+    $display->save();
+  }
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
 }
 
 /**

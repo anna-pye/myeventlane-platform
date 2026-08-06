@@ -1,0 +1,20 @@
+uuid: 65e70200-c0a5-462e-bd40-291d003a2b31
+langcode: en
+status: true
+dependencies:
+  module:
+    - media
+    - myeventlane_vendor
+id: myeventlane_vendor.field_mel_vendor_banner_media
+field_name: field_mel_vendor_banner_media
+entity_type: myeventlane_vendor
+type: entity_reference
+settings:
+  target_type: media
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

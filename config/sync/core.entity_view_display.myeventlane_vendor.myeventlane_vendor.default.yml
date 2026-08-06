@@ -11,6 +11,9 @@ dependencies:
     - field.field.myeventlane_vendor.myeventlane_vendor.field_description
     - field.field.myeventlane_vendor.myeventlane_vendor.field_email
     - field.field.myeventlane_vendor.myeventlane_vendor.field_logo_image
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_banner_media
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_email_media
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_logo_media
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_accent_color
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_footer
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_from_email
@@ -169,6 +172,9 @@ hidden:
   field_msg_from_email: true
   field_msg_from_name: true
   field_msg_logo: true
+  field_mel_vendor_banner_media: true
+  field_mel_vendor_email_media: true
+  field_mel_vendor_logo_media: true
   field_msg_reply_to: true
   field_owner: true
   field_pref_email_digest: true
