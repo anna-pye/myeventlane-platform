@@ -83,14 +83,6 @@ content:
       size: 60
       placeholder: ''
     third_party_settings: {  }
-  field_mel_vendor_banner_media:
-    type: media_library_widget
-    weight: 7
-    region: content
-    settings:
-      media_types:
-        - image
-    third_party_settings: {  }
   field_business_name:
     type: string_textfield
     weight: -9
@@ -114,6 +106,14 @@ content:
     settings:
       placeholder: ''
       size: 60
+    third_party_settings: {  }
+  field_mel_vendor_banner_media:
+    type: media_library_widget
+    weight: 7
+    region: content
+    settings:
+      media_types:
+        - image
     third_party_settings: {  }
   field_mel_vendor_email_media:
     type: media_library_widget
@@ -219,21 +219,27 @@ content:
       placeholder: ''
     third_party_settings: {  }
 hidden:
-  field_banner_image: true
   field_accent_colour: true
+  field_banner_image: true
+  field_logo_image: true
   field_msg_accent_color: true
   field_msg_footer: true
   field_msg_from_email: true
   field_msg_from_name: true
   field_msg_logo: true
-  field_logo_image: true
   field_msg_reply_to: true
   field_pref_email_digest: true
   field_pref_email_on_order: true
   field_pref_email_on_rsvp: true
+  field_public_profile_published: true
+  field_public_show_banner: true
+  field_public_show_description: true
   field_public_show_email: true
   field_public_show_location: true
   field_public_show_phone: true
+  field_public_show_social_links: true
+  field_public_show_summary: true
+  field_public_show_website: true
   field_tagline: true
   field_vendor_bio: true
   field_vendor_logo: true
