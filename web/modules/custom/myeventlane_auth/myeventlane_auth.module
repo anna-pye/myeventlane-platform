@@ -17,8 +17,21 @@ use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_auth\EventSubscriber\AccountSetupFlowSubscriber;
 use Drupal\myeventlane_auth\EventSubscriber\MelPostLoginSessionRedirectSubscriber;
 use Drupal\myeventlane_auth\Service\IdentityIntentResolver;
+use Drupal\myeventlane_auth\SocialAuth\MelAppleAuthManager;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
+
+/**
+ * Implements hook_social_api_network_info_alter().
+ *
+ * Keeps the contributed Apple integration while adding MEL's nonce and
+ * identity-token verification requirements at the authentication boundary.
+ */
+function myeventlane_auth_social_api_network_info_alter(array &$definitions): void {
+  if (isset($definitions['social_auth_apple'])) {
+    $definitions['social_auth_apple']['auth_manager'] = MelAppleAuthManager::class;
+  }
+}
 
 /**
  * Implements hook_cron().
