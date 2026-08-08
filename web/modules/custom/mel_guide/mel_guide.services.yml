@@ -21,6 +21,8 @@ services:
       - '@entity.repository'
       - '@file_system'
       - '@file_url_generator'
+      - '@module_handler'
+      - '@current_user'
 
   mel_guide.asset_media_manager:
     class: Drupal\mel_guide\Service\MelGuideAssetMediaManager

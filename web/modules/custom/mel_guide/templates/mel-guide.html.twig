@@ -8,11 +8,21 @@
   <div class="mel-guide__panel" data-mel-guide-panel hidden>
     <div{{ bubble_attributes }}>
       <p class="mel-guide__message">{{ message }}</p>
-      <div class="mel-guide__actions">
+      <nav class="mel-guide__actions" aria-label="{{ 'MEL guide actions'|t }}">
+        {% if actions.events %}
+          <a class="mel-guide__action mel-guide__action--primary" href="{{ actions.events }}">
+            {{ 'Browse events'|t }}
+          </a>
+        {% endif %}
+        {% if actions.help %}
+          <a class="mel-guide__action mel-guide__action--secondary" href="{{ actions.help }}">
+            {{ 'Ask MEL for help'|t }}
+          </a>
+        {% endif %}
         <button type="button" class="mel-guide__action mel-guide__action--hide" data-mel-guide-hide>
           {{ 'Hide MEL'|t }}
         </button>
-      </div>
+      </nav>
     </div>
     <button
       type="button"
