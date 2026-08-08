@@ -394,6 +394,16 @@ final class MelGuideSettingsForm extends ConfigFormBase {
         $new_fid = is_array($upload) && !empty($upload[0]) ? (int) $upload[0] : 0;
         $old_fid = (int) (($config->get('asset_fids') ?? [])[$key] ?? 0);
 
+        if ($new_fid === 0 && $old_fid > 0) {
+          $old_file = $storage->load($old_fid);
+          if (!$old_file instanceof FileInterface) {
+            // An unavailable legacy file cannot appear in managed_file, so an
+            // empty submission is not evidence that the editor removed it.
+            // Retain the rollback ID while the editable path fallback renders.
+            $new_fid = $old_fid;
+          }
+        }
+
         if ($new_fid > 0) {
           $stored_uuid = is_string($stored_media_uuids[$key] ?? NULL)
             ? $stored_media_uuids[$key]
