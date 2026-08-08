@@ -62,6 +62,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
   public function getCacheTags(): array {
     return Cache::mergeTags(parent::getCacheTags(), [
       'config:mel_guide.settings',
+      'mel_guide:assets',
     ]);
   }
 
@@ -109,7 +110,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
       ],
       '#cache' => [
         'contexts' => $this->getCacheContexts(),
-        'tags' => $this->getCacheTags(),
+        'tags' => Cache::mergeTags($this->getCacheTags(), $variables['cache_tags'] ?? []),
       ],
     ];
   }

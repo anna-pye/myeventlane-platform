@@ -5,10 +5,14 @@ declare(strict_types=1);
 namespace Drupal\mel_guide\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\file\FileInterface;
+use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -34,6 +38,9 @@ final class MelGuideContext {
     private readonly RequestStack $requestStack,
     private readonly MelGuideVisibility $visibility,
     private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly StateInterface $state,
+    private readonly EntityRepositoryInterface $entityRepository,
+    private readonly FileSystemInterface $fileSystem,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
 
@@ -54,15 +61,16 @@ final class MelGuideContext {
       return NULL;
     }
 
-    $image_url = $this->resolveImageUrl($state);
-    if ($image_url === NULL) {
+    $image = $this->resolveImage($state);
+    if ($image === NULL) {
       return NULL;
     }
 
     return [
       'state' => $state,
       'message' => $message,
-      'image_url' => $image_url,
+      'image_url' => $image['url'],
+      'cache_tags' => $image['cache_tags'],
       'image_alt' => $this->resolveImageAlt($state),
       'appearance_delay' => (int) $config->get('appearance_delay'),
       'max_messages_per_session' => (int) $config->get('max_messages_per_session'),
@@ -73,25 +81,55 @@ final class MelGuideContext {
   }
 
   /**
-   * Resolves the public image URL for a character state.
+   * Resolves the public image URL and cache tags for a character state.
+   *
+   * @return array{url: string, cache_tags: string[]}|null
+   *   The resolved image data, or NULL when no source is available.
    */
-  private function resolveImageUrl(string $state): ?string {
+  private function resolveImage(string $state): ?array {
     if (!in_array($state, self::ASSET_KEYS, TRUE)) {
       return NULL;
     }
 
     $config = $this->configFactory->get('mel_guide.settings');
+    $media_uuids = $this->state->get(MelGuideAssetMediaManager::STATE_KEY, []);
+    $media_uuid = is_array($media_uuids) ? trim((string) ($media_uuids[$state] ?? '')) : '';
+    if ($media_uuid !== '') {
+      $media = $this->entityRepository->loadEntityByUuid('media', $media_uuid);
+      if ($media instanceof MediaInterface && $media->bundle() === 'image') {
+        $source_field = (string) ($media->getSource()->getConfiguration()['source_field'] ?? '');
+        $file = $source_field !== '' && $media->hasField($source_field)
+          ? $media->get($source_field)->entity
+          : NULL;
+        if ($file instanceof FileInterface && $this->fileExists($file)) {
+          return [
+            'url' => $this->fileUrlGenerator->generateString($file->getFileUri()),
+            'cache_tags' => array_merge($media->getCacheTags(), $file->getCacheTags()),
+          ];
+        }
+      }
+    }
+
     $fids = $config->get('asset_fids') ?? [];
+    if (!is_array($fids)) {
+      $fids = [];
+    }
     $fid = (int) ($fids[$state] ?? 0);
 
     if ($fid > 0) {
       $file = $this->entityTypeManager->getStorage('file')->load($fid);
-      if ($file instanceof FileInterface) {
-        return $this->fileUrlGenerator->generateString($file->getFileUri());
+      if ($file instanceof FileInterface && $this->fileExists($file)) {
+        return [
+          'url' => $this->fileUrlGenerator->generateString($file->getFileUri()),
+          'cache_tags' => $file->getCacheTags(),
+        ];
       }
     }
 
     $assets = $config->get('assets') ?? [];
+    if (!is_array($assets)) {
+      $assets = [];
+    }
     $asset_path = $assets[$state] ?? '';
     if ($asset_path === '') {
       return NULL;
@@ -99,7 +137,18 @@ final class MelGuideContext {
 
     $request = $this->requestStack->getCurrentRequest();
     $base_path = $request?->getBasePath() ?? '';
-    return $base_path . '/' . ltrim($asset_path, '/');
+    return [
+      'url' => $base_path . '/' . ltrim($asset_path, '/'),
+      'cache_tags' => [],
+    ];
+  }
+
+  /**
+   * Confirms a managed file still exists in storage.
+   */
+  private function fileExists(FileInterface $file): bool {
+    $realpath = $this->fileSystem->realpath($file->getFileUri());
+    return $realpath !== FALSE && is_file($realpath);
   }
 
   /**
