@@ -17,7 +17,17 @@ services:
       - '@request_stack'
       - '@mel_guide.visibility'
       - '@entity_type.manager'
+      - '@state'
+      - '@entity.repository'
+      - '@file_system'
       - '@file_url_generator'
+
+  mel_guide.asset_media_manager:
+    class: Drupal\mel_guide\Service\MelGuideAssetMediaManager
+    arguments:
+      - '@entity_type.manager'
+      - '@entity.repository'
+      - '@file_system'
 
   cache_context.mel_guide_device_class:
     class: Drupal\mel_guide\Cache\Context\MelGuideDeviceCacheContext
@@ -33,5 +43,8 @@ services:
       - '@config.typed'
       - '@file.usage'
       - '@entity_type.manager'
+      - '@mel_guide.asset_media_manager'
+      - '@state'
+      - '@cache_tags.invalidator'
     tags:
       - { name: form }

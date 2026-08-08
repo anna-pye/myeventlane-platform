@@ -6,11 +6,14 @@ namespace Drupal\mel_guide\Form;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\State\StateInterface;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
+use Drupal\mel_guide\Service\MelGuideAssetMediaManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -37,6 +40,9 @@ final class MelGuideSettingsForm extends ConfigFormBase {
     TypedConfigManagerInterface $typed_config_manager,
     protected FileUsageInterface $fileUsage,
     protected EntityTypeManagerInterface $entityTypeManager,
+    protected MelGuideAssetMediaManager $assetMediaManager,
+    protected StateInterface $state,
+    protected CacheTagsInvalidatorInterface $cacheTagsInvalidator,
   ) {
     parent::__construct($config_factory, $typed_config_manager);
   }
@@ -50,6 +56,9 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       $container->get('config.typed'),
       $container->get('file.usage'),
       $container->get('entity_type.manager'),
+      $container->get('mel_guide.asset_media_manager'),
+      $container->get('state'),
+      $container->get('cache_tags.invalidator'),
     );
   }
 
@@ -207,11 +216,15 @@ final class MelGuideSettingsForm extends ConfigFormBase {
     $messages = $config->get('messages') ?? [];
     $assets = $config->get('assets') ?? [];
     $asset_fids = $config->get('asset_fids') ?? [];
+    $asset_media_uuids = $this->state->get(MelGuideAssetMediaManager::STATE_KEY, []);
+    if (!is_array($asset_media_uuids)) {
+      $asset_media_uuids = [];
+    }
 
     $form['guide_states'] = [
       '#type' => 'details',
       '#title' => $this->t('Guide states'),
-      '#description' => $this->t('Message copy and character image for each guide moment. Uploaded images take precedence over fallback paths.'),
+      '#description' => $this->t('Message copy and character image for each guide moment. Uploads are captured as platform-owned Image Media and take precedence over retained file and path fallbacks.'),
       '#open' => TRUE,
       '#tree' => TRUE,
     ];
@@ -232,10 +245,10 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Character image'),
       '#upload_location' => 'public://mel-guide/',
       '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp svg'],
+        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
         'FileSizeLimit' => ['fileLimit' => 2 * 1024 * 1024],
       ],
-      '#default_value' => $this->fidToDefaultValue($asset_fids['wave'] ?? 0),
+      '#default_value' => $this->assetDefaultValue($asset_media_uuids['wave'] ?? NULL, $asset_fids['wave'] ?? 0),
       '#description' => $this->t('Square PNG or WebP recommended. Desktop display is 80–96px; mobile is 64–72px.'),
     ];
     $form['guide_states']['wave']['path'] = [
@@ -269,10 +282,10 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Character image'),
       '#upload_location' => 'public://mel-guide/',
       '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp svg'],
+        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
         'FileSizeLimit' => ['fileLimit' => 2 * 1024 * 1024],
       ],
-      '#default_value' => $this->fidToDefaultValue($asset_fids['think'] ?? 0),
+      '#default_value' => $this->assetDefaultValue($asset_media_uuids['think'] ?? NULL, $asset_fids['think'] ?? 0),
       '#description' => $this->t('Square PNG or WebP recommended. Desktop display is 80–96px; mobile is 64–72px.'),
     ];
     $form['guide_states']['think']['path'] = [
@@ -299,10 +312,10 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       '#title' => $this->t('Character image'),
       '#upload_location' => 'public://mel-guide/',
       '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp svg'],
+        'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
         'FileSizeLimit' => ['fileLimit' => 2 * 1024 * 1024],
       ],
-      '#default_value' => $this->fidToDefaultValue($asset_fids['celebrate'] ?? 0),
+      '#default_value' => $this->assetDefaultValue($asset_media_uuids['celebrate'] ?? NULL, $asset_fids['celebrate'] ?? 0),
       '#description' => $this->t('Square PNG or WebP recommended. Desktop display is 80–96px; mobile is 64–72px.'),
     ];
     $form['guide_states']['celebrate']['path'] = [
@@ -361,6 +374,7 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       $states_input = [];
     }
     $asset_fids = [];
+    $asset_media_uuids = [];
     $asset_paths = [];
 
     if (is_array($states_input)) {
@@ -369,6 +383,23 @@ final class MelGuideSettingsForm extends ConfigFormBase {
         $new_fid = is_array($upload) && !empty($upload[0]) ? (int) $upload[0] : 0;
         $old_fid = (int) (($config->get('asset_fids') ?? [])[$key] ?? 0);
 
+        if ($new_fid > 0) {
+          try {
+            $capture = $this->assetMediaManager->capture($new_fid, $this->assetAltText($key));
+            $asset_media_uuids[$key] = $capture['media']->uuid();
+          }
+          catch (\InvalidArgumentException | \RuntimeException $exception) {
+            $this->messenger()->addError($this->t('The @state character image could not be saved as Image Media: @message', [
+              '@state' => $key,
+              '@message' => $exception->getMessage(),
+            ]));
+            return;
+          }
+        }
+        else {
+          $asset_media_uuids[$key] = NULL;
+        }
+
         if ($old_fid > 0 && $old_fid !== $new_fid) {
           $old_file = $storage->load($old_fid);
           if ($old_file instanceof FileInterface) {
@@ -376,7 +407,7 @@ final class MelGuideSettingsForm extends ConfigFormBase {
           }
         }
 
-        if ($new_fid > 0) {
+        if ($new_fid > 0 && $old_fid !== $new_fid) {
           $file = $storage->load($new_fid);
           if ($file instanceof FileInterface) {
             $file->setPermanent();
@@ -414,20 +445,40 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       ->set('assets', $asset_paths)
       ->save();
 
+    $this->state->set(MelGuideAssetMediaManager::STATE_KEY, $asset_media_uuids);
+    $this->cacheTagsInvalidator->invalidateTags(['mel_guide:assets']);
+
     parent::submitForm($form, $form_state);
   }
 
   /**
-   * Converts a config file ID to a managed_file default value.
-   *
-   * @param mixed $fid
-   *   Stored file ID.
+   * Resolves a Media-first or legacy managed_file default value.
    *
    * @return list<int>
+   *   A one-item file ID list, or an empty list when no valid asset exists.
    */
-  private function fidToDefaultValue(mixed $fid): array {
-    $fid = (int) ($fid ?? 0);
+  private function assetDefaultValue(mixed $media_uuid, mixed $legacy_fid): array {
+    $fid = $this->assetMediaManager->getFileId(is_string($media_uuid) ? $media_uuid : NULL);
+    if ($fid <= 0) {
+      $fid = (int) ($legacy_fid ?? 0);
+      $file = $fid > 0 ? $this->entityTypeManager->getStorage('file')->load($fid) : NULL;
+      if (!$file instanceof FileInterface) {
+        $fid = 0;
+      }
+    }
     return $fid > 0 ? [$fid] : [];
+  }
+
+  /**
+   * Builds accessible alt text for platform-owned character Media.
+   */
+  private function assetAltText(string $key): string {
+    return match ($key) {
+      'wave' => (string) $this->t('MEL waving'),
+      'think' => (string) $this->t('MEL thinking'),
+      'celebrate' => (string) $this->t('MEL celebrating'),
+      default => (string) $this->t('MEL Guide character'),
+    };
   }
 
 }

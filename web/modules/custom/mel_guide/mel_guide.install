@@ -7,6 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\Core\Utility\UpdateException;
+use Drupal\file\FileInterface;
+use Drupal\mel_guide\Service\MelGuideAssetMediaManager;
+
 /**
  * Add v1.1 configuration keys for help panel, version, debug context, position.
  */
@@ -72,4 +76,83 @@ function mel_guide_update_9003(): void {
 
   $messages['celebrate'] = "You're going! 🎉";
   $config->set('messages', $messages)->save();
+}
+
+/**
+ * Adds Media-first character assets while retaining all legacy fallbacks.
+ */
+function mel_guide_update_9004(): string {
+  $config = \Drupal::configFactory()->get('mel_guide.settings');
+  $state = \Drupal::state();
+  $media_uuids = $state->get(MelGuideAssetMediaManager::STATE_KEY, []);
+  if (!is_array($media_uuids)) {
+    $media_uuids = [];
+  }
+
+  $fids = $config->get('asset_fids');
+  if (!is_array($fids)) {
+    $fids = [];
+  }
+  $manager = \Drupal::service('mel_guide.asset_media_manager');
+  assert($manager instanceof MelGuideAssetMediaManager);
+  $file_storage = \Drupal::entityTypeManager()->getStorage('file');
+  $file_system = \Drupal::service('file_system');
+  $created = 0;
+  $reused = 0;
+  $unavailable = 0;
+
+  foreach (['wave', 'think', 'celebrate'] as $key) {
+    $existing_uuid = trim((string) ($media_uuids[$key] ?? ''));
+    if ($existing_uuid !== '' && $manager->getFileId($existing_uuid) > 0) {
+      continue;
+    }
+    $media_uuids[$key] = NULL;
+
+    $fid = (int) ($fids[$key] ?? 0);
+    $file = $fid > 0 ? $file_storage->load($fid) : NULL;
+    $realpath = $file instanceof FileInterface
+      ? $file_system->realpath($file->getFileUri())
+      : FALSE;
+    if (!$file instanceof FileInterface || $realpath === FALSE || !is_file($realpath)) {
+      $media_uuids[$key] = NULL;
+      $unavailable++;
+      continue;
+    }
+
+    try {
+      $capture = $manager->capture($fid, sprintf('MEL %s', $key));
+      $media_uuids[$key] = $capture['media']->uuid();
+      if ($capture['created']) {
+        $created++;
+      }
+      else {
+        $reused++;
+      }
+    }
+    catch (\InvalidArgumentException $exception) {
+      // Unsupported legacy formats retain their file-ID and path fallbacks.
+      $media_uuids[$key] = NULL;
+      $unavailable++;
+      \Drupal::logger('mel_guide')->warning('MEL Guide @state asset was not captured as Image Media: @message', [
+        '@state' => $key,
+        '@message' => $exception->getMessage(),
+      ]);
+    }
+    catch (\Throwable $exception) {
+      throw new UpdateException(sprintf('MEL Guide %s Media capture failed: %s', $key, $exception->getMessage()), 0, $exception);
+    }
+  }
+
+  foreach (['wave', 'think', 'celebrate'] as $key) {
+    $media_uuids[$key] = $media_uuids[$key] ?? NULL;
+  }
+  $state->set(MelGuideAssetMediaManager::STATE_KEY, $media_uuids);
+  \Drupal::service('cache_tags.invalidator')->invalidateTags(['mel_guide:assets']);
+
+  return sprintf(
+    'MEL Guide Media capture complete: %d created, %d reused, %d unavailable legacy assets retained with fallback.',
+    $created,
+    $reused,
+    $unavailable,
+  );
 }

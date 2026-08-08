@@ -10,5 +10,6 @@ dependencies:
   - myeventlane_surface:myeventlane_surface
   - drupal:block
   - drupal:file
+  - drupal:media
   - drupal:node
   - drupal:user
