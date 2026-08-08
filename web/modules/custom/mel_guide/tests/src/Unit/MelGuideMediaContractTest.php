@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\mel_guide\Unit;
 
+use Drupal\mel_guide\Service\MelGuideAssetSubmissionResolver;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\Group;
 
@@ -98,11 +99,9 @@ final class MelGuideMediaContractTest extends UnitTestCase {
     $form = file_get_contents($module . '/src/Form/MelGuideSettingsForm.php');
 
     self::assertIsString($form);
-    self::assertStringContainsString('if ($new_fid === $old_fid)', $form);
+    self::assertStringContainsString('MelGuideAssetSubmissionResolver::resolve(', $form);
     self::assertStringContainsString('never recapture unchanged', $form);
-    self::assertStringContainsString('if ($new_fid === 0 && $old_fid > 0)', $form);
-    self::assertStringContainsString('empty submission is not evidence that the editor removed it', $form);
-    self::assertStringContainsString('$new_fid = $old_fid;', $form);
+    self::assertStringContainsString('$submitted_fid', $form);
     self::assertStringContainsString('$this->database->startTransaction()', $form);
     self::assertStringContainsString('$transaction->rollBack()', $form);
     self::assertStringContainsString('unset($transaction)', $form);
@@ -112,6 +111,72 @@ final class MelGuideMediaContractTest extends UnitTestCase {
     self::assertNotFalse($capture_position);
     self::assertNotFalse($usage_position);
     self::assertLessThan($usage_position, $capture_position);
+  }
+
+  /**
+   * An unchanged Media-resolved input retains config and Media provenance.
+   */
+  public function testUnchangedMediaInputRetainsRollbackFid(): void {
+    self::assertSame([
+      'fid' => 585,
+      'preserve_media' => TRUE,
+      'capture' => FALSE,
+    ], self::resolveAsset(443, 585, 443, FALSE));
+  }
+
+  /**
+   * Clearing a displayed Media asset remains a deliberate removal.
+   */
+  public function testDisplayedMediaCanBeRemoved(): void {
+    self::assertSame([
+      'fid' => 0,
+      'preserve_media' => FALSE,
+      'capture' => FALSE,
+    ], self::resolveAsset(0, 585, 443, FALSE));
+  }
+
+  /**
+   * Selecting a different file requests capture and persists its FID.
+   */
+  public function testReplacementFileIsCaptured(): void {
+    self::assertSame([
+      'fid' => 777,
+      'preserve_media' => FALSE,
+      'capture' => TRUE,
+    ], self::resolveAsset(777, 585, 443, FALSE));
+  }
+
+  /**
+   * A missing legacy-only asset is retained when the input cannot display it.
+   */
+  public function testUnavailableLegacyOnlyAssetIsRetained(): void {
+    self::assertSame([
+      'fid' => 585,
+      'preserve_media' => FALSE,
+      'capture' => FALSE,
+    ], self::resolveAsset(0, 585, 0, FALSE));
+  }
+
+  /**
+   * Invokes the form's deterministic asset decision without constructing it.
+   *
+   * @return array{fid: int, preserve_media: bool, capture: bool}
+   *   The resolved asset decision.
+   */
+  private static function resolveAsset(
+    int $submitted_fid,
+    int $configured_fid,
+    ?int $stored_media_fid,
+    bool $configured_file_exists,
+  ): array {
+    $module = dirname(__DIR__, 3);
+    require_once $module . '/src/Service/MelGuideAssetSubmissionResolver.php';
+    return MelGuideAssetSubmissionResolver::resolve(
+      $submitted_fid,
+      $configured_fid,
+      $stored_media_fid,
+      $configured_file_exists,
+    );
   }
 
 }

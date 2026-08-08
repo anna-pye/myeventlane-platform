@@ -15,6 +15,7 @@ use Drupal\Core\State\StateInterface;
 use Drupal\file\FileInterface;
 use Drupal\file\FileUsage\FileUsageInterface;
 use Drupal\mel_guide\Service\MelGuideAssetMediaManager;
+use Drupal\mel_guide\Service\MelGuideAssetSubmissionResolver;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -391,25 +392,29 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       foreach (self::ASSET_KEYS as $key) {
         $failed_key = $key;
         $upload = $states_input[$key]['upload'] ?? [];
-        $new_fid = is_array($upload) && !empty($upload[0]) ? (int) $upload[0] : 0;
+        $submitted_fid = is_array($upload) && !empty($upload[0]) ? (int) $upload[0] : 0;
         $old_fid = (int) (($config->get('asset_fids') ?? [])[$key] ?? 0);
-
-        if ($new_fid === 0 && $old_fid > 0) {
-          $old_file = $storage->load($old_fid);
-          if (!$old_file instanceof FileInterface) {
-            // An unavailable legacy file cannot appear in managed_file, so an
-            // empty submission is not evidence that the editor removed it.
-            // Retain the rollback ID while the editable path fallback renders.
-            $new_fid = $old_fid;
-          }
-        }
+        $old_file = $old_fid > 0 ? $storage->load($old_fid) : NULL;
+        $stored_uuid = is_string($stored_media_uuids[$key] ?? NULL)
+          ? $stored_media_uuids[$key]
+          : NULL;
+        $stored_media_fid = $this->assetMediaManager->getFileId($stored_uuid);
+        $selection = MelGuideAssetSubmissionResolver::resolve(
+          $submitted_fid,
+          $old_fid,
+          $stored_media_fid,
+          $old_file instanceof FileInterface,
+        );
+        $new_fid = $selection['fid'];
 
         if ($new_fid > 0) {
-          $stored_uuid = is_string($stored_media_uuids[$key] ?? NULL)
-            ? $stored_media_uuids[$key]
-            : NULL;
-          $stored_media_fid = $this->assetMediaManager->getFileId($stored_uuid);
-          if ($new_fid === $old_fid) {
+          if ($selection['preserve_media']) {
+            // The managed_file input displays the Media file ID, which may
+            // differ by environment from the configuration rollback ID.
+            // Preserve both without treating an unchanged input as a replace.
+            $asset_media_uuids[$key] = $stored_uuid;
+          }
+          elseif (!$selection['capture']) {
             // Preserve a valid prior capture, but never recapture unchanged
             // legacy assets merely because unrelated settings were submitted.
             $asset_media_uuids[$key] = $stored_media_fid === $new_fid
