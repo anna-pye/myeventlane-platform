@@ -46,5 +46,6 @@ services:
       - '@mel_guide.asset_media_manager'
       - '@state'
       - '@cache_tags.invalidator'
+      - '@database'
     tags:
       - { name: form }

@@ -7,6 +7,7 @@ namespace Drupal\mel_guide\Form;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\TypedConfigManagerInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
@@ -43,6 +44,7 @@ final class MelGuideSettingsForm extends ConfigFormBase {
     protected MelGuideAssetMediaManager $assetMediaManager,
     protected StateInterface $state,
     protected CacheTagsInvalidatorInterface $cacheTagsInvalidator,
+    protected Connection $database,
   ) {
     parent::__construct($config_factory, $typed_config_manager);
   }
@@ -59,6 +61,7 @@ final class MelGuideSettingsForm extends ConfigFormBase {
       $container->get('mel_guide.asset_media_manager'),
       $container->get('state'),
       $container->get('cache_tags.invalidator'),
+      $container->get('database'),
     );
   }
 
@@ -376,76 +379,104 @@ final class MelGuideSettingsForm extends ConfigFormBase {
     $asset_fids = [];
     $asset_media_uuids = [];
     $asset_paths = [];
+    $file_usage_changes = [];
+    $stored_media_uuids = $this->state->get(MelGuideAssetMediaManager::STATE_KEY, []);
+    if (!is_array($stored_media_uuids)) {
+      $stored_media_uuids = [];
+    }
+    $failed_key = '';
+    $transaction = $this->database->startTransaction();
 
-    if (is_array($states_input)) {
+    try {
       foreach (self::ASSET_KEYS as $key) {
+        $failed_key = $key;
         $upload = $states_input[$key]['upload'] ?? [];
         $new_fid = is_array($upload) && !empty($upload[0]) ? (int) $upload[0] : 0;
         $old_fid = (int) (($config->get('asset_fids') ?? [])[$key] ?? 0);
 
         if ($new_fid > 0) {
-          try {
+          $stored_uuid = is_string($stored_media_uuids[$key] ?? NULL)
+            ? $stored_media_uuids[$key]
+            : NULL;
+          $stored_media_fid = $this->assetMediaManager->getFileId($stored_uuid);
+          if ($new_fid === $old_fid) {
+            // Preserve a valid prior capture, but never recapture unchanged
+            // legacy assets merely because unrelated settings were submitted.
+            $asset_media_uuids[$key] = $stored_media_fid === $new_fid
+              ? $stored_uuid
+              : NULL;
+          }
+          else {
             $capture = $this->assetMediaManager->capture($new_fid, $this->assetAltText($key));
             $asset_media_uuids[$key] = $capture['media']->uuid();
-          }
-          catch (\InvalidArgumentException | \RuntimeException $exception) {
-            $this->messenger()->addError($this->t('The @state character image could not be saved as Image Media: @message', [
-              '@state' => $key,
-              '@message' => $exception->getMessage(),
-            ]));
-            return;
           }
         }
         else {
           $asset_media_uuids[$key] = NULL;
         }
 
+        $asset_fids[$key] = $new_fid;
+        $asset_paths[$key] = trim((string) ($states_input[$key]['path'] ?? ''));
+        $file_usage_changes[$key] = [
+          'old_fid' => $old_fid,
+          'new_fid' => $new_fid,
+        ];
+      }
+
+      $failed_key = 'settings';
+      foreach ($file_usage_changes as $key => $change) {
+        $old_fid = $change['old_fid'];
+        $new_fid = $change['new_fid'];
         if ($old_fid > 0 && $old_fid !== $new_fid) {
           $old_file = $storage->load($old_fid);
           if ($old_file instanceof FileInterface) {
             $this->fileUsage->delete($old_file, 'mel_guide', 'config', $key);
           }
         }
-
         if ($new_fid > 0 && $old_fid !== $new_fid) {
           $file = $storage->load($new_fid);
           if ($file instanceof FileInterface) {
-            $file->setPermanent();
-            $file->save();
             $this->fileUsage->add($file, 'mel_guide', 'config', $key);
           }
         }
-
-        $asset_fids[$key] = $new_fid;
-        $asset_paths[$key] = trim((string) ($states_input[$key]['path'] ?? ''));
       }
+
+      $this->config('mel_guide.settings')
+        ->set('enabled', (bool) $form_state->getValue('enabled'))
+        ->set('enabled_mobile', (bool) $form_state->getValue('enabled_mobile'))
+        ->set('enabled_desktop', (bool) $form_state->getValue('enabled_desktop'))
+        ->set('show_for_anonymous', (bool) $form_state->getValue('show_for_anonymous'))
+        ->set('show_for_authenticated', (bool) $form_state->getValue('show_for_authenticated'))
+        ->set('show_for_customers', (bool) $form_state->getValue('show_for_customers'))
+        ->set('show_for_organisers', (bool) $form_state->getValue('show_for_organisers'))
+        ->set('appearance_delay', (int) $form_state->getValue('appearance_delay'))
+        ->set('max_messages_per_session', (int) $form_state->getValue('max_messages_per_session'))
+        ->set('hide_days_after_dismiss', (int) $form_state->getValue('hide_days_after_dismiss'))
+        ->set('debug_force_display', (bool) $form_state->getValue('debug_force_display'))
+        ->set('debug_context', (string) $form_state->getValue('debug_context'))
+        ->set('position', (string) $form_state->getValue('position'))
+        ->set('asset_fids', $asset_fids)
+        ->set('messages', [
+          'welcome' => trim((string) ($states_input['wave']['message'] ?? '')),
+          'discover' => trim((string) ($states_input['think']['discover_message'] ?? '')),
+          'thinking' => trim((string) ($states_input['think']['thinking_message'] ?? '')),
+          'celebrate' => trim((string) ($states_input['celebrate']['message'] ?? '')),
+        ])
+        ->set('assets', $asset_paths)
+        ->save();
+
+      $this->state->set(MelGuideAssetMediaManager::STATE_KEY, $asset_media_uuids);
+    }
+    catch (\Throwable $exception) {
+      $transaction->rollBack();
+      $this->messenger()->addError($this->t('MEL Guide settings could not be saved while processing @state: @message', [
+        '@state' => $failed_key,
+        '@message' => $exception->getMessage(),
+      ]));
+      return;
     }
 
-    $this->config('mel_guide.settings')
-      ->set('enabled', (bool) $form_state->getValue('enabled'))
-      ->set('enabled_mobile', (bool) $form_state->getValue('enabled_mobile'))
-      ->set('enabled_desktop', (bool) $form_state->getValue('enabled_desktop'))
-      ->set('show_for_anonymous', (bool) $form_state->getValue('show_for_anonymous'))
-      ->set('show_for_authenticated', (bool) $form_state->getValue('show_for_authenticated'))
-      ->set('show_for_customers', (bool) $form_state->getValue('show_for_customers'))
-      ->set('show_for_organisers', (bool) $form_state->getValue('show_for_organisers'))
-      ->set('appearance_delay', (int) $form_state->getValue('appearance_delay'))
-      ->set('max_messages_per_session', (int) $form_state->getValue('max_messages_per_session'))
-      ->set('hide_days_after_dismiss', (int) $form_state->getValue('hide_days_after_dismiss'))
-      ->set('debug_force_display', (bool) $form_state->getValue('debug_force_display'))
-      ->set('debug_context', (string) $form_state->getValue('debug_context'))
-      ->set('position', (string) $form_state->getValue('position'))
-      ->set('asset_fids', $asset_fids)
-      ->set('messages', [
-        'welcome' => trim((string) ($states_input['wave']['message'] ?? '')),
-        'discover' => trim((string) ($states_input['think']['discover_message'] ?? '')),
-        'thinking' => trim((string) ($states_input['think']['thinking_message'] ?? '')),
-        'celebrate' => trim((string) ($states_input['celebrate']['message'] ?? '')),
-      ])
-      ->set('assets', $asset_paths)
-      ->save();
-
-    $this->state->set(MelGuideAssetMediaManager::STATE_KEY, $asset_media_uuids);
+    unset($transaction);
     $this->cacheTagsInvalidator->invalidateTags(['mel_guide:assets']);
 
     parent::submitForm($form, $form_state);
