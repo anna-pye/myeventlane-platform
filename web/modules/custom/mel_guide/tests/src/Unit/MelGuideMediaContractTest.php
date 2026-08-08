@@ -100,6 +100,9 @@ final class MelGuideMediaContractTest extends UnitTestCase {
     self::assertIsString($form);
     self::assertStringContainsString('if ($new_fid === $old_fid)', $form);
     self::assertStringContainsString('never recapture unchanged', $form);
+    self::assertStringContainsString('if ($new_fid === 0 && $old_fid > 0)', $form);
+    self::assertStringContainsString('empty submission is not evidence that the editor removed it', $form);
+    self::assertStringContainsString('$new_fid = $old_fid;', $form);
     self::assertStringContainsString('$this->database->startTransaction()', $form);
     self::assertStringContainsString('$transaction->rollBack()', $form);
     self::assertStringContainsString('unset($transaction)', $form);
