@@ -7,10 +7,13 @@
 
 use Drupal\Core\Entity\Entity\EntityFormDisplay;
 use Drupal\Core\Utility\UpdateException;
+use Drupal\editor\Entity\Editor;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\filter\Entity\FilterFormat;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
+use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 
 /**
@@ -1254,6 +1257,183 @@ function myeventlane_vendor_update_10023(array &$sandbox): string {
     $sandbox['conflicts'],
     $sandbox['errors'],
   );
+}
+
+/**
+ * Moves current Page and Article bodies to the staff-only Media HTML format.
+ *
+ * Historical revisions are deliberately retained with their original format.
+ * The state ledger records every changed current row for a bounded rollback.
+ */
+function myeventlane_vendor_update_10024(): string {
+  myeventlane_vendor_ensure_staff_media_html_config();
+
+  $format = \Drupal::entityTypeManager()
+    ->getStorage('filter_format')
+    ->load('staff_media_html');
+  if ($format === NULL) {
+    throw new UpdateException('Staff Media HTML must be imported before CK-1 body migration can run.');
+  }
+
+  $role = \Drupal::entityTypeManager()
+    ->getStorage('user_role')
+    ->load('content_editor');
+  if ($role === NULL || !$role->hasPermission('use text format staff_media_html')) {
+    throw new UpdateException('Content Editor must have Staff Media HTML access before CK-1 body migration can run.');
+  }
+
+  foreach (['page', 'article'] as $bundle) {
+    $field = FieldConfig::loadByName('node', $bundle, 'body');
+    $allowed = $field?->getSetting('allowed_formats') ?? [];
+    if (!in_array('staff_media_html', $allowed, TRUE)) {
+      throw new UpdateException(sprintf('The %s body field must allow Staff Media HTML before CK-1 migration can run.', $bundle));
+    }
+  }
+
+  $database = \Drupal::database();
+  $query = $database->select('node__body', 'b');
+  $query->join('node_field_data', 'n', 'n.nid = b.entity_id AND n.langcode = b.langcode');
+  $query->fields('b', [
+    'entity_id',
+    'revision_id',
+    'langcode',
+    'delta',
+    'body_value',
+    'body_format',
+  ]);
+  $query->addField('n', 'type', 'bundle');
+  $rows = $query
+    ->condition('n.type', ['page', 'article'], 'IN')
+    ->condition('b.body_format', 'basic_html')
+    ->orderBy('b.entity_id')
+    ->orderBy('b.langcode')
+    ->orderBy('b.delta')
+    ->execute()
+    ->fetchAll();
+
+  $ledger = [];
+  foreach ($rows as $row) {
+    $before = myeventlane_vendor_render_processed_text_for_update(
+      (string) $row->body_value,
+      'basic_html',
+      (string) $row->langcode,
+    );
+    $after = myeventlane_vendor_render_processed_text_for_update(
+      (string) $row->body_value,
+      'staff_media_html',
+      (string) $row->langcode,
+    );
+    if ($before !== $after) {
+      throw new UpdateException(sprintf('Rendered output differs for %s node %d; no CK-1 rows were changed.', $row->bundle, $row->entity_id));
+    }
+    $ledger[] = [
+      'entity_id' => (int) $row->entity_id,
+      'revision_id' => (int) $row->revision_id,
+      'langcode' => (string) $row->langcode,
+      'delta' => (int) $row->delta,
+      'bundle' => (string) $row->bundle,
+      'original_format' => 'basic_html',
+      'value_hash' => hash('sha256', (string) $row->body_value),
+    ];
+  }
+
+  if ($ledger === []) {
+    return 'No current Page or Article Basic HTML bodies required CK-1 migration.';
+  }
+
+  $transaction = $database->startTransaction();
+  try {
+    foreach ($ledger as $item) {
+      $database->update('node__body')
+        ->fields(['body_format' => 'staff_media_html'])
+        ->condition('entity_id', $item['entity_id'])
+        ->condition('langcode', $item['langcode'])
+        ->condition('delta', $item['delta'])
+        ->condition('body_format', 'basic_html')
+        ->execute();
+
+      $database->update('node_revision__body')
+        ->fields(['body_format' => 'staff_media_html'])
+        ->condition('entity_id', $item['entity_id'])
+        ->condition('langcode', $item['langcode'])
+        ->condition('delta', $item['delta'])
+        ->condition('body_format', 'basic_html')
+        ->condition('revision_id', $item['revision_id'])
+        ->execute();
+    }
+    \Drupal::state()->set('myeventlane_vendor.ck1_staff_media_html_ledger', $ledger);
+  }
+  catch (\Throwable $exception) {
+    $transaction->rollBack();
+    throw $exception;
+  }
+
+  return sprintf('Migrated %d current Page/Article bodies to Staff Media HTML; historical revisions were retained.', count($ledger));
+}
+
+/**
+ * Renders formatted text for CK-1's byte-preserving equivalence gate.
+ */
+function myeventlane_vendor_render_processed_text_for_update(
+  string $value,
+  string $format,
+  string $langcode,
+): string {
+  $build = [
+    '#type' => 'processed_text',
+    '#text' => $value,
+    '#format' => $format,
+    '#langcode' => $langcode,
+  ];
+  return (string) \Drupal::service('renderer')->renderInIsolation($build);
+}
+
+/**
+ * Activates only the CK-1 prerequisites before update 10024 migrates data.
+ *
+ * Staging deliberately mirrors the release config into sync storage before it
+ * runs database updates, while the full config import runs afterwards.
+ */
+function myeventlane_vendor_ensure_staff_media_html_config(): void {
+  $sync = \Drupal::service('config.storage.sync');
+
+  if (FilterFormat::load('staff_media_html') === NULL) {
+    $data = $sync->read('filter.format.staff_media_html');
+    if (!is_array($data)) {
+      throw new UpdateException('Missing Staff Media HTML format in configuration sync.');
+    }
+    FilterFormat::create($data)->save();
+  }
+
+  if (Editor::load('staff_media_html') === NULL) {
+    $data = $sync->read('editor.editor.staff_media_html');
+    if (!is_array($data)) {
+      throw new UpdateException('Missing Staff Media HTML editor in configuration sync.');
+    }
+    Editor::create($data)->save();
+  }
+
+  $role = Role::load('content_editor');
+  if ($role === NULL) {
+    throw new UpdateException('Content Editor role is required for CK-1.');
+  }
+  if (!$role->hasPermission('use text format staff_media_html')) {
+    $role->grantPermission('use text format staff_media_html');
+    $role->save();
+  }
+
+  foreach (['page', 'article'] as $bundle) {
+    $field = FieldConfig::loadByName('node', $bundle, 'body');
+    if ($field === NULL) {
+      throw new UpdateException(sprintf('The %s body field is required for CK-1.', $bundle));
+    }
+    $allowed = $field->getSetting('allowed_formats') ?? [];
+    $required = ['staff_media_html', 'basic_html', 'full_html'];
+    if ($allowed !== $required) {
+      $field->setSetting('allowed_formats', $required);
+      $field->save();
+    }
+  }
 }
 
 /**
