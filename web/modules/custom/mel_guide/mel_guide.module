@@ -20,6 +20,7 @@ function mel_guide_theme(array $existing, string $type, string $theme, string $p
         'message' => '',
         'image_url' => '',
         'image_alt' => '',
+        'actions' => [],
         'position' => 'bottom_right',
       ],
       'template' => 'mel-guide',

@@ -18,7 +18,7 @@ asset_fids:
   think: 0
   celebrate: 0
 messages:
-  welcome: "Hi, I'm MEL. Looking for something fun?"
+  welcome: "Hi, I'm MEL. I can help you find your next event."
   discover: 'Need help finding an event?'
   thinking: 'Still exploring?'
   celebrate: "You're going! 🎉"

@@ -47,26 +47,66 @@
 
 .mel-guide__actions {
   margin-top: var(--mel-space-2, 8px);
+  display: grid;
+  gap: var(--mel-space-2, 8px);
 }
 
 .mel-guide__action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   appearance: none;
+  border: 1px solid transparent;
+  border-radius: var(--mel-radius-sm, 10px);
+  font-size: 0.875rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  padding: var(--mel-space-2, 8px) var(--mel-space-3, 12px);
+  min-height: 44px;
+}
+
+.mel-guide__action--primary {
+  background: var(--mel-color-primary, #f26d5b);
+  color: #fff;
+}
+
+.mel-guide__action--secondary {
+  border-color: var(--mel-color-border, #e9e3de);
+  background: var(--mel-color-surface, #fff);
+  color: var(--mel-color-text, #24303a);
+}
+
+.mel-guide__action--hide {
+  justify-self: start;
   border: 0;
   background: transparent;
   color: var(--mel-color-text-secondary, #5b6670);
   font-size: 0.8125rem;
+  font-weight: 400;
   text-decoration: underline;
-  cursor: pointer;
-  padding: var(--mel-space-1, 4px);
-  min-height: 44px;
-  min-width: 44px;
+  padding-inline: var(--mel-space-1, 4px);
 }
 
 .mel-guide__action:hover,
 .mel-guide__action:focus-visible {
-  color: var(--mel-color-primary, #f26d5b);
   outline: 2px solid var(--mel-focus, var(--mel-color-primary, #f26d5b));
   outline-offset: 2px;
+}
+
+.mel-guide__action--primary:hover,
+.mel-guide__action--primary:focus-visible {
+  color: #fff;
+  filter: brightness(0.94);
+}
+
+.mel-guide__action--secondary:hover,
+.mel-guide__action--secondary:focus-visible,
+.mel-guide__action--hide:hover,
+.mel-guide__action--hide:focus-visible {
+  color: var(--mel-color-primary, #f26d5b);
 }
 
 .mel-guide__close {

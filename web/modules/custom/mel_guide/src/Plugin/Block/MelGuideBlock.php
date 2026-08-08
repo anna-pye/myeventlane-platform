@@ -62,6 +62,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
   public function getCacheTags(): array {
     return Cache::mergeTags(parent::getCacheTags(), [
       'config:mel_guide.settings',
+      'config:myeventlane_help_assistant.settings',
       'mel_guide:assets',
     ]);
   }
@@ -95,6 +96,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
       '#message' => $variables['message'],
       '#image_url' => $variables['image_url'],
       '#image_alt' => $variables['image_alt'],
+      '#actions' => $variables['actions'],
       '#position' => $variables['position'],
       '#attached' => [
         'library' => ['mel_guide/guide'],

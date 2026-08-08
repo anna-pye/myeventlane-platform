@@ -7,10 +7,13 @@ namespace Drupal\mel_guide\Service;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\State\StateInterface;
+use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
@@ -42,6 +45,8 @@ final class MelGuideContext {
     private readonly EntityRepositoryInterface $entityRepository,
     private readonly FileSystemInterface $fileSystem,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly ModuleHandlerInterface $moduleHandler,
+    private readonly AccountProxyInterface $currentUser,
   ) {}
 
   /**
@@ -72,12 +77,53 @@ final class MelGuideContext {
       'image_url' => $image['url'],
       'cache_tags' => $image['cache_tags'],
       'image_alt' => $this->resolveImageAlt($state),
+      'actions' => $this->resolveActions(),
       'appearance_delay' => (int) $config->get('appearance_delay'),
       'max_messages_per_session' => (int) $config->get('max_messages_per_session'),
       'hide_days_after_dismiss' => (int) $config->get('hide_days_after_dismiss'),
       'debug_force_display' => (bool) $config->get('debug_force_display'),
       'position' => $this->resolvePosition(),
     ];
+  }
+
+  /**
+   * Resolves safe, route-backed guide actions for the current visitor.
+   *
+   * @return array<string, string>
+   *   Action URLs keyed by action name.
+   */
+  private function resolveActions(): array {
+    $actions = [];
+
+    try {
+      $events_url = Url::fromRoute('view.upcoming_events.page_events');
+      if ($events_url->access($this->currentUser)) {
+        $actions['events'] = $events_url->toString();
+      }
+    }
+    catch (\Throwable) {
+      // Fail closed when the configured discovery route is unavailable.
+    }
+
+    if (!$this->moduleHandler->moduleExists('myeventlane_help_centre')
+      || !$this->moduleHandler->moduleExists('myeventlane_help_assistant')
+      || !(bool) $this->configFactory->get('myeventlane_help_assistant.settings')->get('enabled')) {
+      return $actions;
+    }
+
+    try {
+      $help_url = Url::fromRoute('myeventlane_help_centre.home', [], [
+        'fragment' => 'mel-help-assistant',
+      ]);
+      if ($help_url->access($this->currentUser)) {
+        $actions['help'] = $help_url->toString();
+      }
+    }
+    catch (\Throwable) {
+      // Fail closed rather than render an inaccessible Help Assistant link.
+    }
+
+    return $actions;
   }
 
   /**
