@@ -90,4 +90,25 @@ final class MelGuideMediaContractTest extends UnitTestCase {
     self::assertStringNotContainsString("clear('assets')", $update);
   }
 
+  /**
+   * Form submission skips unchanged legacy capture and rolls back as one unit.
+   */
+  public function testSettingsSubmitIsAtomicAndLegacySafe(): void {
+    $module = dirname(__DIR__, 3);
+    $form = file_get_contents($module . '/src/Form/MelGuideSettingsForm.php');
+
+    self::assertIsString($form);
+    self::assertStringContainsString('if ($new_fid === $old_fid)', $form);
+    self::assertStringContainsString('never recapture unchanged', $form);
+    self::assertStringContainsString('$this->database->startTransaction()', $form);
+    self::assertStringContainsString('$transaction->rollBack()', $form);
+    self::assertStringContainsString('unset($transaction)', $form);
+
+    $capture_position = strpos($form, '$this->assetMediaManager->capture');
+    $usage_position = strpos($form, '$this->fileUsage->delete');
+    self::assertNotFalse($capture_position);
+    self::assertNotFalse($usage_position);
+    self::assertLessThan($usage_position, $capture_position);
+  }
+
 }
