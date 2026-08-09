@@ -87,6 +87,49 @@ myeventlane_event_attendees.vendor_operations_door_validate:
         bundle:
           - event
 
+# Compatibility redirects for the retired myeventlane_checkin read surfaces.
+myeventlane_checkin.page:
+  path: '/vendor/events/{node}/check-in'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_attendees\Controller\LegacyVendorEventAttendeePathController::redirectCheckinToDoorMode'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_checkin.scan:
+  path: '/vendor/events/{node}/check-in/scan'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_attendees\Controller\LegacyVendorEventAttendeePathController::redirectCheckinToDoorMode'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
+myeventlane_checkin.list:
+  path: '/vendor/events/{node}/check-in/list'
+  defaults:
+    _controller: '\Drupal\myeventlane_event_attendees\Controller\LegacyVendorEventAttendeePathController::redirectCheckinToDoorMode'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    node: '\d+'
+  options:
+    parameters:
+      node:
+        type: entity:node
+        bundle:
+          - event
+
 # Vendor: export attendees as CSV.
 myeventlane_event_attendees.vendor_export:
   path: '/vendor/events/{node}/attendees/export'

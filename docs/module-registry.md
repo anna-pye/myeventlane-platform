@@ -17,7 +17,7 @@ Source of truth: `web/modules/custom/*/*.info.yml` (description fields) plus mod
 | `myeventlane_boost` | `web/modules/custom/myeventlane_boost` | Event promotion/featuring with Commerce boost packages. | `web/modules/custom/myeventlane_boost/myeventlane_boost.info.yml` |
 | `myeventlane_capacity` | `web/modules/custom/myeventlane_capacity` | Event capacity tracking/enforcement. | `web/modules/custom/myeventlane_capacity/myeventlane_capacity.info.yml` |
 | `myeventlane_cart` | `web/modules/custom/myeventlane_cart` | Cart enhancements for per-ticket attendee capture. | `web/modules/custom/myeventlane_cart/myeventlane_cart.info.yml` |
-| `myeventlane_checkin` | `web/modules/custom/myeventlane_checkin` | Mobile-first event check-in system. | `web/modules/custom/myeventlane_checkin/myeventlane_checkin.info.yml` |
+| `myeventlane_checkin` | `web/modules/custom/myeventlane_checkin` | Retired compatibility shim; legacy read routes now redirect to canonical Door Mode. Do not enable on new sites. | `web/modules/custom/myeventlane_checkin/myeventlane_checkin.info.yml` |
 | `myeventlane_checkout_flow` | `web/modules/custom/myeventlane_checkout_flow` | Custom single-page checkout flow. | `web/modules/custom/myeventlane_checkout_flow/myeventlane_checkout_flow.info.yml` |
 | `myeventlane_checkout_paragraph` | `web/modules/custom/myeventlane_checkout_paragraph` | Paragraph-based checkout pane for attendee capture. | `web/modules/custom/myeventlane_checkout_paragraph/myeventlane_checkout_paragraph.info.yml` |
 | `myeventlane_commerce` | `web/modules/custom/myeventlane_commerce` | Commerce integration for booking/tickets/orders. | `web/modules/custom/myeventlane_commerce/myeventlane_commerce.info.yml` |

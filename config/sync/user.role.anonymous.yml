@@ -10,7 +10,6 @@ dependencies:
     - contact
     - klaro
     - media
-    - myeventlane_checkin
     - myeventlane_help_assistant
     - paragraphs
     - search

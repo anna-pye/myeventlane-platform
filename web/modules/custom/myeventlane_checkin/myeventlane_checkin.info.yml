@@ -1,10 +1,7 @@
-name: MyEventLane Check-in
+name: MyEventLane Check-in (retired compatibility shim)
 type: module
-description: 'Mobile-first check-in system for MyEventLane events.'
+description: 'Retired compatibility shim. Legacy read routes are owned by MyEventLane Event Attendees; do not enable on new sites.'
 core_version_requirement: ^11
 package: MyEventLane
 dependencies:
-  - drupal:node
-  - myeventlane_core:myeventlane_core
-  - myeventlane_attendee:myeventlane_attendee
-  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_event_attendees:myeventlane_event_attendees

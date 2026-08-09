@@ -53,3 +53,37 @@ function myeventlane_event_attendees_update_8002() {
 
   return t('Installed missing base fields for event_attendee entity.');
 }
+
+/**
+ * Removes permissions and config dependencies from retired check-in routes.
+ */
+function myeventlane_event_attendees_update_8003(): string {
+  $legacy_permissions = [
+    'access check-in',
+    'scan qr codes',
+    'toggle check-in status',
+  ];
+  $updated_roles = [];
+  $roles = \Drupal::entityTypeManager()->getStorage('user_role')->loadMultiple();
+
+  foreach ($roles as $role) {
+    $dependencies = $role->getDependencies();
+    $has_legacy_dependency = in_array('myeventlane_checkin', $dependencies['module'] ?? [], TRUE);
+    $has_legacy_permission = (bool) array_intersect($legacy_permissions, $role->getPermissions());
+    if (!$has_legacy_dependency && !$has_legacy_permission) {
+      continue;
+    }
+
+    foreach ($legacy_permissions as $permission) {
+      if ($role->hasPermission($permission)) {
+        $role->revokePermission($permission);
+      }
+    }
+    $role->save();
+    $updated_roles[] = $role->id();
+  }
+
+  return (string) t('Removed retired check-in permissions and dependencies from roles: @roles.', [
+    '@roles' => $updated_roles ? implode(', ', $updated_roles) : 'none',
+  ]);
+}
