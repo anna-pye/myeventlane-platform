@@ -386,7 +386,7 @@ See [`scripts/deploy/remote-deploy.sh`](../../scripts/deploy/remote-deploy.sh) �
 | --- | --- |
 | `field_event_visibility` | Referenced in vendor/Studio PHP but **not exported** in `config/sync` — private/unlisted/passcode visibility may not be fully enforced on all discovery surfaces until audited separately |
 | Private / unlisted / passcode events | Require a dedicated visibility audit beyond this smoke test |
-| `simple_sitemap` | Not installed or configured in `config/sync` — no automated sitemap generation in repo; see [STAGING_INDEXING_PROTECTION.md](../operations/STAGING_INDEXING_PROTECTION.md) |
+| XML sitemap | Custom `/sitemap.xml` generation is owned by `XmlSitemapController`; verify that future public events passing `PublicEventVisibility::isSeoIndexable()` appear after deploy. `simple_sitemap` is not installed. |
 | Per-environment aliases | Existing nodes/terms need Pathauto generation on **each** environment after deploy |
 | Default CI deploy skips `cim` | Until workflow passes `RUN_CIM=1`, operators must run config import manually for this release |
 | Full checkout payment | Out of scope — booking **entry** only |

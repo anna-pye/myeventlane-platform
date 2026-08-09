@@ -76,3 +76,6 @@ Disallow: /index.php/user/login
 Disallow: /index.php/user/logout
 Disallow: /index.php/media/oembed
 Disallow: /index.php/*/media/oembed
+
+# Canonical production sitemap. Staging is protected separately by X-Robots-Tag.
+Sitemap: https://myeventlane.com.au/sitemap.xml

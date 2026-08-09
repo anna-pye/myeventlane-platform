@@ -1820,6 +1820,45 @@ function myeventlane_event_get_event_card_view_modes(): array {
 }
 
 /**
+ * Implements hook_metatags_alter().
+ */
+function myeventlane_event_metatags_alter(array &$metatags): void {
+  if (\Drupal::routeMatch()->getRouteName() !== 'entity.node.canonical') {
+    return;
+  }
+
+  $node = \Drupal::routeMatch()->getParameter('node');
+  if (!$node instanceof NodeInterface || $node->bundle() !== 'event') {
+    return;
+  }
+
+  $description = '';
+  foreach (['field_event_summary', 'field_event_intro', 'body'] as $field_name) {
+    if ($node->hasField($field_name) && !$node->get($field_name)->isEmpty()) {
+      $description = trim(strip_tags((string) $node->get($field_name)->value));
+      if ($description !== '') {
+        break;
+      }
+    }
+  }
+
+  if ($description === '') {
+    $description = $node->label();
+  }
+
+  if (str_contains($description, '[date]') && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
+    try {
+      $event_date = new \DateTimeImmutable((string) $node->get('field_event_start')->value, new \DateTimeZone('Australia/Sydney'));
+      $description = str_replace('[date]', $event_date->format('j F Y'), $description);
+    }
+    catch (\Exception) {
+    }
+  }
+
+  $metatags['description'] = Unicode::truncate($description, 160, TRUE, TRUE);
+}
+
+/**
  * Implements hook_page_attachments().
  *
  * Open Graph markup for canonical event pages without requiring metatag
@@ -1838,7 +1877,7 @@ function myeventlane_event_page_attachments(array &$attachments): void {
   }
 
   $canonical = $node->toUrl()->setAbsolute()->toString();
-  $title = Html::escape($node->label());
+  $title = $node->label();
 
   $description = '';
   if ($node->hasField('field_event_summary') && !$node->get('field_event_summary')->isEmpty()) {
@@ -1864,7 +1903,16 @@ function myeventlane_event_page_attachments(array &$attachments): void {
     $description = $node->label();
   }
 
-  $description = Html::escape(Unicode::truncate($description, 300, TRUE, TRUE));
+  if (str_contains($description, '[date]') && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
+    try {
+      $event_date = new \DateTimeImmutable((string) $node->get('field_event_start')->value, new \DateTimeZone('Australia/Sydney'));
+      $description = str_replace('[date]', $event_date->format('j F Y'), $description);
+    }
+    catch (\Exception) {
+    }
+  }
+
+  $description = Unicode::truncate($description, 300, TRUE, TRUE);
 
   $attachments['#cache']['tags'][] = 'node:' . (int) $node->id();
 
@@ -1898,7 +1946,7 @@ function myeventlane_event_page_attachments(array &$attachments): void {
       '#tag' => 'meta',
       '#attributes' => [
         'property' => 'og:url',
-        'content' => Html::escape($canonical),
+        'content' => $canonical,
       ],
     ],
     'mel_event_og_url',
@@ -1921,7 +1969,7 @@ function myeventlane_event_page_attachments(array &$attachments): void {
         '#tag' => 'meta',
         '#attributes' => [
           'property' => 'og:site_name',
-          'content' => Html::escape($site_name),
+          'content' => $site_name,
         ],
       ],
       'mel_event_og_site_name',
@@ -1935,7 +1983,7 @@ function myeventlane_event_page_attachments(array &$attachments): void {
     $file_entity = $node->get('field_event_image')->entity;
     if ($file_entity instanceof FileInterface) {
       $uri = $file_entity->getFileUri();
-      $absolute = Html::escape($urls->generateAbsoluteString($uri));
+      $absolute = $urls->generateAbsoluteString($uri);
       $attachments['#attached']['html_head'][] = [
         [
           '#tag' => 'meta',
@@ -1946,7 +1994,49 @@ function myeventlane_event_page_attachments(array &$attachments): void {
         ],
         'mel_event_og_image',
       ];
+
+      $alt = trim((string) ($node->get('field_event_image')->alt ?? ''));
+      $attachments['#attached']['html_head'][] = [
+        [
+          '#tag' => 'meta',
+          '#attributes' => [
+            'property' => 'og:image:alt',
+            'content' => $alt !== '' ? $alt : $node->label(),
+          ],
+        ],
+        'mel_event_og_image_alt',
+      ];
     }
+  }
+
+  foreach ([
+    'twitter:card' => 'summary_large_image',
+    'twitter:title' => $title,
+    'twitter:description' => $description,
+  ] as $name => $content) {
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => [
+          'name' => $name,
+          'content' => $content,
+        ],
+      ],
+      'mel_event_' . str_replace(':', '_', $name),
+    ];
+  }
+
+  if (isset($absolute)) {
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => [
+          'name' => 'twitter:image',
+          'content' => $absolute,
+        ],
+      ],
+      'mel_event_twitter_image',
+    ];
   }
 
   if (\Drupal::hasService('myeventlane_event.structured_data_builder')) {

@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_event\Service;
 
 use Drupal\address\Plugin\Field\FieldType\AddressItem;
 use Drupal\commerce_price\Price;
+use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
+use Drupal\file\FileInterface;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 
@@ -21,12 +23,14 @@ final class EventStructuredDataBuilder {
     private readonly PublicEventVisibility $publicEventVisibility,
     private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly TicketTypeManager $ticketTypeManager,
+    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
   ) {}
 
   /**
    * Returns render-safe JSON-LD data, or NULL when the event is not public SEO.
    *
    * @return array<string, mixed>|null
+   *   The schema data, or NULL when the event must not be indexed.
    */
   public function build(NodeInterface $event): ?array {
     if (!$this->publicEventVisibility->isSeoIndexable($event)) {
@@ -47,22 +51,33 @@ final class EventStructuredDataBuilder {
     }
 
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $start = $event->get('field_event_start')->date;
+      $start = $this->formatFieldValue((string) $event->get('field_event_start')->value);
       if ($start !== NULL) {
-        $data['startDate'] = $this->formatTimestamp($start->getTimestamp());
+        $data['startDate'] = $start;
       }
     }
 
     if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
-      $end = $event->get('field_event_end')->date;
+      $end = $this->formatFieldValue((string) $event->get('field_event_end')->value);
       if ($end !== NULL) {
-        $data['endDate'] = $this->formatTimestamp($end->getTimestamp());
+        $data['endDate'] = $end;
       }
     }
 
     $location = $this->resolveLocation($event);
     if ($location !== NULL) {
       $data['location'] = $location;
+      $data['eventAttendanceMode'] = 'https://schema.org/OfflineEventAttendanceMode';
+    }
+
+    $image = $this->resolveImage($event);
+    if ($image !== NULL) {
+      $data['image'] = $image;
+    }
+
+    $organizer = $this->resolveOrganizer($event);
+    if ($organizer !== NULL) {
+      $data['organizer'] = $organizer;
     }
 
     $offer = $this->resolveOffer($event);
@@ -73,6 +88,9 @@ final class EventStructuredDataBuilder {
     return array_filter($data, static fn (mixed $value): bool => $value !== NULL && $value !== '');
   }
 
+  /**
+   * Resolves the schema.org lifecycle status.
+   */
   private function resolveEventStatus(NodeInterface $event): string {
     if ($event->hasField('field_event_state') && !$event->get('field_event_state')->isEmpty()) {
       $state = (string) $event->get('field_event_state')->value;
@@ -84,21 +102,74 @@ final class EventStructuredDataBuilder {
     return 'https://schema.org/EventScheduled';
   }
 
+  /**
+   * Resolves plain event copy for search metadata.
+   */
   private function resolveDescription(NodeInterface $event): string {
+    $description = '';
     if ($event->hasField('field_event_summary') && !$event->get('field_event_summary')->isEmpty()) {
-      return trim(strip_tags((string) $event->get('field_event_summary')->value));
+      $description = trim(strip_tags((string) $event->get('field_event_summary')->value));
     }
-    if ($event->hasField('field_event_intro') && !$event->get('field_event_intro')->isEmpty()) {
-      return trim(strip_tags((string) $event->get('field_event_intro')->value));
+    elseif ($event->hasField('field_event_intro') && !$event->get('field_event_intro')->isEmpty()) {
+      $description = trim(strip_tags((string) $event->get('field_event_intro')->value));
     }
-    if ($event->hasField('body') && !$event->get('body')->isEmpty()) {
-      return trim(strip_tags((string) $event->get('body')->value));
+    elseif ($event->hasField('body') && !$event->get('body')->isEmpty()) {
+      $description = trim(strip_tags((string) $event->get('body')->value));
     }
-    return '';
+
+    if ($description !== '' && str_contains($description, '[date]') && $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
+      $start = $this->parseFieldValue((string) $event->get('field_event_start')->value);
+      if ($start !== NULL) {
+        $description = str_replace('[date]', $start->format('j F Y'), $description);
+      }
+    }
+
+    return $description;
   }
 
   /**
+   * Resolves the canonical event image URL.
+   */
+  private function resolveImage(NodeInterface $event): ?string {
+    if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
+      return NULL;
+    }
+
+    $file = $event->get('field_event_image')->entity;
+    if (!$file instanceof FileInterface) {
+      return NULL;
+    }
+
+    return $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
+  }
+
+  /**
+   * Resolves the public event organiser.
+   *
+   * @return array<string, string>|null
+   *   The schema.org organiser, or NULL when none is available.
+   */
+  private function resolveOrganizer(NodeInterface $event): ?array {
+    if (!$event->hasField('field_event_vendor') || $event->get('field_event_vendor')->isEmpty()) {
+      return NULL;
+    }
+
+    $vendor = $event->get('field_event_vendor')->entity;
+    if ($vendor === NULL || trim((string) $vendor->label()) === '') {
+      return NULL;
+    }
+
+    return [
+      '@type' => 'Organization',
+      'name' => trim((string) $vendor->label()),
+    ];
+  }
+
+  /**
+   * Resolves the physical event location.
+   *
    * @return array<string, mixed>|null
+   *   The schema.org place, or NULL when no location is available.
    */
   private function resolveLocation(NodeInterface $event): ?array {
     $name = '';
@@ -135,7 +206,10 @@ final class EventStructuredDataBuilder {
   }
 
   /**
+   * Resolves the public booking offer.
+   *
    * @return array<string, mixed>|null
+   *   The schema.org offer, or NULL when booking is unavailable.
    */
   private function resolveOffer(NodeInterface $event): ?array {
     $mode = $this->bookingFlowResolver->getBookingMode($event);
@@ -180,6 +254,9 @@ final class EventStructuredDataBuilder {
     return $offer;
   }
 
+  /**
+   * Resolves schema.org ticket availability.
+   */
   private function resolveOfferAvailability(NodeInterface $event): string {
     if ($this->bookingFlowResolver->getAvailabilityState($event) === BookingFlowResolver::AVAILABILITY_SOLD_OUT) {
       return 'https://schema.org/SoldOut';
@@ -188,9 +265,33 @@ final class EventStructuredDataBuilder {
     return 'https://schema.org/InStock';
   }
 
-  private function formatTimestamp(int $timestamp): string {
-    $utc = (new \DateTimeImmutable('@' . $timestamp))->setTimezone(new \DateTimeZone('UTC'));
-    return $utc->setTimezone(new \DateTimeZone(self::DISPLAY_TIMEZONE))->format(\DateTimeInterface::ATOM);
+  /**
+   * Formats a stored event wall-clock value with its Sydney offset.
+   */
+  private function formatFieldValue(string $value): ?string {
+    return $this->parseFieldValue($value)?->format(\DateTimeInterface::ATOM);
+  }
+
+  /**
+   * Parses a stored event wall-clock value in the display timezone.
+   */
+  private function parseFieldValue(string $value): ?\DateTimeImmutable {
+    if ($value === '') {
+      return NULL;
+    }
+
+    $timezone = new \DateTimeZone(self::DISPLAY_TIMEZONE);
+    $date = \DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s', $value, $timezone);
+    if ($date !== FALSE) {
+      return $date;
+    }
+
+    try {
+      return new \DateTimeImmutable($value, $timezone);
+    }
+    catch (\Exception) {
+      return NULL;
+    }
   }
 
 }
