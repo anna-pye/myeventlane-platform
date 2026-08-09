@@ -13,6 +13,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class EventStudioBrandingCropContractTest extends TestCase {
 
+  /**
+   * Confirms Studio requires the compatible event hero crop.
+   */
   public function testBrandingUsesCompatibleRequiredEventHeroCrop(): void {
     $webRoot = dirname(__DIR__, 6);
     $cropSettings = (string) file_get_contents(
@@ -27,6 +30,9 @@ final class EventStudioBrandingCropContractTest extends TestCase {
     self::assertMatchesRegularExpression('/crop_types_required:\\s*\\n\\s*- event_hero/', $brandingDisplay);
   }
 
+  /**
+   * Confirms public and booking heroes share the canonical crop style.
+   */
   public function testPublicEventAndBookingHeroesUseCanonicalCropStyle(): void {
     $webRoot = dirname(__DIR__, 6);
     $fullDisplay = (string) file_get_contents(
@@ -41,10 +47,15 @@ final class EventStudioBrandingCropContractTest extends TestCase {
 
     self::assertStringContainsString('responsive_image_style: mel_event_hero', $fullDisplay);
     self::assertStringContainsString('image.style.mel_event_hero_featured', $responsiveStyle);
+    self::assertStringContainsString('image_mapping_type: image_style', $responsiveStyle);
+    self::assertStringNotContainsString('image_mapping_type: sizes', $responsiveStyle);
     self::assertStringContainsString('fallback_image_style: mel_event_hero_featured', $responsiveStyle);
     self::assertStringContainsString("ImageStyle::load('mel_event_hero_featured')", $bookController);
   }
 
+  /**
+   * Confirms Studio presents one clear framing workflow.
+   */
   public function testCropAreaExplainsOneFramingFlowWithoutFocalShortcuts(): void {
     $moduleRoot = dirname(__DIR__, 3);
     $form = (string) file_get_contents($moduleRoot . '/src/Form/EventBrandingForm.php');
@@ -69,6 +80,9 @@ final class EventStudioBrandingCropContractTest extends TestCase {
     self::assertStringContainsString('.mel-es-branding-crop-guidance', $styles);
   }
 
+  /**
+   * Confirms branding tools initialise the visible cropper safely.
+   */
   public function testBrandingToolsWakeVisibleCropperInStudioLayout(): void {
     $moduleRoot = dirname(__DIR__, 3);
     $script = (string) file_get_contents($moduleRoot . '/js/mel-branding-hero-tools.js');
@@ -88,6 +102,9 @@ final class EventStudioBrandingCropContractTest extends TestCase {
     self::assertStringContainsString('myeventlane_event_studio/mel_cropper_jquery_compat', $module);
   }
 
+  /**
+   * Confirms saved media and MEL Pro branding controls remain available.
+   */
   public function testBrandingOffersSavedMediaSaveActionAndProColourGuidance(): void {
     $repositoryRoot = dirname(__DIR__, 7);
     $moduleRoot = dirname(__DIR__, 3);

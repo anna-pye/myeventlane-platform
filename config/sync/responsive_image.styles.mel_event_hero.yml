@@ -8,11 +8,8 @@ id: mel_event_hero
 label: 'MyEventLane event hero'
 image_style_mappings:
   -
-    image_mapping_type: sizes
-    image_mapping:
-      sizes: 100vw
-      sizes_image_styles:
-        - mel_event_hero_featured
+    image_mapping_type: image_style
+    image_mapping: mel_event_hero_featured
     breakpoint_id: responsive_image.viewport_sizing
     multiplier: 1x
 breakpoint_group: responsive_image

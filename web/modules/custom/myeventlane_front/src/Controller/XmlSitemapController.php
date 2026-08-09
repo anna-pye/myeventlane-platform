@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_front\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Cache\CacheableResponse;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_event\Service\PublicEventVisibility;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Serves a minimal XML sitemap for public marketing and guide URLs.
@@ -19,6 +21,7 @@ final class XmlSitemapController extends ControllerBase {
   public function __construct(
     EntityTypeManagerInterface $entityTypeManager,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly PublicEventVisibility $publicEventVisibility,
   ) {
     $this->entityTypeManager = $entityTypeManager;
   }
@@ -30,13 +33,14 @@ final class XmlSitemapController extends ControllerBase {
     return new self(
       $container->get('entity_type.manager'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_event.public_visibility'),
     );
   }
 
   /**
    * Returns XML sitemap entries for key public pages.
    */
-  public function page(): Response {
+  public function page(): CacheableResponse {
     $urls = [
       $this->urlEntry(Url::fromRoute('<front>', [], ['absolute' => TRUE])->toString(), time()),
       $this->urlEntry(Url::fromRoute('myeventlane_front.organiser_hub', [], ['absolute' => TRUE])->toString(), time()),
@@ -64,6 +68,25 @@ final class XmlSitemapController extends ControllerBase {
       }
     }
 
+    $event_nids = $storage->getQuery()
+      ->accessCheck(TRUE)
+      ->condition('type', 'event')
+      ->condition('status', 1)
+      ->sort('changed', 'DESC')
+      ->range(0, 500)
+      ->execute();
+
+    if (is_array($event_nids)) {
+      $events = $storage->loadMultiple($event_nids);
+      foreach ($event_nids as $nid) {
+        if (!isset($events[$nid]) || !$this->publicEventVisibility->isSeoIndexable($events[$nid])) {
+          continue;
+        }
+        $event = $events[$nid];
+        $urls[] = $this->urlEntry($event->toUrl('canonical', ['absolute' => TRUE])->toString(), (int) $event->getChangedTime());
+      }
+    }
+
     $xml = ['<?xml version="1.0" encoding="UTF-8"?>'];
     $xml[] = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">';
     foreach ($urls as $entry) {
@@ -74,14 +97,23 @@ final class XmlSitemapController extends ControllerBase {
     }
     $xml[] = '</urlset>';
 
-    return new Response(implode("\n", $xml), 200, [
+    $response = new CacheableResponse(implode("\n", $xml), 200, [
       'Content-Type' => 'application/xml; charset=utf-8',
       'Cache-Control' => 'public, max-age=3600',
     ]);
+    $response->addCacheableDependency((new CacheableMetadata())
+      ->setCacheTags(['node_list'])
+      ->setCacheContexts(['url.site'])
+      ->setCacheMaxAge(3600));
+
+    return $response;
   }
 
   /**
+   * Creates one escaped sitemap URL value.
+   *
    * @return array{loc: string, lastmod: string}
+   *   The canonical location and last-modified date.
    */
   private function urlEntry(string $loc, int $changed): array {
     return [
