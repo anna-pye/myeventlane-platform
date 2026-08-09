@@ -470,3 +470,74 @@ function myeventlane_tickets_update_8010(): string {
   $config->clear('qr_secret')->save();
   return 'Removed lingering qr_secret key from myeventlane_tickets.settings.';
 }
+
+/**
+ * Transfers legacy universal-ticket field ownership to myeventlane_tickets.
+ */
+function myeventlane_tickets_update_8011(): string {
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $fields = [
+    'myeventlane_ticket' => [
+      'entitlement_type',
+      'redemption_limit',
+      'redemption_count',
+      'fulfilment_status',
+      'collect_window',
+      'collect_location',
+      'vehicle_registration',
+      'vendor_reference',
+      'expires_at',
+      'metadata_json',
+    ],
+    'mel_redemption_log' => [
+      'entitlement_type',
+      'ip_address',
+    ],
+  ];
+
+  $transferred = [];
+  $already_owned = [];
+  foreach ($fields as $entity_type_id => $field_names) {
+    foreach ($field_names as $field_name) {
+      $definition = $update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
+      if (!$definition) {
+        throw new \RuntimeException(sprintf(
+          'Cannot retire mel_universal_ticket: installed field %s.%s is missing.',
+          $entity_type_id,
+          $field_name,
+        ));
+      }
+
+      $provider = $definition->getProvider();
+      if ($provider === 'myeventlane_tickets') {
+        $already_owned[] = $entity_type_id . '.' . $field_name;
+        continue;
+      }
+      if ($provider !== 'mel_universal_ticket') {
+        throw new \RuntimeException(sprintf(
+          'Cannot transfer %s.%s from unexpected provider %s.',
+          $entity_type_id,
+          $field_name,
+          $provider ?: '(none)',
+        ));
+      }
+      if (!$definition instanceof \Drupal\Core\Field\BaseFieldDefinition) {
+        throw new \RuntimeException(sprintf(
+          'Cannot transfer immutable field definition %s.%s.',
+          $entity_type_id,
+          $field_name,
+        ));
+      }
+
+      $definition->setProvider('myeventlane_tickets');
+      $update_manager->updateFieldStorageDefinition($definition);
+      $transferred[] = $entity_type_id . '.' . $field_name;
+    }
+  }
+
+  return sprintf(
+    'Transferred universal-ticket field ownership to myeventlane_tickets: %s. Already owned: %s.',
+    $transferred === [] ? 'none' : implode(', ', $transferred),
+    $already_owned === [] ? 'none' : implode(', ', $already_owned),
+  );
+}

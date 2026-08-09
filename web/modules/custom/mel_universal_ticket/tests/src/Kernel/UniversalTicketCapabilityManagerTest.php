@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\mel_universal_ticket\Kernel;
 
+use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_tickets\Entity\RedemptionLog;
 use Drupal\myeventlane_tickets\Entity\Ticket;
@@ -12,6 +13,7 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
@@ -19,6 +21,7 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  *
  * @group mel_universal_ticket
  */
+#[RunTestsInSeparateProcesses]
 final class UniversalTicketCapabilityManagerTest extends KernelTestBase {
 
   /**
@@ -78,6 +81,7 @@ final class UniversalTicketCapabilityManagerTest extends KernelTestBase {
     $container->register('myeventlane_legal.gatekeeper', \stdClass::class);
     $container->register('myeventlane_core.domain_detector', \stdClass::class);
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
+    $container->register('myeventlane_commerce.ticket_backed_order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
   }
@@ -87,6 +91,8 @@ final class UniversalTicketCapabilityManagerTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+
+    putenv('MEL_QR_SECRET=mel-kernel-test-secret');
 
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
@@ -132,6 +138,42 @@ final class UniversalTicketCapabilityManagerTest extends KernelTestBase {
       'status' => 1,
     ]);
     $this->event->save();
+  }
+
+  /**
+   * Legacy field providers transfer without deleting field storage.
+   */
+  public function testLegacyFieldProviderTransfer(): void {
+    $update_manager = $this->container->get('entity.definition_update_manager');
+    $legacy_fields = [
+      'myeventlane_ticket' => 'entitlement_type',
+      'mel_redemption_log' => 'ip_address',
+    ];
+
+    foreach ($legacy_fields as $entity_type_id => $field_name) {
+      $definition = $update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
+      $this->assertNotNull($definition);
+      $this->assertInstanceOf(BaseFieldDefinition::class, $definition);
+      $definition->setProvider('mel_universal_ticket');
+      $update_manager->updateFieldStorageDefinition($definition);
+      $this->assertSame(
+        'mel_universal_ticket',
+        $update_manager->getFieldStorageDefinition($field_name, $entity_type_id)->getProvider(),
+      );
+    }
+
+    $this->container->get('module_handler')->loadInclude('myeventlane_tickets', 'install');
+    $result = myeventlane_tickets_update_8011();
+
+    $this->assertStringContainsString('myeventlane_ticket.entitlement_type', $result);
+    $this->assertStringContainsString('mel_redemption_log.ip_address', $result);
+    foreach ($legacy_fields as $entity_type_id => $field_name) {
+      $definition = $update_manager->getFieldStorageDefinition($field_name, $entity_type_id);
+      $this->assertNotNull($definition);
+      $this->assertSame('myeventlane_tickets', $definition->getProvider());
+    }
+
+    $this->assertStringContainsString('Already owned:', myeventlane_tickets_update_8011());
   }
 
   /**

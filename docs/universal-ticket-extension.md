@@ -4,7 +4,21 @@ Phase 2A extends the existing `myeventlane_ticket` content entity into the canon
 
 ## Phase 2A Foundation Status
 
-`mel_universal_ticket` owns the universal entitlement foundation orchestration layer. It does not replace `myeventlane_tickets`; it depends on the existing ticket module and safely verifies that the capability base fields already present on `myeventlane_ticket` are installed.
+`myeventlane_tickets` owns the universal entitlement fields, services, scanner
+integration, and runtime behaviour. `mel_universal_ticket` is retained for one
+transition release as a compatibility shim so existing environments can
+transfer legacy field-provider metadata before Drupal uninstalls it.
+
+Deployment order for the transition release is mandatory:
+
+1. Run database updates, including `myeventlane_tickets_update_8011()`.
+2. Confirm the ticket and redemption-log fields identify
+   `myeventlane_tickets` as their last-installed provider.
+3. Import configuration, which disables `mel_universal_ticket`.
+4. Rebuild caches and verify ticket issue, QR, scan, download, and wallet paths.
+
+The old service ID `mel_universal_ticket.capability_manager` remains an alias of
+`mel_ticket_capability.manager`. New consumers must use the canonical service.
 
 The requested `field_*` capability names map to existing code-defined base fields on `myeventlane_ticket`:
 
