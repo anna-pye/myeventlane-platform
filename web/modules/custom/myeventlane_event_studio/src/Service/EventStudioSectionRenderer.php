@@ -53,6 +53,7 @@ final class EventStudioSectionRenderer {
     private readonly ?EventAttendeeWorkspaceBuilder $attendeeWorkspaceBuilder = NULL,
     private readonly ?VendorEventOrdersController $eventOrdersController = NULL,
     private readonly ?VendorEventAnalyticsController $eventAnalyticsController = NULL,
+    private readonly ?EventSeoPreviewBuilder $seoPreviewBuilder = NULL,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -362,6 +363,10 @@ final class EventStudioSectionRenderer {
     $ready = $readiness->ready;
     $remaining = count($readiness->errors);
     $nid = (int) $event->id();
+    $publicPath = Url::fromRoute('entity.node.canonical', ['node' => $nid])->toString();
+    $publicUrl = $this->domainDetector instanceof DomainDetector
+      ? $this->domainDetector->absolutePublicUrl($publicPath)
+      : Url::fromUserInput('/' . ltrim($publicPath, '/'))->setAbsolute()->toString();
 
     // Readiness wins over published: live + blockers must mirror Hero Continue setup.
     $state = !$ready ? 'needs_attention' : ($published ? 'live' : 'ready');
@@ -414,6 +419,7 @@ final class EventStudioSectionRenderer {
         'settings_label' => (string) $this->t('More settings'),
       ],
       'after' => $this->launchAfterGuidance($event, $published),
+      'seo_preview' => $this->seoPreviewBuilder?->build($event, $publicUrl) ?? [],
     ];
   }
 
