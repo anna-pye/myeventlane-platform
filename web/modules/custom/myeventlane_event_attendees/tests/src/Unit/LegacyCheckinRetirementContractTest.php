@@ -38,13 +38,13 @@ final class LegacyCheckinRetirementContractTest extends TestCase {
   }
 
   /**
-   * Active configuration no longer enables or depends on the retired module.
+   * Transition config keeps the empty shim while removing role dependencies.
    */
-  public function testActiveConfigurationRemovesLegacyModule(): void {
+  public function testActiveConfigurationSafelyStagesLegacyModuleRemoval(): void {
     $repository_root = dirname(__DIR__, 7);
     $extension_config = file_get_contents($repository_root . '/config/sync/core.extension.yml');
     $this->assertNotFalse($extension_config);
-    $this->assertStringNotContainsString('myeventlane_checkin:', $extension_config);
+    $this->assertStringContainsString('  myeventlane_checkin: 0', $extension_config);
 
     foreach (['anonymous', 'authenticated', 'vendor'] as $role) {
       $role_config = file_get_contents($repository_root . "/config/sync/user.role.{$role}.yml");
