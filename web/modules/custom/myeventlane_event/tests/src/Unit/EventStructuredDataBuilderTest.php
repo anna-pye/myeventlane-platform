@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event\Unit;
 
+use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\myeventlane_event\Service\EventStructuredDataBuilder;
+use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 
 /**
@@ -44,6 +47,31 @@ final class EventStructuredDataBuilderTest extends UnitTestCase {
       'invalid value' => ['not-a-date', NULL],
       'empty value' => ['', NULL],
     ];
+  }
+
+  /**
+   * @covers ::resolveOrganizer
+   */
+  public function testOrganizerUsesReferencedPublicProfileLabel(): void {
+    $vendor = $this->createMock(EntityInterface::class);
+    $vendor->method('label')->willReturn('Westside Community Arts');
+
+    $vendorField = $this->createMock(FieldItemListInterface::class);
+    $vendorField->method('isEmpty')->willReturn(FALSE);
+    $vendorField->method('__get')->with('entity')->willReturn($vendor);
+
+    $event = $this->createMock(NodeInterface::class);
+    $event->method('hasField')->with('field_event_vendor')->willReturn(TRUE);
+    $event->method('get')->with('field_event_vendor')->willReturn($vendorField);
+
+    $reflection = new \ReflectionClass(EventStructuredDataBuilder::class);
+    $builder = $reflection->newInstanceWithoutConstructor();
+    $method = $reflection->getMethod('resolveOrganizer');
+
+    $this->assertSame([
+      '@type' => 'Organization',
+      'name' => 'Westside Community Arts',
+    ], $method->invoke($builder, $event));
   }
 
 }

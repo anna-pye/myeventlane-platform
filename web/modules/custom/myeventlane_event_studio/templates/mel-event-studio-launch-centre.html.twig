@@ -15,6 +15,7 @@
 {% set checklist = L.checklist|default({}) %}
 {% set visibility = L.visibility|default({}) %}
 {% set after = L.after|default({}) %}
+{% set seo = L.seo_preview|default({}) %}
 {% set items = checklist.items|default([]) %}
 {% set state = L.state|default('needs_attention') %}
 {% set eyebrow_repeats_headline = L.eyebrow and L.headline and L.eyebrow == L.headline %}
@@ -35,6 +36,36 @@
     <p class="mel-launch-centre__explanation" data-mel-launch-explanation{% if not L.explanation %} hidden{% endif %}>{{ L.explanation }}</p>
     <p class="mel-launch-centre__hero-hint" data-mel-launch-hero-hint{% if not L.hero_hint %} hidden{% endif %}>{{ L.hero_hint }}</p>
   </header>
+
+  {% if seo %}
+    <section class="mel-launch-centre__seo" aria-labelledby="mel-launch-seo-heading">
+      <header>
+        <h3 id="mel-launch-seo-heading">{{ 'SEO preview'|t }}</h3>
+        <p>{{ 'Check how this event may appear in search and when shared. Services may shorten the text.'|t }}</p>
+      </header>
+      <div class="mel-launch-centre__seo-grid">
+        <article class="mel-launch-centre__search-preview">
+          <p class="mel-launch-centre__preview-label">{{ 'Search result'|t }}</p>
+          <p class="mel-launch-centre__preview-domain">{{ seo.domain }}</p>
+          <h4>{{ seo.search_title }}</h4>
+          <p>{{ seo.description ?: 'Add an event summary to preview this description.'|t }}</p>
+        </article>
+        <article class="mel-launch-centre__social-preview">
+          <p class="mel-launch-centre__preview-label">{{ 'Social share'|t }}</p>
+          {% if seo.image_url %}
+            <img src="{{ seo.image_url }}" alt="{{ seo.image_alt }}" loading="lazy">
+          {% else %}
+            <div class="mel-launch-centre__preview-placeholder">{{ 'Add a cover image'|t }}</div>
+          {% endif %}
+          <div class="mel-launch-centre__social-copy">
+            <p class="mel-launch-centre__preview-domain">{{ seo.domain }}</p>
+            <h4>{{ seo.social_title }}</h4>
+            <p>{{ seo.description ?: 'Add an event summary to preview this description.'|t }}</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  {% endif %}
 
   {# 4. After you publish — informational only (no Launch Success UI) #}
   <aside class="mel-launch-centre__after" data-mel-launch-after aria-labelledby="mel-launch-after-heading"{% if not after.items|default([]) %} hidden{% endif %}>

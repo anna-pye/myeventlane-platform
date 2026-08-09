@@ -119,12 +119,20 @@ final class EventReadinessService {
     }
     else {
       $completed[] = (string) $this->t('Cover image');
+      $alt = trim((string) ($event->get('field_event_image')->first()?->getValue()['alt'] ?? ''));
+      if ($alt === '') {
+        $warnings[] = (string) $this->t('Add descriptive alt text to the event image before publishing.');
+      }
+      elseif ($this->isWeakImageAlt($alt)) {
+        $warnings[] = (string) $this->t('Improve the event image alt text so it describes what people can see.');
+      }
     }
 
     if ($this->validateCapacities($event, $errors, $warnings)) {
       $completed[] = (string) $this->t('Capacity');
     }
 
+    $this->addSeoWarnings($event, $warnings);
     $this->addOptionalRecommendations($event, $recommendations);
     $this->mergeQuestionReadinessFindings($event, $errors, $warnings);
 
@@ -360,13 +368,42 @@ final class EventReadinessService {
       $recommendations[] = (string) $this->t('Consider enabling optional supporter donations for RSVP attendees.');
     }
 
-    if ($event->hasField('field_event_summary') && $event->get('field_event_summary')->isEmpty()) {
-      $recommendations[] = (string) $this->t('Add a short event summary so attendees understand the experience quickly.');
-    }
-
     if ($event->hasField('field_accessibility_contact') && $event->get('field_accessibility_contact')->isEmpty()) {
       $recommendations[] = (string) $this->t('Add accessibility contact details to build attendee confidence.');
     }
+  }
+
+  /**
+   * Adds non-blocking search and social preview warnings.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   The event being checked.
+   * @param list<string> $warnings
+   *   Warning messages, passed by reference.
+   */
+  private function addSeoWarnings(NodeInterface $event, array &$warnings): void {
+    $summary = '';
+    if ($event->hasField('field_event_summary') && !$event->get('field_event_summary')->isEmpty()) {
+      $summary = trim(strip_tags((string) $event->get('field_event_summary')->value));
+    }
+    if (mb_strlen($summary) < 10) {
+      $warnings[] = (string) $this->t('Add a useful event summary for search and social previews.');
+    }
+  }
+
+  /**
+   * Determines whether alt text is an exact generic placeholder.
+   */
+  private function isWeakImageAlt(string $alt): bool {
+    $normalised = mb_strtolower(trim(preg_replace('/\s+/', ' ', $alt) ?? $alt));
+    return in_array($normalised, [
+      'image',
+      'photo',
+      'event image',
+      'event photo',
+      'cover image',
+      'cover photo',
+    ], TRUE);
   }
 
 }
