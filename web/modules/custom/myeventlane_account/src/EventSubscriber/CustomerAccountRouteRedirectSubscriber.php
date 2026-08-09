@@ -62,10 +62,6 @@ final class CustomerAccountRouteRedirectSubscriber implements EventSubscriberInt
       return;
     }
 
-    if ($this->currentUser->hasPermission('administer users')) {
-      return;
-    }
-
     if ($route === 'entity.user.edit_form') {
       $request = $event->getRequest();
       $query = [];
