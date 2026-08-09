@@ -99,6 +99,7 @@ module:
   myeventlane_checkout_flow: 0
   myeventlane_checkout_paragraph: 0
   myeventlane_commerce: 0
+  myeventlane_checkin: 0
   myeventlane_core: 0
   myeventlane_dashboard: 0
   myeventlane_demo: 0
