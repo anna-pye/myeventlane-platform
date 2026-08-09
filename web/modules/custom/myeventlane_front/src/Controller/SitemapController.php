@@ -33,6 +33,20 @@ final class SitemapController extends ControllerBase {
     return [
       '#theme' => 'myeventlane_front_sitemap',
       '#sections' => $this->sitemapBuilder->buildSections(),
+      '#attached' => [
+        'html_head' => [
+          [
+            [
+              '#tag' => 'meta',
+              '#attributes' => [
+                'name' => 'description',
+                'content' => 'Explore MyEventLane events, organiser resources, support, trust information and legal pages.',
+              ],
+            ],
+            'myeventlane_front_sitemap_description',
+          ],
+        ],
+      ],
       '#cache' => [
         'tags' => [
           'config:myeventlane_legal.settings',
