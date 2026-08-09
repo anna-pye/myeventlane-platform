@@ -3,6 +3,15 @@ services:
     parent: logger.channel_base
     arguments: ['myeventlane_event']
 
+  myeventlane_event.canonical_redirect_subscriber:
+    class: Drupal\myeventlane_event\EventSubscriber\EventCanonicalRedirectSubscriber
+    arguments:
+      - '@path_alias.manager'
+      - '@current_user'
+      - '@unrouted_url_assembler'
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_event.stats:
     class: Drupal\myeventlane_event\Service\EventStatsService
     arguments:
