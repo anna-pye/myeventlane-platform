@@ -1,9 +1,6 @@
 services:
   mel_universal_ticket.capability_manager:
-    class: Drupal\mel_universal_ticket\Service\UniversalTicketCapabilityManager
-    arguments:
-      - '@datetime.time'
-      - '@myeventlane_tickets.entitlement_capability_registry'
+    alias: mel_ticket_capability.manager
 
   logger.channel.mel_universal_ticket:
     class: Drupal\Core\Logger\LoggerChannel

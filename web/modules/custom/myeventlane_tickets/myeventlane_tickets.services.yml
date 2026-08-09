@@ -151,6 +151,11 @@ services:
       - '@datetime.time'
       - '@myeventlane_tickets.entitlement_capability_registry'
 
+  # Backwards-compatible service ID retained while mel_universal_ticket is
+  # retired. New consumers must use mel_ticket_capability.manager.
+  mel_universal_ticket.capability_manager:
+    alias: mel_ticket_capability.manager
+
   mel_scanner.operation_manager:
     class: Drupal\myeventlane_tickets\Service\ScannerOperationManager
     arguments:

@@ -1,6 +1,6 @@
 name: 'MEL Universal Ticket'
 type: module
-description: 'Extends existing MyEventLane tickets with universal entitlement foundation capabilities.'
+description: 'Compatibility shim for universal ticket capabilities now owned by MyEventLane Tickets. Do not enable on new sites.'
 core_version_requirement: ^11
 package: 'Custom'
 dependencies:

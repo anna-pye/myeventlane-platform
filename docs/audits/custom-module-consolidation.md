@@ -7,6 +7,26 @@
 
 ---
 
+## Decision update — 2026-08-09
+
+Owner review confirmed the ticket-module boundary:
+
+- Keep `mel_ticket` as the reusable ticket-type entity foundation.
+- Keep `myeventlane_tickets` as the canonical ticket runtime and operational
+  module.
+- Retire `mel_universal_ticket` through a two-release compatibility migration.
+
+The first retirement release transfers legacy field-provider metadata to
+`myeventlane_tickets`, retains the old capability-manager service ID as an
+alias, and removes `mel_universal_ticket` from exported enabled configuration.
+The module directory must remain until every deployed environment confirms the
+module is disabled and ticket/redemption field storage is intact.
+
+This decision supersedes the ticket-trio **needs owner review** entries below;
+the remaining audit counts are preserved as the original June snapshot.
+
+---
+
 ## Executive summary
 
 | Metric | Count |
