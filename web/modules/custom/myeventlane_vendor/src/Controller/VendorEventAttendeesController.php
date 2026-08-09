@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Controller;
 
-use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
@@ -28,7 +27,6 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
     private readonly AttendanceManagerInterface $attendanceManager,
     private readonly VendorEventTabsService $eventTabsService,
     private readonly VendorAttendeePresentationService $vendorPresentation,
-    private readonly ModuleHandlerInterface $moduleHandler,
     private readonly ?GrowthTrackingService $growthTracking = NULL,
   ) {
     parent::__construct($domain_detector, $current_user, $messenger);
@@ -103,13 +101,7 @@ final class VendorEventAttendeesController extends VendorConsoleBaseController {
         $checkin_url = Url::fromRoute('myeventlane_event_attendees.vendor_operations', ['node' => $node->id()])->toString();
       }
       catch (\Throwable $e2) {
-        if ($this->moduleHandler->moduleExists('myeventlane_checkin')) {
-          try {
-            $checkin_url = Url::fromRoute('myeventlane_checkin.page', ['node' => $node->id()])->toString();
-          }
-          catch (\Throwable $e3) {
-          }
-        }
+        $checkin_url = '#';
       }
     }
 

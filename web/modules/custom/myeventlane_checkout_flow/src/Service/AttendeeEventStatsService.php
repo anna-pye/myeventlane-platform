@@ -147,17 +147,6 @@ final class AttendeeEventStatsService {
           $checkinUrl = '';
         }
       }
-      if ($checkinUrl === '' && $this->moduleHandler->moduleExists('myeventlane_checkin')) {
-        try {
-          $checkinUrl = Url::fromRoute('myeventlane_checkin.page', [
-            'node' => $eventId,
-          ])->toString();
-        }
-        catch (\Throwable $e) {
-          $checkinUrl = '';
-        }
-      }
-
       $attendeesUrl = '';
       if ($this->moduleHandler->moduleExists('myeventlane_event_attendees')) {
         try {

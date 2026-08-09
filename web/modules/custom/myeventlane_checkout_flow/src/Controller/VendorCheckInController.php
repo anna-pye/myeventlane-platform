@@ -16,7 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Controllers for paragraph / QR check-in; main event check-in is myeventlane_checkin.
+ * Handles compatibility paragraph and QR check-in requests.
  */
 final class VendorCheckInController extends ControllerBase {
 

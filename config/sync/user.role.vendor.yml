@@ -24,7 +24,6 @@ dependencies:
     - myeventlane_attendee
     - myeventlane_automation
     - myeventlane_boost
-    - myeventlane_checkin
     - myeventlane_dashboard
     - myeventlane_donations
     - myeventlane_escalations_portal
@@ -55,7 +54,6 @@ is_admin: false
 permissions:
   - 'access analytics dashboard'
   - 'access attendee repository'
-  - 'access check-in'
   - 'access checkout'
   - 'access commerce_order overview'
   - 'access contextual links'
@@ -104,8 +102,6 @@ permissions:
   - 'resend ticket emails'
   - 'resolve vendor escalations'
   - 'reuse mel_ticket_type entities'
-  - 'scan qr codes'
-  - 'toggle check-in status'
   - 'unlock orders'
   - 'update default commerce_order'
   - 'update own boost_upgrade commerce_product'

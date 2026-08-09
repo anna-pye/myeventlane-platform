@@ -13,7 +13,6 @@ dependencies:
     - flag
     - klaro
     - media
-    - myeventlane_checkin
     - myeventlane_escalations_portal
     - myeventlane_event_state
     - myeventlane_help_assistant
