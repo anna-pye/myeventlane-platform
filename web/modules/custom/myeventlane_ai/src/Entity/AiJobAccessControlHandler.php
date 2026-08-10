@@ -6,8 +6,13 @@ namespace Drupal\myeventlane_ai\Entity;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Entity\EntityAccessControlHandler;
+use Drupal\Core\Entity\EntityHandlerInterface;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Entity\EntityTypeInterface;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+
 /**
  * Access control for AI Job entities.
  *
@@ -16,7 +21,27 @@ use Drupal\Core\Session\AccountInterface;
  * - Vendors can view jobs when vendor_id matches their vendor.
  * - No anonymous access.
  */
-final class AiJobAccessControlHandler extends EntityAccessControlHandler {
+final class AiJobAccessControlHandler extends EntityAccessControlHandler implements EntityHandlerInterface {
+
+  /**
+   * Constructs the AI job access handler.
+   */
+  public function __construct(
+    EntityTypeInterface $entity_type,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+  ) {
+    parent::__construct($entity_type);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function createInstance(ContainerInterface $container, EntityTypeInterface $entity_type): static {
+    return new static(
+      $entity_type,
+      $container->get('entity_type.manager'),
+    );
+  }
 
   /**
    * {@inheritdoc}

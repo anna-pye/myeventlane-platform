@@ -172,7 +172,7 @@ function myeventlane_ai_update_9006(): string {
     if ($config_factory->get($name)->isNew()) {
       $file = $extension_path . '/config/install/' . $name . '.yml';
       if (file_exists($file)) {
-        $data = \Drupal\Core\Serialization\Yaml::decode(file_get_contents($file));
+        $data = \Drupal\Component\Serialization\Yaml::decode(file_get_contents($file));
         if (is_array($data)) {
           $config_factory->getEditable($name)->setData($data)->save(TRUE);
           $installed++;

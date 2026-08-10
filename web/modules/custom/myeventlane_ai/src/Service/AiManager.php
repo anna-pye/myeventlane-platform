@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_ai\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Site\Settings;
 use Drupal\myeventlane_ai\Provider\AiProviderInterface;
@@ -69,7 +70,10 @@ final class AiManager {
       try {
         if ($this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
           $vendor = $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendor_id);
-          if (!$vendor || !$vendor->isAiEnabled()) {
+          if (!$vendor instanceof ContentEntityInterface
+            || !$vendor->hasField('ai_enabled')
+            || $vendor->get('ai_enabled')->isEmpty()
+            || !(bool) $vendor->get('ai_enabled')->value) {
             return AiResult::error('AI is disabled for this vendor.', '', $provider_name, $options['model'] ?? NULL);
           }
         }
@@ -619,22 +623,15 @@ USR;
 
     $variants = [];
     foreach ($deduped as $idx => $p) {
-      $variants[] = [
+      $variant = [
         'id' => 'v' . ($idx + 1),
         'title' => $p['title'],
         'summary' => $p['summary'],
       ];
-    }
-
-    foreach ($variants as &$variant) {
       $variant['score'] = $this->scoreVariant($variant, (string) ($payload['category'] ?? ''));
+      $variant['_ord'] = $idx;
+      $variants[] = $variant;
     }
-    unset($variant);
-
-    foreach ($variants as $i => &$variant) {
-      $variant['_ord'] = $i;
-    }
-    unset($variant);
 
     usort($variants, function (array $a, array $b): int {
       $c = ($b['score'] ?? 0) <=> ($a['score'] ?? 0);
@@ -644,16 +641,15 @@ USR;
       return ($a['_ord'] ?? 0) <=> ($b['_ord'] ?? 0);
     });
 
-    foreach ($variants as &$v) {
-      unset($v['_ord']);
+    foreach ($variants as $idx => $variant) {
+      $variants[$idx] = [
+        'id' => 'v' . ($idx + 1),
+        'title' => $variant['title'],
+        'summary' => $variant['summary'],
+        'score' => $variant['score'],
+        'best' => ($idx === 0),
+      ];
     }
-    unset($v);
-
-    foreach ($variants as $idx => &$v) {
-      $v['id'] = 'v' . ($idx + 1);
-      $v['best'] = ($idx === 0);
-    }
-    unset($v);
 
     \Drupal::logger('myeventlane_ai')->notice('AI variant scores: @scores', [
       '@scores' => json_encode(array_map(static fn(array $v): int => (int) ($v['score'] ?? 0), $variants)),
