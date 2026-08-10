@@ -23,12 +23,14 @@ use Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Kernel tests refund allocation and platform recovery analytics.
  *
  * @group myeventlane_admin_dashboard
  */
+#[RunTestsInSeparateProcesses]
 final class RefundAnalyticsAllocationTest extends KernelTestBase {
 
   /**
@@ -38,6 +40,7 @@ final class RefundAnalyticsAllocationTest extends KernelTestBase {
     'system',
     'user',
     'field',
+    'filter',
     'node',
     'options',
     'path',
@@ -476,4 +479,3 @@ final class RefundAnalyticsAllocationTest extends KernelTestBase {
   }
 
 }
-

@@ -14,6 +14,7 @@ use Psr\Log\LoggerInterface;
 use Stripe\Event;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Exception\UnexpectedValueException;
+use Stripe\Transfer;
 use Stripe\Webhook;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -107,7 +108,10 @@ final class StripeWebhookController extends ControllerBase {
    * Handles transfer.paid — reconciles ledger row to 'paid'.
    */
   private function handleTransferPaid(Event $event): Response {
-    $transfer = $event->data->object;
+    $transfer = $event->data['object'] ?? NULL;
+    if (!$transfer instanceof Transfer) {
+      return $this->handleInvalidTransferPayload($event);
+    }
     $transferId = $transfer->id ?? NULL;
 
     $orderId = $this->resolveOrderId($transfer);
@@ -183,7 +187,10 @@ final class StripeWebhookController extends ControllerBase {
    * Handles transfer.failed — logs error, does NOT change ledger status.
    */
   private function handleTransferFailed(Event $event): Response {
-    $transfer = $event->data->object;
+    $transfer = $event->data['object'] ?? NULL;
+    if (!$transfer instanceof Transfer) {
+      return $this->handleInvalidTransferPayload($event);
+    }
     $transferId = $transfer->id ?? 'unknown';
     $orderId = $this->resolveOrderId($transfer);
 
@@ -199,7 +206,10 @@ final class StripeWebhookController extends ControllerBase {
    * Handles transfer.created — informational logging only.
    */
   private function handleTransferCreated(Event $event): Response {
-    $transfer = $event->data->object;
+    $transfer = $event->data['object'] ?? NULL;
+    if (!$transfer instanceof Transfer) {
+      return $this->handleInvalidTransferPayload($event);
+    }
     $transferId = $transfer->id ?? 'unknown';
 
     $this->payoutLogger->info(
@@ -225,6 +235,17 @@ final class StripeWebhookController extends ControllerBase {
   }
 
   /**
+   * Acknowledges a transfer event whose verified payload has the wrong shape.
+   */
+  private function handleInvalidTransferPayload(Event $event): Response {
+    $this->payoutLogger->error(
+      'Stripe payout webhook @type did not contain a transfer object.',
+      ['@type' => $event->type]
+    );
+    return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
+  }
+
+  /**
    * Resolves order_id from a transfer object.
    *
    * Strategy:
@@ -235,7 +256,7 @@ final class StripeWebhookController extends ControllerBase {
    * empty. The order_id lives on the PaymentIntent/Charge metadata instead,
    * accessible via source_transaction.
    */
-  private function resolveOrderId(object $transfer): ?string {
+  private function resolveOrderId(Transfer $transfer): ?string {
     // 1. Direct transfer metadata (best case).
     $metadata = $transfer->metadata ?? NULL;
     if ($metadata !== NULL) {

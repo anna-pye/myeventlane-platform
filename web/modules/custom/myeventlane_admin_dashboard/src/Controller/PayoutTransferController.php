@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_admin_dashboard\Controller;
 
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\Cache;
@@ -195,12 +196,10 @@ final class PayoutTransferController extends ControllerBase {
    * Loads a ledger row with a SELECT … FOR UPDATE to prevent races.
    */
   private function loadRowForUpdate(int $ledger_id): object {
-    $row = $this->database->select(self::TABLE, 'l')
-      ->fields('l')
-      ->condition('l.id', $ledger_id)
-      ->forUpdate()
-      ->execute()
-      ->fetchObject();
+    $query = $this->database->select(self::TABLE, 'l');
+    $query->fields('l')->condition('l.id', $ledger_id);
+    $query->forUpdate();
+    $row = $query->execute()->fetchObject();
 
     if (!$row) {
       throw new NotFoundHttpException("Payout ledger entry #{$ledger_id} not found.");
@@ -217,7 +216,7 @@ final class PayoutTransferController extends ControllerBase {
       ->getStorage('commerce_store')
       ->load($storeId);
 
-    if (!$store) {
+    if (!$store instanceof StoreInterface) {
       return NULL;
     }
 

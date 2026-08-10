@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_admin_dashboard\Service;
 
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Database\Connection;
@@ -58,13 +59,12 @@ final class PayoutBatchWorkflowService {
     $transaction = $this->database->startTransaction();
 
     try {
-      $rows = $this->database->select(self::LEDGER_TABLE, 'l')
-        ->fields('l')
+      $query = $this->database->select(self::LEDGER_TABLE, 'l');
+      $query->fields('l')
         ->condition('l.id', $ids, 'IN')
-        ->condition('l.status', 'unpaid')
-        ->forUpdate()
-        ->execute()
-        ->fetchAll();
+        ->condition('l.status', 'unpaid');
+      $query->forUpdate();
+      $rows = $query->execute()->fetchAll();
 
       if (empty($rows)) {
         throw new \InvalidArgumentException('No unpaid ledger rows found for the given IDs.');
@@ -561,7 +561,7 @@ final class PayoutBatchWorkflowService {
       ->getStorage('commerce_store')
       ->load($storeId);
 
-    if (!$store) {
+    if (!$store instanceof StoreInterface) {
       return NULL;
     }
 

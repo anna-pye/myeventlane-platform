@@ -9,6 +9,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
 use Psr\Log\LoggerInterface;
@@ -161,7 +162,7 @@ final class PlatformMetricsService {
       ->condition('order_id', $orderId)
       ->execute();
 
-    $this->cache->invalidateTags(self::CACHE_TAGS);
+    Cache::invalidateTags(self::CACHE_TAGS);
   }
 
   /**
