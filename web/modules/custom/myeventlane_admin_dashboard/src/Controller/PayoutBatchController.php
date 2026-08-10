@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_admin_dashboard\Controller;
 
+use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\Cache;
@@ -85,13 +86,12 @@ final class PayoutBatchController extends ControllerBase {
     $transaction = $this->database->startTransaction();
 
     try {
-      $rows = $this->database->select(self::TABLE, 'l')
-        ->fields('l')
+      $query = $this->database->select(self::TABLE, 'l');
+      $query->fields('l')
         ->condition('l.id', $ids, 'IN')
-        ->condition('l.status', 'unpaid')
-        ->forUpdate()
-        ->execute()
-        ->fetchAll();
+        ->condition('l.status', 'unpaid');
+      $query->forUpdate();
+      $rows = $query->execute()->fetchAll();
 
       if (empty($rows)) {
         $this->messenger()->addWarning($this->t('No unpaid payouts found in selection.'));
@@ -101,6 +101,7 @@ final class PayoutBatchController extends ControllerBase {
       // Filter out rows with existing transfer_id or non-positive net.
       $validRows = [];
       foreach ($rows as $row) {
+        /** @var object{id: int, transfer_id: string|null, net: int|float|string} $row */
         if (!empty($row->transfer_id)) {
           $this->payoutLogger->warning('Batch @bid: Ledger @lid already has transfer_id @tid. Skipping.', [
             '@bid' => $batchId,
@@ -292,7 +293,7 @@ final class PayoutBatchController extends ControllerBase {
       ->getStorage('commerce_store')
       ->load($storeId);
 
-    if (!$store) {
+    if (!$store instanceof StoreInterface) {
       return NULL;
     }
 
