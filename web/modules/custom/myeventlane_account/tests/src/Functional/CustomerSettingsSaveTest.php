@@ -78,6 +78,8 @@ final class CustomerSettingsSaveTest extends BrowserTestBase {
     $this->submitForm([
       'field_display_name[0][value]' => 'Customer Test',
       'field_city[0][value]' => 'Sydney',
+      // Drupal's BrowserTestBase adds this runtime-only test property.
+      // @phpstan-ignore-next-line
       'current_pass' => $account->passRaw,
       'pass[pass1]' => $password,
       'pass[pass2]' => $password,

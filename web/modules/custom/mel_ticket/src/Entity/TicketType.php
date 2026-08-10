@@ -12,6 +12,7 @@ use Drupal\Core\Entity\EntityTypeInterface;
 use Drupal\Core\Field\BaseFieldDefinition;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\Core\Entity\EntityStorageException;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItem;
 
 /**
  * Ticket type (RSVP, paid, or external) owned by a vendor user.
@@ -107,7 +108,7 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     }
     /** @var \Drupal\link\Plugin\Field\FieldType\LinkItem $item */
     $item = $this->get('external_url')->first();
-    return $item->getUri();
+    return (string) $item->uri;
   }
 
   /**
@@ -584,8 +585,13 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
 
     if ($this->hasField('sale_start') && $this->hasField('sale_end')
         && !$this->get('sale_start')->isEmpty() && !$this->get('sale_end')->isEmpty()) {
-      $start = $this->get('sale_start')->date->getTimestamp();
-      $end = $this->get('sale_end')->date->getTimestamp();
+      $start_item = $this->get('sale_start')->first();
+      $end_item = $this->get('sale_end')->first();
+      if (!$start_item instanceof DateTimeItem || !$end_item instanceof DateTimeItem) {
+        throw new EntityStorageException('Ticket sale dates must use datetime fields.');
+      }
+      $start = $start_item->date->getTimestamp();
+      $end = $end_item->date->getTimestamp();
       if ($end <= $start) {
         $violations[] = 'Sale end must be after sale start.';
       }

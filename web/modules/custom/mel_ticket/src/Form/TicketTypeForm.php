@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace Drupal\mel_ticket\Form;
 
-use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
@@ -50,11 +49,11 @@ final class TicketTypeForm extends ContentEntityForm {
           $values['event'] = ['target_id' => (int) $event->id()];
         }
         $this->entity = $this->ticketTierLifecycle->persistNewTicketType($values, $event);
-        $status = EntityInterface::SAVED_NEW;
+        $status = SAVED_NEW;
       }
       else {
         $this->ticketTierLifecycle->updateTicketType($this->entity, $event);
-        $status = EntityInterface::SAVED_UPDATED;
+        $status = SAVED_UPDATED;
       }
     }
     catch (\Throwable $e) {
