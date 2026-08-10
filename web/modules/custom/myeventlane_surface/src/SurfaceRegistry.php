@@ -120,7 +120,7 @@ final class SurfaceRegistry {
           'myeventlane_account.past_events (/my-past-events)',
           'myeventlane_checkout_flow.my_tickets (/my-tickets)',
           'myeventlane_checkout_flow.order_detail',
-          'myeventlane_dashboard.customer (/my-events)',
+          'myeventlane_dashboard.customer (/my-events, legacy redirect)',
           'Customer RSVP/profile helpers under /my-* where routed',
         ],
         'does_not_own' => [

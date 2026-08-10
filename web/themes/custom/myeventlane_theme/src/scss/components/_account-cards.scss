@@ -300,12 +300,3 @@ $mel-account-event-thumb: 5.5rem;
 .mel-account-empty-state__text {
   margin: 0 0 1rem;
 }
-
-.mel-account-my-events__past-summary {
-  cursor: pointer;
-  list-style: none;
-}
-
-.mel-account-my-events__past summary::-webkit-details-marker {
-  display: none;
-}

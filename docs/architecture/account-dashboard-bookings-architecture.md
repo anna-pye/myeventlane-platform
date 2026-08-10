@@ -16,14 +16,14 @@ dashboard, a second My Bookings route, or parallel booking/ticket presenters.
 | Hub cards | Theme | — | `mel-account-event-card.html.twig` | Variant-based badges/CTAs in Twig |
 | My Bookings (orders) | `MyTicketsController` | `myeventlane_checkout_flow.my_tickets` `/my-tickets` | `myeventlane-my-tickets.html.twig` | Order-centric ticket list |
 | Booking detail | `MyTicketsController::orderDetail` | `myeventlane_checkout_flow.order_detail` | `myeventlane-order-detail.html.twig` | Passes, QR, PDF |
-| Parallel list | `CustomerDashboardController` | `myeventlane_dashboard.customer` `/my-events` | `myeventlane-customer-dashboard.html.twig` | Unified upcoming/past (same data builder) |
+| Legacy entry | `DashboardRedirectController` | `myeventlane_dashboard.customer` `/my-events` | — | Compatibility redirect to `/my-account`; anonymous visitors continue through login |
 | Empty states | `MelReadinessHelper` + `GovernedOperationalTemplates` | — | `mel_empty_state` | Per-section empties |
 | Nav | `AccountLinksService` | — | `page--account.html.twig` | Sidebar + quick links |
 
 ### Known duplication (documented, not expanded)
 
-- `/my-events` remains a **live parallel surface** sharing `CustomerHubDataBuilder`.
-  Phase 3 does **not** grow `/my-events`. Consolidation/redirect is a future task.
+- `/my-events` is a compatibility-only redirect to `/my-account`; it no longer
+  owns a controller, template, navigation entry, workflow or experience.
 - Hub cards (event-centric) and My Tickets cards (order-centric) remain distinct
   on purpose: different product questions.
 
@@ -90,7 +90,7 @@ MyAccountController::dashboard
 - No `AttendeeContinuity*` / `BookingPresentation*` presenter modules
 - No fork of discovery `EventCardViewModel` for hub
 - No new empty-state framework
-- No expansion of `CustomerDashboardController` / `/my-events`
+- No new presentation or participation logic under `/my-events`
 - No invented “Before You Go”, “Directions”, or “Contact organiser” CTAs without existing routes
 
 ## Status language (ACE)
@@ -140,7 +140,7 @@ Route `/my-account` is unchanged. Only customer-facing labels use Dashboard.
 
 ## Future extension points
 
-- Redirect or alias `/my-events` → `/my-account` after IA sign-off
+- Remove the `/my-events` compatibility route only after bookmark/traffic evidence supports it
 - Surface payment-pending bookings only when a shared loader already exists
 - Add Directions / Contact organiser only when stable public URLs exist on the row
 - Optional kernel coverage for full `buildParticipationLists` with fixtures

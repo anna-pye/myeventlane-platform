@@ -126,16 +126,16 @@ final class MelCustomerContinuityPresenter {
 
     if ($is_authenticated) {
       try {
-        $my_events_url = Url::fromRoute('myeventlane_dashboard.customer')->toString();
+        $dashboard_url = Url::fromRoute('myeventlane_account.dashboard')->toString();
       }
       catch (\Throwable) {
-        $my_events_url = '';
+        $dashboard_url = '';
       }
-      if ($my_events_url !== '') {
+      if ($dashboard_url !== '') {
         $actions[] = [
-          'key' => 'view_my_events',
-          'label' => $this->readinessHelper->customerContinuityMyEventsCta(),
-          'url' => $my_events_url,
+          'key' => 'view_dashboard',
+          'label' => $this->readinessHelper->customerContinuityDashboardCta(),
+          'url' => $dashboard_url,
           'variant' => 'secondary',
           'download' => FALSE,
         ];

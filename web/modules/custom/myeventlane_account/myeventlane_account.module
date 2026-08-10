@@ -305,7 +305,6 @@ function _myeventlane_account_page_heading(?string $route_name) {
     'myeventlane_checkout_flow.my_tickets' => t('My bookings'),
     'myeventlane_checkout_flow.order_detail' => t('Your booking'),
     'myeventlane_checkout_flow.order_tax_invoice_pdf' => t('Payment receipt'),
-    'myeventlane_dashboard.customer' => t('My events'),
     'view.mel_saved_events.page_1' => t('Saved events'),
     'myeventlane_account.followed_organisers' => t('Your organisers'),
     'myeventlane_notifications.inbox' => t('Notifications'),

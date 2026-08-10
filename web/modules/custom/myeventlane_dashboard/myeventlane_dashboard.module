@@ -88,15 +88,6 @@ function myeventlane_dashboard_theme(): array {
       ],
       'template' => 'dashboard-card',
     ],
-    'myeventlane_customer_dashboard' => [
-      'variables' => [
-        'upcoming_events' => [],
-        'past_events' => [],
-        'welcome_message' => NULL,
-        'mel_customer_dashboard_upcoming_empty' => NULL,
-      ],
-      'template' => 'myeventlane-customer-dashboard',
-    ],
   ];
 }
 
@@ -137,19 +128,6 @@ function myeventlane_dashboard_preprocess_myeventlane_admin_dashboard(array &$va
  */
 function myeventlane_dashboard_preprocess_myeventlane_vendor_dashboard(array &$variables): void {
   _myeventlane_dashboard_add_stats($variables);
-}
-
-/**
- * Implements hook_preprocess_HOOK() for myeventlane_customer_dashboard.
- */
-function myeventlane_dashboard_preprocess_myeventlane_customer_dashboard(array &$variables): void {
-  $upcoming = $variables['upcoming_events'] ?? [];
-  if (!is_array($upcoming) || $upcoming !== [] || !\Drupal::hasService('myeventlane_surface.governed_operational_templates')) {
-    return;
-  }
-  /** @var \Drupal\myeventlane_core\GovernedOperationalTemplates $templates */
-  $templates = \Drupal::service('myeventlane_surface.governed_operational_templates');
-  $variables['mel_customer_dashboard_upcoming_empty'] = $templates->customerMyEventsDashboardUpcomingEmpty();
 }
 
 /**

@@ -24,7 +24,6 @@ final class MelCustomerRouteCatalog {
     'myeventlane_checkout_flow.my_tickets',
     'myeventlane_checkout_flow.order_detail',
     'myeventlane_checkout_flow.order_tax_invoice_pdf',
-    'myeventlane_dashboard.customer',
     'myeventlane_rsvp.user_list',
     'myeventlane_notifications.inbox',
     'myeventlane_notifications.preferences',

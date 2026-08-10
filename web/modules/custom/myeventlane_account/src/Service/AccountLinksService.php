@@ -100,14 +100,6 @@ final class AccountLinksService {
     $ticketsUrl = Url::fromRoute('myeventlane_checkout_flow.my_tickets', [], ['absolute' => FALSE])->toString();
     $dashboardUrl = Url::fromRoute('myeventlane_account.dashboard', [], ['absolute' => FALSE])->toString();
 
-    // myeventlane_dashboard is optional; mirror other hub links that guard optional routes.
-    $eventsUrl = $dashboardUrl;
-    try {
-      $eventsUrl = Url::fromRoute('myeventlane_dashboard.customer', [], ['absolute' => FALSE])->toString();
-    }
-    catch (\Throwable) {
-    }
-
     $supportRoutesMatch = [];
     if ($this->moduleHandler->moduleExists('myeventlane_escalations_portal')) {
       $supportRoutesMatch = [
@@ -210,16 +202,6 @@ final class AccountLinksService {
         'in_quick' => TRUE,
         'show_in_sidebar' => FALSE,
         'routes_match' => [],
-      ],
-      [
-        'id' => 'my_events',
-        'title' => $this->t('All my events'),
-        'url' => $eventsUrl,
-        'in_quick' => TRUE,
-        'show_in_sidebar' => FALSE,
-        'routes_match' => [
-          'myeventlane_dashboard.customer',
-        ],
       ],
       [
         'id' => 'logout',

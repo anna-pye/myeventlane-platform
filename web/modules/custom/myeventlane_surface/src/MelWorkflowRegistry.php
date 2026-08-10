@@ -105,7 +105,7 @@ final class MelWorkflowRegistry {
         ctaPriority: 72,
         accessibilityNotes: 'Profile forms already governed by MELFormSystem; progression messaging must not replace errors.',
         activationExactRoutes: ['myeventlane_account.settings'],
-        primaryCtaRouteName: 'myeventlane_dashboard.customer',
+        primaryCtaRouteName: 'view.upcoming_events.page_events',
         primaryCtaTitle: 'Discover events',
         delegateVendorNextStepToOnboardingManager: FALSE,
       ),
