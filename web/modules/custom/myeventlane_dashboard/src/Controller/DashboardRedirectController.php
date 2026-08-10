@@ -19,6 +19,30 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 final class DashboardRedirectController extends ControllerBase {
 
   /**
+   * Redirects the legacy customer event list without losing login continuity.
+   *
+   * The response is deliberately temporary and private because its destination
+   * varies by authentication state.
+   */
+  public function customerEvents(): RedirectResponse {
+    if ($this->currentUser()->isAnonymous()) {
+      $url = Url::fromRoute('user.login', [], [
+        'query' => [
+          'destination' => Url::fromRoute('myeventlane_account.dashboard')->toString(),
+        ],
+      ]);
+    }
+    else {
+      $url = Url::fromRoute('myeventlane_account.dashboard');
+    }
+
+    $response = new RedirectResponse($url->toString(), 302);
+    $response->setPrivate();
+    $response->headers->addCacheControlDirective('no-store');
+    return $response;
+  }
+
+  /**
    * Redirects /dashboard to the appropriate destination by role.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse

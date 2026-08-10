@@ -804,8 +804,8 @@ final class MelReadinessHelper {
     return (string) $this->t('View event');
   }
 
-  public function customerContinuityMyEventsCta(): string {
-    return (string) $this->t('View my events');
+  public function customerContinuityDashboardCta(): string {
+    return (string) $this->t('View dashboard');
   }
 
   public function customerContinuityAddToCalendarCta(): string {

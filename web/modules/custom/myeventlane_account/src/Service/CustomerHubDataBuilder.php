@@ -15,9 +15,9 @@ use Drupal\node\NodeInterface;
 /**
  * Canonical customer participation data: tickets, RSVPs, orders, saved context.
  *
- * Consolidates logic previously split between MyAccountController and
- * CustomerDashboardController. Past/upcoming uses event end when present
- * (else start), matching the My Account dashboard semantics.
+ * Consolidates participation logic in the canonical My Account dashboard.
+ * Past/upcoming uses event end when present (else start), matching the My
+ * Account dashboard semantics.
  */
 final class CustomerHubDataBuilder {
 

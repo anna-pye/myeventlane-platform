@@ -90,8 +90,8 @@ final class CustomerOnboardMyTicketsController extends ControllerBase {
       ],
       'dashboard' => [
         '#type' => 'link',
-        '#title' => $this->t('Go to My Events'),
-        '#url' => Url::fromRoute('myeventlane_dashboard.customer'),
+        '#title' => $this->t('Go to dashboard'),
+        '#url' => Url::fromRoute('myeventlane_account.dashboard'),
         '#attributes' => [
           'class' => ['mel-btn', 'mel-btn-primary', 'mel-btn-lg'],
         ],

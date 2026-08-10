@@ -124,7 +124,7 @@
     <h2 id="helpful-links-title" class="mel-my-account__section-title">{{ 'Helpful links'|t }}</h2>
     <ul class="mel-dashboard-helpful-links">
       {% for link in hub_quick_links %}
-        {% if link.id not in ['my_events', 'logout'] %}
+        {% if link.id != 'logout' %}
           <li>
             <a href="{{ link.url }}" class="mel-dashboard-helpful-links__link"{% if link.active|default(false) %} aria-current="page"{% endif %}>{{ link.title }}</a>
           </li>

@@ -145,8 +145,8 @@ final class MelExperienceRegistry {
         accessibilityNotes: 'Saved lists need meaningful headings and empty-state guidance.',
         privacyBoundaries: 'Saved events are user-private; never hint other accounts’ saves.',
         crossSurfaceTransitions: ['customer_shell_loop'],
-        activationExactRoutes: ['myeventlane_dashboard.customer'],
-        activationPathPrefixes: ['/my-events'],
+        activationExactRoutes: ['view.mel_saved_events.page_1'],
+        activationPathPrefixes: ['/my-saved-events'],
         requireAuthentication: TRUE,
       ),
       'support_resolution_followup' => new ExperienceDefinition(

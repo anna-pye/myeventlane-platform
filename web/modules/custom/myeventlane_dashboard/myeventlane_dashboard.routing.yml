@@ -1,8 +1,7 @@
-# Customer "My Events" dashboard.
+# Legacy customer entry retained for bookmarks.
 myeventlane_dashboard.customer:
   path: '/my-events'
   defaults:
-    _controller: '\Drupal\myeventlane_dashboard\Controller\CustomerDashboardController::myEvents'
-    _title: 'My Events'
+    _controller: '\Drupal\myeventlane_dashboard\Controller\DashboardRedirectController::customerEvents'
   requirements:
     _permission: 'access content'
