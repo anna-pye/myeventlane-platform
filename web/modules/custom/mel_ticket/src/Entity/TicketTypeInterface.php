@@ -6,11 +6,12 @@ namespace Drupal\mel_ticket\Entity;
 
 use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\ContentEntityInterface;
+use Drupal\Core\Entity\EntityPublishedInterface;
 
 /**
  * Contract for MEL ticket type entities.
  */
-interface TicketTypeInterface extends ContentEntityInterface {
+interface TicketTypeInterface extends ContentEntityInterface, EntityPublishedInterface {
 
   public const LIFECYCLE_ACTIVE = 'active';
 

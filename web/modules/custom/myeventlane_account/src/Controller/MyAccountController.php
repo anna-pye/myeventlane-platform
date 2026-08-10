@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_account\Entity\EventReview;
 use Drupal\myeventlane_account\Service\AccountLinksService;
 use Drupal\myeventlane_account\Service\CustomerAccountHeroBuilder;
 use Drupal\myeventlane_account\Service\CustomerHubDataBuilder;
@@ -279,6 +280,9 @@ final class MyAccountController extends ControllerBase {
     $existingByEvent = [];
     if (!empty($existingIds)) {
       foreach ($reviewStorage->loadMultiple($existingIds) as $review) {
+        if (!$review instanceof EventReview) {
+          continue;
+        }
         $eid = $review->getEventId();
         if ($eid) {
           $existingByEvent[$eid] = TRUE;

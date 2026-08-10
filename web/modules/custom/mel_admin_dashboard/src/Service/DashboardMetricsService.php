@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\mel_admin_dashboard\Service;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Component\Datetime\TimeInterface;
@@ -91,6 +92,9 @@ class DashboardMetricsService {
 
     $gross = 0.0;
     foreach ($orders as $order) {
+      if (!$order instanceof OrderInterface) {
+        continue;
+      }
       $total = $order->getTotalPrice();
       if ($total) {
         $gross += (float) $total->getNumber();

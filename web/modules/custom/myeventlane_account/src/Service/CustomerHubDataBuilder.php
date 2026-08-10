@@ -5,8 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_account\Service;
 
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\file\FileInterface;
+use Drupal\flag\FlaggingInterface;
 use Drupal\image\ImageStyleInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
@@ -164,6 +168,9 @@ final class CustomerHubDataBuilder {
 
     $byId = [];
     foreach ($flaggingStorage->loadMultiple($flaggingIds) as $flagging) {
+      if (!$flagging instanceof FlaggingInterface) {
+        continue;
+      }
       $entity = $flagging->getFlaggable();
       if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
         continue;
@@ -410,6 +417,9 @@ final class CustomerHubDataBuilder {
     $attendees = !empty($attendeeIds) ? $attendeeStorage->loadMultiple($attendeeIds) : [];
 
     foreach ($attendees as $attendee) {
+      if (!$attendee instanceof EventAttendee) {
+        continue;
+      }
       $eventId = (int) $attendee->get('event')->target_id;
       if ($eventId < 1) {
         continue;
@@ -471,6 +481,9 @@ final class CustomerHubDataBuilder {
     }
 
     foreach ($orders as $order) {
+      if (!$order instanceof OrderInterface) {
+        continue;
+      }
       foreach ($order->getItems() as $orderItem) {
         if (!$orderItem->hasField('field_target_event') || $orderItem->get('field_target_event')->isEmpty()) {
           continue;
@@ -497,7 +510,7 @@ final class CustomerHubDataBuilder {
         $attendeeId = NULL;
         if (!empty($oiAttendeeIds)) {
           $oiAttendee = $attendeeStorage->load(reset($oiAttendeeIds));
-          if ($oiAttendee) {
+          if ($oiAttendee instanceof EventAttendee) {
             $ticketCode = $oiAttendee->get('ticket_code')->value ?? '';
             $attendeeId = (int) $oiAttendee->id();
           }
@@ -518,6 +531,9 @@ final class CustomerHubDataBuilder {
       $rsvps = !empty($rsvpIds) ? $rsvpStorage->loadMultiple($rsvpIds) : [];
 
       foreach ($rsvps as $rsvp) {
+        if (!$rsvp instanceof ContentEntityInterface) {
+          continue;
+        }
         if (!$rsvp->hasField('event_id') || $rsvp->get('event_id')->isEmpty()) {
           continue;
         }
@@ -585,7 +601,7 @@ final class CustomerHubDataBuilder {
     $imageUrl = '';
     if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
       $file = $event->get('field_event_image')->entity;
-      if ($file && $file->getFileUri()) {
+      if ($file instanceof FileInterface && $file->getFileUri()) {
         $style = $this->getEventImageStyle();
         $imageUrl = $style ? $style->buildUrl($file->getFileUri()) : '';
       }

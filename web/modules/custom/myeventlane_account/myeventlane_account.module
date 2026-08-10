@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
+use Drupal\file\FileInterface;
 use Drupal\myeventlane_surface\MelCustomerRouteCatalog;
 use Drupal\node\NodeInterface;
 
@@ -158,7 +159,7 @@ function _myeventlane_account_build_avatar_vars(?string $display_name_override =
   $user = \Drupal::entityTypeManager()->getStorage('user')->load($account->id());
   if ($user && $user->hasField('user_picture') && !$user->get('user_picture')->isEmpty()) {
     $file = $user->get('user_picture')->entity;
-    if ($file && $file->getFileUri()) {
+    if ($file instanceof FileInterface && $file->getFileUri()) {
       $uri = $file->getFileUri();
       $file_system = \Drupal::service('file_system');
       $real_path = $file_system->realpath($uri);
