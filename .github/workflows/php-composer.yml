@@ -63,6 +63,7 @@ jobs:
           web/modules/custom/mel_admin_dashboard
           web/modules/custom/myeventlane_admin_dashboard
           web/modules/custom/myeventlane_ai
+          web/modules/custom/myeventlane_analytics
 
       - name: Report remaining Drupal check findings (informational)
         run: vendor/bin/drupal-check web/modules/custom web/themes/custom

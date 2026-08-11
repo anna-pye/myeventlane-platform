@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_analytics\Service;
 
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
@@ -51,6 +53,10 @@ final class AnalyticsDataService {
 
     $grouped = [];
     foreach ($orderItems as $item) {
+      if (!$item instanceof OrderItemInterface) {
+        continue;
+      }
+
       if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
         continue;
       }
@@ -72,7 +78,7 @@ final class AnalyticsDataService {
         continue;
       }
 
-      if (!$order || $order->getState()->getId() !== 'completed') {
+      if (!$order instanceof OrderInterface || $order->getState()->getId() !== 'completed') {
         continue;
       }
 
@@ -124,6 +130,10 @@ final class AnalyticsDataService {
     $breakdown = [];
 
     foreach ($orderItems as $item) {
+      if (!$item instanceof OrderItemInterface) {
+        continue;
+      }
+
       if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
         continue;
       }
@@ -145,7 +155,7 @@ final class AnalyticsDataService {
         continue;
       }
 
-      if (!$order || $order->getState()->getId() !== 'completed') {
+      if (!$order instanceof OrderInterface || $order->getState()->getId() !== 'completed') {
         continue;
       }
 
@@ -206,6 +216,10 @@ final class AnalyticsDataService {
     $completed = 0;
 
     foreach ($allOrderItems as $item) {
+      if (!$item instanceof OrderItemInterface) {
+        continue;
+      }
+
       if (!$this->orderItemClassifier->isVendorRevenueEligible($item)) {
         continue;
       }
@@ -227,7 +241,7 @@ final class AnalyticsDataService {
         continue;
       }
 
-      if (!$order) {
+      if (!$order instanceof OrderInterface) {
         continue;
       }
 
