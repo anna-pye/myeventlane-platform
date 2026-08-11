@@ -138,7 +138,7 @@ final class TicketsSoldKernelTest extends AnalyticsKernelTestBase {
     $this->assertArrayHasKey((int) $store_b->id(), $map);
 
     // 8) No whole-order totals are used: event-less paid items must not be counted.
-    $this->assertSame(2, count($rows), 'Only event-linked paid items should be counted.');
+    $this->assertCount(2, $rows, 'Only event-linked paid items should be counted.');
 
     // 3) Refunds do NOT reduce count: insert completed refund log row and re-run.
     $this->container->get('database')->insert('myeventlane_refund_log')->fields([
@@ -505,4 +505,3 @@ final class TicketsSoldKernelTest extends AnalyticsKernelTestBase {
   }
 
 }
-
