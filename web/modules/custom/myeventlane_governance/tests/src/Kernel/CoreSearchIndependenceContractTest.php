@@ -62,6 +62,47 @@ final class CoreSearchIndependenceContractTest extends TestCase {
   }
 
   /**
+   * Core Search configuration is absent while Search API remains enabled.
+   */
+  public function testCoreSearchRetirementConfigurationIsComplete(): void {
+    $configDirectory = $this->configSyncDirectory();
+    $extensions = Yaml::parseFile($configDirectory . '/core.extension.yml');
+
+    self::assertIsArray($extensions);
+    self::assertArrayNotHasKey('search', $extensions['module'] ?? []);
+    self::assertArrayHasKey('search_api', $extensions['module'] ?? []);
+    self::assertArrayHasKey('search_api_db', $extensions['module'] ?? []);
+
+    foreach (['anonymous', 'authenticated'] as $roleId) {
+      $role = Yaml::parseFile($configDirectory . '/user.role.' . $roleId . '.yml');
+      self::assertIsArray($role);
+      self::assertNotContains('search', $role['dependencies']['module'] ?? []);
+      self::assertNotContains('search content', $role['permissions'] ?? []);
+    }
+
+    $retiredConfigFiles = [
+      'block.block.claro_help_search.yml',
+      'block.block.myeventlane_admin_search_form_narrow.yml',
+      'block.block.myeventlane_admin_search_form_wide.yml',
+      'block.block.myeventlane_radix_search_form_narrow.yml',
+      'block.block.myeventlane_radix_search_form_wide.yml',
+      'block.block.myeventlane_vendor_theme_search_form_narrow.yml',
+      'block.block.myeventlane_vendor_theme_search_form_wide.yml',
+      'block.block.olivero_search_form_narrow.yml',
+      'block.block.olivero_search_form_wide.yml',
+      'block.block.radix_search_form_narrow.yml',
+      'block.block.radix_search_form_wide.yml',
+      'search.page.help_search.yml',
+      'search.page.node_search.yml',
+      'search.page.user_search.yml',
+      'search.settings.yml',
+    ];
+    foreach ($retiredConfigFiles as $file) {
+      self::assertFileDoesNotExist($configDirectory . '/' . $file);
+    }
+  }
+
+  /**
    * Returns the custom modules directory.
    */
   private function customModulesDirectory(): string {

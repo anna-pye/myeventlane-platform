@@ -19,7 +19,6 @@ dependencies:
     - myeventlane_notifications
     - paragraphs
     - profile
-    - search
     - shortcut
     - social_auth
     - system
@@ -51,7 +50,6 @@ permissions:
   - 'manage own commerce_payment_method'
   - 'post comments'
   - request_refunds
-  - 'search content'
   - 'skip comment approval'
   - 'unflag event_save'
   - 'unflag follow_category'
