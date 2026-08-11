@@ -7,6 +7,7 @@ declare(strict_types=1);
  * Install and update hooks for MEL Ticket.
  */
 
+use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\user\Entity\Role;
@@ -523,6 +524,39 @@ function mel_ticket_update_9014(): string {
   }
 
   return 'Installed mel_ticket_type.field_is_best_value for best-value tickets.';
+}
+
+/**
+ * Adds the published-status lookup index to ticket types.
+ */
+function mel_ticket_update_9015(): string {
+  $entity_type_id = 'mel_ticket_type';
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $changes = $update_manager->getChangeList();
+
+  if (empty($changes[$entity_type_id]['entity_type'])) {
+    return 'mel_ticket_type entity storage is already aligned.';
+  }
+
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id, FALSE);
+  if (!$entity_type) {
+    throw new \RuntimeException('mel_ticket_type entity type not found.');
+  }
+
+  $storage = \Drupal::entityTypeManager()->getStorage($entity_type_id);
+  $installed = \Drupal::service('entity.last_installed_schema.repository')
+    ->getLastInstalledDefinition($entity_type_id);
+  if ($installed
+    && $storage instanceof SqlContentEntityStorage
+    && $storage->requiresEntityDataMigration($entity_type, $installed)) {
+    throw new \RuntimeException(
+      'mel_ticket_type requires a data migration; refusing automatic schema update.'
+    );
+  }
+
+  $update_manager->updateEntityType($entity_type);
+  return 'Updated mel_ticket_type storage with the published-status lookup '
+    . 'index.';
 }
 
 /**
