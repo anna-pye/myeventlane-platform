@@ -1,6 +1,76 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+mel_verify_config_status_output() {
+  local output="$1"
+  local command_rc="$2"
+  local allowed_differences="${3:-}"
+  local config_names unexpected=""
+
+  if [ "$command_rc" -ne 0 ]; then
+    echo "ERROR: config:status command failed with exit code ${command_rc}." >&2
+    printf '%s\n' "$output" >&2
+    return "$command_rc"
+  fi
+
+  # Drush may emit notices before the CSV header. Start parsing only after the
+  # exact Name,State header so notices and the header itself never become
+  # configuration names. A missing header is unsafe because the output shape
+  # cannot be verified.
+  if ! config_names="$(printf '%s\n' "$output" | awk -F',' '
+    BEGIN { header_seen = 0 }
+    {
+      gsub(/\r$/, "", $0)
+      name = $1
+      state = $2
+      gsub(/^"|"$/, "", name)
+      gsub(/^"|"$/, "", state)
+      if (name == "Name" && state == "State") {
+        header_seen = 1
+        next
+      }
+      if (header_seen && NF >= 2 && name != "" && state != "") {
+        print name
+      }
+    }
+    END { if (!header_seen) exit 2 }
+  ')"; then
+    echo "ERROR: config:status did not return the expected Name,State CSV header." >&2
+    printf '%s\n' "$output" >&2
+    return 1
+  fi
+
+  while IFS= read -r config_name; do
+    [ -n "$config_name" ] || continue
+    case ",$allowed_differences," in
+      *",$config_name,"*)
+        echo "WARNING: Allowing known environment config difference: $config_name" >&2
+        ;;
+      *)
+        unexpected="${unexpected}${config_name}"$'\n'
+        ;;
+    esac
+  done <<< "$config_names"
+
+  if [ -n "$unexpected" ]; then
+    echo "ERROR: unexpected config differences remain after cim:" >&2
+    printf '%s' "$unexpected" >&2
+    printf '%s\n' "$output" >&2
+    return 1
+  fi
+}
+
+# Narrow, side-effect-free entry point used by the regression test. Production
+# deploys never set this variable.
+if [ "${MEL_TEST_CONFIG_STATUS_OUTPUT:-0}" = "1" ]; then
+  test_output="$(cat)"
+  mel_verify_config_status_output \
+    "$test_output" \
+    "${MEL_TEST_CONFIG_STATUS_RC:-0}" \
+    "${MEL_TEST_CONFIG_STATUS_ALLOWED:-}"
+  exit $?
+fi
+
 echo "=================================================="
 echo "MEL REMOTE DEPLOY WITH VALIDATION 2026-07-11"
 echo "=================================================="
@@ -1008,29 +1078,11 @@ if [ "$RUN_CIM" = "1" ]; then
   # Deploy safety: active storage must match sync after import, apart from an
   # explicit target-environment allow-list supplied by the deployment workflow.
   echo "Verifying config:status after import..."
-  CST_OUT="$(mel_drush cst --fields=name,state --format=csv --uri="$SITE_URI" 2>&1)" || true
-  CST_NAMES="$(printf '%s\n' "$CST_OUT" \
-    | awk -F',' 'NR > 1 && $1 != "" {gsub(/^"|"$/, "", $1); print $1}')"
-  CST_UNEXPECTED=""
-
-  while IFS= read -r config_name; do
-    [ -n "$config_name" ] || continue
-    case ",$CIM_ALLOWED_DIFFERENCES," in
-      *",$config_name,"*)
-        echo "WARNING: Allowing known environment config difference: $config_name" >&2
-        ;;
-      *)
-        CST_UNEXPECTED="${CST_UNEXPECTED}${config_name}"$'\n'
-        ;;
-    esac
-  done <<< "$CST_NAMES"
-
-  if [ -n "$CST_UNEXPECTED" ]; then
-    echo "ERROR: unexpected config differences remain after cim:" >&2
-    printf '%s' "$CST_UNEXPECTED" >&2
-    echo "$CST_OUT" >&2
-    exit 1
-  fi
+  set +e
+  CST_OUT="$(mel_drush cst --fields=name,state --format=csv --uri="$SITE_URI" 2>&1)"
+  CST_RC=$?
+  set -e
+  mel_verify_config_status_output "$CST_OUT" "$CST_RC" "$CIM_ALLOWED_DIFFERENCES"
 fi
 
 # ---- DOMAIN CONFIGURATION (environment; not active config / cset) ----
