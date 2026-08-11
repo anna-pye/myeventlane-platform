@@ -11,7 +11,6 @@ dependencies:
   - drupal:path_alias
   - drupal:taxonomy
   - drupal:views
-  - drupal:search
   - drupal:datetime
   - drupal:text
   - myeventlane_vendor:myeventlane_vendor
