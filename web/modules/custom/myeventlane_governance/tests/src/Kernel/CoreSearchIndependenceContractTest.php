@@ -100,6 +100,10 @@ final class CoreSearchIndependenceContractTest extends TestCase {
     foreach ($retiredConfigFiles as $file) {
       self::assertFileDoesNotExist($configDirectory . '/' . $file);
     }
+
+    $searchModuleDirectory = $this->customModulesDirectory() . '/myeventlane_search';
+    self::assertFileDoesNotExist($searchModuleDirectory . '/myeventlane_search.services.yml');
+    self::assertFileDoesNotExist($searchModuleDirectory . '/src/Routing/SearchRouteSubscriber.php');
   }
 
   /**
