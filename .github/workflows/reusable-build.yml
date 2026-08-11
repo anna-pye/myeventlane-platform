@@ -135,6 +135,9 @@ jobs:
           test -f web/themes/custom/myeventlane_vendor_theme/dist/main.js
           test -f web/themes/custom/myeventlane_vendor_theme/dist/vendor-wizard.css
 
+      - name: Test deploy config-status parser
+        run: bash scripts/deploy/test-config-status-parser.sh
+
       - name: Set artifact metadata
         id: meta
         run: echo "artifact_name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
