@@ -48,6 +48,63 @@ final class RefundProcessorLockingTest extends KernelTestBase {
   ];
 
   /**
+   * Tests later queue batches reuse the persisted cancellation refund.
+   */
+  public function testEventCancellationRefundReusesExistingLog(): void {
+    $database = $this->container->get('database');
+    $database->schema()->createTable('myeventlane_refund_log', [
+      'fields' => [
+        'id' => ['type' => 'serial', 'not null' => TRUE],
+        'order_id' => ['type' => 'int', 'not null' => TRUE],
+        'event_id' => ['type' => 'int', 'not null' => TRUE],
+        'refund_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+        'refund_scope' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE],
+        'donation_refunded' => ['type' => 'int', 'not null' => TRUE],
+        'reason' => ['type' => 'text', 'not null' => FALSE],
+      ],
+      'primary key' => ['id'],
+    ]);
+    $logId = (int) $database->insert('myeventlane_refund_log')->fields([
+      'order_id' => 111,
+      'event_id' => 222,
+      'refund_type' => 'full',
+      'refund_scope' => 'tickets_only',
+      'donation_refunded' => 0,
+      'reason' => 'Event cancelled',
+    ])->execute();
+
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('id')->willReturn(111);
+    $event = $this->createMock(NodeInterface::class);
+    $event->method('id')->willReturn(222);
+    $account = $this->createMock(AccountInterface::class);
+
+    $lock = $this->createMock(LockBackendInterface::class);
+    $lock->expects($this->once())
+      ->method('acquire')
+      ->with('event_cancel_refund:222:111', 30.0)
+      ->willReturn(TRUE);
+    $lock->expects($this->once())
+      ->method('release')
+      ->with('event_cancel_refund:222:111')
+      ->willReturn(TRUE);
+
+    $reflection = new \ReflectionClass(RefundProcessor::class);
+    $processor = $reflection->newInstanceWithoutConstructor();
+    $reflection->getProperty('database')->setValue($processor, $database);
+    $reflection->getProperty('lock')->setValue($processor, $lock);
+
+    $this->assertSame(
+      $logId,
+      $processor->requestEventCancellationRefund($order, $event, $account),
+    );
+    $this->assertSame(
+      1,
+      (int) $database->select('myeventlane_refund_log')->countQuery()->execute()->fetchField(),
+    );
+  }
+
+  /**
    * Tests second process call is blocked by lock.
    */
   public function testProcessRefundLockPreventsSecondExecution(): void {
@@ -373,4 +430,3 @@ final class RefundProcessorLockingTest extends KernelTestBase {
   }
 
 }
-

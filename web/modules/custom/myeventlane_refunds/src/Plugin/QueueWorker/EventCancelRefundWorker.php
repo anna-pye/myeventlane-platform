@@ -8,8 +8,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueWorkerBase;
-use Drupal\myeventlane_refunds\Service\RefundOrderInspector;
-use Drupal\myeventlane_refunds\Service\RefundProcessor;
+use Drupal\myeventlane_refunds\Service\RefundOrderInspectorInterface;
+use Drupal\myeventlane_refunds\Service\RefundProcessorInterface;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -41,9 +41,9 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
    *   Plugin definition.
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
+   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspectorInterface $orderInspector
    *   The order inspector.
-   * @param \Drupal\myeventlane_refunds\Service\RefundProcessor $refundProcessor
+   * @param \Drupal\myeventlane_refunds\Service\RefundProcessorInterface $refundProcessor
    *   The refund processor.
    * @param \Psr\Log\LoggerInterface $logger
    *   The logger.
@@ -55,8 +55,8 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
     string $plugin_id,
     $plugin_definition,
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly RefundOrderInspector $orderInspector,
-    private readonly RefundProcessor $refundProcessor,
+    private readonly RefundOrderInspectorInterface $orderInspector,
+    private readonly RefundProcessorInterface $refundProcessor,
     private readonly LoggerInterface $logger,
     private readonly QueueFactory $queueFactory,
   ) {
@@ -145,16 +145,23 @@ final class EventCancelRefundWorker extends QueueWorkerBase implements Container
           continue;
         }
 
-        // Request full refund for tickets only (donations excluded by default).
-        $refundPayload = [
-          'refund_type' => 'full',
-          'refund_scope' => 'tickets_only',
-          'include_donation' => FALSE,
-          'reason' => 'Event cancelled',
-        ];
+        $ticketSubtotalCents = $this->orderInspector->calculateTicketSubtotalCents($order, (int) $eventId);
+        if ($ticketSubtotalCents <= 0) {
+          $this->logger->notice('EventCancelRefundWorker: Skipped order @order_id because it has no refundable ticket amount; donations are excluded.', [
+            '@order_id' => $orderId,
+          ]);
+          continue;
+        }
+
+        if ($this->orderInspector->calculateRefundableAmountCents($order) <= 0) {
+          $this->logger->notice('EventCancelRefundWorker: Skipped order @order_id because it has no refundable payment balance.', [
+            '@order_id' => $orderId,
+          ]);
+          continue;
+        }
 
         try {
-          $this->refundProcessor->requestRefund($order, $event, $vendor, $refundPayload);
+          $this->refundProcessor->requestEventCancellationRefund($order, $event, $vendor);
           $refundedCount++;
         }
         catch (\Throwable $e) {

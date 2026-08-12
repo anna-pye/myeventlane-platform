@@ -15,7 +15,7 @@ use Drupal\node\NodeInterface;
 /**
  * Inspects orders to determine refund eligibility and calculate amounts.
  */
-final class RefundOrderInspector implements RefundOrderItemsInterface {
+final class RefundOrderInspector implements RefundOrderInspectorInterface {
 
   /**
    * Donation order item bundles.

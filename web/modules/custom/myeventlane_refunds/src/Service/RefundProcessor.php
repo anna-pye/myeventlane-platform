@@ -29,7 +29,7 @@ use Psr\Log\LoggerInterface;
 /**
  * Processes refund requests and executes refunds.
  */
-final class RefundProcessor {
+final class RefundProcessor implements RefundProcessorInterface {
 
   public const STATUS_PROCESSING = 'processing';
   public const STATUS_COMPLETED = 'completed';
@@ -42,7 +42,7 @@ final class RefundProcessor {
    *
    * @param \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager
    *   The entity type manager.
-   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
+   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspectorInterface $orderInspector
    *   The order inspector.
    * @param \Drupal\myeventlane_refunds\Service\RefundAccessResolver $accessResolver
    *   The access resolver.
@@ -73,7 +73,7 @@ final class RefundProcessor {
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
-    private readonly RefundOrderInspector $orderInspector,
+    private readonly RefundOrderInspectorInterface $orderInspector,
     private readonly RefundAccessResolver $accessResolver,
     private readonly BuyerRefundEligibilityService $buyerEligibility,
     private readonly RefundRequestStorage $refundRequestStorage,
@@ -326,6 +326,70 @@ final class RefundProcessor {
   }
 
   /**
+   * Requests one ticket-only refund for an event cancellation.
+   *
+   * The persistent audit-log lookup prevents later queue batches from creating
+   * another refund. The lock closes the same gap between concurrent workers.
+   */
+  public function requestEventCancellationRefund(
+    OrderInterface $order,
+    NodeInterface $event,
+    AccountInterface $account,
+  ): int {
+    $orderId = (int) $order->id();
+    $eventId = (int) $event->id();
+    $lockId = "event_cancel_refund:$eventId:$orderId";
+
+    if (!$this->lock->acquire($lockId, 30.0)) {
+      $this->lock->wait($lockId, 30);
+      if (!$this->lock->acquire($lockId, 30.0)) {
+        $existingId = $this->findEventCancellationRefundId($orderId, $eventId);
+        if ($existingId !== NULL) {
+          return $existingId;
+        }
+        throw new \RuntimeException('An event cancellation refund is already being prepared.');
+      }
+    }
+
+    try {
+      $existingId = $this->findEventCancellationRefundId($orderId, $eventId);
+      if ($existingId !== NULL) {
+        return $existingId;
+      }
+
+      return $this->requestRefund($order, $event, $account, [
+        'refund_type' => 'full',
+        'refund_scope' => 'tickets_only',
+        'include_donation' => FALSE,
+        'reason' => 'Event cancelled',
+      ]);
+    }
+    finally {
+      $this->lock->release($lockId);
+    }
+  }
+
+  /**
+   * Finds an existing cancellation refund for one order and event.
+   */
+  private function findEventCancellationRefundId(int $orderId, int $eventId): ?int {
+    $id = $this->database->select('myeventlane_refund_log', 'refund')
+      ->fields('refund', ['id'])
+      ->condition('order_id', $orderId)
+      ->condition('event_id', $eventId)
+      ->condition('refund_type', 'full')
+      ->condition('refund_scope', 'tickets_only')
+      ->condition('donation_refunded', 0)
+      ->condition('reason', 'Event cancelled')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    return $id === FALSE ? NULL : (int) $id;
+  }
+
+  /**
    * Requests a refund (creates audit log, enqueues worker, runs processing now).
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
@@ -334,7 +398,7 @@ final class RefundProcessor {
    *   The event node.
    * @param \Drupal\Core\Session\AccountInterface $account
    *   The vendor account.
-   * @param array $refund_payload
+   * @param array $payload
    *   Refund payload with keys:
    *   - refund_type: 'full' or 'partial'
    *   - refund_scope: 'tickets_only', 'tickets_and_donation', or 'donation_only'

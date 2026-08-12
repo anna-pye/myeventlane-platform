@@ -93,7 +93,7 @@ final class VendorCancelEventForm extends FormBase {
       '#title' => $this->t('Cancellation Action'),
       '#options' => [
         'cancel_only' => $this->t('Cancel only (send cancellation email)'),
-        'cancel_and_refund' => $this->t('Cancel and auto-refund all orders'),
+        'cancel_and_refund' => $this->t('Cancel and refund eligible paid tickets — donations are not included'),
       ],
       '#default_value' => 'cancel_only',
       '#required' => TRUE,
