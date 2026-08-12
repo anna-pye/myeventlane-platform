@@ -4,11 +4,13 @@ myeventlane_escalations_ai_draft.generate:
   path: '/admin/myeventlane/escalations/{escalation}/ai/instant-draft'
   defaults:
     _controller: '\Drupal\myeventlane_escalations_ai_draft\Controller\EscalationAiDraftController::generate'
+  methods: [POST]
   requirements:
     _permission: 'generate escalation ai drafts'
     _custom_access: 'myeventlane_escalations_ai_draft.access::draftAccess'
+    _csrf_request_header_token: 'TRUE'
   options:
     _admin_route: TRUE
     parameters:
       escalation:
-        type: integer
+        type: entity:escalation

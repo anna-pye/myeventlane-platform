@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_ai\Service;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\myeventlane_ai\Entity\AiJob;
 
@@ -16,12 +18,66 @@ use Drupal\myeventlane_ai\Entity\AiJob;
  */
 final class AiJobEnqueueService {
 
+  private const DEDUP_WINDOW = 300;
+
   public const QUEUE_NAME = 'myeventlane_ai.jobs';
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly QueueFactory $queueFactory,
+    private readonly LockBackendInterface $lock,
+    private readonly TimeInterface $time,
   ) {}
+
+  /**
+   * Returns a recent queued/running job for the scope, or enqueues a new job.
+   */
+  public function enqueueUnique(
+    string $prompt_key,
+    ?string $prompt_version,
+    array $placeholders,
+    array $options,
+    int $requested_by_uid,
+    string $scope_id,
+    ?int $vendor_id = NULL,
+  ): AiJob {
+    $lock_name = 'myeventlane_ai.enqueue:' . hash('sha256', $prompt_key . '|' . $scope_id);
+    if (!$this->lock->acquire($lock_name, 5.0)) {
+      throw new \RuntimeException('An equivalent AI job is already being queued.');
+    }
+
+    try {
+      $storage = $this->entityTypeManager->getStorage('ai_job');
+      $ids = $storage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('scope', $scope_id)
+        ->condition('prompt_key', $prompt_key)
+        ->condition('status', [AiJob::STATUS_QUEUED, AiJob::STATUS_RUNNING], 'IN')
+        ->condition('created', $this->time->getRequestTime() - self::DEDUP_WINDOW, '>=')
+        ->sort('created', 'DESC')
+        ->range(0, 1)
+        ->execute();
+      if ($ids !== []) {
+        $job = $storage->load((int) reset($ids));
+        if ($job instanceof AiJob) {
+          return $job;
+        }
+      }
+
+      return $this->enqueue(
+        $prompt_key,
+        $prompt_version,
+        $placeholders,
+        $options,
+        $requested_by_uid,
+        $scope_id,
+        $vendor_id,
+      );
+    }
+    finally {
+      $this->lock->release($lock_name);
+    }
+  }
 
   /**
    * Creates an ai_job (queued) and enqueues for async execution.
@@ -65,7 +121,7 @@ final class AiJobEnqueueService {
       'prompt_version' => $prompt_version,
       'prompt_hash' => $prompt_hash,
     ];
-    if ($vendor_id !== null) {
+    if ($vendor_id !== NULL) {
       $values['vendor_id'] = $vendor_id;
     }
     /** @var \Drupal\myeventlane_ai\Entity\AiJob $job */

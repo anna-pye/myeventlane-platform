@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_escalations_ai_draft\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\myeventlane_ai\Service\AiJobEnqueueService;
+use Drupal\myeventlane_escalations\Entity\EscalationInterface;
 use Drupal\myeventlane_escalations_ai_draft\Service\EscalationDraftContextBuilder;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -36,12 +37,13 @@ final class EscalationAiDraftController extends ControllerBase {
   /**
    * Starts draft generation. Returns job_id for polling.
    */
-  public function generate(Request $request, int $escalation): JsonResponse {
+  public function generate(Request $request, EscalationInterface $escalation): JsonResponse {
     if (!$request->isMethod('POST')) {
       return new JsonResponse(['error' => 'Method not allowed'], 405);
     }
 
-    $context = $this->contextBuilder->build($escalation);
+    $escalation_id = (int) $escalation->id();
+    $context = $this->contextBuilder->build($escalation_id);
     if (isset($context['error'])) {
       return new JsonResponse([
         'ok' => FALSE,
@@ -81,13 +83,13 @@ final class EscalationAiDraftController extends ControllerBase {
       'playbooks' => $playbooks ?: ' (none)',
     ];
 
-    $job = $this->jobEnqueue->enqueue(
+    $job = $this->jobEnqueue->enqueueUnique(
       'escalation.draft',
       'v1',
       $placeholders,
       ['max_tokens' => 800],
       (int) $this->currentUser()->id(),
-      'escalation_draft:' . $escalation,
+      'escalation_draft:' . $escalation_id,
       NULL,
     );
 

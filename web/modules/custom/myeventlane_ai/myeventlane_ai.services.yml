@@ -41,7 +41,7 @@ services:
 
   myeventlane_ai.job_enqueue:
     class: Drupal\myeventlane_ai\Service\AiJobEnqueueService
-    arguments: ['@entity_type.manager', '@queue']
+    arguments: ['@entity_type.manager', '@queue', '@lock', '@datetime.time']
 
   myeventlane_ai.job_cleanup:
     class: Drupal\myeventlane_ai\Service\AiJobCleanupService

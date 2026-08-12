@@ -13,9 +13,12 @@
 
   {% if generate_url %}
     <div class="mel-ai-assistant__cta">
-      <a class="mel-button mel-button--secondary" href="{{ generate_url }}">
+      <button type="button"
+              class="mel-button mel-button--secondary"
+              data-mel-ai-generate
+              data-mel-ai-generate-url="{{ generate_url }}">
         Generate AI reply draft
-      </a>
+      </button>
       <p class="mel-ai-assistant__cta-note">
         Suggestions only. Nothing is auto-sent or auto-applied.
       </p>

@@ -5,7 +5,15 @@ services:
 
   myeventlane_escalations_ai.job_enqueuer:
     class: Drupal\myeventlane_escalations_ai\Service\EscalationAiJobEnqueuer
-    arguments: ['@queue', '@logger.channel.myeventlane_escalations_ai']
+    arguments: ['@queue', '@myeventlane_escalations_ai.dedup_store', '@lock', '@logger.channel.myeventlane_escalations_ai']
+
+  myeventlane_escalations_ai.dedup_store:
+    class: Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+    factory: ['@keyvalue.expirable', 'get']
+    arguments: ['myeventlane_escalations_ai.dedup']
+
+  myeventlane_escalations_ai.access:
+    class: Drupal\myeventlane_escalations_ai\Access\EscalationAiAccess
 
   logger.channel.myeventlane_escalations_ai:
     parent: logger.channel_base

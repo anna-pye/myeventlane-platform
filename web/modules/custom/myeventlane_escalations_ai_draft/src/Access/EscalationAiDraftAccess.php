@@ -6,8 +6,8 @@ namespace Drupal\myeventlane_escalations_ai_draft\Access;
 
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Access\AccessResultInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_escalations\Entity\EscalationInterface;
 
 /**
  * Access check for escalation AI draft route.
@@ -16,24 +16,15 @@ use Drupal\Core\Session\AccountInterface;
  */
 final class EscalationAiDraftAccess {
 
-  public function __construct(
-    private readonly EntityTypeManagerInterface $entityTypeManager,
-  ) {}
-
   /**
    * Checks access to the AI draft generation endpoint.
    */
-  public function draftAccess(AccountInterface $account, int $escalation): AccessResultInterface {
+  public function draftAccess(AccountInterface $account, EscalationInterface $escalation): AccessResultInterface {
     if (!$account->hasPermission('generate escalation ai drafts')) {
       return AccessResult::forbidden()->cachePerUser();
     }
 
-    $entity = $this->entityTypeManager->getStorage('escalation')->load($escalation);
-    if (!$entity) {
-      return AccessResult::forbidden('Escalation not found.');
-    }
-
-    return AccessResult::allowed()->addCacheableDependency($entity)->cachePerUser();
+    return $escalation->access('view', $account, TRUE);
   }
 
 }

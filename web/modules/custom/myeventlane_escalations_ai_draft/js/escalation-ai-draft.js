@@ -10,6 +10,10 @@
   const POLL_INTERVAL = 1500;
   const MAX_POLLS = 20;
 
+  function getCsrfTokenUrl() {
+    return drupalSettings.myeventlaneEscalationsAiDraft?.csrfTokenUrl || '/session/token';
+  }
+
   const TEXTAREA_SELECTORS = [
     '#mel-reply-textarea',
     '[data-mel-reply-textarea="true"]',
@@ -145,10 +149,13 @@
       btn.textContent = Drupal.t('Generating…');
 
       try {
+        const tokenResponse = await fetch(getCsrfTokenUrl(), {credentials: 'same-origin'});
+        const csrfToken = await tokenResponse.text();
         const res = await fetch(getDraftUrl(escalationId), {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'X-CSRF-Token': csrfToken,
             'X-Requested-With': 'XMLHttpRequest',
           },
           credentials: 'same-origin',
