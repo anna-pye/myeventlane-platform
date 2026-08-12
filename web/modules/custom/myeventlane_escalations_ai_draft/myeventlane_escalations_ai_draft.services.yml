@@ -1,8 +1,6 @@
 services:
   myeventlane_escalations_ai_draft.access:
     class: Drupal\myeventlane_escalations_ai_draft\Access\EscalationAiDraftAccess
-    arguments:
-      - '@entity_type.manager'
 
   myeventlane_escalations_ai_draft.context_builder:
     class: Drupal\myeventlane_escalations_ai_draft\Service\EscalationDraftContextBuilder

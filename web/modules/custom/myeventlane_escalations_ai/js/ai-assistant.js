@@ -1,4 +1,4 @@
-(function (Drupal, once) {
+(function (Drupal, once, drupalSettings) {
   'use strict';
 
   function expandReplyShell() {
@@ -124,6 +124,34 @@
           });
         });
       });
+
+      once('mel-ai-generate', '[data-mel-ai-generate]', context).forEach(function (button) {
+        button.addEventListener('click', async function () {
+          const url = button.getAttribute('data-mel-ai-generate-url');
+          const tokenUrl = drupalSettings.myeventlaneEscalationsAi?.csrfTokenUrl || '/session/token';
+          if (!url) return;
+
+          button.disabled = true;
+          try {
+            const tokenResponse = await fetch(tokenUrl, {credentials: 'same-origin'});
+            const token = await tokenResponse.text();
+            const response = await fetch(url, {
+              method: 'POST',
+              credentials: 'same-origin',
+              headers: {
+                'Accept': 'application/json',
+                'X-CSRF-Token': token,
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            if (!response.ok) throw new Error('request_failed');
+            window.location.reload();
+          } catch (error) {
+            window.alert(Drupal.t('Could not queue an AI draft. Please try again.'));
+            button.disabled = false;
+          }
+        });
+      });
     }
   };
-})(Drupal, once);
+})(Drupal, once, drupalSettings);

@@ -11,6 +11,7 @@ use Drupal\Component\Utility\Html;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_escalations\Entity\EscalationInterface;
 
 /**
  * Implements hook_entity_insert().
@@ -34,7 +35,7 @@ function myeventlane_escalations_ai_entity_insert(EntityInterface $entity): void
  * and the escalation is not already resolved/closed (avoid spam).
  */
 function myeventlane_escalations_ai_entity_update(EntityInterface $entity): void {
-  if ($entity->getEntityTypeId() !== 'escalation') {
+  if (!$entity instanceof EscalationInterface) {
     return;
   }
 
@@ -49,11 +50,12 @@ function myeventlane_escalations_ai_entity_update(EntityInterface $entity): void
   }
 
   // Compare current description with original to detect actual changes.
-  if (!isset($entity->original)) {
+  $original = $entity->getOriginal();
+  if (!$original instanceof EscalationInterface) {
     return;
   }
 
-  $old_desc = (string) $entity->original->get('description')->value;
+  $old_desc = (string) $original->get('description')->value;
   $new_desc = (string) $entity->get('description')->value;
 
   if ($old_desc === $new_desc) {
@@ -103,6 +105,7 @@ function myeventlane_escalations_ai_theme($existing, $type, $theme, $path) {
  * Safely decode insight payload JSON and normalise keys.
  *
  * @return array{ok: bool, data: array, error: ?string}
+ *   The decoded payload result.
  */
 function _myeventlane_escalations_ai_decode_payload(?string $json): array {
   if (!$json) {
@@ -181,6 +184,11 @@ function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $
       '#generate_url' => $generate_url,
       '#attached' => [
         'library' => ['myeventlane_escalations_ai/ai_assistant'],
+        'drupalSettings' => [
+          'myeventlaneEscalationsAi' => [
+            'csrfTokenUrl' => '/session/token',
+          ],
+        ],
       ],
       '#cache' => [
         'contexts' => ['user.permissions'],
@@ -191,7 +199,7 @@ function myeventlane_escalations_ai_entity_view(array &$build, EntityInterface $
 }
 
 /**
- * Builds a themed AI insight card render array from an EscalationAiInsight entity.
+ * Builds a themed AI insight card render array from an insight entity.
  *
  * @param \Drupal\myeventlane_escalations_ai\Entity\EscalationAiInsight $insight
  *   The AI insight entity.
