@@ -933,7 +933,7 @@ declare(strict_types=1);
 \$config['myeventlane_core.domain_settings']['admin_domain'] =
   \$melGetEnv('MEL_ADMIN_DOMAIN') ?: '${admin}';
 \$config['myeventlane_core.domain_settings']['force_redirects'] =
-  \$melGetEnv('MEL_FORCE_DOMAIN_REDIRECTS') !== '0';
+  \$melGetEnv('MEL_FORCE_DOMAIN_REDIRECTS') === '1';
 PHP
 
   echo "Wrote domain overrides to $dst (${mode})"
@@ -1094,7 +1094,7 @@ fi
 #   MEL_PUBLIC_DOMAIN=https://staging.myeventlane.com.au
 #   MEL_VENDOR_DOMAIN=https://vendor.staging.myeventlane.com.au
 #   MEL_ADMIN_DOMAIN=https://admin.staging.myeventlane.com.au
-#   MEL_FORCE_DOMAIN_REDIRECTS=1   — required on staging (VendorDomainSubscriber redirects)
+#   MEL_FORCE_DOMAIN_REDIRECTS=0   — required until cross-subdomain auth is proven reliable
 #
 # Production example:
 #   MEL_PUBLIC_DOMAIN=https://myeventlane.com.au
@@ -1119,18 +1119,20 @@ if (\$k === 'force_redirects') {
 
 mel_verify_domain_environment() {
   local mode="$1"
-  local pub vendor admin failures=0
+  local pub vendor admin expected_force failures=0
 
   case "$mode" in
     production)
       pub='https://myeventlane.com.au'
       vendor='https://vendor.myeventlane.com.au'
       admin='https://admin.myeventlane.com.au'
+      expected_force='1'
       ;;
     staging)
       pub='https://staging.myeventlane.com.au'
       vendor='https://vendor.staging.myeventlane.com.au'
       admin='https://admin.staging.myeventlane.com.au'
+      expected_force='0'
       ;;
     *)
       return 0
@@ -1157,9 +1159,9 @@ mel_verify_domain_environment() {
   actual="$(mel_domain_effective force_redirects)"
   local force_rc=$?
   set -e
-  if [ "$force_rc" -ne 0 ] || [ "$actual" != "1" ]; then
-    echo "ERROR: effective force_redirects is '${actual:-<empty>}' (expected 1)." >&2
-    echo "Set MEL_FORCE_DOMAIN_REDIRECTS=1 in the PHP-FPM / host environment." >&2
+  if [ "$force_rc" -ne 0 ] || [ "$actual" != "$expected_force" ]; then
+    echo "ERROR: effective force_redirects is '${actual:-<empty>}' (expected ${expected_force} for ${mode})." >&2
+    echo "Set MEL_FORCE_DOMAIN_REDIRECTS=${expected_force} in the PHP-FPM / host environment." >&2
     failures=$((failures + 1))
   fi
 

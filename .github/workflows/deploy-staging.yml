@@ -181,7 +181,7 @@ jobs:
             'MEL_PUBLIC_DOMAIN="https://staging.myeventlane.com.au" \' \
             'MEL_VENDOR_DOMAIN="https://vendor.staging.myeventlane.com.au" \' \
             'MEL_ADMIN_DOMAIN="https://admin.staging.myeventlane.com.au" \' \
-            'MEL_FORCE_DOMAIN_REDIRECTS=1 \' \
+            'MEL_FORCE_DOMAIN_REDIRECTS=0 \' \
             'MEL_REVISION="${{ github.sha }}" \' \
             'MEL_DEPLOY_TIME_UTC="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \' \
             'MEL_RELEASE_IDENTIFIER="${{ github.run_id }}.${{ github.run_attempt }}" \' \
