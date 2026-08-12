@@ -16,9 +16,6 @@ final class RouteSubscriber extends RouteSubscriberBase {
    * {@inheritdoc}
    */
   protected function alterRoutes(RouteCollection $collection): void {
-    if ($route = $collection->get('contact.site_page')) {
-      $route->setPath('/contact/feedback');
-    }
     if ($route = $collection->get('view.mel_blog.page_blog')) {
       $route->setPath('/blog/list');
     }

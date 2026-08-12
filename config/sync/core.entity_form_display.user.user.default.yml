@@ -30,10 +30,6 @@ content:
     weight: -10
     region: content
     third_party_settings: {  }
-  contact:
-    weight: 5
-    region: content
-    third_party_settings: {  }
   field_accessibility_preferences:
     type: text_textarea
     weight: 7
