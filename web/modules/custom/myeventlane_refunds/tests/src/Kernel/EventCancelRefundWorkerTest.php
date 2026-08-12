@@ -12,17 +12,19 @@ use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Queue\QueueInterface;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_refunds\Plugin\QueueWorker\EventCancelRefundWorker;
-use Drupal\myeventlane_refunds\Service\RefundOrderInspector;
-use Drupal\myeventlane_refunds\Service\RefundProcessor;
+use Drupal\myeventlane_refunds\Service\RefundOrderInspectorInterface;
+use Drupal\myeventlane_refunds\Service\RefundProcessorInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Core\Session\AccountInterface;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\LoggerInterface;
 
 /**
  * Kernel tests cursor progression for EventCancelRefundWorker batching.
- *
- * @group myeventlane_refunds
  */
+#[Group('myeventlane_refunds')]
+#[RunTestsInSeparateProcesses]
 final class EventCancelRefundWorkerTest extends KernelTestBase {
 
   /**
@@ -63,9 +65,14 @@ final class EventCancelRefundWorkerTest extends KernelTestBase {
       $items = [];
       foreach ($ids as $id) {
         $state = new class {
+
+          /**
+           * Returns the completed state ID.
+           */
           public function getId(): string {
             return 'completed';
           }
+
         };
 
         $order = $this->createMock(OrderInterface::class);
@@ -73,16 +80,26 @@ final class EventCancelRefundWorkerTest extends KernelTestBase {
         $order->method('getState')->willReturn($state);
 
         $items[$id] = new class($id, $order) {
+
           public function __construct(
             private readonly int $id,
             private readonly OrderInterface $order,
           ) {}
+
+          /**
+           * Returns the parent order.
+           */
           public function getOrder(): OrderInterface {
             return $this->order;
           }
+
+          /**
+           * Returns the order item ID.
+           */
           public function id(): int {
             return $this->id;
           }
+
         };
       }
       return $items;
@@ -105,8 +122,12 @@ final class EventCancelRefundWorkerTest extends KernelTestBase {
     ]);
 
     $processedOrderIds = [];
-    $refundProcessor = $this->createMock(RefundProcessor::class);
-    $refundProcessor->method('requestRefund')->willReturnCallback(function (OrderInterface $order) use (&$processedOrderIds): int {
+    $orderInspector = $this->createMock(RefundOrderInspectorInterface::class);
+    $orderInspector->method('calculateTicketSubtotalCents')->willReturn(1000);
+    $orderInspector->method('calculateRefundableAmountCents')->willReturn(1000);
+
+    $refundProcessor = $this->createMock(RefundProcessorInterface::class);
+    $refundProcessor->method('requestEventCancellationRefund')->willReturnCallback(function (OrderInterface $order) use (&$processedOrderIds): int {
       $processedOrderIds[] = (int) $order->id();
       return (int) $order->id();
     });
@@ -125,7 +146,7 @@ final class EventCancelRefundWorkerTest extends KernelTestBase {
       'event_cancel_refund_worker',
       [],
       $entityTypeManager,
-      $this->createMock(RefundOrderInspector::class),
+      $orderInspector,
       $refundProcessor,
       $this->createMock(LoggerInterface::class),
       $queueFactory,
@@ -144,8 +165,7 @@ final class EventCancelRefundWorkerTest extends KernelTestBase {
 
     $this->assertCount(1, $queuedItems);
     $this->assertCount(65, $processedOrderIds);
-    $this->assertSame(65, count(array_unique($processedOrderIds)));
+    $this->assertCount(65, array_unique($processedOrderIds));
   }
 
 }
-
