@@ -138,6 +138,9 @@ jobs:
       - name: Test deploy config-status parser
         run: bash scripts/deploy/test-config-status-parser.sh
 
+      - name: Test deploy domain redirect policy
+        run: bash scripts/deploy/test-domain-redirect-policy.sh
+
       - name: Set artifact metadata
         id: meta
         run: echo "artifact_name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"
