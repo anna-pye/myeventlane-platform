@@ -227,13 +227,6 @@ mel_checkout:
     - core/drupal
     - core/once
 
-# Contact /support entry (/contact). Styles are compiled into dist/main.css via
-# src/scss/pages/_contact.scss; this library ensures the bundle is referenced
-# when the contact form template attaches it.
-contact_page:
-  dependencies:
-    - myeventlane_theme/global-styling
-
 # Auth pages: register and password reset (CSS only). Login uses Gin Login only.
 # Attached on user.register, user.pass — not on user.login.
 auth_pages:

@@ -4587,43 +4587,6 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
     $form['#attributes']['class'][] = 'mel-form--vendor';
   }
 
-  // Contact module (entity message forms on /contact): MEL buttons + message UX.
-  if (str_starts_with($form_id, 'contact_message_')) {
-    if (isset($form['message']) && is_array($form['message'])) {
-      if (!isset($form['message']['#attributes']) || !is_array($form['message']['#attributes'])) {
-        $form['message']['#attributes'] = [];
-      }
-      $attrs = &$form['message']['#attributes'];
-      if (!isset($attrs['class'])) {
-        $attrs['class'] = [];
-      }
-      elseif (!is_array($attrs['class'])) {
-        $attrs['class'] = [$attrs['class']];
-      }
-      $attrs['class'][] = 'mel-textarea';
-      if (empty($attrs['placeholder'])) {
-        $attrs['placeholder'] = (string) t('Include your event name, what you expected, and any error text or screenshots if relevant…');
-      }
-    }
-    foreach (['submit' => ['mel-btn', 'mel-btn-primary', 'mel-btn--contact-coral'], 'preview' => ['mel-btn', 'mel-btn-secondary', 'mel-btn--contact-preview']] as $key => $classes) {
-      if (!isset($form['actions'][$key]) || !is_array($form['actions'][$key])) {
-        continue;
-      }
-      $el = &$form['actions'][$key];
-      if (!isset($el['#attributes']) || !is_array($el['#attributes'])) {
-        $el['#attributes'] = [];
-      }
-      if (!isset($el['#attributes']['class'])) {
-        $el['#attributes']['class'] = [];
-      }
-      elseif (!is_array($el['#attributes']['class'])) {
-        $el['#attributes']['class'] = [$el['#attributes']['class']];
-      }
-      foreach ($classes as $class) {
-        $el['#attributes']['class'][] = $class;
-      }
-    }
-  }
 }
 
 /**

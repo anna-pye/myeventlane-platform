@@ -8,7 +8,6 @@ dependencies:
     - commerce_order
     - commerce_payment
     - commerce_product
-    - contact
     - file
     - flag
     - klaro
@@ -35,7 +34,6 @@ permissions:
   - 'access myeventlane help assistant'
   - 'access myeventlane notifications'
   - 'access shortcuts'
-  - 'access site-wide contact form'
   - 'change own username'
   - 'comment on own escalation'
   - 'create customer profile'
