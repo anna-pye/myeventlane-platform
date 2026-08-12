@@ -100,7 +100,6 @@ module:
   myeventlane_checkin: 0
   myeventlane_core: 0
   myeventlane_dashboard: 0
-  myeventlane_demo: 0
   myeventlane_domain_events: 0
   myeventlane_donations: 0
   myeventlane_escalations: 0
@@ -137,7 +136,6 @@ module:
   myeventlane_rsvp: 0
   myeventlane_schema: 0
   myeventlane_search: 0
-  myeventlane_seed: 0
   myeventlane_shared: 0
   myeventlane_staff_playbooks: 0
   myeventlane_staff_playbooks_ai: 0
