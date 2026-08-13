@@ -1,6 +1,7 @@
 _core:
   default_config_hash: hLCUT-cJFQE24x2teLcXCHLoNYpZzk572muSNu-8SZ0
 enabled: true
+rate_limit_enabled: true
 provider: openai
 openai:
   endpoint: 'https://api.openai.com/v1/chat/completions'
@@ -18,5 +19,5 @@ cb_failure_threshold: 10
 cb_window_seconds: 600
 cb_cost_trip_seconds: 86400
 usage_retention_days: 7
-ai_job_retention_days: 0
-ai_job_error_retention_days: 0
+ai_job_retention_days: 7
+ai_job_error_retention_days: 14
