@@ -47,6 +47,10 @@ services:
     class: Drupal\myeventlane_ai\Service\AiJobCleanupService
     arguments: ['@entity_type.manager', '@logger.channel.myeventlane_ai']
 
+  myeventlane_ai.job_retention_policy:
+    class: Drupal\myeventlane_ai\Service\AiJobRetentionPolicy
+    arguments: ['@config.factory']
+
   logger.channel.myeventlane_ai:
     parent: logger.channel_base
     arguments: ['myeventlane_ai']

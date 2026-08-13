@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_ai\Plugin\QueueWorker;
 
-use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\myeventlane_ai\Entity\AiJob;
 use Drupal\myeventlane_ai\Service\AiManager;
+use Drupal\myeventlane_ai\Service\AiJobRetentionPolicy;
 use Drupal\myeventlane_ai\Service\PromptRegistry;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -32,7 +32,7 @@ final class AiJobQueueWorker extends QueueWorkerBase implements ContainerFactory
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly AiManager $aiManager,
     private readonly PromptRegistry $promptRegistry,
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly AiJobRetentionPolicy $retentionPolicy,
     private readonly LoggerInterface $logger,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
@@ -49,7 +49,7 @@ final class AiJobQueueWorker extends QueueWorkerBase implements ContainerFactory
       $container->get('entity_type.manager'),
       $container->get('myeventlane_ai.manager'),
       $container->get('myeventlane_ai.prompt_registry'),
-      $container->get('config.factory'),
+      $container->get('myeventlane_ai.job_retention_policy'),
       $container->get('logger.channel.myeventlane_ai'),
     );
   }
@@ -83,6 +83,7 @@ final class AiJobQueueWorker extends QueueWorkerBase implements ContainerFactory
     if ($definition === NULL) {
       $job->set('status', AiJob::STATUS_ERROR);
       $job->set('error_message', 'Prompt config missing or invalid.');
+      $this->setExpiresAt($job);
       $job->save();
       return;
     }
@@ -103,10 +104,10 @@ final class AiJobQueueWorker extends QueueWorkerBase implements ContainerFactory
       $job->set('result_text', trim($result->raw));
       $job->set('model', $result->model ?? '');
       $job->set('prompt_hash', $definition->getPromptHash());
-      if ($result->token_counts !== null) {
+      if ($result->token_counts !== NULL) {
         $job->set('token_counts', json_encode($result->token_counts));
       }
-      if ($result->estimated_cost_usd !== null) {
+      if ($result->estimated_cost_usd !== NULL) {
         $job->set('estimated_cost_usd', $result->estimated_cost_usd);
       }
     }
@@ -124,21 +125,13 @@ final class AiJobQueueWorker extends QueueWorkerBase implements ContainerFactory
    * Sets expires_at when job completes (done or error).
    */
   private function setExpiresAt(AiJob $job): void {
-    $config = $this->configFactory->get('myeventlane_ai.settings');
-    $status = $job->get('status')->value;
-
-    $retention_days = match ($status) {
-      AiJob::STATUS_DONE => (int) ($config->get('ai_job_retention_days') ?? 7),
-      AiJob::STATUS_ERROR => (int) ($config->get('ai_job_error_retention_days') ?? 14),
-      default => 0,
-    };
-
-    if ($retention_days <= 0) {
-      return;
+    $expires_at = $this->retentionPolicy->expiryFor(
+      (string) $job->get('status')->value,
+      (int) $job->get('created')->value,
+    );
+    if ($expires_at > 0) {
+      $job->set('expires_at', $expires_at);
     }
-
-    $created = (int) $job->get('created')->value;
-    $job->set('expires_at', $created + ($retention_days * 86400));
   }
 
 }
