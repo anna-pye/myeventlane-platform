@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_support\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\myeventlane_support\Service\SupportSearchRequestGuard;
 use Drupal\node\NodeInterface;
 use Drupal\views\Views;
 use Psr\Log\LoggerInterface;
@@ -22,6 +23,7 @@ final class SupportController extends ControllerBase {
   public function __construct(
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
+    private readonly SupportSearchRequestGuard $searchRequestGuard,
   ) {}
 
   /**
@@ -30,7 +32,8 @@ final class SupportController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('request_stack'),
-      $container->get('logger.factory')->get('myeventlane_support'),
+      $container->get('logger.channel.myeventlane_support'),
+      $container->get('myeventlane_support.search_request_guard'),
     );
   }
 
@@ -68,13 +71,27 @@ final class SupportController extends ControllerBase {
   }
 
   /**
-   * Returns help article search hits for integrations that still call this JSON route.
+   * Returns help article search hits for integrations using this JSON route.
    */
   public function searchApi(Request $request): JsonResponse {
     $raw = (string) ($request->query->get('q') ?? '');
     $query = trim($raw);
+    if (!$this->searchRequestGuard->isAllowed($request)) {
+      $response = new JsonResponse([
+        'results' => [],
+        'error' => 'rate_limited',
+      ], 429);
+      $response->headers->set('Retry-After', '60');
+      $response->setMaxAge(0);
+      $response->headers->addCacheControlDirective('no-store');
+      return $response;
+    }
     if ($query === '') {
-      return new JsonResponse(['results' => []]);
+      $this->searchRequestGuard->record('empty_query');
+      $response = new JsonResponse(['results' => []]);
+      $response->setMaxAge(0);
+      $response->headers->addCacheControlDirective('no-store');
+      return $response;
     }
     if (mb_strlen($query) > 500) {
       $query = mb_substr($query, 0, 500);
@@ -83,7 +100,14 @@ final class SupportController extends ControllerBase {
     $view = Views::getView('mel_help_search');
     if ($view === NULL) {
       $this->logger->error('Support search API: mel_help_search view is not available.');
-      return new JsonResponse(['results' => [], 'error' => 'search_unavailable'], 503);
+      $this->searchRequestGuard->record('search_unavailable');
+      $response = new JsonResponse([
+        'results' => [],
+        'error' => 'search_unavailable',
+      ], 503);
+      $response->setMaxAge(0);
+      $response->headers->addCacheControlDirective('no-store');
+      return $response;
     }
 
     $view->setDisplay('block_search');
@@ -109,6 +133,7 @@ final class SupportController extends ControllerBase {
     }
 
     $response = new JsonResponse(['results' => $results]);
+    $this->searchRequestGuard->record('success', count($results));
     $response->setMaxAge(0);
     $response->headers->addCacheControlDirective('no-store');
     return $response;
