@@ -71,6 +71,21 @@ vendor_settings:
     - core/drupal.vertical_tabs
     - myeventlane_vendor_theme/global-styling
 
+# Organiser profile settings form retained from the compatibility module.
+organiser_profile_settings:
+  version: 2.0.0
+  css:
+    theme:
+      css/mel-vendor-settings.css: {}
+  js:
+    js/mel-disable-ajax.js: {}
+    js/mel-organiser-profile-hub.js: {}
+  dependencies:
+    - core/once
+    - myeventlane_vendor_theme/global-styling
+    # Prevent vendor-host POST action rewriting that drops form saves.
+    - myeventlane_vendor/fix_form_action
+
 vendor_detail_analytics:
   version: 1.x
   css:
@@ -136,4 +151,3 @@ marketing_hub:
   dependencies:
     - core/drupal
     - core/once
-

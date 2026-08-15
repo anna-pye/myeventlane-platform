@@ -682,8 +682,26 @@ myeventlane_vendor.console.messaging_brand:
   options:
     _theme: myeventlane_vendor_theme
 
-# /vendor/settings hub + /vendor/settings/profile are defined by
-# myeventlane_vendor_settings (Account settings + Profile form).
+# Account settings hub + organiser profile form.
+myeventlane_vendor.console.settings:
+  path: '/vendor/settings'
+  defaults:
+    _controller: 'myeventlane_vendor.controller.vendor_settings_hub:hub'
+    _title: 'Account settings'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme
+
+myeventlane_vendor.console.settings_profile:
+  path: '/vendor/settings/profile'
+  defaults:
+    _form: '\Drupal\myeventlane_vendor\Form\OrganiserProfileSettingsForm'
+    _title: 'Profile'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme
 
 myeventlane_vendor.manage_event.design:
   path: '/vendor/event/{event}/design'

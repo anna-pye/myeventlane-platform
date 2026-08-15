@@ -22,7 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Vendor messaging branding — edits canonical vendor entity fields only.
  *
- * Duplicates no logic from {@see \Drupal\myeventlane_vendor_settings\Form\VendorSettingsForm};
+ * The organiser profile settings form owns the full profile workflow.
+ * This lightweight form deliberately duplicates none of that logic.
  * long-form profile copy belongs on /vendor/settings (single source of truth).
  */
 final class VendorBrandingForm extends FormBase {
