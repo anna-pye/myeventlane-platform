@@ -1,0 +1,8 @@
+services:
+  myeventlane_support.search_request_guard:
+    class: Drupal\myeventlane_support\Service\SupportSearchRequestGuard
+    arguments: ['@flood', '@logger.channel.myeventlane_support']
+
+  logger.channel.myeventlane_support:
+    parent: logger.channel_base
+    arguments: ['myeventlane_support']
