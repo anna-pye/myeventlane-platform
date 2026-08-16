@@ -369,6 +369,7 @@
                     </div>
                   {% endif %}
                   {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
+                    {% set directions_destination = mel_lat ~ ',' ~ mel_lng %}
                     <div class="mel-event-map-embed mel-mt-3">
                       <div
                         class="mel-event-location-map myeventlane-event-map-container"
@@ -379,6 +380,16 @@
                         aria-label="{{ 'Map of event location'|t }}">
                       </div>
                     </div>
+                    <a
+                      class="mel-btn mel-btn--secondary mel-mt-3"
+                      href="https://www.google.com/maps/dir/?api=1&amp;destination={{ directions_destination|url_encode }}&amp;dir_action=navigate"
+                      data-mel-directions-link
+                      data-apple-directions-url="https://maps.apple.com/directions?destination={{ directions_destination|url_encode }}"
+                      data-google-directions-url="https://www.google.com/maps/dir/?api=1&amp;destination={{ directions_destination|url_encode }}&amp;dir_action=navigate"
+                      target="_blank"
+                      rel="noopener noreferrer">
+                      {{ 'Get directions'|t }}
+                    </a>
                   {% endif %}
                 </div>
               </div>
