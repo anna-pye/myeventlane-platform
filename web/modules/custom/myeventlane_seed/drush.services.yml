@@ -2,8 +2,6 @@ services:
   myeventlane_seed.commands:
     class: Drupal\myeventlane_seed\Commands\MelSeedCommands
     arguments:
-      - '@myeventlane_seed.event_reset'
-      - '@myeventlane_seed.demo_seeder'
       - '@myeventlane_seed.demo_purger'
       - '@myeventlane_seed.demo_event_seeder'
       - '@myeventlane_seed.demo_event_purger'
