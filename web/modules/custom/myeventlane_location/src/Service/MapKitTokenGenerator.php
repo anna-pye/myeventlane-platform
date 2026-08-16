@@ -124,9 +124,34 @@ final class MapKitTokenGenerator {
    */
   private function resolveCredentials(): ?array {
     $config = $this->configFactory->get('myeventlane_location.settings');
-    $team_id = (string) ($config->get('apple_maps_team_id') ?? '');
-    $key_id = (string) ($config->get('apple_maps_key_id') ?? '');
-    $private_key = (string) ($config->get('apple_maps_private_key') ?? '');
+    $team_id = $this->getEnvironmentValue('MEL_APPLE_MAPS_TEAM_ID');
+    $key_id = $this->getEnvironmentValue('MEL_APPLE_MAPS_KEY_ID');
+    $private_key = '';
+
+    if ($team_id === '') {
+      $team_id = (string) ($config->get('apple_maps_team_id') ?? '');
+    }
+    if ($key_id === '') {
+      $key_id = (string) ($config->get('apple_maps_key_id') ?? '');
+    }
+
+    $private_key_path = $this->getEnvironmentValue('MEL_APPLE_MAPS_PRIVATE_KEY_PATH');
+    if ($private_key_path !== '') {
+      if (!is_file($private_key_path) || !is_readable($private_key_path)) {
+        $this->logger->error('MapKit private key file is missing or unreadable.');
+        return NULL;
+      }
+
+      $contents = file_get_contents($private_key_path);
+      if (!is_string($contents) || $contents === '') {
+        $this->logger->error('MapKit private key file could not be read or was empty.');
+        return NULL;
+      }
+      $private_key = $contents;
+    }
+    else {
+      $private_key = (string) ($config->get('apple_maps_private_key') ?? '');
+    }
 
     if ($team_id === '' && defined('MYEVENTLANE_APPLE_MAPS_TEAM_ID')) {
       $team_id = (string) MYEVENTLANE_APPLE_MAPS_TEAM_ID;
@@ -154,6 +179,11 @@ final class MapKitTokenGenerator {
    * e.g. https://staging.myeventlane.com.au
    */
   private function resolveOrigin(): string {
+    $environment_origin = $this->getEnvironmentValue('MEL_APPLE_MAPS_ORIGIN');
+    if ($environment_origin !== '') {
+      return $environment_origin;
+    }
+
     if (defined('MYEVENTLANE_APPLE_MAPS_ORIGIN') && MYEVENTLANE_APPLE_MAPS_ORIGIN !== '') {
       return (string) MYEVENTLANE_APPLE_MAPS_ORIGIN;
     }
@@ -164,6 +194,23 @@ final class MapKitTokenGenerator {
     }
 
     return $request->getSchemeAndHttpHost();
+  }
+
+  /**
+   * Reads a non-empty runtime environment value.
+   */
+  private function getEnvironmentValue(string $name): string {
+    $value = getenv($name);
+    if (is_string($value) && $value !== '') {
+      return $value;
+    }
+    if (isset($_ENV[$name]) && is_string($_ENV[$name]) && $_ENV[$name] !== '') {
+      return $_ENV[$name];
+    }
+    if (isset($_SERVER[$name]) && is_string($_SERVER[$name]) && $_SERVER[$name] !== '') {
+      return $_SERVER[$name];
+    }
+    return '';
   }
 
   /**
