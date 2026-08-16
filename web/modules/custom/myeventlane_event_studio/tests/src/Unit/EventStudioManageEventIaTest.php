@@ -69,6 +69,25 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('myeventlane_vendor.console.event_workspace', $tasks);
   }
 
+  public function testContentEditorsAreReachableFromWorkspaceNavigation(): void {
+    $section = file_get_contents(dirname(__DIR__, 3) . '/src/Plugin/EventStudioSection/ContentSection.php');
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventStudioDescriptionForm.php');
+    $tabs = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventTabsService.php');
+    $fallback = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Hook/VendorConsolePagePreprocess.php');
+
+    $this->assertIsString($section);
+    $this->assertStringContainsString('navigationVisible: TRUE', $section);
+    $this->assertIsString($form);
+    $this->assertStringContainsString("\$form['mel']['body']", $form);
+    $this->assertStringContainsString("\$form['mel']['event_highlights']", $form);
+    $this->assertIsString($tabs);
+    $this->assertStringContainsString("'key' => 'content'", $tabs);
+    $this->assertStringContainsString('myeventlane_event_studio.workspace_content', $tabs);
+    $this->assertIsString($fallback);
+    $this->assertStringContainsString("'key' => 'content'", $fallback);
+    $this->assertStringContainsString('myeventlane_event_studio.workspace_content', $fallback);
+  }
+
   public function testManageEventBackLinkUsesWorkspaceRoute(): void {
     $theme = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/myeventlane_vendor_theme.theme');
     $twig = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/mel-event/mel-event-workspace.html.twig');

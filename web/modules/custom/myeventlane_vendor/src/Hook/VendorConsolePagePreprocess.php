@@ -93,6 +93,7 @@ final class VendorConsolePagePreprocess {
     $workspace_tabs = [
       ['key' => 'overview', 'route' => 'myeventlane_event_studio.workspace', 'label' => $this->t('Overview'), 'url' => Url::fromRoute('myeventlane_event_studio.workspace', ['node' => $event_id])->toString()],
       ['key' => 'details', 'route' => 'myeventlane_event_studio.workspace_information', 'label' => $this->t('Details'), 'url' => Url::fromRoute('myeventlane_event_studio.workspace_information', ['node' => $event_id])->toString()],
+      ['key' => 'content', 'route' => 'myeventlane_event_studio.workspace_content', 'label' => $this->t('Content'), 'url' => Url::fromRoute('myeventlane_event_studio.workspace_content', ['node' => $event_id])->toString()],
       ['key' => 'tickets', 'route' => 'myeventlane_event_studio.workspace_tickets', 'label' => $this->t('Ticketing'), 'url' => Url::fromRoute('myeventlane_event_studio.workspace_tickets', ['node' => $event_id])->toString()],
       ['key' => 'attendees', 'route' => 'myeventlane_event_studio.workspace_attendees', 'label' => $this->t('Attendees'), 'url' => Url::fromRoute('myeventlane_event_studio.workspace_attendees', ['node' => $event_id])->toString()],
       ['key' => 'messages', 'route' => 'myeventlane_event_studio.workspace_messaging', 'label' => $this->t('Messages'), 'url' => Url::fromRoute('myeventlane_event_studio.workspace_messaging', ['node' => $event_id])->toString()],
