@@ -20,13 +20,6 @@ services:
     arguments:
       - '@logger.channel.myeventlane_monitoring'
 
-  myeventlane_launch.webhook_processor:
-    class: Drupal\myeventlane_launch\Service\StripeWebhookProcessor
-    arguments:
-      - '@keyvalue'
-      - '@logger.channel.myeventlane_launch'
-      - '@myeventlane_launch.monitoring'
-
   myeventlane_launch.checkout_guard:
     class: Drupal\myeventlane_launch\Service\CheckoutIdempotencyGuard
     arguments:
@@ -53,15 +46,6 @@ services:
     arguments:
       - '@myeventlane_launch.monitoring'
       - '@myeventlane_launch.email_sender'
-      - '@logger.channel.myeventlane_launch'
-
-  myeventlane_launch.stripe_webhook_controller:
-    class: Drupal\myeventlane_launch\Decorator\StripeWebhookControllerDecorator
-    decorates: myeventlane_admin_dashboard.stripe_webhook_controller
-    arguments:
-      - '@myeventlane_launch.stripe_webhook_controller.inner'
-      - '@myeventlane_launch.webhook_processor'
-      - '@myeventlane_launch.monitoring'
       - '@logger.channel.myeventlane_launch'
 
   myeventlane_launch.order_completed_subscriber:
