@@ -50,4 +50,18 @@ final class PublicEventBodyTemplateContractTest extends TestCase {
     self::assertLessThan($expectPosition, $highlightsPosition);
   }
 
+  public function testPublicMapUsesConfiguredProviderRenderer(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/node--event--full.html.twig',
+    );
+
+    self::assertStringContainsString('myeventlane-event-map-container', $template);
+    self::assertStringContainsString('data-latitude="{{ mel_lat }}"', $template);
+    self::assertStringContainsString('data-longitude="{{ mel_lng }}"', $template);
+    self::assertStringNotContainsString('www.google.com/maps?output=embed', $template);
+    self::assertStringNotContainsString('<iframe', $template);
+  }
+
 }

@@ -14,7 +14,7 @@
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
 {% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
-{# Google Maps in Event Information card uses iframe embed (no API key). JS map library only if needed elsewhere. #}
+{# Event Information map uses the provider selected by myeventlane_location. #}
 {% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
 {% if mel_booking_action_label is defined and mel_booking_action_label %}
   {% set mel_cta_text = mel_booking_action_label %}
@@ -353,18 +353,6 @@
             {% set info_venue_line = has_venue_name ? node.field_venue_name.value|trim : (venue_entity_label|trim ?: mel_venue|default('')|trim) %}
             {% set location_has_markup = content.field_location is defined and content.field_location|render|striptags|trim %}
             {% if info_venue_line is not empty or info_address is not empty or has_field_location %}
-              {% set map_query = '' %}
-              {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
-                {% set map_query = mel_lat ~ ',' ~ mel_lng %}
-              {% elseif info_venue_line is not empty and info_address is not empty %}
-                {% set map_query = info_venue_line ~ ', ' ~ info_address %}
-              {% elseif info_venue_line is not empty %}
-                {% set map_query = info_venue_line %}
-              {% elseif info_address is not empty %}
-                {% set map_query = info_address %}
-              {% elseif has_field_location and content.field_location is defined %}
-                {% set map_query = content.field_location|render|striptags|trim %}
-              {% endif %}
               <div class="mel-info-row">
                 <div class="mel-info-row__label">{{ 'Location'|t }}</div>
                 <div class="mel-info-row__value mel-event-location">
@@ -380,17 +368,16 @@
                       {% endif %}
                     </div>
                   {% endif %}
-                  {% if map_query is not empty %}
+                  {% if mel_lat is defined and mel_lng is defined and mel_lat and mel_lng %}
                     <div class="mel-event-map-embed mel-mt-3">
-                      <iframe
-                        src="https://www.google.com/maps?output=embed&amp;q={{ map_query|url_encode }}"
-                        width="100%"
-                        height="200"
-                        allowfullscreen
-                        loading="lazy"
-                        referrerpolicy="no-referrer-when-downgrade"
-                        title="{{ 'Map of event location'|t }}">
-                      </iframe>
+                      <div
+                        class="mel-event-location-map myeventlane-event-map-container"
+                        data-latitude="{{ mel_lat }}"
+                        data-longitude="{{ mel_lng }}"
+                        data-title="{{ node.label }}"
+                        role="region"
+                        aria-label="{{ 'Map of event location'|t }}">
+                      </div>
                     </div>
                   {% endif %}
                 </div>
