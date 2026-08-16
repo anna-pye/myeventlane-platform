@@ -2033,7 +2033,7 @@
   background: colors.$mel-color-surface-alt;
 }
 
-// Google Maps iframe embed in Event Information card (no API key required).
+// Provider-aware map in the Event Information card.
 .mel-event-map-embed {
   width: 100%;
   border-radius: radii.$mel-radius-md;
