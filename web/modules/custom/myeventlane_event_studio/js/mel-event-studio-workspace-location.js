@@ -29,6 +29,7 @@
   function resetVenue(form) {
     setValue(form.querySelector('input[name="mel[venue_saved]"]'), '');
     setValue(form.querySelector('input[name="mel[venue_create_name]"]'), '');
+    setValue(form.querySelector('input[name="mel[venue_one_off_name]"]'), '');
     setValue(form.querySelector('input[name="mel[location_search]"]'), '');
     clearCanonicalLocation(form);
 
@@ -44,6 +45,28 @@
     if (nextField) {
       nextField.focus();
     }
+  }
+
+  function applyPlaceName(form, placeName) {
+    const mode = form.querySelector('input[name="mel[venue_mode]"]:checked');
+    if (!mode || (mode.value !== 'create' && mode.value !== 'one_off')) {
+      return;
+    }
+
+    const fieldName = mode.value === 'create' ? 'venue_create_name' : 'venue_one_off_name';
+    const field = form.querySelector(`input[name="mel[${fieldName}]"]`);
+    const cleanName = String(placeName || '').trim();
+    if (!field || !cleanName) {
+      return;
+    }
+
+    const previousAutoValue = field.dataset.melAutofilledPlaceName || '';
+    if (field.value.trim() !== '' && field.value !== previousAutoValue) {
+      return;
+    }
+
+    field.dataset.melAutofilledPlaceName = cleanName;
+    setValue(field, cleanName);
   }
 
   Drupal.behaviors.melEventStudioWorkspaceLocation = {
@@ -78,6 +101,7 @@
           if (!form) {
             return;
           }
+          applyPlaceName(form, place.name || '');
           var locationField = form.querySelector('input[name="mel[field_location]"]');
           var latitudeField = form.querySelector('input[name="mel[field_location_latitude]"]');
           var longitudeField = form.querySelector('input[name="mel[field_location_longitude]"]');

@@ -381,6 +381,7 @@ final class EventStudioAutosaveController {
       'venue_choice' => $choice,
       'venue_id' => $venue_id,
       'new_venue_name' => $mel['venue_create_name'] ?? $params['venue']['create']['new_venue_name'] ?? $params['new_venue_name'] ?? '',
+      'one_off_venue_name' => trim((string) ($mel['venue_one_off_name'] ?? $params['one_off_venue_name'] ?? '')),
       'field_location' => $field_location,
       'field_event_start' => $this->normalizeDatetimeFromMelRequest($mel['start_date'] ?? $params['when']['field_event_start'] ?? $params['field_event_start'] ?? NULL),
       'field_event_end' => $this->normalizeDatetimeFromMelRequest($mel['end_date'] ?? $params['when']['field_event_end'] ?? $params['field_event_end'] ?? NULL),

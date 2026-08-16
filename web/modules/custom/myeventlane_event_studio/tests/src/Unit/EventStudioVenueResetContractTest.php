@@ -39,6 +39,7 @@ final class EventStudioVenueResetContractTest extends TestCase {
     foreach ([
       'mel[venue_saved]',
       'mel[venue_create_name]',
+      'mel[venue_one_off_name]',
       'mel[location_search]',
       'mel[field_location]',
       'mel[field_location_latitude]',

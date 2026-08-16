@@ -367,6 +367,10 @@ final class EventStudioSaveService {
       if (!$draft && $row === NULL) {
         return $this->abortSectionScopedSave(['Location is required.'], $payload);
       }
+      $one_off_venue_name = trim((string) ($payload['one_off_venue_name'] ?? ''));
+      if (!$draft && $one_off_venue_name === '') {
+        return $this->abortSectionScopedSave(['Venue or location name is required.'], $payload);
+      }
       $location_values = $row !== NULL ? [$row] : [];
       $address_row_for_display = $row;
     }
@@ -376,7 +380,14 @@ final class EventStudioSaveService {
     }
 
     if (!$skip_venue_location) {
-      $this->applyVenueDisplayName($node, $choice, $address_row_for_display, $venue_for_display, $create_venue_name);
+      $this->applyVenueDisplayName(
+        $node,
+        $choice,
+        $address_row_for_display,
+        $venue_for_display,
+        $create_venue_name,
+        trim((string) ($payload['one_off_venue_name'] ?? '')),
+      );
     }
 
     if ($coordinates_submitted) {
@@ -748,6 +759,7 @@ final class EventStudioSaveService {
     ?array $address_row,
     ?Venue $venue = NULL,
     ?string $create_name = NULL,
+    ?string $one_off_name = NULL,
   ): void {
     if (!$node->hasField('field_venue_name')) {
       return;
@@ -760,8 +772,11 @@ final class EventStudioSaveService {
     elseif ($choice === 'create' && $create_name !== NULL) {
       $display_name = trim($create_name);
     }
-    elseif ($choice === 'one_off' && is_array($address_row)) {
-      $display_name = $this->deriveVenueDisplayNameFromAddressRow($address_row);
+    elseif ($choice === 'one_off') {
+      $display_name = trim((string) $one_off_name);
+      if ($display_name === '' && is_array($address_row)) {
+        $display_name = $this->deriveVenueDisplayNameFromAddressRow($address_row);
+      }
     }
 
     if ($display_name === '') {

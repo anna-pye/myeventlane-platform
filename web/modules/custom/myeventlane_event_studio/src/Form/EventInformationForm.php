@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_event_studio\Form;
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -62,6 +63,25 @@ final class EventInformationForm extends EventStudioBaseForm {
     $this->messenger()->addStatus($has_location
       ? $this->t('Event information and venue saved.')
       : $this->t('Event information saved.'));
+
+    $mel = $form_state->getValue('mel');
+    $created_venue = is_array($mel) && ($mel['venue_mode'] ?? '') === 'create';
+    if ($created_venue && $saved->hasField('field_venue') && !$saved->get('field_venue')->isEmpty()) {
+      $venue_id = (int) $saved->get('field_venue')->target_id;
+      if ($venue_id > 0) {
+        $return_path = Url::fromRoute('myeventlane_event_studio.workspace_venue', [
+          'node' => $saved->id(),
+        ])->toString();
+        $this->messenger()->addStatus($this->t('Complete your new venue profile, then return to your event.'));
+        $form_state->setRedirect('myeventlane_venue.vendor_venue_edit', [
+          'myeventlane_venue' => $venue_id,
+        ], [
+          'query' => ['destination' => $return_path],
+        ]);
+        return;
+      }
+    }
+
     // Schedule / Venue / Details share this form — stay on the nav section
     // the organiser opened instead of always bouncing to Details.
     $form_state->setRedirect($this->resolveStayRouteName(), ['node' => $saved->id()]);
@@ -170,6 +190,23 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#states' => [
         'visible' => [
           ':input[name="mel[venue_mode]"]' => ['value' => 'create'],
+        ],
+      ],
+    ];
+
+    $form['mel']['venue_one_off_name'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Venue or location name'),
+      '#default_value' => $melDefaults['venue_one_off_name'] ?? '',
+      '#maxlength' => 255,
+      '#description' => $this->t('Shown to attendees on the event page.'),
+      '#attributes' => ['class' => ['mel-input']],
+      '#states' => [
+        'visible' => [
+          ':input[name="mel[venue_mode]"]' => ['value' => 'one_off'],
+        ],
+        'required' => [
+          ':input[name="mel[venue_mode]"]' => ['value' => 'one_off'],
         ],
       ],
     ];
