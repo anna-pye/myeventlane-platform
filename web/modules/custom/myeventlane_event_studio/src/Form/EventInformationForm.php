@@ -191,6 +191,17 @@ final class EventInformationForm extends EventStudioBaseForm {
       ],
     ];
 
+    $form['mel']['venue_reset'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'button',
+      '#value' => $this->t('Reset venue'),
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['mel-btn', 'mel-btn--secondary'],
+        'data-mel-reset-venue' => '1',
+      ],
+    ];
+
     $form['mel']['field_location'] = [
       '#type' => 'hidden',
       '#default_value' => is_string($melDefaults['field_location'] ?? NULL) ? $melDefaults['field_location'] : '',

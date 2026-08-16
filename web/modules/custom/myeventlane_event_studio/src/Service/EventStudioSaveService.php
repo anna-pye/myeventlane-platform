@@ -301,6 +301,9 @@ final class EventStudioSaveService {
     $venue_for_display = NULL;
     $create_venue_name = NULL;
     $address_row_for_display = NULL;
+    $coordinate_latitude = $payload['field_location_latitude'] ?? NULL;
+    $coordinate_longitude = $payload['field_location_longitude'] ?? NULL;
+    $coordinates_submitted = !empty($payload['location_coordinates_submitted']);
 
     $skip_venue_location = $draft && (
       ($choice === 'saved' && (int) ($payload['venue_id'] ?? 0) < 1)
@@ -323,6 +326,9 @@ final class EventStudioSaveService {
       $primary = $this->venueManager->getPrimaryLocation($venue_for_display);
       $location_values = $primary ? [$this->addressFromVenueLocation($primary)] : [];
       $address_row_for_display = $location_values[0] ?? NULL;
+      $coordinate_latitude = $primary?->getLatitude();
+      $coordinate_longitude = $primary?->getLongitude();
+      $coordinates_submitted = TRUE;
     }
     elseif ($choice === 'create') {
       $create_venue_name = trim((string) ($payload['new_venue_name'] ?? ''));
@@ -373,7 +379,9 @@ final class EventStudioSaveService {
       $this->applyVenueDisplayName($node, $choice, $address_row_for_display, $venue_for_display, $create_venue_name);
     }
 
-    $this->applyOptionalCoordinates($node, $payload);
+    if ($coordinates_submitted) {
+      $this->applyCoordinates($node, $coordinate_latitude, $coordinate_longitude);
+    }
 
     $cover_media_sync = NULL;
     if ($this->shouldApplyHeroImagePayload($payload)) {
@@ -2678,14 +2686,24 @@ final class EventStudioSaveService {
     return [];
   }
 
-  private function applyOptionalCoordinates(NodeInterface $node, array $payload): void {
-    $lat = $payload['field_location_latitude'] ?? NULL;
-    $lng = $payload['field_location_longitude'] ?? NULL;
-    if ($node->hasField('field_location_latitude') && $lat !== NULL && $lat !== '') {
-      $node->set('field_location_latitude', (string) $lat);
+  /**
+   * Replaces a complete coordinate pair or clears an incomplete one.
+   */
+  private function applyCoordinates(NodeInterface $node, mixed $lat, mixed $lng): void {
+    $latitude = is_numeric($lat) ? (float) $lat : NULL;
+    $longitude = is_numeric($lng) ? (float) $lng : NULL;
+    $valid_pair = $latitude !== NULL
+      && $longitude !== NULL
+      && $latitude >= -90
+      && $latitude <= 90
+      && $longitude >= -180
+      && $longitude <= 180;
+
+    if ($node->hasField('field_location_latitude')) {
+      $node->set('field_location_latitude', $valid_pair ? (string) $latitude : NULL);
     }
-    if ($node->hasField('field_location_longitude') && $lng !== NULL && $lng !== '') {
-      $node->set('field_location_longitude', (string) $lng);
+    if ($node->hasField('field_location_longitude')) {
+      $node->set('field_location_longitude', $valid_pair ? (string) $longitude : NULL);
     }
   }
 
