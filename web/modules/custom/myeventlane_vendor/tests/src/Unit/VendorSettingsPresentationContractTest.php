@@ -82,22 +82,15 @@ final class VendorSettingsPresentationContractTest extends TestCase {
   }
 
   /**
-   * Ensures the enabled compatibility module owns no runtime surface.
+   * Ensures the retired compatibility module cannot be re-enabled.
    */
-  public function testCompatibilityModuleIsMetadataOnly(): void {
+  public function testCompatibilityModuleIsRetired(): void {
     $module_root = dirname(__DIR__, 4) . '/myeventlane_vendor_settings';
-    $info = file_get_contents($module_root . '/myeventlane_vendor_settings.info.yml');
-    self::assertIsString($info);
-    self::assertStringContainsString(
-      'myeventlane_vendor:myeventlane_vendor',
-      $info,
-    );
+    self::assertFileDoesNotExist($module_root . '/myeventlane_vendor_settings.info.yml');
 
-    self::assertFileDoesNotExist($module_root . '/myeventlane_vendor_settings.routing.yml');
-    self::assertFileDoesNotExist($module_root . '/myeventlane_vendor_settings.libraries.yml');
-    self::assertSame([], glob($module_root . '/src/**/*.php') ?: []);
-    self::assertSame([], glob($module_root . '/css/*') ?: []);
-    self::assertSame([], glob($module_root . '/js/*') ?: []);
+    $extensions = file_get_contents(dirname(__DIR__, 7) . '/config/sync/core.extension.yml');
+    self::assertIsString($extensions);
+    self::assertStringNotContainsString('myeventlane_vendor_settings:', $extensions);
   }
 
 }

@@ -1,8 +1,0 @@
-name: 'MEL Vendor Settings'
-type: module
-description: 'Compatibility shim for vendor settings now owned by MyEventLane Vendor.'
-core_version_requirement: ^11
-package: MEL
-lifecycle: stable
-dependencies:
-  - myeventlane_vendor:myeventlane_vendor
