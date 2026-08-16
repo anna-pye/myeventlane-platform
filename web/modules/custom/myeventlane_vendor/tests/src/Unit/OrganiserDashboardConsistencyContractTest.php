@@ -13,6 +13,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class OrganiserDashboardConsistencyContractTest extends TestCase {
 
+  /**
+   * Protects portfolio route shell titles.
+   */
   public function testPortfolioRoutesDoNotUseEventStudioAsTheirShellTitle(): void {
     $theme = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/myeventlane_vendor_theme.theme');
     self::assertIsString($theme);
@@ -33,6 +36,9 @@ final class OrganiserDashboardConsistencyContractTest extends TestCase {
     );
   }
 
+  /**
+   * Ensures the shell title remains subordinate to the page heading.
+   */
   public function testShellTitleDoesNotCompeteWithThePageHeading(): void {
     $header = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/includes/vendor-shell-header.html.twig');
     self::assertIsString($header);
@@ -41,6 +47,9 @@ final class OrganiserDashboardConsistencyContractTest extends TestCase {
     self::assertStringNotContainsString('<h1 class="mel-shell-header__title">', $header);
   }
 
+  /**
+   * Protects current account-settings terminology.
+   */
   public function testSupportUsesCurrentAccountSettingsLanguage(): void {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/VendorSupportHubBuilder.php');
     self::assertIsString($builder);
@@ -48,9 +57,13 @@ final class OrganiserDashboardConsistencyContractTest extends TestCase {
     self::assertStringContainsString("\$this->t('Account settings')", $builder);
     self::assertStringNotContainsString("\$this->t('Workspace Settings')", $builder);
 
-    $routing = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor_settings/myeventlane_vendor_settings.routing.yml');
+    $routing = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_vendor.routing.yml');
     self::assertIsString($routing);
     self::assertStringContainsString("_title: 'Account settings'", $routing);
+    self::assertStringContainsString(
+      "_form: '\\Drupal\\myeventlane_vendor\\Form\\OrganiserProfileSettingsForm'",
+      $routing,
+    );
   }
 
 }

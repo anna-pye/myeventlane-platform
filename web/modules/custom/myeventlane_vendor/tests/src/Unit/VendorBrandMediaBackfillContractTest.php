@@ -104,7 +104,7 @@ final class VendorBrandMediaBackfillContractTest extends UnitTestCase {
   public function testSaveAndRenderPathsUseTheCentralMediaManager(): void {
     $paths = [
       $module = dirname(__DIR__, 3) . '/src/Form/VendorBrandingForm.php',
-      dirname(__DIR__, 7) . '/web/modules/custom/myeventlane_vendor_settings/src/Form/VendorSettingsForm.php',
+      dirname(__DIR__, 3) . '/src/Form/OrganiserProfileSettingsForm.php',
       dirname(__DIR__, 7) . '/web/modules/custom/myeventlane_messaging/src/Form/VendorBrandingForm.php',
       dirname(__DIR__, 3) . '/src/Service/VendorCardBuilder.php',
       dirname(__DIR__, 7) . '/web/modules/custom/myeventlane_messaging/src/Service/VendorBrandResolver.php',

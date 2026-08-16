@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Drupal\myeventlane_vendor_settings\Form;
+namespace Drupal\myeventlane_vendor\Form;
 
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Utility\Html;
@@ -18,7 +18,6 @@ use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_surface\MelWorkflowManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
-use Drupal\myeventlane_vendor\Form\FormActionUrlFixer;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
@@ -31,7 +30,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *
  * Data is stored on the organiser account entity (synced where needed).
  */
-class VendorSettingsForm extends FormBase {
+class OrganiserProfileSettingsForm extends FormBase {
 
   private const FORM_DEBUG_SECTION_KEYS = [
     'profile',
@@ -450,7 +449,7 @@ class VendorSettingsForm extends FormBase {
     $form['#action'] = $this->getRequest()->getRequestUri();
 
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/global-styling';
-    $form['#attached']['library'][] = 'myeventlane_vendor_settings/settings_form';
+    $form['#attached']['library'][] = 'myeventlane_vendor/organiser_profile_settings';
 
     $this->buildPublicSettingsSection($form, $form_state, $vendor);
     $this->buildProfileSection($form, $form_state, $vendor);

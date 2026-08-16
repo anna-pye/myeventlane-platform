@@ -1,8 +1,8 @@
-@charset "UTF-8";
 /**
  * MEL Vendor Settings — card layout for mel_organiser_settings_form.
- * Loaded via myeventlane_vendor_settings/settings_form (compiled CSS shipped).
+ * Loaded via myeventlane_vendor/organiser_profile_settings.
  */
+
 .mel-settings-form {
   max-width: 42rem;
   margin-inline: auto;
@@ -12,18 +12,20 @@
 
 .mel-settings-header {
   margin-block-end: var(--mel-space-6, 1.5rem);
-}
-.mel-settings-header__title {
-  font-size: clamp(1.35rem, 4vw, 1.75rem);
-  font-weight: 700;
-  margin: 0 0 var(--mel-space-2, 0.5rem);
-  color: var(--mel-color-text, #1a1a1a);
-}
-.mel-settings-header__lede {
-  margin: 0;
-  color: var(--mel-color-text-secondary, #637185);
-  font-size: 1rem;
-  line-height: 1.5;
+
+  &__title {
+    font-size: clamp(1.35rem, 4vw, 1.75rem);
+    font-weight: 700;
+    margin: 0 0 var(--mel-space-2, 0.5rem);
+    color: var(--mel-color-text, #1a1a1a);
+  }
+
+  &__lede {
+    margin: 0;
+    color: var(--mel-color-text-secondary, #637185);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
 }
 
 .mel-vendor-settings__card {
@@ -58,7 +60,11 @@
   padding-inline: var(--mel-space-2, 0.5rem);
   margin-inline: calc(-1 * var(--mel-space-2, 0.5rem));
   margin-block-start: var(--mel-space-6, 1.5rem);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0) 0%, var(--mel-color-bg, #fff) 35%);
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0%,
+    var(--mel-color-bg, #fff) 35%
+  );
 }
 
 .mel-settings-form .mel-button-primary,
@@ -74,13 +80,13 @@
   cursor: pointer;
   background: var(--mel-color-accent-coral, #e85d4c);
   color: #fff;
-}
-.mel-settings-form .mel-button-primary:hover, .mel-settings-form .mel-button-primary:focus-visible,
-.mel-settings-form .mel-button-primary.button:hover,
-.mel-settings-form .mel-button-primary.button:focus-visible {
-  filter: brightness(0.95);
-  outline: 3px solid rgba(232, 93, 76, 0.35);
-  outline-offset: 2px;
+
+  &:hover,
+  &:focus-visible {
+    filter: brightness(0.95);
+    outline: 3px solid rgba(232, 93, 76, 0.35);
+    outline-offset: 2px;
+  }
 }
 
 @media (min-width: 48rem) {
@@ -88,6 +94,7 @@
     padding-inline: var(--mel-space-6, 1.5rem);
   }
 }
+
 /* TASK 10 — profile hub layout */
 .mel-vendor-settings-v2 {
   max-width: 52rem;
@@ -186,11 +193,12 @@
 
 .mel-vendor-settings-v2__status-copy {
   min-width: 0;
-}
-.mel-vendor-settings-v2__status-copy h2 {
-  margin: 0.25rem 0 0.75rem;
-  color: var(--mel-color-text, #293241);
-  font-size: clamp(1.35rem, 3vw, 1.75rem);
+
+  h2 {
+    margin: 0.25rem 0 0.75rem;
+    color: var(--mel-color-text, #293241);
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+  }
 }
 
 .mel-vendor-settings-v2__eyebrow {
@@ -221,12 +229,13 @@
   overflow: hidden;
   border-radius: 999px;
   background: #ece6e1;
-}
-.mel-vendor-settings-v2__progress span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: var(--mel-color-accent-coral, #f26d5b);
+
+  span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--mel-color-accent-coral, #f26d5b);
+  }
 }
 
 .mel-vendor-settings-v2__status-copy p {
@@ -324,7 +333,7 @@
 
 .mel-organiser-profile-card__meta {
   display: grid;
-  grid-column: 1/-1;
+  grid-column: 1 / -1;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 1rem;
   align-items: center;
@@ -339,7 +348,7 @@
 
 .mel-organiser-profile-card__action {
   grid-column: 2;
-  grid-row: 1/span 2;
+  grid-row: 1 / span 2;
   min-width: 4.25rem;
   padding: 0.55rem 0.85rem;
   border: 1px solid rgba(110, 126, 242, 0.35);
@@ -379,15 +388,10 @@
 }
 
 @keyframes mel-profile-save-in {
-  from {
-    opacity: 0;
-    transform: translateY(0.5rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(0.5rem); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
 #vendor-settings-form details.mel-card > summary + * {
   margin-block-start: var(--mel-space-5, 1.25rem);
 }
@@ -396,11 +400,11 @@
   margin-block-end: var(--mel-space-6, 1.5rem);
 }
 
-#vendor-settings-form input[type=text],
-#vendor-settings-form input[type=email],
-#vendor-settings-form input[type=tel],
-#vendor-settings-form input[type=url],
-#vendor-settings-form input[type=password],
+#vendor-settings-form input[type="text"],
+#vendor-settings-form input[type="email"],
+#vendor-settings-form input[type="tel"],
+#vendor-settings-form input[type="url"],
+#vendor-settings-form input[type="password"],
 #vendor-settings-form textarea,
 #vendor-settings-form select {
   min-height: 3rem;
@@ -415,21 +419,21 @@
   line-height: 1.55;
 }
 
-#vendor-settings-form input[type=text]:hover,
-#vendor-settings-form input[type=email]:hover,
-#vendor-settings-form input[type=tel]:hover,
-#vendor-settings-form input[type=url]:hover,
-#vendor-settings-form input[type=password]:hover,
+#vendor-settings-form input[type="text"]:hover,
+#vendor-settings-form input[type="email"]:hover,
+#vendor-settings-form input[type="tel"]:hover,
+#vendor-settings-form input[type="url"]:hover,
+#vendor-settings-form input[type="password"]:hover,
 #vendor-settings-form textarea:hover,
 #vendor-settings-form select:hover {
   border-color: #b9b0a8 !important;
 }
 
-#vendor-settings-form input[type=text]:focus,
-#vendor-settings-form input[type=email]:focus,
-#vendor-settings-form input[type=tel]:focus,
-#vendor-settings-form input[type=url]:focus,
-#vendor-settings-form input[type=password]:focus,
+#vendor-settings-form input[type="text"]:focus,
+#vendor-settings-form input[type="email"]:focus,
+#vendor-settings-form input[type="tel"]:focus,
+#vendor-settings-form input[type="url"]:focus,
+#vendor-settings-form input[type="password"]:focus,
 #vendor-settings-form textarea:focus,
 #vendor-settings-form select:focus {
   border-color: var(--mel-color-accent-coral, #f26d5b) !important;
@@ -463,7 +467,7 @@
   background: #fff;
 }
 
-#vendor-settings-form .form-type-checkbox input[type=checkbox] {
+#vendor-settings-form .form-type-checkbox input[type="checkbox"] {
   grid-column: 1;
   width: 1.25rem;
   height: 1.25rem;
@@ -489,38 +493,48 @@
     width: 100%;
     min-width: 0;
   }
+
   .mel-vendor-settings-v2__status-card {
     align-items: stretch;
     flex-direction: column;
   }
+
   .mel-vendor-settings-v2__preview .button {
     width: 100%;
     justify-content: center;
   }
+
   #vendor-settings-form details.mel-card > :not(summary) {
     margin-inline: var(--mel-space-4, 1rem);
   }
+
   #vendor-settings-form details.mel-card > :last-child {
     margin-block-end: var(--mel-space-4, 1rem);
   }
+
   #vendor-settings-form #edit-public-page-optional-details {
     padding: var(--mel-space-3, 0.75rem);
   }
+
   .mel-organiser-profile-hub details.mel-vendor-settings-v2__section > summary {
     min-height: 4.75rem;
     padding: 1rem;
   }
+
   .mel-organiser-profile-card__action {
     min-width: 3.75rem;
     padding-inline: 0.7rem;
   }
+
   .mel-organiser-profile-hub__save {
     bottom: 0.5rem;
   }
+
   .mel-organiser-profile-hub__save .button {
     width: 100%;
   }
 }
+
 @media (prefers-reduced-motion: reduce) {
   .mel-organiser-profile-hub details.mel-vendor-settings-v2__section,
   .mel-organiser-profile-hub__save.is-visible {

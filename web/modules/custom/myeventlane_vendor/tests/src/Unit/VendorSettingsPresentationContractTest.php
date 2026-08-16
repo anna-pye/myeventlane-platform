@@ -13,6 +13,9 @@ use PHPUnit\Framework\TestCase;
  */
 final class VendorSettingsPresentationContractTest extends TestCase {
 
+  /**
+   * Protects the four account-level settings groups.
+   */
   public function testSettingsHubUsesFourAccountLevelGroups(): void {
     $template = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/settings-hub.html.twig');
     self::assertIsString($template);
@@ -24,6 +27,9 @@ final class VendorSettingsPresentationContractTest extends TestCase {
     self::assertStringContainsString('mel-settings-hub__groups', $template);
   }
 
+  /**
+   * Protects account-focused settings language.
+   */
   public function testSettingsHubUsesAccountLanguage(): void {
     $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/VendorSettingsHubBuilder.php');
     self::assertIsString($builder);
@@ -36,8 +42,11 @@ final class VendorSettingsPresentationContractTest extends TestCase {
     self::assertStringContainsString('A few account settings need attention', $health);
   }
 
+  /**
+   * Ensures long profile sections remain collapsed initially.
+   */
   public function testLongProfileSectionsDefaultClosed(): void {
-    $form = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor_settings/src/Form/VendorSettingsForm.php');
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/OrganiserProfileSettingsForm.php');
     self::assertIsString($form);
 
     foreach (['contact', 'public_page', 'store', 'team'] as $section) {
@@ -53,9 +62,9 @@ final class VendorSettingsPresentationContractTest extends TestCase {
    * Ensures the profile hub enhances rather than replaces the Drupal form.
    */
   public function testOrganiserProfileHubKeepsTheCanonicalFormContract(): void {
-    $module_root = dirname(__DIR__, 4) . '/myeventlane_vendor_settings';
-    $form = file_get_contents($module_root . '/src/Form/VendorSettingsForm.php');
-    $library = file_get_contents($module_root . '/myeventlane_vendor_settings.libraries.yml');
+    $module_root = dirname(__DIR__, 3);
+    $form = file_get_contents($module_root . '/src/Form/OrganiserProfileSettingsForm.php');
+    $library = file_get_contents($module_root . '/myeventlane_vendor.libraries.yml');
     $script = file_get_contents($module_root . '/js/mel-organiser-profile-hub.js');
     self::assertIsString($form);
     self::assertIsString($library);
@@ -70,6 +79,25 @@ final class VendorSettingsPresentationContractTest extends TestCase {
     self::assertStringContainsString('js/mel-organiser-profile-hub.js', $library);
     self::assertStringContainsString('input[name="public_page[published]"]', $script);
     self::assertStringContainsString("actions.hidden = true", $script);
+  }
+
+  /**
+   * Ensures the enabled compatibility module owns no runtime surface.
+   */
+  public function testCompatibilityModuleIsMetadataOnly(): void {
+    $module_root = dirname(__DIR__, 4) . '/myeventlane_vendor_settings';
+    $info = file_get_contents($module_root . '/myeventlane_vendor_settings.info.yml');
+    self::assertIsString($info);
+    self::assertStringContainsString(
+      'myeventlane_vendor:myeventlane_vendor',
+      $info,
+    );
+
+    self::assertFileDoesNotExist($module_root . '/myeventlane_vendor_settings.routing.yml');
+    self::assertFileDoesNotExist($module_root . '/myeventlane_vendor_settings.libraries.yml');
+    self::assertSame([], glob($module_root . '/src/**/*.php') ?: []);
+    self::assertSame([], glob($module_root . '/css/*') ?: []);
+    self::assertSame([], glob($module_root . '/js/*') ?: []);
   }
 
 }
