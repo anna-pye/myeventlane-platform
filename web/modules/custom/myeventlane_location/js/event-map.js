@@ -7,12 +7,44 @@
   'use strict';
 
   /**
+   * Selects the directions provider for the current device.
+   *
+   * Mobile devices use their native maps provider where possible. Desktop
+   * devices follow the configured event map provider.
+   */
+  function configureDirectionsLinks(provider) {
+    const userAgent = navigator.userAgent || '';
+    const platform = navigator.platform || '';
+    const isAppleMobile = /iPad|iPhone|iPod/i.test(userAgent)
+      || (platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    const isAndroid = /Android/i.test(userAgent) || /Android/i.test(platform);
+
+    document.querySelectorAll('[data-mel-directions-link]').forEach((link) => {
+      const appleUrl = link.dataset.appleDirectionsUrl;
+      const googleUrl = link.dataset.googleDirectionsUrl;
+      let directionsUrl = googleUrl;
+
+      if (isAppleMobile) {
+        directionsUrl = appleUrl;
+      } else if (!isAndroid && provider === 'apple_maps') {
+        directionsUrl = appleUrl;
+      }
+
+      if (directionsUrl) {
+        link.href = directionsUrl;
+      }
+    });
+  }
+
+  /**
    * Initializes map rendering on Event view pages.
    */
   function initEventMap() {
     const settings = drupalSettings.myeventlaneLocation || {};
     const eventData = drupalSettings.myeventlaneLocationEvent || {};
     const provider = settings.provider || 'google_maps';
+
+    configureDirectionsLinks(provider);
 
     if (!eventData.latitude || !eventData.longitude) {
       console.warn('MyEventLane Location: Event coordinates not found.');
@@ -192,4 +224,3 @@
   }
 
 })(Drupal, drupalSettings);
-
