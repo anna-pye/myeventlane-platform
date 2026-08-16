@@ -266,7 +266,6 @@
     "myeventlane_rsvp.sms_manager",
     "myeventlane_rsvp.ics_bundle",
     "myeventlane_search.route_subscriber",
-    "myeventlane_seed.event_reset",
     "myeventlane_seed.demo_seeder",
     "myeventlane_seed.demo_purger",
     "myeventlane_seed.image_factory",
