@@ -7,7 +7,7 @@ namespace Drupal\myeventlane_event_studio\Plugin\EventStudioSection;
 use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 
 /**
- * Content section — nested under Details (not primary Workspace nav).
+ * Content section — public event story, highlights, and guest policies.
  */
 #[EventStudioSection(
   id: 'content',
@@ -23,6 +23,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 30,
   operationalArea: 'event',
-  navigationVisible: FALSE,
+  navigationVisible: TRUE,
 )]
 final class ContentSection extends EventStudioSectionBase {}

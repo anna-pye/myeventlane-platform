@@ -128,6 +128,14 @@ final class VendorEventTabsService {
         'disabled_reason' => '',
       ],
       [
+        'key' => 'content',
+        'label' => (string) $t->translate('Content'),
+        'route' => 'myeventlane_event_studio.workspace_content',
+        'params' => ['node' => $id],
+        'disabled' => FALSE,
+        'disabled_reason' => '',
+      ],
+      [
         'key' => 'schedule',
         'label' => (string) $t->translate('Schedule'),
         'route' => 'myeventlane_event_studio.workspace_schedule',
