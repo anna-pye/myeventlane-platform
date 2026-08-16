@@ -238,6 +238,7 @@ final class EventStudioForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?NodeInterface $route_node = NULL): array {
+    $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_workspace_location';
     $this->ensureInjectedServices();
     $form['#attributes']['class'][] = 'mel-event-studio-form';
     $form['#attributes']['data-mel-event-studio-form'] = '1';
@@ -796,6 +797,17 @@ final class EventStudioForm extends FormBase {
             [':input[name="mel[venue_mode]"]' => ['value' => 'create']],
           ],
         ],
+      ],
+    ];
+
+    $form['mel']['venue_reset'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'button',
+      '#value' => $this->t('Reset venue'),
+      '#attributes' => [
+        'type' => 'button',
+        'class' => ['mel-btn', 'mel-btn--secondary'],
+        'data-mel-reset-venue' => '1',
       ],
     ];
 

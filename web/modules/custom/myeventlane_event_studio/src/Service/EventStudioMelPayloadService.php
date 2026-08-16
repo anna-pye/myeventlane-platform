@@ -320,6 +320,8 @@ final class EventStudioMelPayloadService {
       'status' => !empty($mel['status']),
       'field_location_latitude' => $mel['field_location_latitude'] ?? NULL,
       'field_location_longitude' => $mel['field_location_longitude'] ?? NULL,
+      'location_coordinates_submitted' => array_key_exists('field_location_latitude', $mel)
+      || array_key_exists('field_location_longitude', $mel),
       'event_highlights' => $this->decodeAndNormalizeEventHighlightsFromMel($mel),
       'event_highlights_items_state' => trim((string) (($mel['event_highlights'] ?? [])['items_state'] ?? '')),
       'attendee_questions' => $attendee_questions,

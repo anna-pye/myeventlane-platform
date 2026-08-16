@@ -154,6 +154,56 @@ final class EventStudioSaveServiceHeroPersistenceTest extends UnitTestCase {
     ]);
   }
 
+  /**
+   * Replaces both stored coordinates when the submitted pair is valid.
+   *
+   * @covers ::applyCoordinates
+   */
+  public function testApplyCoordinatesReplacesCompletePair(): void {
+    $service = $this->buildPartialSaveService();
+    $node = $this->createMock(NodeInterface::class);
+    $node->method('hasField')->willReturn(TRUE);
+    $node->expects($this->exactly(2))
+      ->method('set')
+      ->willReturnCallback(static function (string $field, mixed $value) use ($node): NodeInterface {
+        $expected = [
+          'field_location_latitude' => '-33.8688',
+          'field_location_longitude' => '151.2093',
+        ];
+        self::assertSame($expected[$field], $value);
+        return $node;
+      });
+
+    $method = new ReflectionMethod(EventStudioSaveService::class, 'applyCoordinates');
+    $method->setAccessible(TRUE);
+    $method->invoke($service, $node, '-33.8688', '151.2093');
+  }
+
+  /**
+   * Clears both stored coordinates when the submitted pair is incomplete.
+   *
+   * @covers ::applyCoordinates
+   */
+  public function testApplyCoordinatesClearsBothFieldsForIncompletePair(): void {
+    $service = $this->buildPartialSaveService();
+    $node = $this->createMock(NodeInterface::class);
+    $node->method('hasField')->willReturn(TRUE);
+    $node->expects($this->exactly(2))
+      ->method('set')
+      ->willReturnCallback(static function (string $field, mixed $value) use ($node): NodeInterface {
+        self::assertContains($field, [
+          'field_location_latitude',
+          'field_location_longitude',
+        ]);
+        self::assertNull($value);
+        return $node;
+      });
+
+    $method = new ReflectionMethod(EventStudioSaveService::class, 'applyCoordinates');
+    $method->setAccessible(TRUE);
+    $method->invoke($service, $node, '-33.8688', '');
+  }
+
   private function buildPartialSaveService(): EventStudioSaveService {
     $translation = $this->createMock(TranslationInterface::class);
     $translation->method('translate')->willReturnCallback(
