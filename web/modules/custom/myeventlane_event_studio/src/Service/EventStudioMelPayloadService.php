@@ -297,6 +297,7 @@ final class EventStudioMelPayloadService {
       'venue_choice' => $choice,
       'venue_id' => $venue_id,
       'new_venue_name' => $new_name,
+      'one_off_venue_name' => trim((string) ($mel['venue_one_off_name'] ?? '')),
       'field_location' => $field_location,
       'field_event_start' => $this->normalizeDatetimeValue($mel['start_date'] ?? NULL),
       'field_event_end' => $this->normalizeDatetimeValue($mel['end_date'] ?? NULL),

@@ -155,6 +155,26 @@ final class EventStudioSaveServiceHeroPersistenceTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::applyVenueDisplayName
+   */
+  public function testApplyVenueDisplayNameUsesExplicitOneOffName(): void {
+    $service = $this->buildPartialSaveService();
+    $node = $this->createMock(NodeInterface::class);
+    $node->method('hasField')->with('field_venue_name')->willReturn(TRUE);
+    $node->expects($this->once())
+      ->method('set')
+      ->with('field_venue_name', 'Brisbane Powerhouse');
+
+    $method = new ReflectionMethod(EventStudioSaveService::class, 'applyVenueDisplayName');
+    $method->setAccessible(TRUE);
+    $method->invoke($service, $node, 'one_off', [
+      'locality' => 'Brisbane',
+      'administrative_area' => 'QLD',
+      'address_line1' => '119 Lamington St',
+    ], NULL, NULL, '  Brisbane Powerhouse  ');
+  }
+
+  /**
    * Replaces both stored coordinates when the submitted pair is valid.
    *
    * @covers ::applyCoordinates

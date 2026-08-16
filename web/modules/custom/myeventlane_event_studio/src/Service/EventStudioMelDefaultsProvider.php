@@ -53,6 +53,13 @@ final class EventStudioMelDefaultsProvider {
       ? $event->get('field_venue')->entity
       : NULL;
 
+    $one_off_venue_name_default = '';
+    if ($venue_mode_default === 'one_off'
+      && $event->hasField('field_venue_name')
+      && !$event->get('field_venue_name')->isEmpty()) {
+      $one_off_venue_name_default = trim((string) $event->get('field_venue_name')->value);
+    }
+
     $summary = '';
     if ($event->hasField('field_event_summary') && !$event->get('field_event_summary')->isEmpty()) {
       $summary = (string) $event->get('field_event_summary')->value;
@@ -438,6 +445,11 @@ final class EventStudioMelDefaultsProvider {
 
     $mel['venue_create_name'] = [
       '#type' => 'textfield',
+    ];
+
+    $mel['venue_one_off_name'] = [
+      '#type' => 'textfield',
+      '#default_value' => $one_off_venue_name_default,
     ];
 
     $mel['location_search'] = [
