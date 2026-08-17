@@ -68,6 +68,12 @@ function myeventlane_admin_dashboard_schema(): array {
         'not null' => FALSE,
         'description' => 'Stripe transfer ID when paid.',
       ],
+      'reversed_transfer_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Most recently fully reversed Stripe transfer ID, retained as a replay guard.',
+      ],
       'paid_at' => [
         'type' => 'int',
         'unsigned' => TRUE,
@@ -365,4 +371,21 @@ function myeventlane_admin_dashboard_update_10005(): void {
   $data = $file_storage->read('views.view.vendor_orders');
   \Drupal::service('config.storage')->write('views.view.vendor_orders', $data);
   $view_storage->resetCache();
+}
+
+/**
+ * Adds a durable replay guard for fully reversed Stripe transfers.
+ */
+function myeventlane_admin_dashboard_update_10006(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('myeventlane_payout_ledger') || $schema->fieldExists('myeventlane_payout_ledger', 'reversed_transfer_id')) {
+    return;
+  }
+
+  $full = myeventlane_admin_dashboard_schema();
+  $schema->addField(
+    'myeventlane_payout_ledger',
+    'reversed_transfer_id',
+    $full['myeventlane_payout_ledger']['fields']['reversed_transfer_id'],
+  );
 }

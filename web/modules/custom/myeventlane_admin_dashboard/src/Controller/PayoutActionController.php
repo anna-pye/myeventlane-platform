@@ -67,6 +67,7 @@ final class PayoutActionController extends ControllerBase {
     ];
     if ($transferId !== NULL) {
       $fields['transfer_id'] = $transferId;
+      $fields['reversed_transfer_id'] = NULL;
     }
 
     $this->database->update(self::TABLE)
