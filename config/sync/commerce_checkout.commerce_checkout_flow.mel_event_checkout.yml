@@ -44,7 +44,7 @@ configuration:
       wrapper_element: container
       always_display: true
       require_payment_method: false
-    stripe_review:
+    mel_stripe_review:
       display_label: null
       step: review
       weight: 0

@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_pro\Controller;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Psr\Log\LoggerInterface;
 use Stripe\Exception\SignatureVerificationException;
 use Stripe\Exception\UnexpectedValueException;
@@ -25,6 +28,8 @@ final class ProSubscriptionWebhookController extends ControllerBase {
   public function __construct(
     private readonly ConfigFactoryInterface $config,
     private readonly LoggerInterface $logger,
+    private readonly Connection $database,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -34,6 +39,8 @@ final class ProSubscriptionWebhookController extends ControllerBase {
     return new static(
       $container->get('config.factory'),
       $container->get('logger.channel.myeventlane_pro'),
+      $container->get('database'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -64,11 +71,43 @@ final class ProSubscriptionWebhookController extends ControllerBase {
       return new Response('Invalid payload', Response::HTTP_BAD_REQUEST);
     }
 
+    $eventId = trim((string) ($event->id ?? ''));
+    $eventType = trim((string) ($event->type ?? 'unknown'));
+    if ($eventId === '') {
+      return new Response('Missing event id', Response::HTTP_BAD_REQUEST);
+    }
+
+    if (!$this->recordEventOnce($eventId, $eventType)) {
+      return new Response('Already processed', Response::HTTP_OK);
+    }
+
     if ($auditEnabled) {
       $this->logEvent($event);
     }
 
     return new Response('OK', Response::HTTP_OK);
+  }
+
+  /**
+   * Records a verified event exactly once without retaining its payload.
+   */
+  private function recordEventOnce(string $eventId, string $eventType): bool {
+    if (!$this->database->schema()->tableExists('myeventlane_pro_webhook_event')) {
+      $this->logger->error('Pro subscription webhook idempotency ledger is missing.');
+      return FALSE;
+    }
+
+    try {
+      $this->database->insert('myeventlane_pro_webhook_event')->fields([
+        'event_id' => $eventId,
+        'event_type' => $eventType,
+        'received_at' => $this->time->getRequestTime(),
+      ])->execute();
+      return TRUE;
+    }
+    catch (IntegrityConstraintViolationException) {
+      return FALSE;
+    }
   }
 
   /**

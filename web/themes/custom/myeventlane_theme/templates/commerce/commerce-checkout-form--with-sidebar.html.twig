@@ -113,6 +113,22 @@
 
     <p class="mel-checkout__helper mel-checkout__helper--governed">{{ mcp_hero.flow_helper|default('') }}</p>
 
+    {% if mel_organiser_checkout.purchase_details is defined %}
+      {% set purchase = mel_organiser_checkout.purchase_details %}
+      <section class="mel-checkout-purchase-context mel-card-surface" aria-labelledby="mel-checkout-purchase-context-heading">
+        <h2 id="mel-checkout-purchase-context-heading" class="mel-checkout-purchase-context__heading">{{ purchase.heading }}</h2>
+        <dl class="mel-checkout-purchase-context__rows">
+          {% for row in purchase.rows %}
+            <div class="mel-checkout-purchase-context__row">
+              <dt>{{ row.label }}</dt>
+              <dd>{{ row.value }}</dd>
+            </div>
+          {% endfor %}
+        </dl>
+        {% if purchase.note|default('') %}<p class="mel-checkout-purchase-context__note">{{ purchase.note }}</p>{% endif %}
+      </section>
+    {% endif %}
+
     <div class="mel-checkout-error-summary mel-checkout-error-summary--gov" role="alert" aria-live="polite" hidden id="mel-checkout-error-summary-shell">
       <span>{{ mcp_hero.error_summary|default('') }}</span>
     </div>
@@ -159,7 +175,7 @@
           {% endif %}
 
           {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
-            {% if mel_help_checkout_refund is defined and mel_help_checkout_refund %}
+            {% if mel_organiser_checkout is not defined and mel_help_checkout_refund is defined and mel_help_checkout_refund %}
               <div class="mel-contextual-help mel-contextual-help--checkout">
                 {{ mel_help_checkout_refund }}
               </div>

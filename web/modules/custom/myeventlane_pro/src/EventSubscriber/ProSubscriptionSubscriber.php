@@ -6,7 +6,9 @@ namespace Drupal\myeventlane_pro\EventSubscriber;
 
 use Drupal\commerce_recurring\Entity\SubscriptionInterface;
 use Drupal\commerce_recurring\Event\RecurringEvents;
+use Drupal\commerce_recurring\Event\PaymentDeclinedEvent;
 use Drupal\commerce_recurring\Event\SubscriptionEvent;
+use Drupal\commerce_recurring\RecurringOrderManagerInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -37,6 +39,7 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ProSubscriptionLifecycleScheduler $lifecycleScheduler,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly RecurringOrderManagerInterface $recurringOrderManager,
   ) {}
 
   /**
@@ -46,7 +49,28 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     return [
       RecurringEvents::SUBSCRIPTION_INSERT => 'onSubscriptionInsert',
       RecurringEvents::SUBSCRIPTION_UPDATE => 'onSubscriptionUpdate',
+      RecurringEvents::PAYMENT_DECLINED => 'onPaymentDeclined',
     ];
+  }
+
+  /**
+   * Starts the grace and dunning sequence on the first failed renewal attempt.
+   */
+  public function onPaymentDeclined(PaymentDeclinedEvent $event): void {
+    foreach ($this->recurringOrderManager->collectSubscriptions($event->getOrder()) as $subscription) {
+      if (!$subscription instanceof SubscriptionInterface || $subscription->getBillingScheduleId() !== 'mel_pro_monthly') {
+        continue;
+      }
+      $user = $subscription->getCustomer();
+      if (!$user instanceof UserInterface || $user->isAnonymous()) {
+        continue;
+      }
+      $this->reconciler->setGracePeriod($user, $this->time->getRequestTime() + $this->resolveGraceSeconds());
+      if ((int) $event->getNumRetries() === 0) {
+        $this->lifecycleScheduler->onPaymentFailedImmediate($subscription);
+      }
+      $this->reconciler->reconcileUser($user);
+    }
   }
 
   /**

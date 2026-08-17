@@ -1,0 +1,3 @@
+commerce_checkout.commerce_checkout_pane.mel_stripe_review:
+  type: commerce_checkout.commerce_checkout_pane.stripe_review
+  label: 'MEL Stripe review pane configuration'

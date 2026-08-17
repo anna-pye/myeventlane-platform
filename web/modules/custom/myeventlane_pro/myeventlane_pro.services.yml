@@ -118,6 +118,12 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_pro.subscription_lifecycle_scheduler'
       - '@config.factory'
+      - '@commerce_recurring.order_manager'
+    tags:
+      - { name: event_subscriber }
+
+  myeventlane_pro.require_trial_payment_method_subscriber:
+    class: Drupal\myeventlane_pro\EventSubscriber\ProTrialPaymentMethodSubscriber
     tags:
       - { name: event_subscriber }
 

@@ -17,11 +17,11 @@ final class TemplateListController extends ControllerBase {
   /**
    * Constructs TemplateListController.
    *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $templateConfigFactory
    *   The config factory.
    */
   public function __construct(
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly ConfigFactoryInterface $templateConfigFactory,
   ) {}
 
   /**
@@ -40,12 +40,12 @@ final class TemplateListController extends ControllerBase {
    *   A render array.
    */
   public function list(): array {
-    $templateNames = $this->configFactory->listAll('myeventlane_messaging.template.');
+    $templateNames = $this->templateConfigFactory->listAll('myeventlane_messaging.template.');
     $templates = [];
 
     foreach ($templateNames as $configName) {
       $key = str_replace('myeventlane_messaging.template.', '', $configName);
-      $config = $this->configFactory->get($configName);
+      $config = $this->templateConfigFactory->get($configName);
       $enabled = (bool) $config->get('enabled');
       $category = $this->getCategory($key);
       $label = $this->getLabel($key);
@@ -127,6 +127,7 @@ final class TemplateListController extends ControllerBase {
       'rsvp_confirmation',
       'rsvp_vendor_copy',
       'boost_confirmation',
+      'pro_subscription_started',
       'vendor_event_cancellation',
       'vendor_event_important_change',
       'vendor_event_update',
@@ -164,6 +165,7 @@ final class TemplateListController extends ControllerBase {
       'rsvp_confirmation' => $this->t('RSVP confirmation'),
       'rsvp_vendor_copy' => $this->t('RSVP vendor copy'),
       'boost_confirmation' => $this->t('Boost confirmation'),
+      'pro_subscription_started' => $this->t('Pro subscription started'),
       'vendor_event_cancellation' => $this->t('Event cancellation'),
       'vendor_event_important_change' => $this->t('Important change'),
       'vendor_event_update' => $this->t('Event update'),

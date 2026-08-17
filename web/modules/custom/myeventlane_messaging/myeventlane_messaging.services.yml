@@ -166,6 +166,7 @@ services:
       $messagingManager: '@myeventlane_messaging.manager'
       $logger: '@logger.channel.myeventlane_messaging'
       $orderConfirmationQueue: '@myeventlane_messaging.order_confirmation_queue'
+      $configFactory: '@config.factory'
     tags:
       - { name: event_subscriber }
 

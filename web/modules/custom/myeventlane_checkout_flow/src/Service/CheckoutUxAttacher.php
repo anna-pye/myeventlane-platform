@@ -28,6 +28,7 @@ final class CheckoutUxAttacher {
     private readonly LoggerInterface $logger,
     private readonly \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager,
     private readonly MelReadinessHelper $readinessHelper,
+    private readonly OrganiserCheckoutContext $organiserCheckoutContext,
   ) {}
 
   /**
@@ -41,7 +42,7 @@ final class CheckoutUxAttacher {
     }
 
     $this->replaceSidebarWithGroupedSummary($form, $order, ['surface' => 'checkout']);
-    $this->addPaymentConfidence($form);
+    $this->addPaymentConfidence($form, $order);
   }
 
   /**
@@ -86,8 +87,11 @@ final class CheckoutUxAttacher {
     $form['sidebar']['order_summary']['summary'] = $render;
   }
 
-  private function addPaymentConfidence(array &$form): void {
-    $lines = $this->readinessHelper->customerCheckoutSidebarConfidenceLines();
+  private function addPaymentConfidence(array &$form, OrderInterface $order): void {
+    $context = $this->organiserCheckoutContext->build($order);
+    $lines = is_array($context['confidence'] ?? NULL)
+      ? $context['confidence']
+      : $this->readinessHelper->customerCheckoutSidebarConfidenceLines();
     // Rendered in sidebar via template for better conversion (trust near summary).
     $form['mel_checkout_confidence'] = [
       '#type' => 'container',

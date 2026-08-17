@@ -28,8 +28,26 @@
         <p>{{ 'Update your payment method to keep your Pro tools available.'|t }}</p>
       {% endif %}
     </section>
+  {% elseif renewal_date_stale|default(false) %}
+    <section class="mel-pro-manage__notice mel-pro-manage__notice--warning" role="status">
+      <strong>{{ 'Your billing date needs review'|t }}</strong>
+      <p>{{ 'We do not have a future renewal date to show. Your Pro access has not been changed; contact support to confirm your next charge.'|t }}</p>
+    </section>
   {% elseif renewal_in_days is not null %}
     <p class="mel-pro-manage__renewal">{{ 'Your plan renews in @days days.'|t({'@days': renewal_in_days}) }}</p>
+  {% endif %}
+
+  {% if status.cancel_at_period_end|default(false) %}
+    <section class="mel-pro-manage__notice mel-pro-manage__notice--warning" role="status">
+      <strong>{{ 'Cancellation scheduled'|t }}</strong>
+      <p>{{ 'Your Pro access continues until @date. You can reactivate before then.'|t({'@date': next_billing_date|default('the end of your current period'|t)}) }}</p>
+      {% if reactivate_url %}<a href="{{ reactivate_url }}" class="mel-button mel-button--primary">{{ 'Reactivate MEL Pro'|t }}</a>{% endif %}
+    </section>
+  {% elseif status.is_trial|default(false) and status.trial_ends_at %}
+    <section class="mel-pro-manage__notice" role="status">
+      <strong>{{ 'Your free trial is active'|t }}</strong>
+      <p>{{ 'Your first monthly charge is due when the 30-day trial ends.'|t }}</p>
+    </section>
   {% endif %}
 
   <div class="mel-pro-manage__grid">
@@ -63,7 +81,7 @@
         </div>
         <div class="mel-pro-manage__row">
           <dt>{{ 'Status'|t }}</dt>
-          <dd><span class="mel-badge mel-badge--success">{{ subscription_status }}</span></dd>
+          <dd><span class="mel-badge mel-badge--{{ status.state == 'active' ? 'success' : (status.state == 'grace' ? 'warning' : 'neutral') }}">{{ subscription_status }}</span></dd>
         </div>
         {% if started_date %}
           <div class="mel-pro-manage__row"><dt>{{ 'Started'|t }}</dt><dd>{{ started_date }}</dd></div>
@@ -95,17 +113,31 @@
           <div class="mel-pro-manage__cancel">
             <a href="{{ cancel_url }}" class="mel-button mel-button--secondary mel-pro-manage__cancel-button">{{ 'Cancel at period end'|t }}</a>
             <span>
-              {% if next_billing_date %}
-                {{ 'Your Pro access will continue until @date.'|t({'@date': next_billing_date}) }}
-              {% else %}
-                {{ 'Your Pro access will continue until the end of your current paid period.'|t }}
-              {% endif %}
+              {{ 'Your Pro access continues through the current paid period. You can reactivate before it ends.'|t }}
             </span>
           </div>
         {% endif %}
       </div>
     </section>
   </div>
+
+  <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-billing-history-heading">
+    <p class="mel-pro-manage__eyebrow">{{ 'Billing history'|t }}</p>
+    <h2 id="mel-pro-billing-history-heading">{{ 'Invoices and receipts'|t }}</h2>
+    {% if billing_history %}
+      <div class="mel-pro-manage__billing-history">
+        {% for row in billing_history %}
+          <article>
+            <strong>{{ row.date }} · {{ row.amount }}</strong>
+            <span>{{ row.status }}</span>
+            {% if row.receipt_url %}<a href="{{ row.receipt_url }}">{{ 'Download invoice and receipt'|t }}</a>{% endif %}
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p>{{ 'No Pro invoices are available yet.'|t }}</p>
+    {% endif %}
+  </section>
 
   <aside class="mel-pro-manage__help">
     <div>

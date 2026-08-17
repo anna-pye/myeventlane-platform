@@ -7,10 +7,11 @@ dependencies:
     - commerce_price
     - commerce_product
     - commerce_stripe
+    - myeventlane_pro
 id: stripe_pe_recurring
 label: 'Stripe (Payment Element) — Recurring'
 weight: 0
-plugin: stripe_payment_element
+plugin: mel_pro_stripe_payment_element
 configuration:
   display_label: 'Stripe Payment Element'
   mode: test

@@ -83,7 +83,7 @@ final class ProSubscribeForm extends FormBase {
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Upgrade to Pro — @price/month', ['@price' => $pro_price ?? '$49']),
+      '#value' => $this->t('Start 30-day Pro trial — then @price/month', ['@price' => $pro_price ?? '$49']),
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn--cta', 'mel-btn--lg', 'mel-pro-upgrade-btn'],
       ],

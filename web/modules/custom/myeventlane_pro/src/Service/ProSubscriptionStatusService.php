@@ -64,6 +64,10 @@ final class ProSubscriptionStatusService {
    *   plan_label: string,
    *   renews_at: int|null,
    *   renews_label: string|null,
+   *   is_trial: bool,
+   *   trial_ends_at: int|null,
+   *   cancel_at_period_end: bool,
+   *   ends_at: int|null,
    * }
    */
   public function getStatusForUser(UserInterface $user): array {
@@ -89,6 +93,10 @@ final class ProSubscriptionStatusService {
       'plan_label' => 'MEL Pro',
       'renews_at' => NULL,
       'renews_label' => NULL,
+      'is_trial' => FALSE,
+      'trial_ends_at' => NULL,
+      'cancel_at_period_end' => FALSE,
+      'ends_at' => NULL,
     ];
 
     if ($user->isAnonymous()) {
@@ -105,6 +113,10 @@ final class ProSubscriptionStatusService {
     $hasRole = $user->hasRole(self::PRO_ROLE);
     $isPro = $this->activeResolver->isUserProActive($user);
     $hasActiveSubscription = $subscription !== NULL && $this->stateResolver->isActive($subscription);
+    $isTrial = $subscription !== NULL && $this->stateResolver->isTrial($subscription);
+    $cancelAtPeriodEnd = $subscription !== NULL && $subscription->hasScheduledChange('state', 'canceled');
+    $trialEndsAt = $isTrial ? (int) $subscription->getTrialEndTime() : 0;
+    $endsAt = $subscription !== NULL ? (int) $subscription->getEndTime() : 0;
 
     $subscriptionState = '';
     if ($subscription instanceof SubscriptionInterface) {
@@ -129,6 +141,11 @@ final class ProSubscriptionStatusService {
       $message = 'You have manual MEL Pro access.';
       $uiState = 'active';
     }
+    elseif ($isTrial) {
+      $label = 'Trial';
+      $message = 'Your MEL Pro trial is active.';
+      $uiState = 'active';
+    }
     elseif ($hasActiveSubscription && $this->stateResolver->isActive($subscription)) {
       $label = 'Active';
       $message = 'Your MEL Pro subscription is active.';
@@ -138,6 +155,11 @@ final class ProSubscriptionStatusService {
       $label = 'Grace period';
       $message = $this->formatGraceMessage($graceDays);
       $uiState = 'grace';
+    }
+    elseif ($subscription instanceof SubscriptionInterface && $subscriptionState !== '' && $this->stateResolver->isExpired($subscription)) {
+      $label = 'Expired';
+      $message = 'Your Pro subscription has expired.';
+      $uiState = 'inactive';
     }
     elseif ($subscription instanceof SubscriptionInterface && $subscriptionState !== '' && $this->stateResolver->isCancelled($subscription)) {
       $label = 'Cancelled';
@@ -165,7 +187,7 @@ final class ProSubscriptionStatusService {
     // date is invented.
     $renewsAt = NULL;
     $renewsLabel = NULL;
-    if ($hasActiveSubscription) {
+    if ($hasActiveSubscription && !$isTrial) {
       $nextRenewal = $this->activeResolver->getUserActiveEndTimestamp($user);
       if (is_int($nextRenewal) && $nextRenewal > 0) {
         $renewsAt = $nextRenewal;
@@ -192,6 +214,10 @@ final class ProSubscriptionStatusService {
       'plan_label' => 'MEL Pro',
       'renews_at' => $renewsAt,
       'renews_label' => $renewsLabel,
+      'is_trial' => $isTrial,
+      'trial_ends_at' => $trialEndsAt > 0 ? $trialEndsAt : NULL,
+      'cancel_at_period_end' => $cancelAtPeriodEnd,
+      'ends_at' => $endsAt > 0 ? $endsAt : NULL,
     ];
   }
 
@@ -221,6 +247,10 @@ final class ProSubscriptionStatusService {
       'plan_label' => 'MEL Pro',
       'renews_at' => NULL,
       'renews_label' => NULL,
+      'is_trial' => FALSE,
+      'trial_ends_at' => NULL,
+      'cancel_at_period_end' => FALSE,
+      'ends_at' => NULL,
     ];
 
     $account = $this->currentUser;

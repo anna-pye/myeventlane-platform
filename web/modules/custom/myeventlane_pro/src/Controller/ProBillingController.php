@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_pro\Controller;
 
 use Drupal\commerce_recurring\Entity\SubscriptionInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -39,6 +40,7 @@ final class ProBillingController implements ContainerInjectionInterface {
     private readonly ProSubscriptionStatusService $statusService,
     private readonly ProBillingPortalService $billingPortalService,
     private readonly AccountProxyInterface $currentUser,
+    private readonly TimeInterface $time,
   ) {}
 
   /**
@@ -54,6 +56,7 @@ final class ProBillingController implements ContainerInjectionInterface {
       $container->get('myeventlane_pro.subscription_status'),
       $container->get('myeventlane_pro.billing_portal'),
       $container->get('current_user'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -79,14 +82,18 @@ final class ProBillingController implements ContainerInjectionInterface {
 
     $nextBilling = NULL;
     $renewalInDays = NULL;
+    $renewalDateStale = FALSE;
     if (method_exists($subscription, 'getNextRenewalTime')) {
       $timestamp = $subscription->getNextRenewalTime();
       if ($timestamp) {
         $renewalTimestamp = (int) $timestamp;
-        $nextBilling = date('F j, Y', $renewalTimestamp);
-        $delta = $renewalTimestamp - time();
+        $delta = $renewalTimestamp - $this->time->getRequestTime();
         if ($delta > 0) {
+          $nextBilling = date('F j, Y', $renewalTimestamp);
           $renewalInDays = (int) ceil($delta / 86400);
+        }
+        else {
+          $renewalDateStale = TRUE;
         }
       }
     }
@@ -105,7 +112,11 @@ final class ProBillingController implements ContainerInjectionInterface {
     $supportUrl = trim((string) ($settings->get('billing_support_url') ?? ''));
 
     $cancelUrl = NULL;
-    if (($status['can_cancel'] ?? FALSE)) {
+    $reactivateUrl = NULL;
+    if (($status['cancel_at_period_end'] ?? FALSE)) {
+      $reactivateUrl = Url::fromRoute('myeventlane_pro.reactivate')->toString();
+    }
+    elseif (($status['can_cancel'] ?? FALSE)) {
       $cancelUrl = Url::fromRoute('myeventlane_pro.cancel_request')->toString();
     }
 
@@ -118,8 +129,11 @@ final class ProBillingController implements ContainerInjectionInterface {
       '#started_date' => $startedDate,
       '#next_billing_date' => $nextBilling,
       '#renewal_in_days' => $renewalInDays,
+      '#renewal_date_stale' => $renewalDateStale,
       '#grace_days_remaining' => $graceDaysRemaining,
       '#cancel_url' => $cancelUrl,
+      '#reactivate_url' => $reactivateUrl,
+      '#billing_history' => $this->buildBillingHistory($subscription),
       '#roi_summary' => $roiSummary,
       '#pro_status' => $status,
       '#plan_label' => $status['plan_label'] ?? 'MEL Pro',
@@ -136,6 +150,42 @@ final class ProBillingController implements ContainerInjectionInterface {
         'max-age' => 0,
       ],
     ];
+  }
+
+  /**
+   * Builds customer-owned Pro invoice and receipt links from Commerce orders.
+   *
+   * @return array<int, array<string, mixed>>
+   *   Billing history rows, newest first.
+   */
+  private function buildBillingHistory(SubscriptionInterface $subscription): array {
+    $orders = $subscription->getOrders();
+    $initialOrder = $subscription->getInitialOrder();
+    if ($initialOrder !== NULL) {
+      $orders[(int) $initialOrder->id()] = $initialOrder;
+    }
+
+    $rows = [];
+    foreach ($orders as $order) {
+      $orderId = (int) ($order->id() ?? 0);
+      if ($orderId <= 0 || (int) $order->getCustomerId() !== (int) $this->currentUser->id()) {
+        continue;
+      }
+      $placed = (int) ($order->getPlacedTime() ?? 0);
+      $total = $order->getTotalPrice();
+      $rows[] = [
+        'order_id' => $orderId,
+        'date' => $placed > 0 ? date('j M Y', $placed) : $this->t('Pending'),
+        'amount' => $total !== NULL ? $total->__toString() : '—',
+        'status' => (string) ($order->getState()->getLabel() ?? $order->getState()->getId()),
+        'receipt_url' => $placed > 0 && $total !== NULL && !$total->isZero()
+          ? Url::fromRoute('myeventlane_checkout_flow.order_tax_invoice_pdf', ['commerce_order' => $orderId])->toString()
+          : NULL,
+        'placed' => $placed,
+      ];
+    }
+    usort($rows, static fn(array $a, array $b): int => $b['placed'] <=> $a['placed']);
+    return $rows;
   }
 
   /**

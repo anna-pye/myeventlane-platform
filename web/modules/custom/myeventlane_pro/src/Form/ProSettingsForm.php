@@ -33,11 +33,10 @@ final class ProSettingsForm extends ConfigFormBase {
     $config = $this->config('myeventlane_pro.settings');
 
     $form['trial_days'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Trial days'),
-      '#default_value' => $config->get('trial_days') ?? 30,
-      '#required' => TRUE,
-      '#min' => 0,
+      '#type' => 'item',
+      '#title' => $this->t('Trial period'),
+      '#markup' => $this->t('30 days'),
+      '#description' => $this->t('Controlled by the MEL Pro Commerce billing schedule so checkout and renewal use one source of truth.'),
     ];
 
     $form['pro_price'] = [
@@ -95,7 +94,7 @@ final class ProSettingsForm extends ConfigFormBase {
       '#type' => 'checkbox',
       '#title' => $this->t('Enable Stripe Customer Billing Portal'),
       '#description' => $this->t('When enabled, vendors with a resolvable Stripe customer can open Stripe’s billing portal to update payment methods. Commerce Recurring remains the source of truth.'),
-      '#default_value' => (bool) ($config->get('billing_portal_enabled') ?? FALSE),
+      '#default_value' => (bool) ($config->get('billing_portal_enabled') ?? TRUE),
     ];
 
     $form['commercial']['webhook_audit_enabled'] = [
@@ -122,14 +121,14 @@ final class ProSettingsForm extends ConfigFormBase {
     $values = $form_state->getValues();
     $commercial = $values['commercial'] ?? [];
     $this->config('myeventlane_pro.settings')
-      ->set('trial_days', (int) ($values['trial_days'] ?? 30))
+      ->set('trial_days', 30)
       ->set('pro_price', (int) ($values['pro_price'] ?? 49))
       ->set('pro_variation_sku', trim((string) ($values['pro_variation_sku'] ?? '')))
       ->set('grace_days', (int) ($commercial['grace_days'] ?? 7))
       ->set('upgrade_cta_enabled', (bool) ($commercial['upgrade_cta_enabled'] ?? TRUE))
       ->set('cancel_request_enabled', (bool) ($commercial['cancel_request_enabled'] ?? TRUE))
       ->set('billing_support_url', trim((string) ($commercial['billing_support_url'] ?? '')))
-      ->set('billing_portal_enabled', (bool) ($commercial['billing_portal_enabled'] ?? FALSE))
+      ->set('billing_portal_enabled', (bool) ($commercial['billing_portal_enabled'] ?? TRUE))
       ->set('webhook_audit_enabled', (bool) ($commercial['webhook_audit_enabled'] ?? FALSE))
       ->set('subscription_webhook_secret', trim((string) ($commercial['subscription_webhook_secret'] ?? '')) ?: ($this->config('myeventlane_pro.settings')->get('subscription_webhook_secret') ?? ''))
       ->save();

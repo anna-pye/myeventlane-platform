@@ -1,4 +1,11 @@
 services:
+  myeventlane_checkout_flow.organiser_checkout_context:
+    class: Drupal\myeventlane_checkout_flow\Service\OrganiserCheckoutContext
+    arguments:
+      - '@config.factory'
+      - '@myeventlane_commerce.currency_formatter.lazy'
+      - '@string_translation'
+
   myeventlane_checkout_flow.attendee_event_stats:
     class: Drupal\myeventlane_checkout_flow\Service\AttendeeEventStatsService
     arguments:
@@ -17,6 +24,7 @@ services:
       - '@logger.channel.myeventlane_checkout_flow'
       - '@entity_type.manager'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@myeventlane_checkout_flow.organiser_checkout_context'
 
   myeventlane_checkout_flow.checkout_summary_presenter:
     class: Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter
@@ -25,6 +33,7 @@ services:
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_surface.governed_operational_templates'
       - '@myeventlane_legal.settings'
+      - '@myeventlane_checkout_flow.organiser_checkout_context'
 
   myeventlane_checkout_flow.order_pricing_breakdown:
     class: Drupal\myeventlane_checkout_flow\Service\OrderPricingBreakdownBuilder
@@ -181,4 +190,3 @@ services:
       - '@module_handler'
     tags:
       - { name: controller.service_arguments }
-

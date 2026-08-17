@@ -109,7 +109,9 @@ final class ProBillingPortalService {
       }
 
       $gatewayId = $method->getPaymentGatewayId();
-      if (!in_array($gatewayId, ['mel_stripe', 'stripe'], TRUE)) {
+      // Pro billing must never resolve a customer through a ticket or Connect
+      // payment method. Only the dedicated recurring gateway is in scope.
+      if ($gatewayId !== 'stripe_pe_recurring') {
         continue;
       }
 

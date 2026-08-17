@@ -17,7 +17,21 @@ final class ProSubscriptionStateResolver {
    * Determines whether the subscription is in an active state.
    */
   public function isActive(SubscriptionInterface $subscription): bool {
-    return $this->matchesKeywords($subscription, ['active']);
+    return $this->matchesKeywords($subscription, ['active', 'trial']);
+  }
+
+  /**
+   * Determines whether the subscription is in its free trial.
+   */
+  public function isTrial(SubscriptionInterface $subscription): bool {
+    return $this->matchesKeywords($subscription, ['trial']);
+  }
+
+  /**
+   * Determines whether the subscription has reached its natural expiry.
+   */
+  public function isExpired(SubscriptionInterface $subscription): bool {
+    return $this->matchesKeywords($subscription, ['expired']);
   }
 
   /**

@@ -223,6 +223,9 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
         continue;
       }
       $purchased = $item->getPurchasedEntity();
+      if ($purchased && $purchased->bundle() === 'mel_pro_subscription_variation') {
+        continue;
+      }
       if ($purchased && $purchased->getEntityTypeId() === 'commerce_product_variation') {
         return TRUE;
       }

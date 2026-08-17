@@ -42,23 +42,25 @@ function myeventlane_checkout_flow_post_update_use_mel_event_checkout(array &$sa
 }
 
 /**
- * Enable Commerce Stripe stripe_review on the required review step.
+ * Enable the MEL Stripe review pane on the required review step.
  *
- * Commerce Stripe 2.2.1 attaches Payment Element only from stripe_review and
- * hardcodes return URLs to step "review". Without this pane enabled on that
- * step ID, card fields never render.
+ * Commerce Stripe 2.2.1 attaches Payment Element from a Stripe review pane and
+ * hardcodes return URLs to step "review". MEL's subclass also permits the
+ * zero-value SetupIntent used to collect a card for a Pro trial.
  */
 function myeventlane_checkout_flow_post_update_enable_stripe_review(array &$sandbox): void {
   $config = \Drupal::configFactory()->getEditable('commerce_checkout.commerce_checkout_flow.mel_event_checkout');
   $panes = $config->get('configuration.panes') ?? [];
 
-  $panes['stripe_review'] = array_merge([
+  $existing = $panes['mel_stripe_review'] ?? $panes['stripe_review'] ?? [];
+  unset($panes['stripe_review']);
+  $panes['mel_stripe_review'] = array_merge([
     'display_label' => NULL,
     'wrapper_element' => 'container',
     'button_id' => 'edit-actions-next',
     'auto_submit_review_form' => FALSE,
     'setup_future_usage' => '',
-  ], $panes['stripe_review'] ?? [], [
+  ], $existing, [
     'step' => 'review',
     'weight' => 0,
   ]);

@@ -16,10 +16,7 @@ use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Records a Pro cancellation request. Does not revoke access.
- *
- * Available only to subscription-managed Pro users. Records the request for
- * admin review or future automation. Does not apply Commerce cancel transition.
+ * Schedules a Pro subscription cancellation at the paid period end.
  */
 final class ProCancelRequestForm extends FormBase {
 
@@ -72,7 +69,7 @@ final class ProCancelRequestForm extends FormBase {
 
     $form['intro'] = [
       '#type' => 'markup',
-      '#markup' => '<p class="mel-pro-cancel-request__intro">' . $this->t('Your current Pro access will remain available until the end of your paid billing period.') . '</p>',
+      '#markup' => '<p class="mel-pro-cancel-request__intro">' . $this->t('Your subscription will stop at the end of the current billing period. You can reactivate it before that date.') . '</p>',
       '#weight' => -10,
     ];
 
@@ -117,7 +114,7 @@ final class ProCancelRequestForm extends FormBase {
       return;
     }
 
-    $subscriptionId = NULL;
+    $subscription = NULL;
     $ids = $this->entityTypeManager->getStorage('commerce_subscription')
       ->getQuery()
       ->accessCheck(FALSE)
@@ -128,7 +125,7 @@ final class ProCancelRequestForm extends FormBase {
       ->execute();
 
     if (!empty($ids)) {
-      $subscriptionId = (int) reset($ids);
+      $subscription = $this->entityTypeManager->getStorage('commerce_subscription')->load((int) reset($ids));
     }
 
     $notes = trim((string) $form_state->getValue('reason', ''));
@@ -142,17 +139,32 @@ final class ProCancelRequestForm extends FormBase {
       return;
     }
 
+    if (!$subscription instanceof \Drupal\commerce_recurring\Entity\SubscriptionInterface) {
+      $this->messenger()->addError($this->t('Your active subscription could not be loaded. Please contact support.'));
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_pro.manage'));
+      return;
+    }
+
+    if ($subscription->hasScheduledChange('state', 'canceled')) {
+      $this->messenger()->addStatus($this->t('Your subscription is already set to cancel at the end of the current billing period.'));
+      $form_state->setRedirectUrl(Url::fromRoute('myeventlane_pro.manage'));
+      return;
+    }
+
+    $subscription->cancel(TRUE);
+    $subscription->save();
+
     $this->database->insert('myeventlane_pro_cancel_request')
       ->fields([
         'uid' => (int) $user->id(),
-        'subscription_id' => $subscriptionId,
-        'status' => 'pending',
+        'subscription_id' => (int) $subscription->id(),
+        'status' => 'scheduled',
         'requested_at' => $this->time->getRequestTime(),
         'notes' => $notes !== '' ? $notes : NULL,
       ])
       ->execute();
 
-    $this->messenger()->addStatus($this->t('Your cancellation request has been received. Your Pro access remains available until the end of your paid billing period.'));
+    $this->messenger()->addStatus($this->t('Your Pro subscription will end at the close of the current billing period. You can reactivate it before then.'));
     $form_state->setRedirectUrl(Url::fromRoute('myeventlane_pro.manage'));
   }
 

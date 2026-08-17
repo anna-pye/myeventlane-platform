@@ -1117,6 +1117,24 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
           'booking_summary_heading' => $mel_checkout_ready->customerCheckoutBookingSummaryHeading(),
           'sidebar_help_aria' => $mel_checkout_ready->customerCheckoutSidebarHelpAriaLabel(),
         ];
+
+        /** @var \Drupal\myeventlane_checkout_flow\Service\OrganiserCheckoutContext $organiser_checkout */
+        $organiser_checkout = \Drupal::service('myeventlane_checkout_flow.organiser_checkout_context');
+        $organiser_context = $organiser_checkout->build($order_param);
+        if (($organiser_context['kind'] ?? 'customer') !== 'customer') {
+          $variables['mel_organiser_checkout'] = $organiser_context;
+          foreach (['hero', 'trust_chips', 'step_buyer', 'step_payment', 'payment_trust_lines', 'cta_secure_note'] as $key) {
+            if (array_key_exists($key, $organiser_context)) {
+              $variables['mel_checkout_presentation'][$key] = $organiser_context[$key];
+            }
+          }
+          $summary_title = (string) ($organiser_context['summary_title'] ?? '');
+          if ($summary_title !== '') {
+            $variables['mel_checkout_presentation']['summary_aria'] = $summary_title;
+            $variables['mel_checkout_presentation']['booking_summary_heading'] = $summary_title;
+            $variables['mel_checkout_presentation']['summary_titles']['title'] = $summary_title;
+          }
+        }
       }
 
       $total_price = $order_param->getTotalPrice();
@@ -1128,12 +1146,26 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
           if (_myeventlane_theme_order_is_natural_zero_price_rsvp($order_param)) {
             $form['actions']['next']['#value'] = t('Reserve your spot');
           }
+          elseif (($variables['mel_organiser_checkout']['kind'] ?? '') === 'pro') {
+            $form['actions']['next']['#value'] = $step_id === 'checkout'
+              ? t('Continue to secure card setup')
+              : t('Start Pro trial');
+          }
           else {
-            $form['actions']['next']['#value'] = t('Complete booking');
+            $form['actions']['next']['#value'] = $step_id === 'checkout'
+              ? t('Continue to card details')
+              : t('Complete booking');
           }
         }
+        elseif (($variables['mel_organiser_checkout']['kind'] ?? '') === 'boost') {
+          $form['actions']['next']['#value'] = $step_id === 'checkout'
+            ? t('Continue to secure payment')
+            : t('Pay for Boost');
+        }
         else {
-          $form['actions']['next']['#value'] = t('Complete booking');
+          $form['actions']['next']['#value'] = $step_id === 'checkout'
+            ? t('Continue to card details')
+            : t('Complete booking');
         }
       }
     }
@@ -1323,6 +1355,22 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
         (bool) ($variables['mel_logged_in'] ?? FALSE),
         $primary_wallet_order_item_id,
       );
+
+      // Organiser-owned Pro and Boost purchases need a purpose-built completion
+      // journey, never attendee tickets, wallets, calendars, or event discovery.
+      if (\Drupal::hasService('myeventlane_checkout_flow.organiser_checkout_context')) {
+        /** @var \Drupal\myeventlane_checkout_flow\Service\OrganiserCheckoutContext $organiser_checkout */
+        $organiser_checkout = \Drupal::service('myeventlane_checkout_flow.organiser_checkout_context');
+        $organiser_context = $organiser_checkout->build($order);
+        if (($organiser_context['kind'] ?? 'customer') !== 'customer') {
+          $variables['mel_organiser_completion'] = $organiser_context;
+          $variables['mel_confirmation_has_tickets'] = FALSE;
+          $variables['mel_calendar_links'] = [];
+          $variables['mel_event_url'] = '';
+          $variables['mel_checkout_presentation']['booking_summary_heading'] =
+            (string) ($organiser_context['summary_title'] ?? 'Organiser purchase summary');
+        }
+      }
 
       // Attach copy-link JS when share block is present.
       if ($variables['mel_event_url']) {
@@ -4423,7 +4471,10 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
 
       $label = isset($form['actions'][$key]['#value']) ? (string) $form['actions'][$key]['#value'] : '';
       if ($key === 'next' || $label === 'Continue to payment') {
-        $form['actions'][$key]['#value'] = t('Complete booking');
+        $step_id = $form['#step_id'] ?? NULL;
+        $form['actions'][$key]['#value'] = $step_id === 'checkout'
+          ? t('Continue to card details')
+          : t('Complete booking');
       }
       elseif ($key === 'submit' || $label === 'Submit') {
         $form['actions'][$key]['#value'] = t('Secure your spot');

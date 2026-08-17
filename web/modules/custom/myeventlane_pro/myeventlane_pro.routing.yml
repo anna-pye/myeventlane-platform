@@ -42,7 +42,7 @@ myeventlane_pro.cancel_request:
   path: '/vendor/pro/cancel'
   defaults:
     _form: '\Drupal\myeventlane_pro\Form\ProCancelRequestForm'
-    _title: 'Request to cancel MEL Pro'
+    _title: 'Cancel MEL Pro at period end'
   requirements:
     _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
 
@@ -51,6 +51,14 @@ myeventlane_pro.cancel_confirm:
   defaults:
     _form: '\Drupal\myeventlane_pro\Form\ProCancelConfirmForm'
     _title: 'Cancel Pro Subscription'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+
+myeventlane_pro.reactivate:
+  path: '/vendor/pro/reactivate'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProReactivateForm'
+    _title: 'Reactivate MEL Pro'
   requirements:
     _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
 
