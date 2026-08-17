@@ -77,7 +77,11 @@ final class ProSubscriptionWebhookController extends ControllerBase {
       return new Response('Missing event id', Response::HTTP_BAD_REQUEST);
     }
 
-    if (!$this->recordEventOnce($eventId, $eventType)) {
+    $recorded = $this->recordEventOnce($eventId, $eventType);
+    if ($recorded === NULL) {
+      return new Response('Webhook ledger unavailable', Response::HTTP_SERVICE_UNAVAILABLE);
+    }
+    if ($recorded === FALSE) {
       return new Response('Already processed', Response::HTTP_OK);
     }
 
@@ -91,10 +95,10 @@ final class ProSubscriptionWebhookController extends ControllerBase {
   /**
    * Records a verified event exactly once without retaining its payload.
    */
-  private function recordEventOnce(string $eventId, string $eventType): bool {
+  private function recordEventOnce(string $eventId, string $eventType): ?bool {
     if (!$this->database->schema()->tableExists('myeventlane_pro_webhook_event')) {
       $this->logger->error('Pro subscription webhook idempotency ledger is missing.');
-      return FALSE;
+      return NULL;
     }
 
     try {

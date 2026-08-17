@@ -149,7 +149,9 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     $monthlyPrice = $price !== NULL
       ? $this->formatCurrency($price->getNumber(), $price->getCurrencyCode())
       : 'the displayed monthly price';
-    $trialDays = max(0, (int) $this->configFactory->get('myeventlane_pro.settings')->get('trial_days'));
+    $trialDays = max(0, (int) $this->configFactory
+      ->get('commerce_recurring.commerce_billing_schedule.mel_pro_monthly')
+      ->get('configuration.trial_interval.number'));
     $chargedToday = (float) ($order->getTotalPrice()?->getNumber() ?? 0);
     $trialApplies = $trialDays > 0 && $chargedToday <= 0.0;
 

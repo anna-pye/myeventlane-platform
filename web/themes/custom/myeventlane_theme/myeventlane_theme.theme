@@ -1152,9 +1152,7 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
               : t('Start Pro trial');
           }
           else {
-            $form['actions']['next']['#value'] = $step_id === 'checkout'
-              ? t('Continue to card details')
-              : t('Complete booking');
+            $form['actions']['next']['#value'] = t('Complete booking');
           }
         }
         elseif (($variables['mel_organiser_checkout']['kind'] ?? '') === 'boost') {
@@ -4473,7 +4471,7 @@ function myeventlane_theme_form_alter(array &$form, \Drupal\Core\Form\FormStateI
       if ($key === 'next' || $label === 'Continue to payment') {
         $step_id = $form['#step_id'] ?? NULL;
         $form['actions'][$key]['#value'] = $step_id === 'checkout'
-          ? t('Continue to card details')
+          ? t('Continue')
           : t('Complete booking');
       }
       elseif ($key === 'submit' || $label === 'Submit') {

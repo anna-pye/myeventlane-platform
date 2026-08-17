@@ -20,7 +20,9 @@ final class OrganiserTransactionEmailContractTest extends TestCase {
     self::assertStringContainsString('isProOnlyOrder($order)', $subscriber);
     self::assertStringContainsString("queue('pro_subscription_started'", $subscriber);
     self::assertStringContainsString("'order:%d:pro_subscription_started'", $subscriber);
-    self::assertStringContainsString("get('trial_days')", $subscriber);
+    self::assertStringContainsString("commerce_recurring.commerce_billing_schedule.mel_pro_monthly", $subscriber);
+    self::assertStringContainsString("configuration.trial_interval.number", $subscriber);
+    self::assertStringNotContainsString("myeventlane_pro.settings')->get('trial_days", $subscriber);
     self::assertStringContainsString('{% if trial_applies %}', $template);
     self::assertStringContainsString('{{ monthly_price }} per month', $template);
     self::assertStringContainsString('Monthly until cancelled', $template);
@@ -55,6 +57,8 @@ final class OrganiserTransactionEmailContractTest extends TestCase {
     }
 
     self::assertStringContainsString("'idempotency_key' => sprintf('order:%d:%s'", $job);
+    self::assertStringContainsString('commerce_recurring.commerce_billing_schedule.mel_pro_monthly', $job);
+    self::assertStringContainsString('configuration.trial_interval.number', $job);
     self::assertStringNotContainsString('You left tickets in your cart.', $job);
   }
 

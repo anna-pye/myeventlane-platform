@@ -104,7 +104,9 @@ final class OrganiserCheckoutContext {
       ],
       'trust_chips' => [
         ['text' => $trialText],
-        ['text' => (string) $this->t('@price per month after the trial', ['@price' => $monthlyPrice])],
+        ['text' => $trialApplies
+          ? (string) $this->t('@price per month after the trial', ['@price' => $monthlyPrice])
+          : (string) $this->t('@price per month from today', ['@price' => $monthlyPrice])],
         ['text' => (string) $this->t('Self-service cancellation before renewal')],
       ],
       'step_buyer' => [
@@ -185,8 +187,10 @@ final class OrganiserCheckoutContext {
       }
       if ($eventTitle === '' && $item->hasField('field_target_event') && !$item->get('field_target_event')->isEmpty()) {
         $event = $item->get('field_target_event')->entity;
-        $eventTitle = (string) $event->label();
-        $eventId = (int) $event->id();
+        if ($event !== NULL) {
+          $eventTitle = (string) $event->label();
+          $eventId = (int) $event->id();
+        }
       }
     }
     $total = $order->getTotalPrice();

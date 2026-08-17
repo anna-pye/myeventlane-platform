@@ -207,7 +207,9 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       'order_id' => (int) $order->id(),
       'step' => $step,
       'item_count' => count($order->getItems()),
-      'trial_days' => max(0, (int) $this->configFactory->get('myeventlane_pro.settings')->get('trial_days')),
+      'trial_days' => max(0, (int) $this->configFactory
+        ->get('commerce_recurring.commerce_billing_schedule.mel_pro_monthly')
+        ->get('configuration.trial_interval.number')),
       'monthly_price' => 'A$' . number_format(
         (float) ($this->configFactory->get('myeventlane_pro.settings')->get('pro_price') ?? 49),
         2,
