@@ -24,7 +24,7 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * Handles Stripe payout/transfer webhooks for ledger reconciliation.
  *
- * Listens for transfer.paid, transfer.created, and transfer.failed events
+ * Listens for Stripe's real transfer.created and transfer.reversed events
  * and reconciles the internal payout ledger accordingly. Never modifies
  * commerce_order or payment entities — only the payout ledger table.
  */
@@ -97,17 +97,16 @@ final class StripeWebhookController extends ControllerBase {
    */
   private function dispatch(Event $event): Response {
     return match ($event->type) {
-      'transfer.paid' => $this->handleTransferPaid($event),
-      'transfer.failed' => $this->handleTransferFailed($event),
       'transfer.created' => $this->handleTransferCreated($event),
+      'transfer.reversed' => $this->handleTransferReversed($event),
       default => $this->handleUnknown($event),
     };
   }
 
   /**
-   * Handles transfer.paid — reconciles ledger row to 'paid'.
+   * Reconciles a created transfer to the ledger's paid state.
    */
-  private function handleTransferPaid(Event $event): Response {
+  private function handleTransferCreated(Event $event): Response {
     $transfer = $event->data['object'] ?? NULL;
     if (!$transfer instanceof Transfer) {
       return $this->handleInvalidTransferPayload($event);
@@ -118,14 +117,14 @@ final class StripeWebhookController extends ControllerBase {
 
     if ($orderId === NULL) {
       $this->payoutLogger->error(
-        'transfer.paid webhook: Could not resolve order_id. Transfer @tid has no order_id in metadata or source charge. Skipping.',
+        'transfer.created webhook: Could not resolve order_id. Transfer @tid has no order_id in metadata or source charge. Skipping.',
         ['@tid' => $transferId ?? 'unknown']
       );
       return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
     }
 
     if (!$this->database->schema()->tableExists(self::TABLE)) {
-      $this->payoutLogger->error('transfer.paid webhook: Payout ledger table does not exist.');
+      $this->payoutLogger->error('transfer.created webhook: Payout ledger table does not exist.');
       return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
     }
 
@@ -137,7 +136,7 @@ final class StripeWebhookController extends ControllerBase {
 
     if (!$row) {
       $this->payoutLogger->warning(
-        'transfer.paid webhook: No ledger row for order @oid (transfer @tid). Ignoring.',
+        'transfer.created webhook: No ledger row for order @oid (transfer @tid). Ignoring.',
         ['@oid' => $orderId, '@tid' => $transferId]
       );
       return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
@@ -146,13 +145,13 @@ final class StripeWebhookController extends ControllerBase {
     if ($row->status === 'paid') {
       if ($row->transfer_id === $transferId) {
         $this->payoutLogger->info(
-          'transfer.paid webhook: Ledger @lid (order @oid) already paid with same transfer @tid. Idempotent skip.',
+          'transfer.created webhook: Ledger @lid (order @oid) already paid with same transfer @tid. Idempotent skip.',
           ['@lid' => $row->id, '@oid' => $orderId, '@tid' => $transferId]
         );
       }
       else {
         $this->payoutLogger->critical(
-          'transfer.paid webhook: MISMATCH — Ledger @lid (order @oid) already paid with transfer @existing but received @incoming.',
+          'transfer.created webhook: MISMATCH — Ledger @lid (order @oid) already paid with transfer @existing but received @incoming.',
           ['@lid' => $row->id, '@oid' => $orderId, '@existing' => $row->transfer_id, '@incoming' => $transferId]
         );
       }
@@ -171,7 +170,7 @@ final class StripeWebhookController extends ControllerBase {
     Cache::invalidateTags(self::CACHE_TAGS);
 
     $this->payoutLogger->info(
-      'Payout synced from Stripe. Order @oid marked paid via transfer @tid (ledger @lid, store @sid).',
+      'Payout synced from transfer.created. Order @oid marked paid via transfer @tid (ledger @lid, store @sid).',
       [
         '@oid' => $orderId,
         '@tid' => $transferId,
@@ -184,41 +183,54 @@ final class StripeWebhookController extends ControllerBase {
   }
 
   /**
-   * Handles transfer.failed — logs error, does NOT change ledger status.
+   * Flags a fully reversed transfer for manual payout review.
    */
-  private function handleTransferFailed(Event $event): Response {
+  private function handleTransferReversed(Event $event): Response {
     $transfer = $event->data['object'] ?? NULL;
     if (!$transfer instanceof Transfer) {
       return $this->handleInvalidTransferPayload($event);
     }
     $transferId = $transfer->id ?? 'unknown';
-    $orderId = $this->resolveOrderId($transfer);
+    $amount = (int) ($transfer->amount ?? 0);
+    $amountReversed = (int) ($transfer->amount_reversed ?? 0);
+    $fullyReversed = (bool) ($transfer->reversed ?? FALSE)
+      || ($amount > 0 && $amountReversed >= $amount);
 
-    $this->payoutLogger->error(
-      'transfer.failed webhook: Transfer @tid failed. Order @oid. No ledger change applied.',
-      ['@tid' => $transferId, '@oid' => $orderId ?? 'unresolved']
-    );
-
-    return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
-  }
-
-  /**
-   * Handles transfer.created — informational logging only.
-   */
-  private function handleTransferCreated(Event $event): Response {
-    $transfer = $event->data['object'] ?? NULL;
-    if (!$transfer instanceof Transfer) {
-      return $this->handleInvalidTransferPayload($event);
+    if (!$fullyReversed) {
+      $this->payoutLogger->warning(
+        'transfer.reversed webhook: Transfer @tid was partially reversed (@reversed of @amount). Ledger remains paid for manual review.',
+        ['@tid' => $transferId, '@reversed' => $amountReversed, '@amount' => $amount],
+      );
+      return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
     }
-    $transferId = $transfer->id ?? 'unknown';
 
-    $this->payoutLogger->info(
-      'transfer.created webhook: Transfer @tid created (destination @dest).',
-      [
-        '@tid' => $transferId,
-        '@dest' => $transfer->destination ?? 'unknown',
-      ]
-    );
+    if (!$this->database->schema()->tableExists(self::TABLE)) {
+      $this->payoutLogger->error('transfer.reversed webhook: Payout ledger table does not exist.');
+      return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
+    }
+
+    $updated = $this->database->update(self::TABLE)
+      ->fields([
+        'status' => 'pending',
+        'paid_at' => NULL,
+      ])
+      ->condition('transfer_id', $transferId)
+      ->condition('status', 'paid')
+      ->execute();
+
+    if ($updated > 0) {
+      Cache::invalidateTags(self::CACHE_TAGS);
+      $this->payoutLogger->critical(
+        'Transfer @tid was fully reversed. @count payout ledger row(s) moved to pending for manual review.',
+        ['@tid' => $transferId, '@count' => $updated],
+      );
+    }
+    else {
+      $this->payoutLogger->warning(
+        'transfer.reversed webhook: No paid payout ledger rows matched transfer @tid.',
+        ['@tid' => $transferId],
+      );
+    }
 
     return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
   }
