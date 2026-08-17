@@ -50,6 +50,7 @@ final class StripeWebhookEventContractTest extends TestCase {
     self::assertStringContainsString("(\$row->reversed_transfer_id ?? NULL) === \$transferId", $source);
     self::assertStringContainsString("->isNull('reversed_transfer_id')", $source);
     self::assertStringContainsString("->condition('reversed_transfer_id', \$transferId, '<>')", $source);
+    self::assertStringContainsString("'reversed_transfer_id' => NULL", $source);
   }
 
   /**

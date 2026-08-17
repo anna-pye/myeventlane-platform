@@ -175,6 +175,7 @@ final class StripeWebhookController extends ControllerBase {
       ->fields([
         'status' => 'paid',
         'transfer_id' => $transferId,
+        'reversed_transfer_id' => NULL,
         'paid_at' => $this->time->getRequestTime(),
       ])
       ->condition('order_id', $orderId)
