@@ -143,12 +143,16 @@ $settings['reverse_proxy_trusted_headers'] =
 //   MEL_STRIPE_SECRET_KEY       — sk_test_… / sk_live_…
 //   MEL_STRIPE_PUBLISHABLE_KEY  — pk_test_… / pk_live_…
 //   MEL_STRIPE_WEBHOOK_SECRET   — whsec_… (Payment Element gateway webhook)
+//   MEL_PRO_WEBHOOK_SECRET      — whsec_… (Pro lifecycle audit webhook)
+//   MEL_PAYOUT_WEBHOOK_SECRET   — whsec_… (Connect payout ledger webhook)
 //
 // DDEV: set these in a gitignored .ddev/config.local.yaml, for example
 //   web_environment:
 //     - MEL_STRIPE_SECRET_KEY=sk_test_…
 //     - MEL_STRIPE_PUBLISHABLE_KEY=pk_test_…
 //     - MEL_STRIPE_WEBHOOK_SECRET=whsec_…
+//     - MEL_PRO_WEBHOOK_SECRET=whsec_…
+//     - MEL_PAYOUT_WEBHOOK_SECRET=whsec_…
 // then ddev restart.
 // ---------------------------------------------------------------------------
 $melGetEnv = static function (string $name): string {
@@ -227,6 +231,16 @@ if ($mel_stripe_publishable !== '') {
 $mel_stripe_webhook = $melGetEnv('MEL_STRIPE_WEBHOOK_SECRET');
 if ($mel_stripe_webhook !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['webhook_signing_secret'] = $mel_stripe_webhook;
+}
+
+$mel_pro_webhook = $melGetEnv('MEL_PRO_WEBHOOK_SECRET');
+if ($mel_pro_webhook !== '') {
+  $config['myeventlane_pro.settings']['subscription_webhook_secret'] = $mel_pro_webhook;
+}
+
+$mel_payout_webhook = $melGetEnv('MEL_PAYOUT_WEBHOOK_SECRET');
+if ($mel_payout_webhook !== '') {
+  $config['myeventlane_admin_dashboard.settings']['stripe_webhook_secret'] = $mel_payout_webhook;
 }
 
 // ---------------------------------------------------------------------------
