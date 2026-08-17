@@ -15,7 +15,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 /**
  * Confirmation form for cancelling a Pro subscription.
  *
- * Uses Commerce Recurring's state machine transition — no custom cancel logic.
+ * Uses Commerce Recurring's native scheduled cancellation.
  */
 final class ProCancelConfirmForm extends ConfirmFormBase {
 
@@ -49,14 +49,14 @@ final class ProCancelConfirmForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    return $this->t('Are you sure you want to cancel your Pro subscription?');
+    return $this->t('Cancel your Pro subscription at the end of this billing period?');
   }
 
   /**
    * {@inheritdoc}
    */
   public function getDescription() {
-    return $this->t('Your Pro features will remain active until the end of the current billing period. This action cannot be undone from this page.');
+    return $this->t('Your Pro features remain active until the period ends. You can reactivate before then.');
   }
 
   /**
@@ -70,7 +70,7 @@ final class ProCancelConfirmForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getConfirmText() {
-    return $this->t('Cancel Subscription');
+    return $this->t('Cancel at period end');
   }
 
   /**
@@ -82,7 +82,7 @@ final class ProCancelConfirmForm extends ConfirmFormBase {
       ->accessCheck(FALSE)
       ->condition('uid', $this->currentUser->id())
       ->condition('billing_schedule', self::BILLING_SCHEDULE)
-      ->condition('state', 'active')
+      ->condition('state', ['trial', 'active'], 'IN')
       ->execute();
 
     if (empty($ids)) {
@@ -97,10 +97,10 @@ final class ProCancelConfirmForm extends ConfirmFormBase {
 
     foreach ($subscriptions as $subscription) {
       try {
-        $subscription->getState()->applyTransitionById('cancel');
+        $subscription->cancel(TRUE);
         $subscription->save();
 
-        $this->logger->notice('Pro subscription @id cancelled by user @uid.', [
+        $this->logger->notice('Pro subscription @id scheduled for period-end cancellation by user @uid.', [
           '@id' => $subscription->id(),
           '@uid' => $this->currentUser->id(),
         ]);
@@ -116,8 +116,8 @@ final class ProCancelConfirmForm extends ConfirmFormBase {
       }
     }
 
-    $this->messenger()->addStatus($this->t('Your Pro subscription has been cancelled.'));
-    $form_state->setRedirectUrl(new Url('myeventlane_pro.overview'));
+    $this->messenger()->addStatus($this->t('Your Pro subscription will end at the close of the current billing period.'));
+    $form_state->setRedirectUrl(new Url('myeventlane_pro.manage'));
   }
 
 }

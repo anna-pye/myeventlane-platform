@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_messaging\EventSubscriber;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\commerce_order\Event\OrderEvents;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_messaging\Service\MessageStorage;
@@ -173,7 +174,8 @@ final class OrderPaidConfirmationPdfRecoverySubscriber implements EventSubscribe
         continue;
       }
       $purchased = $item->getPurchasedEntity();
-      if ($purchased && $purchased->getEntityTypeId() === 'commerce_product_variation') {
+      if ($purchased instanceof ProductVariationInterface
+        && $purchased->bundle() !== 'mel_pro_subscription_variation') {
         return TRUE;
       }
     }

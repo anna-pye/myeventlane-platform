@@ -14,7 +14,9 @@ retrySchedule:
 unpaidSubscriptionState: canceled
 plugin: rolling
 configuration:
-  trial_interval: {  }
+  trial_interval:
+    number: 30
+    unit: day
   interval:
     number: 1
     unit: month

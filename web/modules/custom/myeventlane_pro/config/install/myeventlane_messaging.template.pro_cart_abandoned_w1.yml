@@ -1,11 +1,12 @@
 enabled: true
-subject: "You left tickets in your cart"
-preheader: "Your tickets are waiting — complete your booking before they're gone."
+subject: "Finish setting up MyEventLane Pro"
+preheader: "Return to your secure Pro checkout when you are ready."
 body_html: |
   <p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p>
-  <p style="font-size:15px;color:#444;">It looks like you started booking tickets but didn't finish. No worries — your cart is still waiting for you.</p>
+  <p style="font-size:15px;color:#444;">You started setting up MyEventLane Pro but did not finish. Your organiser checkout is ready when you are.</p>
+  <p style="font-size:15px;color:#444;">Pro includes a {{ trial_days }}-day free period, then {{ monthly_price }} per month until cancelled. Your card is not charged until you confirm the secure checkout.</p>
   <p style="text-align:center;margin:28px 0;">
-    <a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Return to your cart</a>
+    <a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Return to Pro checkout</a>
   </p>
   <p style="font-size:14px;color:#888;">If you have any questions, just reply to this email.</p>
 utm:

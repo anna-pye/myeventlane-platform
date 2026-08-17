@@ -46,6 +46,11 @@ myeventlane_pro.settings:
           type: integer
           label: 'Wave 2 delay'
 
+# MEL Pro uses the Commerce Stripe Payment Element configuration unchanged,
+# adding only Commerce's zero-balance payment-method capability marker.
+commerce_payment.commerce_payment_gateway.plugin.mel_pro_stripe_payment_element:
+  type: commerce_payment.commerce_payment_gateway.plugin.stripe_payment_element
+
 myeventlane_pro.vendor_comms.*:
   type: config_entity
   label: 'Pro vendor comms'

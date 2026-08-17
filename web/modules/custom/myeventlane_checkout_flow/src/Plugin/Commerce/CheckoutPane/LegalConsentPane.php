@@ -12,6 +12,7 @@ use Drupal\Core\Link;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
+use Drupal\myeventlane_checkout_flow\Service\OrganiserCheckoutContext;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -29,7 +30,12 @@ final class LegalConsentPane extends CheckoutPaneBase {
   /**
    * The legal settings service.
    */
-  private readonly LegalSettingsService $legalSettings;
+  private LegalSettingsService $legalSettings;
+
+  /**
+   * Organiser purchase context resolver.
+   */
+  private OrganiserCheckoutContext $organiserCheckoutContext;
 
   /**
    * {@inheritdoc}
@@ -37,6 +43,7 @@ final class LegalConsentPane extends CheckoutPaneBase {
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition, ?CheckoutFlowInterface $checkout_flow = NULL) {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition, $checkout_flow);
     $instance->legalSettings = $container->get('myeventlane_legal.settings');
+    $instance->organiserCheckoutContext = $container->get('myeventlane_checkout_flow.organiser_checkout_context');
     return $instance;
   }
 
@@ -55,7 +62,10 @@ final class LegalConsentPane extends CheckoutPaneBase {
       $consent_timestamp = (int) $order->get('field_legal_consent_timestamp')->value;
     }
 
-    $collection_notice = $this->legalSettings->getCollectionNoticeCheckout();
+    $organiserKind = (string) ($this->organiserCheckoutContext->build($order)['kind'] ?? 'customer');
+    $collection_notice = $organiserKind === 'customer'
+      ? $this->legalSettings->getCollectionNoticeCheckout()
+      : (string) $this->t('We collect your billing contact details to process this organiser purchase, provide receipts and manage your account. Our Privacy Policy explains how we use and protect your information.');
 
     if ($collection_notice !== '') {
       $pane_form['collection_notice'] = [

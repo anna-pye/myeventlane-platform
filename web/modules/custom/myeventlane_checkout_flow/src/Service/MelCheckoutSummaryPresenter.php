@@ -22,6 +22,7 @@ final class MelCheckoutSummaryPresenter {
     private readonly MelReadinessHelper $readinessHelper,
     private readonly GovernedOperationalTemplates $operationalTemplates,
     private readonly LegalSettingsService $legalSettings,
+    private readonly ?OrganiserCheckoutContext $organiserCheckoutContext = NULL,
   ) {}
 
   /**
@@ -63,6 +64,21 @@ final class MelCheckoutSummaryPresenter {
 
     $labels = $this->readinessHelper->customerCheckoutOrderSummarySurfaceLabels();
     $refund_url = trim($this->legalSettings->getRefundPolicyUrl());
+    $organiserContext = $this->organiserCheckoutContext?->build($order) ?? ['kind' => 'customer'];
+    if (($organiserContext['kind'] ?? 'customer') !== 'customer') {
+      $summaryTitle = (string) ($organiserContext['summary_title'] ?? $labels['title']);
+      foreach (['summary_region', 'core_heading_visually_hidden', 'sidebar_visible_title', 'title'] as $key) {
+        $labels[$key] = $summaryTitle;
+      }
+      $organiserTrust = $organiserContext['trust'] ?? [];
+      $labels['trust_heading'] = (string) ($organiserTrust['heading'] ?? '');
+      $labels['trust_footer_secure'] = (string) ($organiserTrust['line_secure'] ?? '');
+      $labels['trust_footer_instant'] = (string) ($organiserTrust['line_instant'] ?? '');
+      $labels['trust_footer_refund_hint'] = (string) ($organiserTrust['line_refund'] ?? '');
+      $labels['trust_refund_link_label'] = '';
+      $refund_url = '';
+      $cache['tags'] = Cache::mergeTags($cache['tags'], ['config:commerce_recurring.commerce_billing_schedule.mel_pro_monthly']);
+    }
     $trust = [
       'heading' => $labels['trust_heading'],
       'line_secure' => $labels['trust_footer_secure'],

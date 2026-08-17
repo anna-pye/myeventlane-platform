@@ -45,6 +45,7 @@ final class MessagingManager {
     // @deprecated assign_tickets_buyer: no queue() callers; buyer flow uses order_confirmation + ticket assignment.
     'assign_tickets_buyer',
     'boost_confirmation',
+    'pro_subscription_started',
     'order_confirmation',
     'order_invoice',
     'rsvp_confirmation',

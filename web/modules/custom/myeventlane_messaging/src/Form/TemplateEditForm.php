@@ -18,11 +18,11 @@ final class TemplateEditForm extends FormBase {
   /**
    * Constructs TemplateEditForm.
    *
-   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $templateConfigFactory
    *   The config factory.
    */
   public function __construct(
-    private readonly ConfigFactoryInterface $configFactory,
+    private readonly ConfigFactoryInterface $templateConfigFactory,
   ) {}
 
   /**
@@ -53,7 +53,7 @@ final class TemplateEditForm extends FormBase {
     }
 
     $configName = "myeventlane_messaging.template.{$template}";
-    $config = $this->configFactory->getEditable($configName);
+    $config = $this->templateConfigFactory->getEditable($configName);
 
     if ($config->isNew()) {
       $form['error'] = [
@@ -75,7 +75,6 @@ final class TemplateEditForm extends FormBase {
     $form['category'] = [
       '#type' => 'select',
       '#title' => $this->t('Category'),
-      '#description' => $this->t('Template category affects preference enforcement.'),
       '#options' => [
         'transactional' => $this->t('Transactional (always sent)'),
         'operational' => $this->t('Operational (respects operational reminder opt-out)'),
@@ -175,7 +174,7 @@ final class TemplateEditForm extends FormBase {
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
     $configName = $form['#config_name'];
-    $config = $this->configFactory->getEditable($configName);
+    $config = $this->templateConfigFactory->getEditable($configName);
 
     $config->set('enabled', (bool) $form_state->getValue('enabled'));
     $config->set('subject', trim((string) $form_state->getValue('subject')));
@@ -258,6 +257,7 @@ final class TemplateEditForm extends FormBase {
       'vendor_event_cancellation' => ['event_title', 'event_url'],
       'order_confirmation' => ['order_number', 'order_email'],
       'order_invoice' => ['order_number', 'order_email'],
+      'pro_subscription_started' => ['order_number', 'order_email', 'monthly_price'],
       'event_reminder' => ['event_title', 'event_url'],
       'event_reminder_24h' => ['event_title', 'event_url'],
       'event_reminder_7d' => ['event_title', 'event_url'],
@@ -281,6 +281,7 @@ final class TemplateEditForm extends FormBase {
       'rsvp_confirmation',
       'rsvp_vendor_copy',
       'boost_confirmation',
+      'pro_subscription_started',
       'vendor_event_cancellation',
       'vendor_event_important_change',
       'vendor_event_update',

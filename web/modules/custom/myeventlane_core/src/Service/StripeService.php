@@ -19,7 +19,6 @@ use Stripe\Exception\ApiErrorException;
 use Stripe\LoginLink;
 use Stripe\PaymentIntent;
 use Stripe\SetupIntent;
-use Stripe\Stripe;
 use Stripe\StripeClient;
 
 /**
@@ -113,9 +112,6 @@ final class StripeService {
     if (empty($secretKey)) {
       throw new \RuntimeException('Platform Stripe secret key is not configured.');
     }
-
-    Stripe::setApiKey($secretKey);
-    $this->loggerFactory->get('stripe_debug')->notice('Stripe key set');
 
     return new StripeClient($secretKey);
   }

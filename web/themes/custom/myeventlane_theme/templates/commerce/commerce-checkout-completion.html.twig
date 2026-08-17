@@ -13,6 +13,8 @@
 {% set mcc = mel_checkout_completion|default({}) %}
 {% set hero = mcc.hero|default({}) %}
 {% set lab = mcc.labels|default({}) %}
+{% set organiser = mel_organiser_completion|default({}) %}
+{% set organiser_complete = organiser.completion|default({}) %}
 
 {% set events = [] %}
 {% set ticket_items = [] %}
@@ -51,17 +53,58 @@
   <header class="mel-confirmation__hero mel-checkout-success-surface__hero" role="region" aria-labelledby="mel-confirmation-hero-title">
     <div class="mel-confirmation__hero-icon" aria-hidden="true">✓</div>
     <div class="mel-confirmation__hero-content">
-      <h1 id="mel-confirmation-hero-title" class="mel-confirmation__title">{{ hero.heading|default('') }}</h1>
-      {% if hero.lead|default('') %}
-        <p class="mel-confirmation__soft-lead">{{ hero.lead }}</p>
+      <h1 id="mel-confirmation-hero-title" class="mel-confirmation__title">{{ organiser_complete.heading|default(hero.heading|default('')) }}</h1>
+      {% if organiser_complete.lead|default(hero.lead|default('')) %}
+        <p class="mel-confirmation__soft-lead">{{ organiser_complete.lead|default(hero.lead|default('')) }}</p>
       {% endif %}
-      <p class="mel-confirmation__subtitle">{{ mcc.confirmation.email_line|default('') }}</p>
+      <p class="mel-confirmation__subtitle">
+        {% if organiser_complete %}
+          {{ 'Confirmation sent to @email.'|t({'@email': order_entity.getEmail()}) }}
+        {% else %}
+          {{ mcc.confirmation.email_line|default('') }}
+        {% endif %}
+      </p>
       <p class="mel-confirmation__reference">{{ mcc.confirmation.order_line|default('') }}</p>
     </div>
   </header>
 
   <div class="mel-confirmation__main">
-    {% if events|length > 0 %}
+    {% if organiser_complete %}
+      <section class="mel-confirmation-card mel-confirmation__summary" aria-labelledby="mel-organiser-purchase-summary">
+        <div class="mel-confirmation-card__body">
+          <p class="mel-confirmation-card__eyebrow">{{ organiser_complete.summary_eyebrow }}</p>
+          <h2 id="mel-organiser-purchase-summary" class="mel-confirmation-card__title">{{ organiser_complete.summary_title }}</h2>
+          {% for row in organiser.purchase_details.rows|default([]) %}
+            <div class="mel-confirmation-card__ticket-row">
+              <span class="mel-confirmation-card__ticket-name">{{ row.label }}</span>
+              <span class="mel-confirmation-card__ticket-price">{{ row.value }}</span>
+            </div>
+          {% endfor %}
+          {% if organiser.purchase_details.note|default('') %}
+            <p class="mel-confirmation-card__text">{{ organiser.purchase_details.note }}</p>
+          {% endif %}
+        </div>
+      </section>
+
+      <section class="mel-confirmation-card mel-confirmation-card--next mel-confirmation__next" aria-labelledby="mel-organiser-what-next">
+        <div class="mel-confirmation-card__body">
+          <h2 id="mel-organiser-what-next" class="mel-confirmation-card__title">{{ organiser_complete.what_next_title }}</h2>
+          <p class="mel-confirmation-card__text">{{ organiser_complete.what_next_body }}</p>
+        </div>
+      </section>
+
+      <section class="mel-confirmation-card mel-confirmation-card--trust" aria-labelledby="mel-organiser-manage">
+        <div class="mel-confirmation-card__body">
+          <h2 id="mel-organiser-manage" class="mel-confirmation-card__title">{{ organiser_complete.support_title }}</h2>
+          <p class="mel-confirmation-card__text">{{ organiser_complete.support_body }}</p>
+        </div>
+      </section>
+
+      <div class="mel-confirmation-actions mel-confirmation-actions--frictionless">
+        <a href="{{ organiser_complete.primary_url }}" class="mel-confirmation-button mel-confirmation-button--primary">{{ organiser_complete.primary_label }}</a>
+        <a href="{{ organiser_complete.secondary_url }}" class="mel-confirmation-button mel-confirmation-button--secondary">{{ organiser_complete.secondary_label }}</a>
+      </div>
+    {% elseif events|length > 0 %}
       {% for event in events %}
         <section class="mel-confirmation-card mel-confirmation-card--event-summary mel-confirmation__summary" aria-labelledby="mel-confirmation-event-summary-{{ event.id() }}">
           {% set event_image_url = mel_event_image_urls[event.id()] ?? null %}
@@ -163,6 +206,7 @@
       </div>
     {% endif %}
 
+    {% if not organiser_complete %}
     {% set what_next = mcc.what_next|default({}) %}
     {% set organiser_trust = mcc.organiser_trust|default({}) %}
     <section class="mel-confirmation-card mel-confirmation-card--next mel-confirmation__next" aria-labelledby="mel-confirmation-what-next">
@@ -221,5 +265,6 @@
         </a>
       {% endfor %}
     </div>
+    {% endif %}
   </div>
 </div>

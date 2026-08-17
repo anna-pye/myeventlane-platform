@@ -299,6 +299,22 @@ function myeventlane_pro_schema(): array {
     ],
   ];
 
+  $schema['myeventlane_pro_webhook_event'] = [
+    'description' => 'Durable idempotency ledger for verified Pro Stripe webhook events.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'event_id' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'event_type' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'received_at' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['event_id' => ['event_id']],
+    'indexes' => [
+      'event_type' => ['event_type'],
+      'received_at' => ['received_at'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -1288,6 +1304,23 @@ function myeventlane_pro_update_10018(): void {
     $config->set('billing_portal_enabled', FALSE);
     $config->save();
   }
+}
+
+/**
+ * Enable the Pro portal and add a durable Stripe event idempotency ledger.
+ */
+function myeventlane_pro_update_10019(): void {
+  $schema = Database::getConnection()->schema();
+  if (!$schema->tableExists('myeventlane_pro_webhook_event')) {
+    $schema->createTable(
+      'myeventlane_pro_webhook_event',
+      myeventlane_pro_schema()['myeventlane_pro_webhook_event'],
+    );
+  }
+
+  \Drupal::configFactory()->getEditable('myeventlane_pro.settings')
+    ->set('billing_portal_enabled', TRUE)
+    ->save();
 }
 
 /**

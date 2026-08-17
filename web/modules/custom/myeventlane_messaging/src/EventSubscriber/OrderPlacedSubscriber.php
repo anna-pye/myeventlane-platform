@@ -7,6 +7,8 @@ namespace Drupal\myeventlane_messaging\EventSubscriber;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder;
 use Drupal\node\NodeInterface;
@@ -37,6 +39,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     private readonly MessagingManager $messagingManager,
     private readonly LoggerInterface $logger,
     private readonly OrderConfirmationQueueBuilder $orderConfirmationQueue,
+    private readonly ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -87,6 +90,11 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       return;
     }
 
+    if ($this->isProOnlyOrder($order)) {
+      $this->sendProSubscriptionStarted($order, $mail);
+      return;
+    }
+
     $this->orderConfirmationQueue->queue($order, $mail, FALSE);
   }
 
@@ -106,6 +114,86 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     }
 
     return TRUE;
+  }
+
+  /**
+   * Checks if an order contains only MyEventLane Pro subscription inventory.
+   */
+  private function isProOnlyOrder(OrderInterface $order): bool {
+    $items = $order->getItems();
+    if ($items === []) {
+      return FALSE;
+    }
+
+    foreach ($items as $item) {
+      $variation = $item->getPurchasedEntity();
+      if (!$variation instanceof ProductVariationInterface
+        || $variation->bundle() !== 'mel_pro_subscription_variation') {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * Queues the organiser-only Pro trial/subscription confirmation.
+   */
+  private function sendProSubscriptionStarted(OrderInterface $order, string $mail): void {
+    $orderId = (int) $order->id();
+    $customer = $order->getCustomer();
+    $firstName = $customer ? $customer->getDisplayName() : 'there';
+    $items = $order->getItems();
+    $firstItem = reset($items) ?: NULL;
+    $variation = $firstItem?->getPurchasedEntity();
+    $price = $variation instanceof ProductVariationInterface ? $variation->getPrice() : NULL;
+    $monthlyPrice = $price !== NULL
+      ? $this->formatCurrency($price->getNumber(), $price->getCurrencyCode())
+      : 'the displayed monthly price';
+    $trialDays = max(0, (int) $this->configFactory->get('myeventlane_pro.settings')->get('trial_days'));
+    $chargedToday = (float) ($order->getTotalPrice()?->getNumber() ?? 0);
+    $trialApplies = $trialDays > 0 && $chargedToday <= 0.0;
+
+    try {
+      $manageUrl = Url::fromRoute('myeventlane_pro.manage', [], ['absolute' => TRUE])
+        ->toString(TRUE)
+        ->getGeneratedUrl();
+    }
+    catch (\Exception $exception) {
+      $this->logger->warning('Could not generate Pro manage URL: @message', [
+        '@message' => $exception->getMessage(),
+      ]);
+      $manageUrl = '/vendor/pro/manage';
+    }
+
+    $context = [
+      'first_name' => $firstName,
+      'order_number' => $order->label(),
+      'order_id' => $orderId,
+      'order_email' => $mail,
+      'trial_days' => $trialDays,
+      'trial_applies' => $trialApplies,
+      'monthly_price' => $monthlyPrice,
+      'charged_today' => $this->formatCurrency(
+        $order->getTotalPrice()?->getNumber() ?? '0',
+        $order->getTotalPrice()?->getCurrencyCode() ?? 'AUD',
+      ),
+      'pro_manage_url' => $manageUrl,
+      'support_url' => self::VENDOR_SUPPORT_URL,
+    ];
+
+    $messageId = $this->messagingManager->queue('pro_subscription_started', $mail, $context, [
+      'langcode' => $order->language()->getId(),
+      'idempotency_key' => sprintf('order:%d:pro_subscription_started', $orderId),
+    ]);
+
+    if ($messageId !== NULL) {
+      $this->logger->info('Pro subscription confirmation queued for order @order_id to @email.', [
+        '@order_id' => $orderId,
+        '@email' => $mail,
+        'order_id' => $orderId,
+        'message_type' => 'pro_subscription_started',
+      ]);
+    }
   }
 
   /**
@@ -154,7 +242,10 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       'boost_days' => $primaryBoost['boost_days'],
       'boost_start_date' => $primaryBoost['boost_start_date'],
       'boost_end_date' => $primaryBoost['boost_end_date'],
-      'total_paid' => $this->formatPrice((float) $order->getTotalPrice()->getNumber()),
+      'total_paid' => $this->formatCurrency(
+        $order->getTotalPrice()?->getNumber() ?? '0',
+        $order->getTotalPrice()?->getCurrencyCode() ?? 'AUD',
+      ),
       'boost_manage_url' => $boostManageUrl,
       'support_url' => self::VENDOR_SUPPORT_URL,
     ];
@@ -166,6 +257,7 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     try {
       $this->messagingManager->queue('boost_confirmation', $mail, $context, [
         'langcode' => $order->language()->getId(),
+        'idempotency_key' => sprintf('order:%d:boost_confirmation', $orderId),
       ]);
 
       $this->logger->info(
@@ -249,8 +341,9 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     return $items;
   }
 
-  private function formatPrice(float $amount): string {
-    return '$' . number_format($amount, 2);
+  private function formatCurrency(string $amount, string $currency): string {
+    $prefix = strtoupper($currency) === 'AUD' ? 'A$' : strtoupper($currency) . ' ';
+    return $prefix . number_format((float) $amount, 2);
   }
 
 }

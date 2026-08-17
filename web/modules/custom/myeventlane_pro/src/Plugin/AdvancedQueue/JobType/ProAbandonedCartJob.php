@@ -207,6 +207,11 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       'order_id' => (int) $order->id(),
       'step' => $step,
       'item_count' => count($order->getItems()),
+      'trial_days' => max(0, (int) $this->configFactory->get('myeventlane_pro.settings')->get('trial_days')),
+      'monthly_price' => 'A$' . number_format(
+        (float) ($this->configFactory->get('myeventlane_pro.settings')->get('pro_price') ?? 49),
+        2,
+      ),
     ];
 
     $templateConfig = $this->configFactory->get("myeventlane_messaging.template.{$template}");
@@ -214,18 +219,24 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     if ($templateEnabled && $this->messagingManager instanceof MessagingManager) {
       $messageId = $this->messagingManager->queue($template, $recipient, $context, [
         'langcode' => $order->language()->getId(),
+        'idempotency_key' => sprintf('order:%d:%s', (int) $order->id(), $template),
       ]);
       if ($messageId !== NULL) {
         return TRUE;
       }
     }
 
-    $subject = 'Finish your booking on MyEventLane';
+    $subject = 'Finish setting up MyEventLane Pro';
     $body = [
       "Hi {$firstName},",
       '',
-      'You left tickets in your cart.',
-      "Return to your cart: {$cartUrl}",
+      'You started setting up MyEventLane Pro but did not finish.',
+      sprintf(
+        'Pro includes a %d-day free period, then %s per month until cancelled.',
+        $context['trial_days'],
+        $context['monthly_price'],
+      ),
+      "Return to your secure Pro checkout: {$cartUrl}",
     ];
     $result = $this->mailManager->mail(
       'myeventlane_pro',
@@ -343,4 +354,3 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
   }
 
 }
-

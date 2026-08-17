@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
  */
 final class ProManagePresentationContractTest extends TestCase {
 
-  public function testManagePageExplainsPlanToolsAndCancellationTiming(): void {
+  public function testManagePageExplainsPlanToolsAndSelfServiceCancellation(): void {
     $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
     self::assertIsString($template);
 
@@ -22,7 +22,19 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString("'Pro email templates'|t", $template);
     self::assertStringContainsString("'Marketing and branding tools'|t", $template);
     self::assertStringContainsString("'Cancel at period end'|t", $template);
-    self::assertStringContainsString("'Your Pro access will continue until @date.'|t", $template);
+    self::assertStringContainsString("'Reactivate MEL Pro'|t", $template);
+    self::assertStringContainsString("'Invoices and receipts'|t", $template);
+  }
+
+  public function testManagePageDoesNotPresentStaleRenewalAsFutureBilling(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProBillingController.php');
+    $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
+    self::assertIsString($controller);
+    self::assertIsString($template);
+
+    self::assertStringContainsString('$renewalDateStale = TRUE', $controller);
+    self::assertStringContainsString("'Your billing date needs review'|t", $template);
+    self::assertStringContainsString('We do not have a future renewal date to show', $template);
   }
 
   public function testZeroRoiUsesPlainLanguage(): void {
@@ -40,13 +52,24 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString("get('cancel_request_enabled') ?? TRUE", $service);
   }
 
+  public function testCancellationUsesCommerceScheduledChange(): void {
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/ProCancelRequestForm.php');
+    $reactivate = file_get_contents(dirname(__DIR__, 3) . '/src/Form/ProReactivateForm.php');
+    self::assertIsString($form);
+    self::assertIsString($reactivate);
+
+    self::assertStringContainsString('$subscription->cancel(TRUE)', $form);
+    self::assertStringContainsString("hasScheduledChange('state', 'canceled')", $form);
+    self::assertStringContainsString("removeScheduledChanges('state')", $reactivate);
+  }
+
   public function testUpgradePageUsesVerifiedBenefitLanguageAndOneSubscribeForm(): void {
     $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-overview.html.twig');
     self::assertIsString($template);
 
     self::assertStringContainsString("'Advanced organiser analytics'|t", $template);
     self::assertStringContainsString("'Pro email templates'|t", $template);
-    self::assertStringContainsString('Cancel at the end of any billing period.', $template);
+    self::assertStringContainsString('30-day trial, then @price per month', $template);
     self::assertSame(1, substr_count($template, '{{ subscribe_form }}'));
     self::assertStringNotContainsString('Automated refunds', $template);
     self::assertStringNotContainsString('Revenue Growth', $template);

@@ -1,7 +1,7 @@
 enabled: true
-subject: 'Your tickets are almost gone!'
-preheader: "Don't miss out — finish your booking now."
-body_html: '<p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p><p style="font-size:15px;color:#444;">Just a friendly reminder — you still have tickets waiting in your cart. Popular events sell out fast, so don''t leave it too long!</p><p style="text-align:center;margin:28px 0;"><a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Complete your booking</a></p><p style="font-size:14px;color:#888;">This is our last reminder. If you''ve already completed your purchase, please disregard this email.</p>'
+subject: 'A reminder about MyEventLane Pro'
+preheader: 'Your Pro organiser checkout is still available.'
+body_html: '<p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p><p style="font-size:15px;color:#444;">This is your final reminder that your MyEventLane Pro setup is not complete.</p><p style="font-size:15px;color:#444;">If you continue, your {{ trial_days }}-day free period starts when checkout is confirmed. After that, Pro renews at {{ monthly_price }} per month until cancelled.</p><p style="text-align:center;margin:28px 0;"><a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Complete Pro setup</a></p><p style="font-size:14px;color:#888;">If you already completed setup, you can disregard this email.</p>'
 utm:
   enable: true
   params:

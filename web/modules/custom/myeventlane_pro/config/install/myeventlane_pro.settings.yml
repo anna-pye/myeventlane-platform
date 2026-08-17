@@ -5,7 +5,7 @@ grace_days: 7
 upgrade_cta_enabled: true
 cancel_request_enabled: true
 billing_support_url: ''
-billing_portal_enabled: false
+billing_portal_enabled: true
 webhook_audit_enabled: false
 subscription_webhook_secret: ''
 abandoned_cart:
