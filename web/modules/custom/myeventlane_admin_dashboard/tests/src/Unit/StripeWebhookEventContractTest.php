@@ -32,4 +32,14 @@ final class StripeWebhookEventContractTest extends TestCase {
     self::assertStringContainsString("->condition('status', 'paid')", $source);
   }
 
+  public function testWebhookSecretsUseDeploymentSafeRuntimeOverrides(): void {
+    $settings = file_get_contents(dirname(__DIR__, 6) . '/sites/default/settings.mel_shared_session.php');
+    self::assertIsString($settings);
+
+    self::assertStringContainsString("\$melGetEnv('MEL_PRO_WEBHOOK_SECRET')", $settings);
+    self::assertStringContainsString("['myeventlane_pro.settings']['subscription_webhook_secret']", $settings);
+    self::assertStringContainsString("\$melGetEnv('MEL_PAYOUT_WEBHOOK_SECRET')", $settings);
+    self::assertStringContainsString("['myeventlane_admin_dashboard.settings']['stripe_webhook_secret']", $settings);
+  }
+
 }
