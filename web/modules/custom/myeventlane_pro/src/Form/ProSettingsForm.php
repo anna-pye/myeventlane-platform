@@ -31,11 +31,13 @@ final class ProSettingsForm extends ConfigFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('myeventlane_pro.settings');
+    $trialDays = max(0, (int) $this->config('commerce_recurring.commerce_billing_schedule.mel_pro_monthly')
+      ->get('configuration.trial_interval.number'));
 
     $form['trial_days'] = [
       '#type' => 'item',
       '#title' => $this->t('Trial period'),
-      '#markup' => $this->t('30 days'),
+      '#markup' => $this->formatPlural($trialDays, '1 day', '@count days'),
       '#description' => $this->t('Controlled by the MEL Pro Commerce billing schedule so checkout and renewal use one source of truth.'),
     ];
 
@@ -121,7 +123,6 @@ final class ProSettingsForm extends ConfigFormBase {
     $values = $form_state->getValues();
     $commercial = $values['commercial'] ?? [];
     $this->config('myeventlane_pro.settings')
-      ->set('trial_days', 30)
       ->set('pro_price', (int) ($values['pro_price'] ?? 49))
       ->set('pro_variation_sku', trim((string) ($values['pro_variation_sku'] ?? '')))
       ->set('grace_days', (int) ($commercial['grace_days'] ?? 7))

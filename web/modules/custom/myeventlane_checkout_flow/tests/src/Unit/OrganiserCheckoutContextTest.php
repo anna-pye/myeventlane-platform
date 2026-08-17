@@ -63,6 +63,41 @@ final class OrganiserCheckoutContextTest extends UnitTestCase {
   /**
    * @covers ::build
    */
+  public function testProWithoutTrialDoesNotPromisePaymentAfterTrial(): void {
+    $variation = $this->createMock(ProductVariationInterface::class);
+    $variation->method('bundle')->willReturn('mel_pro_subscription_variation');
+    $variation->method('getPrice')->willReturn(new Price('49.00', 'AUD'));
+
+    $item = $this->createMock(OrderItemInterface::class);
+    $item->method('getPurchasedEntity')->willReturn($variation);
+
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$item]);
+    $order->method('getTotalPrice')->willReturn(new Price('49.00', 'AUD'));
+
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->with('configuration.trial_interval.number')->willReturn(30);
+    $configFactory = $this->createMock(ConfigFactoryInterface::class);
+    $configFactory->method('get')->willReturn($config);
+
+    $formatter = $this->createMock(CurrencyFormatterInterface::class);
+    $formatter->method('format')->willReturn('A$49.00');
+
+    $context = new OrganiserCheckoutContext(
+      $configFactory,
+      $formatter,
+      $this->getStringTranslationStub(),
+    );
+    $copy = json_encode($context->build($order), JSON_THROW_ON_ERROR);
+
+    $this->assertStringContainsString('No free trial is applied', $copy);
+    $this->assertStringContainsString('A$49.00 per month from today', $copy);
+    $this->assertStringNotContainsString('per month after the trial', $copy);
+  }
+
+  /**
+   * @covers ::build
+   */
   public function testCustomerOrderIsNotRelabelledAsOrganiserPurchase(): void {
     $variation = $this->createMock(ProductVariationInterface::class);
     $variation->method('bundle')->willReturn('ticket_variation');
