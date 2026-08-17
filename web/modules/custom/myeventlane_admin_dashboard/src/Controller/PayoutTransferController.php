@@ -130,13 +130,13 @@ final class PayoutTransferController extends ControllerBase {
         ->fields([
           'status' => 'paid',
           'transfer_id' => $transfer->id,
+          'reversed_transfer_id' => NULL,
           'paid_at' => $this->time->getRequestTime(),
         ])
         ->condition('id', $ledger_id)
         ->execute();
 
       // Transaction commits when $transaction goes out of scope.
-
       Cache::invalidateTags(self::CACHE_TAGS);
 
       $this->payoutLogger->info(
@@ -228,6 +228,9 @@ final class PayoutTransferController extends ControllerBase {
     return $accountId !== '' ? $accountId : NULL;
   }
 
+  /**
+   * Validates the payout action CSRF token.
+   */
   private function validateCsrf(Request $request): void {
     $token = $request->request->get('token', '');
     if (!$this->csrfToken->validate((string) $token, 'payout_action')) {
@@ -235,11 +238,17 @@ final class PayoutTransferController extends ControllerBase {
     }
   }
 
+  /**
+   * Extracts the supported payout reporting window.
+   */
   private function extractDays(Request $request): int {
     $days = (int) $request->request->get('days', 30);
     return in_array($days, [7, 30, 90], TRUE) ? $days : 30;
   }
 
+  /**
+   * Redirects to the payout ledger for the selected reporting window.
+   */
   private function redirectToPayouts(int $days): RedirectResponse {
     $url = Url::fromRoute('myeventlane_admin_dashboard.payouts', [], [
       'query' => ['days' => $days],

@@ -158,14 +158,36 @@ final class StripeWebhookController extends ControllerBase {
       return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
     }
 
-    $this->database->update(self::TABLE)
+    if (($row->reversed_transfer_id ?? NULL) === $transferId) {
+      $this->payoutLogger->warning(
+        'transfer.created webhook: Transfer @tid was already fully reversed for ledger @lid (order @oid). Replay skipped.',
+        ['@tid' => $transferId, '@lid' => $row->id, '@oid' => $orderId],
+      );
+      return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
+    }
+
+    $update = $this->database->update(self::TABLE);
+    $notReversed = $update->orConditionGroup()
+      ->isNull('reversed_transfer_id')
+      ->condition('reversed_transfer_id', $transferId, '<>');
+
+    $updated = $update
       ->fields([
         'status' => 'paid',
         'transfer_id' => $transferId,
         'paid_at' => $this->time->getRequestTime(),
       ])
       ->condition('order_id', $orderId)
+      ->condition($notReversed)
       ->execute();
+
+    if ($updated === 0) {
+      $this->payoutLogger->warning(
+        'transfer.created webhook: Ledger @lid (order @oid) changed before transfer @tid could be applied. Replay skipped.',
+        ['@lid' => $row->id, '@oid' => $orderId, '@tid' => $transferId],
+      );
+      return new JsonResponse(['received' => TRUE], Response::HTTP_OK);
+    }
 
     Cache::invalidateTags(self::CACHE_TAGS);
 
@@ -211,7 +233,9 @@ final class StripeWebhookController extends ControllerBase {
 
     $updated = $this->database->update(self::TABLE)
       ->fields([
-        'status' => 'pending',
+        'status' => 'unpaid',
+        'transfer_id' => NULL,
+        'reversed_transfer_id' => $transferId,
         'paid_at' => NULL,
       ])
       ->condition('transfer_id', $transferId)
@@ -221,7 +245,7 @@ final class StripeWebhookController extends ControllerBase {
     if ($updated > 0) {
       Cache::invalidateTags(self::CACHE_TAGS);
       $this->payoutLogger->critical(
-        'Transfer @tid was fully reversed. @count payout ledger row(s) moved to pending for manual review.',
+        'Transfer @tid was fully reversed. @count payout ledger row(s) moved to unpaid for manual recovery.',
         ['@tid' => $transferId, '@count' => $updated],
       );
     }
