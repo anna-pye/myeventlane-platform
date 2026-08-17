@@ -54,7 +54,7 @@ final class StripeWebhookAuthenticationTest extends TestCase {
       '/admin/myeventlane/payouts/webhook',
       'POST',
       server: ['HTTP_STRIPE_SIGNATURE' => $signature],
-      content: '{"id":"evt_unsigned","type":"transfer.paid"}',
+      content: '{"id":"evt_unsigned","type":"transfer.created"}',
     );
 
     self::assertSame(Response::HTTP_BAD_REQUEST, $controller->handle($request)->getStatusCode());
