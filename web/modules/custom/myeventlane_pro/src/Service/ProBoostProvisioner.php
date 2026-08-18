@@ -265,6 +265,25 @@ final class ProBoostProvisioner {
           $boostDays,
         );
         if ($canonicalEnds === NULL) {
+          $cappedEnds = $this->grantPolicy->cappedExistingGrantEnd(
+            $existingStarts,
+            $existingEnds,
+            $proActiveEnd,
+            $boostDays,
+          );
+          $changed = FALSE;
+          if ($existingEnds !== $cappedEnds) {
+            $existing->set('ends', $cappedEnds);
+            $changed = TRUE;
+          }
+          if ((string) $existing->get('status')->value !== BoostEntitlementInterface::STATUS_EXPIRED) {
+            $existing->set('status', BoostEntitlementInterface::STATUS_EXPIRED);
+            $changed = TRUE;
+          }
+          if ($changed) {
+            $existing->save();
+            return 'updated';
+          }
           return 'none';
         }
 

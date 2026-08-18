@@ -61,6 +61,7 @@ final class ProSettingsForm extends ConfigFormBase {
       '#type' => 'details',
       '#title' => $this->t('Commercial settings'),
       '#open' => TRUE,
+      '#tree' => TRUE,
     ];
 
     $form['commercial']['grace_days'] = [

@@ -88,4 +88,17 @@ final class ProBoostGrantPolicyTest extends TestCase {
     );
   }
 
+  /**
+   * Tests that an elapsed legacy grant still exposes its seven-day cap.
+   */
+  public function testElapsedLegacyGrantRetainsCanonicalCapForPersistence(): void {
+    $startsAt = 1_700_000_000;
+    $legacyEnd = $startsAt + (30 * 86400);
+
+    self::assertSame(
+      $startsAt + (7 * 86400),
+      $this->policy->cappedExistingGrantEnd($startsAt, $legacyEnd, NULL, 7),
+    );
+  }
+
 }
