@@ -71,6 +71,11 @@ services:
       - '@logger.channel.myeventlane_pro'
       - '@datetime.time'
       - '@database'
+      - '@config.factory'
+      - '@myeventlane_pro.pro_boost_grant_policy'
+
+  myeventlane_pro.pro_boost_grant_policy:
+    class: Drupal\myeventlane_pro\Service\ProBoostGrantPolicy
 
   myeventlane_pro.subscription_health:
     class: Drupal\myeventlane_pro\Service\ProSubscriptionHealthService

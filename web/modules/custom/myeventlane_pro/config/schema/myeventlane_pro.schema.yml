@@ -14,6 +14,9 @@ myeventlane_pro.settings:
     grace_days:
       type: integer
       label: 'Grace period days after payment failure'
+    pro_boost_days:
+      type: integer
+      label: 'Included Boost days per eligible event'
     upgrade_cta_enabled:
       type: boolean
       label: 'Show upgrade CTA to non-Pro organisers'
