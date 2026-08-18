@@ -13,9 +13,9 @@ third_party_settings:
     taxable_type: events
 _core:
   default_config_hash: Q21JtNYYWL-eIfxaX1rm-NvSqPqdDymrDrN08f_QC7M
-label: 'Recurring (Product variation)'
 id: recurring_product_variation
-purchasableEntityType: commerce_product_variation
-orderType: recurring
+label: 'Recurring (Product variation)'
 traits: {  }
 locked: true
+purchasableEntityType: commerce_product_variation
+orderType: recurring

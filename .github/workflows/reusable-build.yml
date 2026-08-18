@@ -138,6 +138,9 @@ jobs:
       - name: Test deploy config-status parser
         run: bash scripts/deploy/test-config-status-parser.sh
 
+      - name: Test GST config convergence
+        run: php scripts/deploy/test-gst-config-convergence.php
+
       - name: Test deploy domain redirect policy
         run: bash scripts/deploy/test-domain-redirect-policy.sh
 
