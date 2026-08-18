@@ -33,6 +33,25 @@ final class ProBoostGrantPolicy {
     ?int $proActiveEnd,
     int $days,
   ): ?int {
+    $endsAt = $this->cappedExistingGrantEnd(
+      $existingStartsAt,
+      $existingEndsAt,
+      $proActiveEnd,
+      $days,
+    );
+
+    return $endsAt > $now ? $endsAt : NULL;
+  }
+
+  /**
+   * Returns the canonical cap even when the grant has already elapsed.
+   */
+  public function cappedExistingGrantEnd(
+    int $existingStartsAt,
+    int $existingEndsAt,
+    ?int $proActiveEnd,
+    int $days,
+  ): int {
     $endsAt = min(
       $existingEndsAt,
       $existingStartsAt + (max(1, $days) * self::SECONDS_PER_DAY),
@@ -41,7 +60,7 @@ final class ProBoostGrantPolicy {
       $endsAt = min($endsAt, $proActiveEnd);
     }
 
-    return $endsAt > $now ? $endsAt : NULL;
+    return $endsAt;
   }
 
 }

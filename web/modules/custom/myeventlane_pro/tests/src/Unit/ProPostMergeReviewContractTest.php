@@ -29,6 +29,21 @@ final class ProPostMergeReviewContractTest extends TestCase {
     self::assertStringNotContainsString("->set('trial_days'", $form);
   }
 
+  public function testCommercialSettingsPreserveNestedFormValues(): void {
+    $form = $this->moduleFile('src/Form/ProSettingsForm.php');
+
+    self::assertStringContainsString("'#tree' => TRUE", $form);
+    self::assertStringContainsString("\$commercial = \$values['commercial'] ?? [];", $form);
+    self::assertStringContainsString("->set('pro_boost_days', (int) (\$commercial['pro_boost_days'] ?? 7))", $form);
+  }
+
+  public function testElapsedProBoostIsCappedAndExpired(): void {
+    $provisioner = $this->moduleFile('src/Service/ProBoostProvisioner.php');
+
+    self::assertStringContainsString('cappedExistingGrantEnd(', $provisioner);
+    self::assertStringContainsString('BoostEntitlementInterface::STATUS_EXPIRED', $provisioner);
+  }
+
   public function testFreeCustomerCheckoutDoesNotPromiseCardStep(): void {
     $theme = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_theme/myeventlane_theme.theme');
     self::assertIsString($theme);

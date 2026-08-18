@@ -47,6 +47,12 @@ run_case 0 \
   0 \
   'gin.settings'
 
+run_case 0 \
+  "Pro settings environment override passes when explicitly allowed" \
+  $'Name,State\nmyeventlane_pro.settings,Different\n' \
+  0 \
+  'myeventlane_pro.settings'
+
 run_case 7 \
   "config status command failure is preserved" \
   $'Drush bootstrap failed\n' \
@@ -59,6 +65,12 @@ run_case 1 \
 echo "Passed: $PASSES"
 echo "Failed: $FAILS"
 if [ "$FAILS" -ne 0 ]; then
+  exit 1
+fi
+
+WORKFLOW="$ROOT/.github/workflows/deploy-staging.yml"
+if ! grep -F 'CIM_ALLOWED_DIFFERENCES=' "$WORKFLOW" | grep -Fq 'myeventlane_pro.settings'; then
+  echo "FAIL: staging workflow must allow the Pro settings object overridden by MEL_PRO_WEBHOOK_SECRET"
   exit 1
 fi
 
