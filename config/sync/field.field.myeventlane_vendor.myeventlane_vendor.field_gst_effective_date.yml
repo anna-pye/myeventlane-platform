@@ -1,0 +1,20 @@
+uuid: fb051ecd-9d60-46cb-ae08-593e80433e7c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_gst_effective_date
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_gst_effective_date
+field_name: field_gst_effective_date
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'GST registration effective date'
+description: 'The date GST registration began. Required only when registered.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: datetime

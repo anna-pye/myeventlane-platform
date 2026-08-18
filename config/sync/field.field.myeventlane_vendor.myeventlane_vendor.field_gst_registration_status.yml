@@ -1,0 +1,21 @@
+uuid: 321285c8-1443-4617-845f-86b7e179a166
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_gst_registration_status
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_gst_registration_status
+field_name: field_gst_registration_status
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'GST registration status'
+description: 'Whether the organiser is registered for Australian GST.'
+required: false
+translatable: false
+default_value:
+  - { value: unknown }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

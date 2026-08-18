@@ -6,6 +6,14 @@ body_html: |-
   Order: {{ order_number }}
   Amount: {{ refunded_amount }}
 
+  {% if adjustment_note_number %}
+  Adjustment note: {{ adjustment_note_number }}
+  Date: {{ adjustment_note_date }}
+  Reason: {{ adjustment_reason }}
+  Supplier: {{ supplier_name }}{% if supplier_abn %} (ABN {{ supplier_abn }}){% endif %}
+  GST adjustment: {{ gst_adjustment }}
+  {% endif %}
+
   {% if stripe_refund_id %}
   Stripe refund reference: {{ stripe_refund_id }}
   {% endif %}

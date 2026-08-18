@@ -1,0 +1,21 @@
+uuid: aa6921c5-dd60-41fa-a8ed-7896e738ac01
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_dgr_status
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_dgr_status
+field_name: field_dgr_status
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'DGR endorsement'
+description: 'DGR endorsement affects gift deductibility; it does not determine GST registration.'
+required: false
+translatable: false
+default_value:
+  - { value: not_endorsed }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

@@ -82,7 +82,11 @@ final class PublishEligibilityEvaluator {
     }
 
     $eventType = $this->eventType($event);
-    if (in_array($eventType, ['paid', 'both'], TRUE)) {
+    $acceptsPayments = in_array($eventType, ['paid', 'both'], TRUE)
+      || ($event->hasField('field_enable_donations')
+        && !$event->get('field_enable_donations')->isEmpty()
+        && (bool) $event->get('field_enable_donations')->value);
+    if ($acceptsPayments) {
       $eventNodeId = $event->id() ? (int) $event->id() : NULL;
       $stripeMsg = $this->paidPublishStripeGate->validatePaidPublishAllowed($account, $eventNodeId);
       if ($stripeMsg !== NULL) {

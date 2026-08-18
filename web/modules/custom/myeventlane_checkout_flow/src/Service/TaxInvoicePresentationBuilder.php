@@ -28,6 +28,8 @@ final class TaxInvoicePresentationBuilder {
    * Builds presentation variables from the order store and adjustments.
    *
    * @return array{
+   *   document_title: string,
+   *   is_tax_invoice: bool,
    *   vendor_name: string,
    *   vendor_abn: string,
    *   invoice_lines: array<int, array{title: string, quantity: int, unit_price: string, line_total: string, gst: string}>,
@@ -47,7 +49,7 @@ final class TaxInvoicePresentationBuilder {
       $raw = $store->get('field_abn')->value;
       $abn = ($raw !== NULL && $raw !== '') ? trim((string) $raw) : '';
     }
-    $vendor_abn = $abn !== '' ? $abn : 'ABN not provided';
+    $vendor_abn = $abn;
 
     $invoice_lines = [];
     $invoice_lines_include_gst_column = FALSE;
@@ -99,6 +101,9 @@ final class TaxInvoicePresentationBuilder {
       ];
     }
     $order_total_gst = $aggregated['total_formatted'];
+    // Historical documents must reflect tax recorded on this order. The
+    // organiser's current GST registration can change after the sale.
+    $isTaxInvoice = $aggregated['tax_rows'] !== [];
 
     $total_price = $order->getTotalPrice();
     $order_total = $this->formatPrice($total_price);
@@ -109,13 +114,15 @@ final class TaxInvoicePresentationBuilder {
       : '';
 
     return [
+      'document_title' => $isTaxInvoice ? 'Tax invoice' : 'Receipt',
+      'is_tax_invoice' => $isTaxInvoice,
       'vendor_name' => $vendor_name,
       'vendor_abn' => $vendor_abn,
       'invoice_lines' => $invoice_lines,
       'invoice_lines_include_gst_column' => $invoice_lines_include_gst_column,
       'fee_lines' => $fee_lines,
-      'tax_lines' => $tax_lines,
-      'order_total_gst' => $order_total_gst,
+      'tax_lines' => $isTaxInvoice ? $tax_lines : [],
+      'order_total_gst' => $isTaxInvoice ? $order_total_gst : '',
       'order_total' => $order_total,
       'invoice_date_display' => $invoice_date_display,
     ];

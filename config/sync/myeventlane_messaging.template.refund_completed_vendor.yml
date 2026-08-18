@@ -5,6 +5,13 @@ body_html: |-
 
   The customer has been notified.
 
+  {% if adjustment_note_number %}
+  Adjustment note: {{ adjustment_note_number }}
+  Date: {{ adjustment_note_date }}
+  Reason: {{ adjustment_reason }}
+  GST adjustment: {{ gst_adjustment }}
+  {% endif %}
+
   {% if tickets_cancelled and tickets_cancelled > 0 %}
   Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
   {% endif %}

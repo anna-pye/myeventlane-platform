@@ -93,10 +93,16 @@ final class EventReadinessService {
       }
     }
 
+    $accepts_payments = in_array($event_type, ['paid', 'both'], TRUE)
+      || ($event->hasField('field_enable_donations')
+        && !$event->get('field_enable_donations')->isEmpty()
+        && (bool) $event->get('field_enable_donations')->value);
     if (in_array($event_type, ['paid', 'both'], TRUE)) {
       if ($this->validatePaidTickets($event, $errors, $warnings)) {
         $completed[] = (string) $this->t('Tickets ready');
       }
+    }
+    if ($accepts_payments) {
       $stripe = $this->validateStripePublish($account, (int) $event->id(), $warnings);
       if ($stripe !== NULL) {
         $errors[] = $stripe;

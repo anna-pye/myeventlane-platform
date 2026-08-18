@@ -1,0 +1,24 @@
+uuid: 4b033b1a-c8e0-481f-b1df-4e24655313dc
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_acnc_status
+field_name: field_acnc_status
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    - { value: not_applicable, label: 'Not applicable' }
+    - { value: not_registered, label: 'Not ACNC registered' }
+    - { value: registered, label: 'ACNC registered charity' }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

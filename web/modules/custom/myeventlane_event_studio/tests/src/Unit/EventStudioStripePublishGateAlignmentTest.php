@@ -21,6 +21,8 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertIsString($services);
     $this->assertStringContainsString('PaidPublishStripeGate', $preprocess);
     $this->assertStringContainsString('validatePaidPublishAllowed', $preprocess);
+    $this->assertStringContainsString('validateTaxDeclarationAllowed', $preprocess);
+    $this->assertStringContainsString('mel_publish_tax_gate', $preprocess);
     $this->assertStringNotContainsString("empty(\$flags['stripe_connected'])", $preprocess);
     $this->assertStringContainsString("'@myeventlane_vendor.paid_publish_stripe_gate'", $services);
   }
@@ -36,7 +38,8 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertIsString($save);
     $this->assertIsString($publish);
     $this->assertStringContainsString('validatePaidPublishAllowed', $readiness);
-    $this->assertStringContainsString("in_array(\$event_type, ['paid', 'both'], TRUE)", $readiness);
+    $this->assertStringContainsString("\$accepts_payments = in_array(\$event_type, ['paid', 'both'], TRUE)", $readiness);
+    $this->assertStringContainsString("hasField('field_enable_donations')", $readiness);
     $this->assertStringContainsString('validatePaidPublishAllowed', $evaluator);
     $this->assertStringContainsString('publishEligibilityEvaluator', $save);
     $this->assertStringNotContainsString('validatePaidPublishAllowed', $save);
@@ -51,13 +54,16 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertIsString($twig);
     $this->assertIsString($preprocess);
     $this->assertIsString($gate);
-    $this->assertStringContainsString('Finish Stripe setup before publishing paid tickets', $twig);
-    $this->assertStringContainsString('To sell tickets, finish your Stripe setup so payouts can reach your bank.', $twig);
+    $this->assertStringContainsString('Finish payment setup before publishing', $twig);
+    $this->assertStringContainsString('Confirm your legal and tax details', $twig);
+    $this->assertStringContainsString("myeventlane_vendor.console.settings_profile", $twig);
+    $this->assertStringContainsString('To accept event payments, finish your Stripe setup so payouts can reach your bank.', $twig);
     $this->assertStringContainsString('Resume Stripe setup', $twig);
     $this->assertStringContainsString('mel_stripe_connect_url', $twig);
     $this->assertStringContainsString('myeventlane_vendor.stripe_connect', $preprocess);
-    $this->assertStringContainsString('To sell tickets, finish your Stripe setup so payouts can reach your bank.', $gate);
+    $this->assertStringContainsString('To accept event payments, finish your Stripe setup so payouts can reach your bank.', $gate);
     $this->assertStringContainsString("in_array(\$event_type, ['paid', 'both'], TRUE)", $preprocess);
+    $this->assertStringContainsString("\$accepts_donations", $preprocess);
   }
 
   public function testDraftSaveSkipsPublishEligibilityOnDraftPath(): void {

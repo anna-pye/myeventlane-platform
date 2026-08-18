@@ -137,6 +137,8 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
       'order_total_gst' => $invoice['order_total_gst'],
       'vendor_name' => $invoice['vendor_name'],
       'vendor_abn' => $invoice['vendor_abn'],
+      'document_title' => $invoice['document_title'],
+      'is_tax_invoice' => $invoice['is_tax_invoice'],
       'invoice_date' => $this->dateFormatter->format((int) $invoice_timestamp, 'long'),
       'invoice_date_short' => $invoice['invoice_date_display'],
       'line_items' => $line_items,

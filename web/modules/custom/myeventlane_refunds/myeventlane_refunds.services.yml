@@ -15,6 +15,10 @@ services:
     class: Drupal\myeventlane_refunds\Service\RefundRequestStorage
     arguments: ['@database', '@datetime.time']
 
+  myeventlane_refunds.adjustment_note:
+    class: Drupal\myeventlane_refunds\Service\RefundAdjustmentNoteService
+    arguments: ['@database', '@datetime.time']
+
   myeventlane_refunds.buyer_refund_access_check:
     class: Drupal\myeventlane_refunds\Access\BuyerRefundAccessCheck
     arguments:
@@ -66,4 +70,5 @@ services:
       - '@lock'
       - '@module_handler'
       - '@myeventlane_core.domain_detector'
+      - '@myeventlane_refunds.adjustment_note'
       - '@?myeventlane_notifications.refund_trigger'

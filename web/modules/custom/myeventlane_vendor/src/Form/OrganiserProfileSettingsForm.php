@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_vendor\Form;
 
 use Drupal\commerce_store\Entity\StoreInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\Html;
 use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
@@ -19,6 +20,7 @@ use Drupal\myeventlane_surface\MelWorkflowManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\myeventlane_vendor\EventSubscriber\VendorStoreSubscriber;
 use Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface;
+use Drupal\myeventlane_vendor\Service\OrganiserTaxProfileManager;
 use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Drupal\myeventlane_vendor\Service\VendorBrandMediaManager;
 use Drupal\myeventlane_vendor\Service\VendorImageFieldPolicy;
@@ -70,6 +72,10 @@ class OrganiserProfileSettingsForm extends FormBase {
 
   protected RouteProviderInterface $routeProvider;
 
+  protected OrganiserTaxProfileManager $organiserTaxProfile;
+
+  protected TimeInterface $time;
+
   /**
    * Captures retained direct files as reusable organiser Media.
    */
@@ -98,6 +104,8 @@ class OrganiserProfileSettingsForm extends FormBase {
     $instance->userVendorMembershipQuery = $container->get('myeventlane_vendor.user_vendor_membership_query');
     $instance->accessManager = $container->get('access_manager');
     $instance->routeProvider = $container->get('router.route_provider');
+    $instance->organiserTaxProfile = $container->get('myeventlane_vendor.organiser_tax_profile');
+    $instance->time = $container->get('datetime.time');
     $instance->brandMediaManager = $container->get('myeventlane_vendor.brand_media_manager');
     $instance->melWorkflowManager = $container->has('myeventlane_surface.workflow_manager')
       ? $container->get('myeventlane_surface.workflow_manager')
@@ -1055,6 +1063,86 @@ class OrganiserProfileSettingsForm extends FormBase {
       ];
     }
 
+    if ($vendor->hasField('field_tax_entity_type')) {
+      $form['store']['business']['tax_entity_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Organisation type'),
+        '#options' => [
+          '' => $this->t('- Select -'),
+          'individual' => $this->t('Individual / sole trader'),
+          'company' => $this->t('Company'),
+          'incorporated_association' => $this->t('Incorporated association'),
+          'unincorporated_association' => $this->t('Unincorporated association'),
+          'trust' => $this->t('Trust'),
+          'charity_or_nfp' => $this->t('Charity or not-for-profit'),
+          'government' => $this->t('Government entity'),
+          'other' => $this->t('Other'),
+        ],
+        '#default_value' => $this->getFieldValue($vendor, 'field_tax_entity_type', ''),
+        '#required' => TRUE,
+      ];
+    }
+
+    if ($vendor->hasField('field_gst_registration_status')) {
+      $form['store']['business']['gst_registration_status'] = [
+        '#type' => 'radios',
+        '#title' => $this->t('Are you registered for GST?'),
+        '#options' => [
+          'registered' => $this->t('Yes, registered for GST'),
+          'not_registered' => $this->t('No, not registered for GST'),
+        ],
+        '#default_value' => $this->getFieldValue($vendor, 'field_gst_registration_status', ''),
+        '#description' => $this->t('Not-for-profit or charity status does not automatically exempt an organisation from GST.'),
+        '#required' => TRUE,
+      ];
+    }
+
+    if ($vendor->hasField('field_gst_effective_date')) {
+      $form['store']['business']['gst_effective_date'] = [
+        '#type' => 'date',
+        '#title' => $this->t('GST registration effective date'),
+        '#default_value' => $this->getFieldValue($vendor, 'field_gst_effective_date', ''),
+        '#states' => [
+          'visible' => [':input[name="store[business][gst_registration_status]"]' => ['value' => 'registered']],
+          'required' => [':input[name="store[business][gst_registration_status]"]' => ['value' => 'registered']],
+        ],
+      ];
+    }
+
+    if ($vendor->hasField('field_acnc_status')) {
+      $form['store']['business']['acnc_status'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Charity status'),
+        '#options' => [
+          'not_applicable' => $this->t('Not applicable'),
+          'not_registered' => $this->t('Not ACNC registered'),
+          'registered' => $this->t('ACNC registered charity'),
+        ],
+        '#default_value' => $this->getFieldValue($vendor, 'field_acnc_status', 'not_applicable'),
+      ];
+    }
+
+    if ($vendor->hasField('field_dgr_status')) {
+      $form['store']['business']['dgr_status'] = [
+        '#type' => 'select',
+        '#title' => $this->t('DGR endorsement'),
+        '#options' => [
+          'not_endorsed' => $this->t('Not DGR endorsed'),
+          'endorsed' => $this->t('DGR endorsed'),
+        ],
+        '#default_value' => $this->getFieldValue($vendor, 'field_dgr_status', 'not_endorsed'),
+        '#description' => $this->t('DGR endorsement affects gift deductibility; it does not determine GST registration.'),
+      ];
+    }
+
+    $form['store']['business']['tax_declaration'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('I confirm these legal and tax details are current and accurate.'),
+      '#default_value' => $vendor->hasField('field_tax_declaration_at')
+        && !$vendor->get('field_tax_declaration_at')->isEmpty(),
+      '#required' => TRUE,
+    ];
+
     $form['store']['payments_link'] = [
       '#type' => 'link',
       '#title' => $this->t('Open Payments'),
@@ -1411,6 +1499,24 @@ class OrganiserProfileSettingsForm extends FormBase {
         }
       }
     }
+
+    $business = $form_state->getValue(['store', 'business']) ?? [];
+    $gstStatus = (string) ($business['gst_registration_status'] ?? '');
+    $abn = (string) ($business['abn'] ?? '');
+    if ($gstStatus === OrganiserTaxProfileManager::STATUS_REGISTERED) {
+      if (!$this->organiserTaxProfile->isValidAbn($abn)) {
+        $form_state->setError(
+          $form['store']['business']['abn'],
+          $this->t('Enter a valid 11-digit ABN for a GST-registered organiser.')
+        );
+      }
+      if (empty($business['gst_effective_date'])) {
+        $form_state->setError(
+          $form['store']['business']['gst_effective_date'],
+          $this->t('Enter the date your GST registration took effect.')
+        );
+      }
+    }
   }
 
   /**
@@ -1600,6 +1706,11 @@ class OrganiserProfileSettingsForm extends FormBase {
     $abn = trim((string) ($business['abn'] ?? ''));
     $abn = $abn !== '' ? (string) preg_replace('/\s+/', '', $abn) : '';
     $business_name = trim((string) ($business['business_name'] ?? ''));
+    $tax_entity_type = trim((string) ($business['tax_entity_type'] ?? ''));
+    $gst_registration_status = trim((string) ($business['gst_registration_status'] ?? ''));
+    $gst_effective_date = trim((string) ($business['gst_effective_date'] ?? ''));
+    $acnc_status = trim((string) ($business['acnc_status'] ?? 'not_applicable'));
+    $dgr_status = trim((string) ($business['dgr_status'] ?? 'not_endorsed'));
 
     // Save profile information.
     $name = $form_state->getValue(['profile', 'name']);
@@ -1792,6 +1903,24 @@ class OrganiserProfileSettingsForm extends FormBase {
     if ($vendor->hasField('field_abn')) {
       $vendor->set('field_abn', $abn !== '' ? $abn : NULL);
     }
+    if ($vendor->hasField('field_tax_entity_type')) {
+      $vendor->set('field_tax_entity_type', $tax_entity_type);
+    }
+    if ($vendor->hasField('field_gst_registration_status')) {
+      $vendor->set('field_gst_registration_status', $gst_registration_status);
+    }
+    if ($vendor->hasField('field_gst_effective_date')) {
+      $vendor->set('field_gst_effective_date', $gst_registration_status === OrganiserTaxProfileManager::STATUS_REGISTERED && $gst_effective_date !== '' ? $gst_effective_date : NULL);
+    }
+    if ($vendor->hasField('field_acnc_status')) {
+      $vendor->set('field_acnc_status', $acnc_status);
+    }
+    if ($vendor->hasField('field_dgr_status')) {
+      $vendor->set('field_dgr_status', $dgr_status);
+    }
+    if ($vendor->hasField('field_tax_declaration_at')) {
+      $vendor->set('field_tax_declaration_at', $this->time->getRequestTime());
+    }
 
     // Validate entity before persisting and store sync.
     $violations = $vendor->validate();
@@ -1882,6 +2011,7 @@ class OrganiserProfileSettingsForm extends FormBase {
       if ($business_name !== '') {
         $store->setName($business_name);
       }
+      $this->organiserTaxProfile->syncStore($vendor, $store);
       try {
         $store->save();
       }

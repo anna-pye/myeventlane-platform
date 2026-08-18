@@ -2,9 +2,14 @@ uuid: e9b442c1-76c0-4538-895e-13ce3c8d3658
 langcode: en
 status: true
 dependencies:
+  module:
+    - commerce_tax
   enforced:
     module:
       - commerce_recurring
+third_party_settings:
+  commerce_tax:
+    taxable_type: events
 _core:
   default_config_hash: iFZgD_z6PSZqyLy65J_OLjA_nnGu-lvKxgPr0BNiCCI
 label: 'Recurring (Standalone)'

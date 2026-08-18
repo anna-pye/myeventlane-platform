@@ -11,6 +11,7 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\myeventlane_vendor\Service\OrganiserTaxProfileManager;
 use Drupal\user\UserInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -79,6 +80,7 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
     LoggerChannelFactoryInterface $logger_factory,
     OnboardingManager $onboarding_manager,
     AccountProxyInterface $current_user,
+    private readonly OrganiserTaxProfileManager $organiserTaxProfile,
   ) {
     $this->entityTypeManager = $entity_type_manager;
     $this->loggerFactory = $logger_factory;
@@ -296,16 +298,21 @@ final class VendorStoreSubscriber implements EventSubscriberInterface {
           'organization' => $vendor->getName(),
         ],
         'billing_countries' => ['AU'],
-        // Commerce Tax: Australian GST only applies when the store is registered
-        // to collect tax in AU (see LocalTaxTypeBase::matchesRegistrations()).
-        'tax_registrations' => ['AU'],
-        // Align with Australian GST config (display inclusive) and ticket face prices.
+        // Tax registrations are populated only after the organiser declares
+        // its GST status. Do not treat every organiser as GST registered.
+        'tax_registrations' => [],
+        // Ticket prices are entered as the customer-facing amount. Commerce
+        // applies included GST only when an AU registration is declared.
         'prices_include_tax' => TRUE,
         'is_default' => FALSE,
         'status' => TRUE,
       ]);
 
       $store->set('field_vendor_reference', $vendor);
+      $this->organiserTaxProfile->syncStore($vendor, $store);
+      if ($store->hasField('field_abn') && $vendor->hasField('field_abn') && !$vendor->get('field_abn')->isEmpty()) {
+        $store->set('field_abn', (string) $vendor->get('field_abn')->value);
+      }
       $store->save();
 
       $vendor->set('field_vendor_store', $store);

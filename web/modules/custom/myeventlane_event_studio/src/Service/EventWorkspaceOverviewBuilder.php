@@ -1075,11 +1075,14 @@ final class EventWorkspaceOverviewBuilder {
   private function buildStripeHealth(AccountInterface $account, NodeInterface $event, array $eventMeta): array {
     $eventId = (int) $event->id();
     $eventType = $this->resolveEventBookingType($event, $eventMeta);
-    if (!in_array($eventType, ['paid', 'both'], TRUE)) {
+    $acceptsDonations = $event->hasField('field_enable_donations')
+      && !$event->get('field_enable_donations')->isEmpty()
+      && (bool) $event->get('field_enable_donations')->value;
+    if (!in_array($eventType, ['paid', 'both'], TRUE) && !$acceptsDonations) {
       return [
         'label' => (string) $this->t('Payments'),
         'tone' => 'muted',
-        'detail' => (string) $this->t('Payments apply when you sell paid tickets for this event.'),
+        'detail' => (string) $this->t('Payments apply when you sell tickets or accept optional donations for this event.'),
         'url' => $this->safeUrl('myeventlane_vendor.console.payments'),
       ];
     }

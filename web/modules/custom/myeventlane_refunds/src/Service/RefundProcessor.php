@@ -68,6 +68,8 @@ final class RefundProcessor implements RefundProcessorInterface {
    *   The module handler.
    * @param \Drupal\myeventlane_core\Service\DomainDetector $domainDetector
    *   The domain detector (for public-domain customer links).
+   * @param \Drupal\myeventlane_refunds\Service\RefundAdjustmentNoteService $adjustmentNoteService
+   *   Records immutable tax adjustment snapshots after confirmed refunds.
    * @param \Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService|null $refundNotificationTrigger
    *   Optional in-app refund notifications (when myeventlane_notifications is enabled).
    */
@@ -88,6 +90,7 @@ final class RefundProcessor implements RefundProcessorInterface {
     private readonly LockBackendInterface $lock,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly DomainDetector $domainDetector,
+    private readonly RefundAdjustmentNoteService $adjustmentNoteService,
     private readonly ?RefundNotificationTriggerService $refundNotificationTrigger = NULL,
   ) {}
 
@@ -536,6 +539,16 @@ final class RefundProcessor implements RefundProcessorInterface {
    * Attempts refund execution immediately, then falls back to queue.
    */
   public function requestRefundByLogId(int $logId): void {
+    // Do not move an already completed refund back to processing. This guard
+    // also prevents replayed queue items from repeating completion side effects.
+    $existing = $this->loadRefundLog($logId);
+    if ($existing !== NULL && (
+      (string) ($existing['status'] ?? '') === self::STATUS_COMPLETED
+      || !empty($existing['stripe_refund_id'])
+    )) {
+      return;
+    }
+
     $this->setRefundStatus($logId, self::STATUS_PROCESSING);
 
     try {
@@ -1061,6 +1074,10 @@ final class RefundProcessor implements RefundProcessorInterface {
       return;
     }
 
+    // Persist the adjustment snapshot before any hook or notification. A
+    // duplicate webhook/retry reads the same note instead of issuing another.
+    $log = $this->adjustmentNoteService->record($order, $log);
+
     $this->moduleHandler->invokeAll('myeventlane_refund_completed', [
       $order,
       $event,
@@ -1252,17 +1269,25 @@ final class RefundProcessor implements RefundProcessorInterface {
     NodeInterface $event,
     array $log,
     string $customerEmail,
-    int $ticketsCancelled = 0
+    int $ticketsCancelled = 0,
   ): void {
     $ctx = $this->buildRefundEmailContext(
       $order,
       $event,
-      (int) $log['amount_cents'],
+      (int) ($log['actual_refunded_cents'] ?? $log['amount_cents']),
       $log['currency'],
       (bool) ($log['donation_refunded'] ?? FALSE)
     );
     $ctx['stripe_refund_id'] = (string) ($log['stripe_refund_id'] ?? '');
     $ctx['tickets_cancelled'] = $ticketsCancelled;
+    $ctx['adjustment_note_number'] = (string) ($log['adjustment_note_number'] ?? '');
+    $ctx['gst_adjustment'] = strtoupper((string) ($log['currency'] ?? 'aud')) . ' ' . number_format(((int) ($log['gst_adjustment_cents'] ?? 0)) / 100, 2);
+    $ctx['supplier_name'] = (string) ($log['supplier_name_snapshot'] ?? '');
+    $ctx['supplier_abn'] = (string) ($log['supplier_abn_snapshot'] ?? '');
+    $ctx['adjustment_note_date'] = !empty($log['adjustment_note_created'])
+      ? date('j M Y', (int) $log['adjustment_note_created'])
+      : '';
+    $ctx['adjustment_reason'] = trim((string) ($log['reason'] ?? 'Refund')) ?: 'Refund';
 
     if (!empty($customerEmail)) {
       $id = $this->messagingManager->queue('refund_completed_buyer', $customerEmail, $ctx);

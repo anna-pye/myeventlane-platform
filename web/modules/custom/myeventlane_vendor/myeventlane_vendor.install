@@ -1372,6 +1372,137 @@ function myeventlane_vendor_update_10024(): string {
 }
 
 /**
+ * Adds organiser tax declarations without rewriting legacy tax treatment.
+ */
+function myeventlane_vendor_update_10025(): string {
+  $fields = [
+    'field_tax_entity_type' => [
+      'type' => 'list_string',
+      'storage_settings' => [
+        'allowed_values' => [
+          'individual' => 'Individual / sole trader',
+          'company' => 'Company',
+          'incorporated_association' => 'Incorporated association',
+          'unincorporated_association' => 'Unincorporated association',
+          'trust' => 'Trust',
+          'charity_or_nfp' => 'Charity or not-for-profit',
+          'government' => 'Government entity',
+          'other' => 'Other',
+        ],
+      ],
+      'label' => 'Organisation type',
+    ],
+    'field_gst_registration_status' => [
+      'type' => 'list_string',
+      'storage_settings' => [
+        'allowed_values' => [
+          'unknown' => 'Not yet declared',
+          'not_registered' => 'Not registered for GST',
+          'registered' => 'Registered for GST',
+        ],
+      ],
+      'label' => 'GST registration status',
+      'default_value' => [['value' => 'unknown']],
+    ],
+    'field_gst_effective_date' => [
+      'type' => 'datetime',
+      'storage_settings' => ['datetime_type' => 'date'],
+      'label' => 'GST registration effective date',
+    ],
+    'field_acnc_status' => [
+      'type' => 'list_string',
+      'storage_settings' => [
+        'allowed_values' => [
+          'not_applicable' => 'Not applicable',
+          'not_registered' => 'Not ACNC registered',
+          'registered' => 'ACNC registered charity',
+        ],
+      ],
+      'label' => 'Charity status',
+      'default_value' => [['value' => 'not_applicable']],
+    ],
+    'field_dgr_status' => [
+      'type' => 'list_string',
+      'storage_settings' => [
+        'allowed_values' => [
+          'not_endorsed' => 'Not DGR endorsed',
+          'endorsed' => 'DGR endorsed',
+        ],
+      ],
+      'label' => 'DGR endorsement',
+      'default_value' => [['value' => 'not_endorsed']],
+    ],
+    'field_tax_declaration_at' => [
+      'type' => 'timestamp',
+      'storage_settings' => [],
+      'label' => 'Tax declaration date',
+    ],
+  ];
+
+  foreach ($fields as $fieldName => $definition) {
+    if (FieldStorageConfig::loadByName('myeventlane_vendor', $fieldName) === NULL) {
+      FieldStorageConfig::create([
+        'field_name' => $fieldName,
+        'entity_type' => 'myeventlane_vendor',
+        'type' => $definition['type'],
+        'settings' => $definition['storage_settings'],
+        'cardinality' => 1,
+        'translatable' => FALSE,
+      ])->save();
+    }
+    if (FieldConfig::loadByName('myeventlane_vendor', 'myeventlane_vendor', $fieldName) === NULL) {
+      FieldConfig::create([
+        'field_name' => $fieldName,
+        'entity_type' => 'myeventlane_vendor',
+        'bundle' => 'myeventlane_vendor',
+        'label' => $definition['label'],
+        'required' => FALSE,
+        'translatable' => FALSE,
+        'default_value' => $definition['default_value'] ?? [],
+      ])->save();
+    }
+  }
+
+  // Do not rewrite organiser registrations during deployment. The legacy data
+  // cannot distinguish a genuine registration from the previous assumption,
+  // and changing it here could alter existing invoice tax treatment. The new
+  // declaration remains pending until the organiser explicitly confirms it;
+  // saving that declaration then becomes authoritative for the linked store.
+  $storeStorage = \Drupal::entityTypeManager()->getStorage('commerce_store');
+  $storeIds = $storeStorage->getQuery()->accessCheck(FALSE)->execute();
+  $vendorStoreIds = [];
+  $vendorStorage = \Drupal::entityTypeManager()->getStorage('myeventlane_vendor');
+  $vendorIds = $vendorStorage->getQuery()->accessCheck(FALSE)->execute();
+  foreach ($vendorStorage->loadMultiple($vendorIds) as $vendor) {
+    if ($vendor->hasField('field_vendor_store') && !$vendor->get('field_vendor_store')->isEmpty()) {
+      $vendorStoreIds[] = (int) $vendor->get('field_vendor_store')->target_id;
+    }
+  }
+  $vendorStoreIds = array_values(array_unique(array_filter($vendorStoreIds)));
+  $pendingVerification = 0;
+  $platformUpdated = 0;
+  foreach ($storeStorage->loadMultiple($storeIds) as $store) {
+    // Platform-owned stores retain their AU registration. Only organiser
+    // stores linked through field_vendor_reference were incorrectly assumed.
+    $isVendorStore = in_array((int) $store->id(), $vendorStoreIds, TRUE)
+      || ($store->hasField('field_vendor_reference') && !$store->get('field_vendor_reference')->isEmpty());
+    if (!$isVendorStore) {
+      $store->set('tax_registrations', ['AU']);
+      $store->set('prices_include_tax', TRUE);
+      if ($store->hasField('field_abn')) {
+        $store->set('field_abn', '11304813593');
+      }
+      $store->save();
+      $platformUpdated++;
+      continue;
+    }
+    $pendingVerification++;
+  }
+
+  return sprintf('Added organiser tax declaration fields, configured %d platform store(s) for AU GST, and left %d organiser store registration(s) unchanged pending explicit declaration.', $platformUpdated, $pendingVerification);
+}
+
+/**
  * Renders formatted text for CK-1's byte-preserving equivalence gate.
  */
 function myeventlane_vendor_render_processed_text_for_update(

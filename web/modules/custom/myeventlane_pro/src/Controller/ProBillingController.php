@@ -11,6 +11,7 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Routing\TrustedRedirectResponse;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
@@ -207,7 +208,9 @@ final class ProBillingController implements ContainerInjectionInterface {
       return new RedirectResponse($fallback);
     }
 
-    return new RedirectResponse($url);
+    // Stripe returns an absolute external URL. Drupal deliberately rejects
+    // external targets on a normal RedirectResponse during response handling.
+    return new TrustedRedirectResponse($url);
   }
 
   /**

@@ -37,6 +37,14 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString('We do not have a future renewal date to show', $template);
   }
 
+  public function testBillingPortalUsesTrustedExternalRedirect(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProBillingController.php');
+    self::assertIsString($controller);
+
+    self::assertStringContainsString('use Drupal\\Core\\Routing\\TrustedRedirectResponse;', $controller);
+    self::assertStringContainsString('return new TrustedRedirectResponse($url);', $controller);
+  }
+
   public function testZeroRoiUsesPlainLanguage(): void {
     $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
     self::assertIsString($template);

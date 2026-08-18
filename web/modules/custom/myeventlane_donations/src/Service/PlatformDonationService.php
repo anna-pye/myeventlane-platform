@@ -187,7 +187,7 @@ final class PlatformDonationService {
     $orderItemStorage = $this->entityTypeManager->getStorage('commerce_order_item');
     $orderItem = $orderItemStorage->create([
       'type' => 'platform_donation',
-      'title' => 'Donation to MyEventLane',
+      'title' => 'MyEventLane platform contribution (GST inclusive)',
       'unit_price' => new Price((string) $amount, 'AUD'),
       'quantity' => 1,
     ]);

@@ -1,0 +1,20 @@
+uuid: 4514bcf1-68b3-42c8-a6a4-00827f3bcd98
+langcode: en
+status: true
+dependencies:
+  module:
+    - datetime
+    - myeventlane_vendor
+id: myeventlane_vendor.field_gst_effective_date
+field_name: field_gst_effective_date
+entity_type: myeventlane_vendor
+type: datetime
+settings:
+  datetime_type: date
+module: datetime
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

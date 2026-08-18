@@ -39,6 +39,17 @@ final class OrganiserOnboardingContractTest extends TestCase {
     self::assertStringContainsString('?? (int) $this->time->getRequestTime()', $form);
   }
 
+  public function testTaxDeclarationIsMandatoryDuringOnboarding(): void {
+    $form = $this->read('myeventlane_vendor/src/Form/VendorOnboardProfileForm.php');
+
+    self::assertStringContainsString("['step_content']['tax']['entity_type']", $form);
+    self::assertStringContainsString("['step_content']['tax']['gst_status']", $form);
+    self::assertStringContainsString("['step_content']['tax']['declaration']", $form);
+    self::assertStringContainsString("'#required' => TRUE", $form);
+    self::assertStringContainsString("'field_tax_declaration_at'", $form);
+    self::assertStringContainsString('isValidAbn', $form);
+  }
+
   public function testStripeIsRequiredOnlyByPaidEventChecks(): void {
     $vendorGate = $this->read('myeventlane_vendor/src/Service/VendorPublishRequirementsGate.php');
     $eligibility = $this->read('myeventlane_event_studio/src/Service/PublishEligibilityEvaluator.php');

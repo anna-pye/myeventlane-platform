@@ -7,6 +7,16 @@ body_html: |-
 
   Amount refunded: {{ refunded_amount }}
 
+  {% if adjustment_note_number %}
+  <strong>Adjustment note {{ adjustment_note_number }}</strong><br>
+  Date: {{ adjustment_note_date }}<br>
+  Supplier: {{ supplier_name }}<br>
+  {% if supplier_abn %}ABN: {{ supplier_abn }}<br>{% endif %}
+  Original invoice: {{ order_number }}<br>
+  Reason: {{ adjustment_reason }}<br>
+  GST adjustment: {{ gst_adjustment }}
+  {% endif %}
+
   The refund should appear on your card within 2–5 business days.
 
   <a href="{{ my_tickets_url }}">View Digital Pass</a>
