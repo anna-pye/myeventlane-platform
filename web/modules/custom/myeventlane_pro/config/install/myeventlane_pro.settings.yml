@@ -2,6 +2,7 @@ trial_days: 30
 pro_price: 49
 pro_variation_sku: ''
 grace_days: 7
+pro_boost_days: 7
 upgrade_cta_enabled: true
 cancel_request_enabled: true
 billing_support_url: ''

@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_pro\Service;
 use Drupal\advancedqueue\Job;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_boost\BoostManager;
@@ -21,7 +22,7 @@ use Psr\Log\LoggerInterface;
 final class ProBoostProvisioner {
 
   private const PRO_SOURCE = 'pro';
-  private const DEFAULT_WINDOW_SECONDS = 2592000;
+  private const DEFAULT_BOOST_DAYS = 7;
   private const BOOST_SYNC_QUEUE_ID = 'pro_boost_sync';
   private const BOOST_SYNC_JOB_ID = 'pro_boost_sync_job';
 
@@ -33,6 +34,8 @@ final class ProBoostProvisioner {
     private readonly LoggerInterface $logger,
     private readonly TimeInterface $time,
     private readonly Connection $database,
+    private readonly ConfigFactoryInterface $configFactory,
+    private readonly ProBoostGrantPolicy $grantPolicy,
   ) {}
 
   /**
@@ -59,13 +62,19 @@ final class ProBoostProvisioner {
 
     $now = $this->time->getRequestTime();
     $eligibleEvents = $this->loadEligibleEventsForStore($storeId, $now);
-    $activeEnds = $this->proActiveResolver->getStoreActiveEndTimestamp($store) ?? ($now + self::DEFAULT_WINDOW_SECONDS);
+    $boostDays = max(1, (int) ($this->configFactory->get('myeventlane_pro.settings')->get('pro_boost_days') ?? self::DEFAULT_BOOST_DAYS));
+    $activeEnds = $this->proActiveResolver->getStoreActiveEndTimestamp($store);
+    $boostEnds = $this->grantPolicy->newGrantEnd($now, $activeEnds, $boostDays);
+
+    if ($boostEnds === NULL) {
+      return ['created' => 0, 'updated' => 0, 'revoked' => $this->revokeProEntitlementsForStore($store)];
+    }
 
     $created = 0;
     $updated = 0;
 
     foreach ($eligibleEvents as $event) {
-      $result = $this->upsertProEntitlement($event, (int) $owner->id(), $now, $activeEnds);
+      $result = $this->upsertProEntitlement($event, (int) $owner->id(), $now, $boostEnds, $activeEnds, $boostDays);
       if ($result === 'created') {
         $created++;
       }
@@ -233,7 +242,7 @@ final class ProBoostProvisioner {
   /**
    * Upserts a Pro-sourced entitlement for an event.
    */
-  private function upsertProEntitlement(NodeInterface $event, int $uid, int $startsAt, int $endsAt): string {
+  private function upsertProEntitlement(NodeInterface $event, int $uid, int $startsAt, int $endsAt, ?int $proActiveEnd, int $boostDays): string {
     $storage = $this->entityTypeManager->getStorage('myeventlane_boost_entitlement');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
@@ -246,9 +255,22 @@ final class ProBoostProvisioner {
     if ($ids !== []) {
       $existing = $storage->load((int) reset($ids));
       if ($existing instanceof BoostEntitlementInterface) {
+        $existingStarts = (int) $existing->get('starts')->value;
+        $existingEnds = (int) $existing->get('ends')->value;
+        $canonicalEnds = $this->grantPolicy->existingGrantEnd(
+          $startsAt,
+          $existingStarts,
+          $existingEnds,
+          $proActiveEnd,
+          $boostDays,
+        );
+        if ($canonicalEnds === NULL) {
+          return 'none';
+        }
+
         $changed = FALSE;
-        if ((int) $existing->get('ends')->value !== $endsAt) {
-          $existing->set('ends', $endsAt);
+        if ($existingEnds !== $canonicalEnds) {
+          $existing->set('ends', $canonicalEnds);
           $changed = TRUE;
         }
         if ((string) $existing->get('status')->value !== BoostEntitlementInterface::STATUS_ACTIVE) {

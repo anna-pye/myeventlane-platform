@@ -72,6 +72,16 @@ final class ProSettingsForm extends ConfigFormBase {
       '#max' => 30,
     ];
 
+    $form['commercial']['pro_boost_days'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Included Boost days per event'),
+      '#description' => $this->t('Each eligible event receives one non-renewing Boost while the organiser has active Pro access.'),
+      '#default_value' => $config->get('pro_boost_days') ?? 7,
+      '#min' => 1,
+      '#max' => 30,
+      '#required' => TRUE,
+    ];
+
     $form['commercial']['upgrade_cta_enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Show upgrade CTA to non-Pro organisers'),
@@ -126,6 +136,7 @@ final class ProSettingsForm extends ConfigFormBase {
       ->set('pro_price', (int) ($values['pro_price'] ?? 49))
       ->set('pro_variation_sku', trim((string) ($values['pro_variation_sku'] ?? '')))
       ->set('grace_days', (int) ($commercial['grace_days'] ?? 7))
+      ->set('pro_boost_days', (int) ($commercial['pro_boost_days'] ?? 7))
       ->set('upgrade_cta_enabled', (bool) ($commercial['upgrade_cta_enabled'] ?? TRUE))
       ->set('cancel_request_enabled', (bool) ($commercial['cancel_request_enabled'] ?? TRUE))
       ->set('billing_support_url', trim((string) ($commercial['billing_support_url'] ?? '')))

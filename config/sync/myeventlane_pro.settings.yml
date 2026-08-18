@@ -4,6 +4,7 @@ trial_days: 30
 pro_price: 49
 pro_variation_sku: ''
 billing_portal_enabled: true
+pro_boost_days: 7
 abandoned_cart:
   enabled: true
   delay_wave_1: 7200
