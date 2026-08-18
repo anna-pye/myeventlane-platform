@@ -276,8 +276,10 @@ final class ProBoostProvisioner {
             $existing->set('ends', $cappedEnds);
             $changed = TRUE;
           }
-          if ((string) $existing->get('status')->value !== BoostEntitlementInterface::STATUS_EXPIRED) {
-            $existing->set('status', BoostEntitlementInterface::STATUS_EXPIRED);
+          $existingStatus = (string) $existing->get('status')->value;
+          $elapsedStatus = $this->grantPolicy->elapsedGrantStatus($existingStatus);
+          if ($existingStatus !== $elapsedStatus) {
+            $existing->set('status', $elapsedStatus);
             $changed = TRUE;
           }
           if ($changed) {

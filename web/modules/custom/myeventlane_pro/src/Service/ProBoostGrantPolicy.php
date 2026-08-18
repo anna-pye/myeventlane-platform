@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_pro\Service;
 
+use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
+
 /**
  * Calculates the fixed, non-renewing Pro Boost grant window.
  */
@@ -61,6 +63,15 @@ final class ProBoostGrantPolicy {
     }
 
     return $endsAt;
+  }
+
+  /**
+   * Resolves an elapsed grant status without undoing an explicit revocation.
+   */
+  public function elapsedGrantStatus(string $existingStatus): string {
+    return $existingStatus === BoostEntitlementInterface::STATUS_REVOKED
+      ? BoostEntitlementInterface::STATUS_REVOKED
+      : BoostEntitlementInterface::STATUS_EXPIRED;
   }
 
 }
