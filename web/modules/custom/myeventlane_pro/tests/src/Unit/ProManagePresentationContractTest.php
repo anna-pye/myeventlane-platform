@@ -45,6 +45,18 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString('return new TrustedRedirectResponse($url);', $controller);
   }
 
+  public function testManagePageUsesSignupDateBeforeBillingPeriodStart(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProBillingController.php');
+    self::assertIsString($controller);
+
+    $createdPosition = strpos($controller, "method_exists(\$subscription, 'getCreatedTime')");
+    $billingStartPosition = strpos($controller, "method_exists(\$subscription, 'getStartDate')");
+    self::assertNotFalse($createdPosition);
+    self::assertNotFalse($billingStartPosition);
+    self::assertLessThan($billingStartPosition, $createdPosition);
+    self::assertStringContainsString("\$startedDate === NULL && method_exists(\$subscription, 'getStartDate')", $controller);
+  }
+
   public function testZeroRoiUsesPlainLanguage(): void {
     $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
     self::assertIsString($template);

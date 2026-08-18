@@ -100,7 +100,17 @@ final class ProBillingController implements ContainerInjectionInterface {
     }
 
     $startedDate = NULL;
-    if (method_exists($subscription, 'getStartDate')) {
+    // Commerce Recurring uses start_date for the first billing period. During
+    // a free trial that date is in the future, so it is not the date the
+    // organiser started Pro. The entity creation time is the canonical signup
+    // date for this organiser-facing label.
+    if (method_exists($subscription, 'getCreatedTime')) {
+      $created = (int) $subscription->getCreatedTime();
+      if ($created > 0) {
+        $startedDate = date('F j, Y', $created);
+      }
+    }
+    if ($startedDate === NULL && method_exists($subscription, 'getStartDate')) {
       $start = $subscription->getStartDate();
       if ($start) {
         $startedDate = $start->format('F j, Y');
