@@ -41,7 +41,14 @@ final class ProPostMergeReviewContractTest extends TestCase {
     $provisioner = $this->moduleFile('src/Service/ProBoostProvisioner.php');
 
     self::assertStringContainsString('cappedExistingGrantEnd(', $provisioner);
-    self::assertStringContainsString('BoostEntitlementInterface::STATUS_EXPIRED', $provisioner);
+    self::assertStringContainsString('elapsedGrantStatus($existingStatus)', $provisioner);
+  }
+
+  public function testElapsedProBoostPreservesRevokedOutcome(): void {
+    $provisioner = $this->moduleFile('src/Service/ProBoostProvisioner.php');
+
+    self::assertStringContainsString('elapsedGrantStatus($existingStatus)', $provisioner);
+    self::assertStringNotContainsString("set('status', BoostEntitlementInterface::STATUS_EXPIRED)", $provisioner);
   }
 
   public function testFreeCustomerCheckoutDoesNotPromiseCardStep(): void {

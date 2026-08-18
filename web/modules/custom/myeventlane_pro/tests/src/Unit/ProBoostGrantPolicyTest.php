@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_pro\Unit;
 
+use Drupal\myeventlane_boost\Entity\BoostEntitlementInterface;
 use Drupal\myeventlane_pro\Service\ProBoostGrantPolicy;
 use PHPUnit\Framework\TestCase;
 
@@ -98,6 +99,24 @@ final class ProBoostGrantPolicyTest extends TestCase {
     self::assertSame(
       $startsAt + (7 * 86400),
       $this->policy->cappedExistingGrantEnd($startsAt, $legacyEnd, NULL, 7),
+    );
+  }
+
+  /**
+   * Tests that expiry reconciliation never overwrites a revocation outcome.
+   */
+  public function testElapsedGrantPreservesRevokedStatus(): void {
+    self::assertSame(
+      BoostEntitlementInterface::STATUS_REVOKED,
+      $this->policy->elapsedGrantStatus(BoostEntitlementInterface::STATUS_REVOKED),
+    );
+    self::assertSame(
+      BoostEntitlementInterface::STATUS_EXPIRED,
+      $this->policy->elapsedGrantStatus(BoostEntitlementInterface::STATUS_ACTIVE),
+    );
+    self::assertSame(
+      BoostEntitlementInterface::STATUS_EXPIRED,
+      $this->policy->elapsedGrantStatus(BoostEntitlementInterface::STATUS_EXPIRED),
     );
   }
 
