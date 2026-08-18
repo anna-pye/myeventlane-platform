@@ -1,9 +1,14 @@
 uuid: d7ef4fe3-33d1-448b-b314-e01faf8f3976
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  module:
+    - commerce_tax
+third_party_settings:
+  commerce_tax:
+    taxable_type: events
 id: platform_donation
-label: 'Platform Donation'
+label: 'MyEventLane Contribution'
 traits: {  }
 locked: false
 purchasableEntityType: null

@@ -14,7 +14,7 @@ third_party_settings:
   commerce_checkout:
     checkout_flow: default
 id: platform_donation
-label: 'Platform Donation'
+label: 'MyEventLane Contribution'
 traits: {  }
 locked: false
 workflow: order_default
@@ -24,4 +24,4 @@ refresh_mode: always
 refresh_frequency: 1
 sendReceipt: true
 receiptBcc: ''
-receiptSubject: 'Thank you for your donation to MyEventLane'
+receiptSubject: 'Receipt for your MyEventLane contribution'

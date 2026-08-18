@@ -1,0 +1,24 @@
+uuid: 78653c9c-f172-4c8c-9708-fa6fa05bfb1c
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_gst_registration_status
+field_name: field_gst_registration_status
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    - { value: unknown, label: 'Not yet declared' }
+    - { value: not_registered, label: 'Not registered for GST' }
+    - { value: registered, label: 'Registered for GST' }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

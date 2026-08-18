@@ -27,6 +27,7 @@ final class PaidPublishStripeGate {
     private readonly UserVendorMembershipQuery $membershipQuery,
     private readonly LoggerInterface $logger,
     TranslationInterface $stringTranslation,
+    private readonly OrganiserTaxProfileManager $organiserTaxProfile,
   ) {
     $this->stringTranslation = $stringTranslation;
   }
@@ -40,6 +41,14 @@ final class PaidPublishStripeGate {
     }
 
     $vendorId = $this->resolveVendorIdForAccount($account);
+    $vendor = $vendorId !== NULL
+      ? $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendorId)
+      : NULL;
+    if (!$vendor instanceof Vendor || !$this->organiserTaxProfile->isDeclared($vendor)) {
+      $this->logBlocked((int) $account->id(), $vendorId, NULL, $eventNodeId, 'tax_declaration_incomplete');
+      return (string) $this->t('Before accepting event payments, confirm your organisation and GST details in Organiser Settings.');
+    }
+
     $store = $this->resolveCommerceStoreForAccount($account);
     $storeId = $store instanceof StoreInterface ? (int) $store->id() : NULL;
 
@@ -75,7 +84,7 @@ final class PaidPublishStripeGate {
   }
 
   private function blockedMessage(): string {
-    return (string) $this->t('To sell tickets, finish your Stripe setup so payouts can reach your bank.');
+    return (string) $this->t('To accept event payments, finish your Stripe setup so payouts can reach your bank.');
   }
 
   /**

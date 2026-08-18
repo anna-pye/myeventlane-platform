@@ -11,7 +11,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>{{ 'Tax Invoice'|t }} #{% if order %}{{ order.getOrderNumber }}{% endif %}</title>
+  <title>{{ inv.document_title|default('Receipt')|t }} #{% if order %}{{ order.getOrderNumber }}{% endif %}</title>
   <style>
     body {
       font-family: DejaVu Sans, Helvetica, Arial, sans-serif;
@@ -93,10 +93,10 @@
 </head>
 <body>
   <div class="mel-pdf-shell">
-    <h1>{{ 'Tax Invoice'|t }}</h1>
+    <h1>{{ inv.document_title|default('Receipt')|t }}</h1>
     <div class="mel-pdf-meta">
       {% if inv.vendor_name is defined and inv.vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ inv.vendor_name }}<br />{% endif %}
-      <strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn|default('ABN not provided') }}<br />
+      {% if inv.vendor_abn is defined and inv.vendor_abn %}<strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn }}<br />{% endif %}
       {% if order %}<strong>{{ 'Invoice #:'|t }}</strong> {{ order.getOrderNumber }}<br />{% endif %}
       {% if order and order.getPlacedTime %}
         <strong>{{ 'Date:'|t }}</strong> {{ order.getPlacedTime|date('d M Y') }}
@@ -153,7 +153,11 @@
         </div>
       </div>
     {% endif %}
-    <p class="mel-invoice__legal">{{ 'This document is a tax invoice for GST purposes.'|t }}</p>
+    {% if inv.is_tax_invoice|default(false) %}
+      <p class="mel-invoice__legal">{{ 'This document is a tax invoice for GST purposes.'|t }}</p>
+    {% else %}
+      <p class="mel-invoice__legal">{{ 'The supplier is not registered for GST. No GST has been charged.'|t }}</p>
+    {% endif %}
   </div>
 </body>
 </html>

@@ -146,6 +146,35 @@ function myeventlane_refunds_schema(): array {
         'not null' => FALSE,
         'description' => 'JSON array of attendee IDs targeted by partial ticket refund.',
       ],
+      'adjustment_note_number' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Immutable GST adjustment note identifier.',
+      ],
+      'gst_adjustment_cents' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'GST reversed by this confirmed refund, in cents.',
+      ],
+      'supplier_name_snapshot' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Supplier name at adjustment-note creation.',
+      ],
+      'supplier_abn_snapshot' => [
+        'type' => 'varchar',
+        'length' => 14,
+        'not null' => FALSE,
+        'description' => 'Supplier ABN at adjustment-note creation.',
+      ],
+      'adjustment_note_created' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp when the adjustment note was recorded.',
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
@@ -156,6 +185,7 @@ function myeventlane_refunds_schema(): array {
       'idx_refund_status_event' => ['event_id', 'status'],
       'idx_retry_schedule' => ['next_attempt_at'],
       'idx_retry_of' => ['retry_of'],
+      'adjustment_note_number' => ['adjustment_note_number'],
     ],
   ];
 
@@ -769,5 +799,36 @@ function myeventlane_refunds_update_9010(): void {
     catch (\Throwable) {
       // Ignore if the index already exists with a different database name.
     }
+  }
+}
+
+/**
+ * Adds immutable GST adjustment-note fields to confirmed refund records.
+ */
+function myeventlane_refunds_update_9011(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('myeventlane_refund_log')) {
+    return;
+  }
+
+  $fields = [
+    'adjustment_note_number' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE],
+    'gst_adjustment_cents' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    'supplier_name_snapshot' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE],
+    'supplier_abn_snapshot' => ['type' => 'varchar', 'length' => 14, 'not null' => FALSE],
+    'adjustment_note_created' => ['type' => 'int', 'not null' => FALSE],
+  ];
+  foreach ($fields as $name => $spec) {
+    if (!$schema->fieldExists('myeventlane_refund_log', $name)) {
+      $schema->addField('myeventlane_refund_log', $name, $spec);
+    }
+  }
+  if (!$schema->indexExists('myeventlane_refund_log', 'adjustment_note_number')) {
+    $schema->addIndex(
+      'myeventlane_refund_log',
+      'adjustment_note_number',
+      ['adjustment_note_number'],
+      ['fields' => ['adjustment_note_number' => $fields['adjustment_note_number']]],
+    );
   }
 }

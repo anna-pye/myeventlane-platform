@@ -117,7 +117,10 @@ final class EventStudioPreprocess {
         $event_type = (string) $node->get('field_event_type')->value;
       }
       $is_paid = in_array($event_type, ['paid', 'both'], TRUE);
-      if ($is_paid && $this->paidPublishStripeGate->validatePaidPublishAllowed($this->currentUser, (int) $node->id()) !== NULL) {
+      $accepts_donations = $node->hasField('field_enable_donations')
+        && !$node->get('field_enable_donations')->isEmpty()
+        && (bool) $node->get('field_enable_donations')->value;
+      if (($is_paid || $accepts_donations) && $this->paidPublishStripeGate->validatePaidPublishAllowed($this->currentUser, (int) $node->id()) !== NULL) {
         $variables['mel_publish_blocked'] = TRUE;
         $variables['mel_publish_stripe_gate'] = TRUE;
       }

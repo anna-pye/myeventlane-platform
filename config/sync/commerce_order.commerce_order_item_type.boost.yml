@@ -1,7 +1,12 @@
 uuid: ec48b58b-74af-42ba-aa99-335c59be3cd6
 langcode: en
 status: true
-dependencies: {  }
+dependencies:
+  module:
+    - commerce_tax
+third_party_settings:
+  commerce_tax:
+    taxable_type: events
 id: boost
 label: Boost
 traits: {  }

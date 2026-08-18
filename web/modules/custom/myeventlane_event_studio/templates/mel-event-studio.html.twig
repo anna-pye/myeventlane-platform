@@ -672,9 +672,9 @@
               <div class="mel-builder-card__body mel-builder-fields mel-builder-fields--stack">
               {% if mel_publish_blocked %}
                 {% if mel_publish_stripe_gate %}
-                  <div class="mel-publish-warning mel-publish-warning--stripe" role="region" aria-label="{{ 'Finish Stripe setup before publishing paid tickets'|t }}">
-                    <h3 class="mel-publish-warning__title">{{ 'Finish Stripe setup before publishing paid tickets'|t }}</h3>
-                    <p class="mel-publish-warning__lead">{{ 'To sell tickets, finish your Stripe setup so payouts can reach your bank.'|t }}</p>
+                  <div class="mel-publish-warning mel-publish-warning--stripe" role="region" aria-label="{{ 'Finish payment setup before publishing'|t }}">
+                    <h3 class="mel-publish-warning__title">{{ 'Finish payment setup before publishing'|t }}</h3>
+                    <p class="mel-publish-warning__lead">{{ 'To accept event payments, finish your Stripe setup so payouts can reach your bank.'|t }}</p>
                     <a href="{{ mel_stripe_connect_url }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
                       {{ 'Resume Stripe setup'|t }}
                     </a>

@@ -13,10 +13,11 @@ use Drupal\myeventlane_core\Entity\OnboardingStateInterface;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_legal\Service\LegalSettingsService;
 use Drupal\myeventlane_legal\Service\LegalGatekeeper;
+use Drupal\myeventlane_vendor\Service\OrganiserTaxProfileManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Dedicated onboarding Step 2 form: organiser profile (name only).
+ * Dedicated onboarding Step 2 form: organiser profile and tax declaration.
  *
  * Organiser name and legal acceptance are stored in onboarding state `flags`
  * (aligned with myeventlane_legal VendorTermsForm). The gateway skips
@@ -54,6 +55,7 @@ final class VendorOnboardProfileForm extends FormBase {
     TimeInterface $time,
     LegalSettingsService $legal_settings,
     private readonly LegalGatekeeper $legalGatekeeper,
+    private readonly OrganiserTaxProfileManager $organiserTaxProfile,
   ) {
     $this->onboardingManager = $onboarding_manager;
     $this->currentUser = $current_user;
@@ -71,6 +73,7 @@ final class VendorOnboardProfileForm extends FormBase {
       $container->get('datetime.time'),
       $container->get('myeventlane_legal.settings'),
       $container->get('myeventlane_legal.gatekeeper'),
+      $container->get('myeventlane_vendor.organiser_tax_profile'),
     );
   }
 
@@ -128,6 +131,84 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['step_content']['name']['#attributes']['placeholder'] = $this->t('Enter your organiser name');
     $form['step_content']['name']['#attributes']['autofocus'] = 'autofocus';
 
+    $form['step_content']['tax'] = [
+      '#type' => 'fieldset',
+      '#title' => $this->t('Legal and tax details'),
+      '#description' => $this->t('We use this information to apply GST correctly and prepare invoices and receipts.'),
+    ];
+    $form['step_content']['tax']['entity_type'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Organisation type'),
+      '#options' => [
+        '' => $this->t('- Select -'),
+        'individual' => $this->t('Individual / sole trader'),
+        'company' => $this->t('Company'),
+        'incorporated_association' => $this->t('Incorporated association'),
+        'unincorporated_association' => $this->t('Unincorporated association'),
+        'trust' => $this->t('Trust'),
+        'charity_or_nfp' => $this->t('Charity or not-for-profit'),
+        'government' => $this->t('Government entity'),
+        'other' => $this->t('Other'),
+      ],
+      '#default_value' => (string) ($flags['tax_entity_type'] ?? ''),
+      '#required' => TRUE,
+    ];
+    $form['step_content']['tax']['gst_status'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Are you registered for GST?'),
+      '#options' => [
+        OrganiserTaxProfileManager::STATUS_REGISTERED => $this->t('Yes, registered for GST'),
+        OrganiserTaxProfileManager::STATUS_NOT_REGISTERED => $this->t('No, not registered for GST'),
+      ],
+      '#default_value' => (string) ($flags['gst_registration_status'] ?? ''),
+      '#description' => $this->t('Not-for-profit or charity status does not automatically exempt an organisation from GST.'),
+      '#required' => TRUE,
+    ];
+    $form['step_content']['tax']['abn'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('ABN'),
+      '#default_value' => (string) ($flags['abn'] ?? ''),
+      '#maxlength' => 14,
+      '#description' => $this->t('Required if you are registered for GST.'),
+      '#states' => [
+        'required' => [':input[name="step_content[tax][gst_status]"]' => ['value' => OrganiserTaxProfileManager::STATUS_REGISTERED]],
+      ],
+    ];
+    $form['step_content']['tax']['gst_effective_date'] = [
+      '#type' => 'date',
+      '#title' => $this->t('GST registration effective date'),
+      '#default_value' => (string) ($flags['gst_effective_date'] ?? ''),
+      '#states' => [
+        'visible' => [':input[name="step_content[tax][gst_status]"]' => ['value' => OrganiserTaxProfileManager::STATUS_REGISTERED]],
+        'required' => [':input[name="step_content[tax][gst_status]"]' => ['value' => OrganiserTaxProfileManager::STATUS_REGISTERED]],
+      ],
+    ];
+    $form['step_content']['tax']['acnc_status'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Charity status'),
+      '#options' => [
+        'not_applicable' => $this->t('Not applicable'),
+        'not_registered' => $this->t('Not ACNC registered'),
+        'registered' => $this->t('ACNC registered charity'),
+      ],
+      '#default_value' => (string) ($flags['acnc_status'] ?? 'not_applicable'),
+    ];
+    $form['step_content']['tax']['dgr_status'] = [
+      '#type' => 'select',
+      '#title' => $this->t('DGR endorsement'),
+      '#options' => [
+        'not_endorsed' => $this->t('Not DGR endorsed'),
+        'endorsed' => $this->t('DGR endorsed'),
+      ],
+      '#default_value' => (string) ($flags['dgr_status'] ?? 'not_endorsed'),
+    ];
+    $form['step_content']['tax']['declaration'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('I confirm these legal and tax details are current and accurate.'),
+      '#default_value' => !empty($flags['tax_declaration_at']),
+      '#required' => TRUE,
+    ];
+
     $form['step_content']['actions'] = [
       '#type' => 'actions',
       '#attributes' => [
@@ -177,6 +258,19 @@ final class VendorOnboardProfileForm extends FormBase {
     if (!(bool) $form_state->getValue('terms_accepted')) {
       $form_state->setError($form['terms_accepted'], $this->t('You must agree to the Vendor Terms of Service.'));
     }
+    $tax = $form_state->getValue(['step_content', 'tax']) ?? [];
+    $gstStatus = (string) ($tax['gst_status'] ?? '');
+    if ($gstStatus === OrganiserTaxProfileManager::STATUS_REGISTERED) {
+      if (!$this->organiserTaxProfile->isValidAbn((string) ($tax['abn'] ?? ''))) {
+        $form_state->setError($form['step_content']['tax']['abn'], $this->t('Enter a valid 11-digit ABN for a GST-registered organiser.'));
+      }
+      if (empty($tax['gst_effective_date'])) {
+        $form_state->setError($form['step_content']['tax']['gst_effective_date'], $this->t('Enter the date your GST registration took effect.'));
+      }
+    }
+    if (empty($tax['declaration'])) {
+      $form_state->setError($form['step_content']['tax']['declaration'], $this->t('You must confirm that your legal and tax details are accurate.'));
+    }
   }
 
   /**
@@ -200,6 +294,16 @@ final class VendorOnboardProfileForm extends FormBase {
     $flags = is_array($flags) ? $flags : [];
 
     $flags['organiser_name'] = $name;
+    $tax = $form_state->getValue(['step_content', 'tax']) ?? [];
+    $flags['tax_entity_type'] = trim((string) ($tax['entity_type'] ?? ''));
+    $flags['gst_registration_status'] = trim((string) ($tax['gst_status'] ?? ''));
+    $flags['abn'] = preg_replace('/\D+/', '', (string) ($tax['abn'] ?? '')) ?? '';
+    $flags['gst_effective_date'] = trim((string) ($tax['gst_effective_date'] ?? ''));
+    $flags['acnc_status'] = trim((string) ($tax['acnc_status'] ?? 'not_applicable'));
+    $flags['dgr_status'] = trim((string) ($tax['dgr_status'] ?? 'not_endorsed'));
+    $flags['tax_declaration_at'] = !empty($tax['declaration'])
+      ? (int) $this->time->getRequestTime()
+      : 0;
 
     // Save checkbox value from the posted form (root-level key, not under #tree).
     $flags['terms_accepted'] = !empty($values['terms_accepted']);
@@ -238,6 +342,22 @@ final class VendorOnboardProfileForm extends FormBase {
       '@vid' => (string) $vendor->id(),
     ]);
     $vendor->setName($name);
+    $taxFieldMap = [
+      'field_tax_entity_type' => $flags['tax_entity_type'],
+      'field_gst_registration_status' => $flags['gst_registration_status'],
+      'field_gst_effective_date' => $flags['gst_registration_status'] === OrganiserTaxProfileManager::STATUS_REGISTERED
+        ? $flags['gst_effective_date']
+        : NULL,
+      'field_acnc_status' => $flags['acnc_status'],
+      'field_dgr_status' => $flags['dgr_status'],
+      'field_tax_declaration_at' => $flags['tax_declaration_at'],
+      'field_abn' => $flags['abn'] !== '' ? $flags['abn'] : NULL,
+    ];
+    foreach ($taxFieldMap as $fieldName => $value) {
+      if ($vendor->hasField($fieldName)) {
+        $vendor->set($fieldName, $value);
+      }
+    }
     if (!empty($flags['vendor_terms_accepted_at'])) {
       $this->onboardingManager->applyVendorLegalFieldsFromStateFlags($vendor, $flags);
       $this->getLogger('myeventlane_vendor')->notice(
@@ -258,7 +378,12 @@ final class VendorOnboardProfileForm extends FormBase {
     // Mark onboarding complete (profile + terms) once vendor is linked. Must run
     // after setVendorId: myeventlane_onboarding_state preSave requires vendor_id
     // when stage/complete is final (see OnboardingState::preSave()).
-    if (!empty($flags['terms_accepted']) && $name !== '' && (int) ($state->getVendorId() ?? 0) > 0) {
+    if (!empty($flags['terms_accepted'])
+      && !empty($flags['tax_declaration_at'])
+      && $flags['tax_entity_type'] !== ''
+      && in_array($flags['gst_registration_status'], [OrganiserTaxProfileManager::STATUS_REGISTERED, OrganiserTaxProfileManager::STATUS_NOT_REGISTERED], TRUE)
+      && $name !== ''
+      && (int) ($state->getVendorId() ?? 0) > 0) {
       $state->setStage('complete');
       $state->setCompleted(TRUE);
       $this->onboardingManager->persistOnboardingState($state);

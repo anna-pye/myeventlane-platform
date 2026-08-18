@@ -55,6 +55,9 @@ services:
       - '@entity_type.manager'
       - '@entity_field.manager'
 
+  myeventlane_vendor.organiser_tax_profile:
+    class: Drupal\myeventlane_vendor\Service\OrganiserTaxProfileManager
+
   myeventlane_vendor.organiser_media_access:
     class: Drupal\myeventlane_vendor\Service\OrganiserMediaAccess
     arguments:
@@ -107,6 +110,7 @@ services:
       - '@myeventlane_vendor.user_vendor_membership_query'
       - '@logger.channel.myeventlane_vendor'
       - '@string_translation'
+      - '@myeventlane_vendor.organiser_tax_profile'
 
   myeventlane_vendor.publish_requirements_gate:
     class: Drupal\myeventlane_vendor\Service\VendorPublishRequirementsGate
@@ -132,6 +136,7 @@ services:
       - '@logger.factory'
       - '@myeventlane_onboarding.manager'
       - '@current_user'
+      - '@myeventlane_vendor.organiser_tax_profile'
     tags:
       - { name: event_subscriber }
 

@@ -1,0 +1,23 @@
+uuid: 15b2463d-c905-43c6-8bdf-81cb4424c740
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_dgr_status
+field_name: field_dgr_status
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    - { value: not_endorsed, label: 'Not DGR endorsed' }
+    - { value: endorsed, label: 'DGR endorsed' }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

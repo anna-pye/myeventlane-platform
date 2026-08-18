@@ -1,0 +1,21 @@
+uuid: 75110b4f-7b54-4181-a0c9-0c1526e9450f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.myeventlane_vendor.field_acnc_status
+  module:
+    - myeventlane_vendor
+id: myeventlane_vendor.myeventlane_vendor.field_acnc_status
+field_name: field_acnc_status
+entity_type: myeventlane_vendor
+bundle: myeventlane_vendor
+label: 'Charity status'
+description: 'ACNC registration is recorded separately from GST registration.'
+required: false
+translatable: false
+default_value:
+  - { value: not_applicable }
+default_value_callback: ''
+settings: {  }
+field_type: list_string

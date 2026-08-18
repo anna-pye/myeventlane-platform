@@ -48,6 +48,42 @@ final class RefundProcessorLockingTest extends KernelTestBase {
   ];
 
   /**
+   * Tests replayed work cannot reopen a completed refund.
+   */
+  public function testCompletedRefundReplayPreservesCanonicalState(): void {
+    $database = $this->container->get('database');
+    $database->schema()->createTable('myeventlane_refund_log', [
+      'fields' => [
+        'id' => ['type' => 'serial', 'not null' => TRUE],
+        'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+        'stripe_refund_id' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE],
+        'updated' => ['type' => 'int', 'not null' => FALSE],
+      ],
+      'primary key' => ['id'],
+    ]);
+    $logId = (int) $database->insert('myeventlane_refund_log')->fields([
+      'status' => RefundProcessor::STATUS_COMPLETED,
+      'stripe_refund_id' => 're_test_completed',
+      'updated' => 123456,
+    ])->execute();
+
+    $reflection = new \ReflectionClass(RefundProcessor::class);
+    $processor = $reflection->newInstanceWithoutConstructor();
+    $reflection->getProperty('database')->setValue($processor, $database);
+
+    $processor->requestRefundByLogId($logId);
+
+    $row = $database->select('myeventlane_refund_log', 'r')
+      ->fields('r', ['status', 'stripe_refund_id', 'updated'])
+      ->condition('id', $logId)
+      ->execute()
+      ->fetchAssoc();
+    $this->assertSame(RefundProcessor::STATUS_COMPLETED, $row['status']);
+    $this->assertSame('re_test_completed', $row['stripe_refund_id']);
+    $this->assertSame('123456', $row['updated']);
+  }
+
+  /**
    * Tests later queue batches reuse the persisted cancellation refund.
    */
   public function testEventCancellationRefundReusesExistingLog(): void {

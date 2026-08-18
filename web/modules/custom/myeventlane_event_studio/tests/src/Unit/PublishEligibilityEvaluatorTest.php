@@ -28,6 +28,7 @@ final class PublishEligibilityEvaluatorTest extends UnitTestCase {
     $this->assertStringContainsString('validatePaidPublishAllowed', $source);
     $this->assertStringContainsString('$this->eventReadiness->evaluate', $source);
     $this->assertStringContainsString("in_array(\$eventType, ['paid', 'both'], TRUE)", $source);
+    $this->assertStringContainsString("hasField('field_enable_donations')", $source);
     $this->assertStringContainsString('catch (\\Throwable $e)', $source);
     $this->assertStringContainsString('evaluation_failed', $source);
   }

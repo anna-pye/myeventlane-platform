@@ -1,0 +1,29 @@
+uuid: 0055853c-c25a-4fff-b156-f051275005bb
+langcode: en
+status: true
+dependencies:
+  module:
+    - myeventlane_vendor
+    - options
+id: myeventlane_vendor.field_tax_entity_type
+field_name: field_tax_entity_type
+entity_type: myeventlane_vendor
+type: list_string
+settings:
+  allowed_values:
+    - { value: individual, label: Individual / sole trader }
+    - { value: company, label: Company }
+    - { value: incorporated_association, label: 'Incorporated association' }
+    - { value: unincorporated_association, label: 'Unincorporated association' }
+    - { value: trust, label: Trust }
+    - { value: charity_or_nfp, label: 'Charity or not-for-profit' }
+    - { value: government, label: Government entity }
+    - { value: other, label: Other }
+  allowed_values_function: ''
+module: options
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

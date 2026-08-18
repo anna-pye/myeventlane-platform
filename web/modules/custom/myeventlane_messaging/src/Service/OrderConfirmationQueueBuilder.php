@@ -178,6 +178,8 @@ final class OrderConfirmationQueueBuilder {
       'show_includes_gst_note' => $pricing['show_includes_gst_note'],
       'vendor_name' => $invoice['vendor_name'],
       'vendor_abn' => $invoice['vendor_abn'],
+      'document_title' => $invoice['document_title'],
+      'is_tax_invoice' => $invoice['is_tax_invoice'],
       'order_total_gst' => $invoice['order_total_gst'],
       'order_total' => $invoice['order_total'],
       'invoice_lines' => $invoice['invoice_lines'],
