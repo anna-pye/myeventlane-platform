@@ -12,9 +12,9 @@ third_party_settings:
     taxable_type: events
 _core:
   default_config_hash: iFZgD_z6PSZqyLy65J_OLjA_nnGu-lvKxgPr0BNiCCI
-label: 'Recurring (Standalone)'
 id: recurring_standalone
-purchasableEntityType: ''
-orderType: recurring
+label: 'Recurring (Standalone)'
 traits: {  }
 locked: true
+purchasableEntityType: ''
+orderType: recurring

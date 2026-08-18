@@ -6,12 +6,19 @@ dependencies:
     - core.entity_view_mode.myeventlane_vendor.full
     - field.field.myeventlane_vendor.myeventlane_vendor.field_abn
     - field.field.myeventlane_vendor.myeventlane_vendor.field_accent_colour
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_acnc_status
     - field.field.myeventlane_vendor.myeventlane_vendor.field_address
     - field.field.myeventlane_vendor.myeventlane_vendor.field_banner_image
     - field.field.myeventlane_vendor.myeventlane_vendor.field_business_name
     - field.field.myeventlane_vendor.myeventlane_vendor.field_description
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_dgr_status
     - field.field.myeventlane_vendor.myeventlane_vendor.field_email
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_gst_effective_date
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_gst_registration_status
     - field.field.myeventlane_vendor.myeventlane_vendor.field_logo_image
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_banner_media
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_email_media
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_mel_vendor_logo_media
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_accent_color
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_footer
     - field.field.myeventlane_vendor.myeventlane_vendor.field_msg_from_email
@@ -23,12 +30,20 @@ dependencies:
     - field.field.myeventlane_vendor.myeventlane_vendor.field_pref_email_digest
     - field.field.myeventlane_vendor.myeventlane_vendor.field_pref_email_on_order
     - field.field.myeventlane_vendor.myeventlane_vendor.field_pref_email_on_rsvp
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_public_profile_published
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_banner
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_description
     - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_email
     - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_location
     - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_phone
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_social_links
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_summary
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_public_show_website
     - field.field.myeventlane_vendor.myeventlane_vendor.field_social_links
     - field.field.myeventlane_vendor.myeventlane_vendor.field_summary
     - field.field.myeventlane_vendor.myeventlane_vendor.field_tagline
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_tax_declaration_at
+    - field.field.myeventlane_vendor.myeventlane_vendor.field_tax_entity_type
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_bio
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_logo
     - field.field.myeventlane_vendor.myeventlane_vendor.field_vendor_store
@@ -79,11 +94,15 @@ hidden:
   created: true
   field_abn: true
   field_accent_colour: true
+  field_acnc_status: true
   field_address: true
   field_banner_image: true
   field_business_name: true
   field_description: true
+  field_dgr_status: true
   field_email: true
+  field_gst_effective_date: true
+  field_gst_registration_status: true
   field_logo_image: true
   field_mel_vendor_banner_media: true
   field_mel_vendor_email_media: true
@@ -111,6 +130,8 @@ hidden:
   field_social_links: true
   field_summary: true
   field_tagline: true
+  field_tax_declaration_at: true
+  field_tax_entity_type: true
   field_vendor_store: true
   field_vendor_terms_accepted_at: true
   field_vendor_terms_accepted_ip: true
