@@ -19,7 +19,7 @@ use PHPUnit\Framework\TestCase;
 final class RefundAdjustmentNoteServiceTest extends TestCase {
 
   /**
-   * Tests taxable, gift, mixed and unregistered supplier refunds.
+   * Tests full, partial, gift and untaxed order refunds.
    */
   public function testGstAdjustmentCalculation(): void {
     $service = new RefundAdjustmentNoteService(
@@ -27,10 +27,22 @@ final class RefundAdjustmentNoteServiceTest extends TestCase {
       $this->createMock(TimeInterface::class),
     );
 
-    self::assertSame(100, $service->calculateGstAdjustmentCents(TRUE, 1100, 0, 'tickets_only'));
-    self::assertSame(0, $service->calculateGstAdjustmentCents(TRUE, 1100, 0, 'donation_only'));
-    self::assertSame(100, $service->calculateGstAdjustmentCents(TRUE, 1600, 500, 'tickets_and_donation'));
-    self::assertSame(0, $service->calculateGstAdjustmentCents(FALSE, 1100, 0, 'tickets_only'));
+    self::assertSame(100, $service->calculateGstAdjustmentCents(100, 1100, 1100));
+    self::assertSame(50, $service->calculateGstAdjustmentCents(100, 1100, 550));
+    self::assertSame(0, $service->calculateGstAdjustmentCents(100, 1100, 0));
+    self::assertSame(0, $service->calculateGstAdjustmentCents(0, 1100, 1100));
+    self::assertSame(100, $service->calculateGstAdjustmentCents(100, 1100, 1600));
+  }
+
+  /**
+   * Ensures historical refund tax never follows mutable registration data.
+   */
+  public function testHistoricalRefundLogicDoesNotUseCurrentRegistration(): void {
+    $source = file_get_contents(dirname(__DIR__, 3) . '/src/Service/RefundAdjustmentNoteService.php');
+
+    self::assertIsString($source);
+    self::assertStringContainsString('sumRecordedTaxCents($order)', $source);
+    self::assertStringNotContainsString("get('tax_registrations')", $source);
   }
 
 }

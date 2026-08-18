@@ -120,9 +120,17 @@ final class EventStudioPreprocess {
       $accepts_donations = $node->hasField('field_enable_donations')
         && !$node->get('field_enable_donations')->isEmpty()
         && (bool) $node->get('field_enable_donations')->value;
-      if (($is_paid || $accepts_donations) && $this->paidPublishStripeGate->validatePaidPublishAllowed($this->currentUser, (int) $node->id()) !== NULL) {
-        $variables['mel_publish_blocked'] = TRUE;
-        $variables['mel_publish_stripe_gate'] = TRUE;
+      if ($is_paid || $accepts_donations) {
+        $tax_denial = $this->paidPublishStripeGate->validateTaxDeclarationAllowed($this->currentUser, (int) $node->id());
+        if ($tax_denial !== NULL) {
+          $variables['mel_publish_blocked'] = TRUE;
+          $variables['mel_publish_tax_gate'] = TRUE;
+          $variables['mel_publish_tax_message'] = $tax_denial;
+        }
+        elseif ($this->paidPublishStripeGate->validatePaidPublishAllowed($this->currentUser, (int) $node->id()) !== NULL) {
+          $variables['mel_publish_blocked'] = TRUE;
+          $variables['mel_publish_stripe_gate'] = TRUE;
+        }
       }
     }
 

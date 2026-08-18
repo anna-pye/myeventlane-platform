@@ -40,15 +40,12 @@ final class PaidPublishStripeGate {
       return NULL;
     }
 
-    $vendorId = $this->resolveVendorIdForAccount($account);
-    $vendor = $vendorId !== NULL
-      ? $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendorId)
-      : NULL;
-    if (!$vendor instanceof Vendor || !$this->organiserTaxProfile->isDeclared($vendor)) {
-      $this->logBlocked((int) $account->id(), $vendorId, NULL, $eventNodeId, 'tax_declaration_incomplete');
-      return (string) $this->t('Before accepting event payments, confirm your organisation and GST details in Organiser Settings.');
+    $taxDenial = $this->validateTaxDeclarationAllowed($account, $eventNodeId);
+    if ($taxDenial !== NULL) {
+      return $taxDenial;
     }
 
+    $vendorId = $this->resolveVendorIdForAccount($account);
     $store = $this->resolveCommerceStoreForAccount($account);
     $storeId = $store instanceof StoreInterface ? (int) $store->id() : NULL;
 
@@ -81,6 +78,26 @@ final class PaidPublishStripeGate {
     }
 
     return NULL;
+  }
+
+  /**
+   * Returns a dedicated denial when organiser tax details are incomplete.
+   */
+  public function validateTaxDeclarationAllowed(AccountInterface $account, ?int $eventNodeId = NULL): ?string {
+    if ((int) $account->id() === 1 || $account->hasPermission('administer site configuration')) {
+      return NULL;
+    }
+
+    $vendorId = $this->resolveVendorIdForAccount($account);
+    $vendor = $vendorId !== NULL
+      ? $this->entityTypeManager->getStorage('myeventlane_vendor')->load($vendorId)
+      : NULL;
+    if ($vendor instanceof Vendor && $this->organiserTaxProfile->isDeclared($vendor)) {
+      return NULL;
+    }
+
+    $this->logBlocked((int) $account->id(), $vendorId, NULL, $eventNodeId, 'tax_declaration_incomplete');
+    return (string) $this->t('Before accepting event payments, confirm your organisation and GST details in Organiser Settings.');
   }
 
   private function blockedMessage(): string {

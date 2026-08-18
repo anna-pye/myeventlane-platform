@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_refunds\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_price\Price;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 
@@ -39,8 +40,6 @@ final class RefundAdjustmentNoteService {
     }
 
     $store = $order->getStore();
-    $registrations = $store ? array_column($store->get('tax_registrations')->getValue(), 'value') : [];
-    $isGstRegistered = in_array('AU', $registrations, TRUE);
     $supplierName = $store ? trim((string) $store->label()) : '';
     $supplierAbn = '';
     if ($store && $store->hasField('field_abn') && !$store->get('field_abn')->isEmpty()) {
@@ -48,15 +47,28 @@ final class RefundAdjustmentNoteService {
     }
 
     $refundedCents = max(0, (int) ($refundLog['actual_refunded_cents'] ?? $refundLog['amount_cents'] ?? 0));
-    $donationCents = 0;
-    if (!empty($refundLog['donation_refunded']) && $order->hasField('field_mel_donation') && !$order->get('field_mel_donation')->isEmpty()) {
-      $donationCents = (int) round(((float) $order->get('field_mel_donation')->value) * 100);
+    $orderDonationCents = 0;
+    if ($order->hasField('field_mel_donation') && !$order->get('field_mel_donation')->isEmpty()) {
+      $orderDonationCents = (int) round(((float) $order->get('field_mel_donation')->value) * 100);
     }
+    $refundedDonationCents = !empty($refundLog['donation_refunded'])
+      ? min($orderDonationCents, $refundedCents)
+      : 0;
+    $orderTaxCents = $this->sumRecordedTaxCents($order);
+    // Untaxed sales receive the ordinary refund confirmation only. They must
+    // not be represented as GST adjustment notes.
+    if ($orderTaxCents <= 0) {
+      return $refundLog;
+    }
+    $orderGrossCents = $this->priceToCents($order->getTotalPrice());
+    $taxableOrderGrossCents = max(0, $orderGrossCents - $orderDonationCents);
+    $refundedTaxableCents = (string) ($refundLog['refund_scope'] ?? '') === 'donation_only'
+      ? 0
+      : max(0, $refundedCents - $refundedDonationCents);
     $gstCents = $this->calculateGstAdjustmentCents(
-      $isGstRegistered,
-      $refundedCents,
-      $donationCents,
-      (string) ($refundLog['refund_scope'] ?? ''),
+      $orderTaxCents,
+      $taxableOrderGrossCents,
+      $refundedTaxableCents,
     );
     $orderNumber = preg_replace('/[^A-Za-z0-9_-]/', '-', (string) ($order->getOrderNumber() ?: $order->id())) ?: (string) $order->id();
     $noteNumber = sprintf('ADJ-%s-%d', $orderNumber, $logId);
@@ -82,19 +94,48 @@ final class RefundAdjustmentNoteService {
   }
 
   /**
-   * Excludes genuine organiser gifts from the taxable refund amount.
+   * Prorates the order's recorded GST over the refunded taxable amount.
    */
   public function calculateGstAdjustmentCents(
-    bool $isGstRegistered,
-    int $refundedCents,
-    int $donationCents,
-    string $refundScope,
+    int $orderTaxCents,
+    int $orderTaxableGrossCents,
+    int $refundedTaxableCents,
   ): int {
-    if (!$isGstRegistered || $refundScope === 'donation_only') {
+    if ($orderTaxCents <= 0 || $orderTaxableGrossCents <= 0 || $refundedTaxableCents <= 0) {
       return 0;
     }
 
-    return (int) round(max(0, $refundedCents - max(0, $donationCents)) / 11);
+    return min(
+      $orderTaxCents,
+      (int) round($orderTaxCents * min($refundedTaxableCents, $orderTaxableGrossCents) / $orderTaxableGrossCents),
+    );
+  }
+
+  /**
+   * Sums tax adjustments persisted on the order and its line items.
+   */
+  private function sumRecordedTaxCents(OrderInterface $order): int {
+    $taxCents = 0;
+    foreach ($order->getAdjustments() as $adjustment) {
+      if ($adjustment->getType() === 'tax') {
+        $taxCents += $this->priceToCents($adjustment->getAmount());
+      }
+    }
+    foreach ($order->getItems() as $item) {
+      foreach ($item->getAdjustments() as $adjustment) {
+        if ($adjustment->getType() === 'tax') {
+          $taxCents += $this->priceToCents($adjustment->getAmount());
+        }
+      }
+    }
+    return max(0, $taxCents);
+  }
+
+  /**
+   * Converts a Commerce price to integer minor units.
+   */
+  private function priceToCents(?Price $price): int {
+    return $price instanceof Price ? (int) round((float) $price->getNumber() * 100) : 0;
   }
 
 }

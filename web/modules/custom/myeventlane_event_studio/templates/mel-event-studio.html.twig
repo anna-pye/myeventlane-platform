@@ -671,7 +671,15 @@
               </div>
               <div class="mel-builder-card__body mel-builder-fields mel-builder-fields--stack">
               {% if mel_publish_blocked %}
-                {% if mel_publish_stripe_gate %}
+                {% if mel_publish_tax_gate %}
+                  <div class="mel-publish-warning" role="region" aria-label="{{ 'Confirm organiser tax details'|t }}">
+                    <h3 class="mel-publish-warning__title">{{ 'Confirm your legal and tax details'|t }}</h3>
+                    <p class="mel-publish-warning__lead">{{ mel_publish_tax_message }}</p>
+                    <a href="{{ path('myeventlane_vendor.console.settings_profile') }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
+                      {{ 'Open Organiser Settings'|t }}
+                    </a>
+                  </div>
+                {% elseif mel_publish_stripe_gate %}
                   <div class="mel-publish-warning mel-publish-warning--stripe" role="region" aria-label="{{ 'Finish payment setup before publishing'|t }}">
                     <h3 class="mel-publish-warning__title">{{ 'Finish payment setup before publishing'|t }}</h3>
                     <p class="mel-publish-warning__lead">{{ 'To accept event payments, finish your Stripe setup so payouts can reach your bank.'|t }}</p>

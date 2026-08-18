@@ -21,6 +21,8 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertIsString($services);
     $this->assertStringContainsString('PaidPublishStripeGate', $preprocess);
     $this->assertStringContainsString('validatePaidPublishAllowed', $preprocess);
+    $this->assertStringContainsString('validateTaxDeclarationAllowed', $preprocess);
+    $this->assertStringContainsString('mel_publish_tax_gate', $preprocess);
     $this->assertStringNotContainsString("empty(\$flags['stripe_connected'])", $preprocess);
     $this->assertStringContainsString("'@myeventlane_vendor.paid_publish_stripe_gate'", $services);
   }
@@ -53,6 +55,8 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $this->assertIsString($preprocess);
     $this->assertIsString($gate);
     $this->assertStringContainsString('Finish payment setup before publishing', $twig);
+    $this->assertStringContainsString('Confirm your legal and tax details', $twig);
+    $this->assertStringContainsString("myeventlane_vendor.console.settings_profile", $twig);
     $this->assertStringContainsString('To accept event payments, finish your Stripe setup so payouts can reach your bank.', $twig);
     $this->assertStringContainsString('Resume Stripe setup', $twig);
     $this->assertStringContainsString('mel_stripe_connect_url', $twig);

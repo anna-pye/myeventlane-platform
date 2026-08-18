@@ -43,8 +43,6 @@ final class TaxInvoicePresentationBuilder {
    */
   public function build(OrderInterface $order): array {
     $store = $order->getStore();
-    $taxRegistrations = $store ? array_column($store->get('tax_registrations')->getValue(), 'value') : [];
-    $isTaxInvoice = in_array('AU', $taxRegistrations, TRUE);
     $vendor_name = $store ? $store->label() : '';
     $abn = '';
     if ($store && $store->hasField('field_abn')) {
@@ -103,6 +101,9 @@ final class TaxInvoicePresentationBuilder {
       ];
     }
     $order_total_gst = $aggregated['total_formatted'];
+    // Historical documents must reflect tax recorded on this order. The
+    // organiser's current GST registration can change after the sale.
+    $isTaxInvoice = $aggregated['tax_rows'] !== [];
 
     $total_price = $order->getTotalPrice();
     $order_total = $this->formatPrice($total_price);
