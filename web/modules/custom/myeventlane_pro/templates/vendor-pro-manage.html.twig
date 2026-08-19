@@ -46,12 +46,17 @@
   {% elseif status.is_trial|default(false) and status.trial_ends_at %}
     <section class="mel-pro-manage__notice" role="status">
       <strong>{{ 'Your free trial is active'|t }}</strong>
-      <p>{{ 'Your first monthly charge is due when the 30-day trial ends.'|t }}</p>
+      {% if next_billing_date %}
+        <p>{{ 'Your first monthly charge is due on @date, when your 30-day trial ends.'|t({'@date': next_billing_date}) }}</p>
+      {% else %}
+        <p>{{ 'Your first monthly charge is due when the 30-day trial ends.'|t }}</p>
+      {% endif %}
     </section>
   {% endif %}
 
   <div class="mel-pro-manage__grid">
-    <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-included-heading">
+    {% if status.is_pro|default(false) %}
+      <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-included-heading">
       <p class="mel-pro-manage__eyebrow">{{ 'Included with your plan'|t }}</p>
       <h2 id="mel-pro-included-heading">{{ 'Your Pro toolkit'|t }}</h2>
       <p>{{ 'Use these tools when you are ready to understand your audience, strengthen your brand and invite people back.'|t }}</p>
@@ -73,7 +78,15 @@
           <span>{{ 'Each eligible published event gets one seven-day Boost while your Pro access is active. No Boost payment is created.'|t }}</span>
         </a>
       </div>
-    </section>
+      </section>
+    {% else %}
+      <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-restart-heading">
+        <p class="mel-pro-manage__eyebrow">{{ 'Pro access'|t }}</p>
+        <h2 id="mel-pro-restart-heading">{{ 'Restart MEL Pro'|t }}</h2>
+        <p>{{ 'Your Pro access has ended. Start a new subscription to use Pro tools again.'|t }}</p>
+        <a href="{{ overview_url|default('/vendor/pro') }}" class="mel-button mel-button--primary">{{ 'View Pro options'|t }}</a>
+      </section>
+    {% endif %}
 
     <section class="mel-pro-manage__card mel-card" aria-labelledby="mel-pro-plan-heading">
       <p class="mel-pro-manage__eyebrow">{{ 'Subscription details'|t }}</p>
@@ -91,11 +104,11 @@
           <div class="mel-pro-manage__row"><dt>{{ 'Started'|t }}</dt><dd>{{ started_date }}</dd></div>
         {% endif %}
         {% if next_billing_date %}
-          <div class="mel-pro-manage__row"><dt>{{ 'Next billing date'|t }}</dt><dd>{{ next_billing_date }}</dd></div>
+          <div class="mel-pro-manage__row"><dt>{{ billing_date_label|default('Next billing date'|t) }}</dt><dd>{{ next_billing_date }}</dd></div>
         {% endif %}
       </dl>
 
-      {% if roi_summary %}
+      {% if status.is_pro|default(false) and roi_summary %}
         <div class="mel-pro-manage__value-note">
           <strong>{{ 'Value this month'|t }}</strong>
           {% if roi_summary.roi_multiple > 0 %}
@@ -107,11 +120,13 @@
       {% endif %}
 
       <div class="mel-pro-manage__actions">
-        {% if billing_portal_enabled and billing_portal_url %}
-          <a href="{{ billing_portal_url }}" class="mel-button mel-button--primary">{{ 'Manage billing'|t }}</a>
-        {% else %}
-          <p class="mel-pro-manage__fallback">{{ 'Need to change your payment method or billing details? Our support team can help.'|t }}</p>
-          <a href="{{ billing_support_url|default('/vendor/support') }}" class="mel-button mel-button--primary">{{ 'Contact support'|t }}</a>
+        {% if status.can_manage_billing|default(false) %}
+          {% if billing_portal_enabled and billing_portal_url %}
+            <a href="{{ billing_portal_url }}" class="mel-button mel-button--primary">{{ 'Manage billing'|t }}</a>
+          {% else %}
+            <p class="mel-pro-manage__fallback">{{ 'Need to change your payment method or billing details? Our support team can help.'|t }}</p>
+            <a href="{{ billing_support_url|default('/vendor/support') }}" class="mel-button mel-button--primary">{{ 'Contact support'|t }}</a>
+          {% endif %}
         {% endif %}
         {% if cancel_url %}
           <div class="mel-pro-manage__cancel">

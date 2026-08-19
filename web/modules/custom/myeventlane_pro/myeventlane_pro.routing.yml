@@ -28,7 +28,7 @@ myeventlane_pro.manage:
     _controller: '\Drupal\myeventlane_pro\Controller\ProBillingController::manage'
     _title: 'Manage Pro Subscription'
   requirements:
-    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+    _role: 'vendor'
 
 myeventlane_pro.billing_portal:
   path: '/vendor/pro/billing-portal'

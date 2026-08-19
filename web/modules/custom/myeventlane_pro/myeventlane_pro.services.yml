@@ -208,6 +208,11 @@ services:
       - '@date.formatter'
       - '@string_translation'
 
+  myeventlane_pro.billing_date_resolver:
+    class: Drupal\myeventlane_pro\Service\ProBillingDateResolver
+    arguments:
+      - '@datetime.time'
+
   myeventlane_pro.message_builder:
     class: Drupal\myeventlane_pro\Service\ProMessageBuilder
     arguments:

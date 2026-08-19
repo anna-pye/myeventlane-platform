@@ -13,13 +13,44 @@ use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 /**
  * Kernel tests for Pro auto-boost and comms overrides.
  *
  * @group myeventlane_pro
  */
+#[RunTestsInSeparateProcesses]
 final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function register(ContainerBuilder $container): void {
+    parent::register($container);
+    $container->register('myeventlane_donations.vendor_event_mel_support', \stdClass::class);
+    $container->register('myeventlane_commerce.ticket_availability', \stdClass::class);
+    $container->register('myeventlane_checkout_flow.order_pricing_breakdown', \stdClass::class);
+    $container->register('myeventlane_checkout_flow.tax_invoice_presentation', \stdClass::class);
+    $container->register('myeventlane_tickets.event_access', \stdClass::class);
+    foreach ([
+      'myeventlane_event_studio.save',
+      'myeventlane_event_studio.commerce_sales_summary_builder',
+      'myeventlane_event_studio.extras_configured_summary_builder',
+      'myeventlane_commerce.order_item_classifier',
+      'myeventlane_commerce.vendor_operational_addon_order_builder',
+      'myeventlane_commerce.ticket_tier_analytics',
+      'myeventlane_commerce.event_operational_extras_sales_summary_builder',
+      'myeventlane_legal.gatekeeper',
+      'myeventlane_onboarding.manager',
+      'myeventlane_surface.state_readiness_helper',
+      'myeventlane_surface.data_presentation_manager',
+      'myeventlane_surface.vendor_dashboard_action_queue_governance',
+    ] as $serviceId) {
+      $container->register($serviceId, \stdClass::class);
+    }
+  }
 
   /**
    * {@inheritdoc}
@@ -31,9 +62,13 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     'path',
     'path_alias',
     'image',
+    'crop',
+    'focal_point',
     'field',
     'views',
     'options',
+    'entity',
+    'inline_entity_form',
     'entity_reference_revisions',
     'profile',
     'telephone',
@@ -78,9 +113,9 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     $this->installEntitySchema('node');
     $this->installSchema('node', ['node_access']);
     $this->installEntitySchema('commerce_store');
-    $this->installEntitySchema('commerce_subscription');
     $this->installEntitySchema('myeventlane_boost_entitlement');
     $this->installEntitySchema('myeventlane_vendor');
+    $this->installEmptySubscriptionFixture();
     if ($this->container->get('entity_type.manager')->hasDefinition('advancedqueue_queue')) {
       $this->installEntitySchema('advancedqueue_queue');
     }
@@ -89,14 +124,12 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     }
     $this->installConfig([
       'node',
-      'commerce_order',
-      'commerce_product',
       'commerce_store',
-      'advancedqueue',
-      'myeventlane_messaging',
-      'myeventlane_boost',
-      'myeventlane_pro',
     ]);
+    $this->container->get('config.factory')
+      ->getEditable('myeventlane_pro.settings')
+      ->set('pro_boost_days', 7)
+      ->save();
 
     if (!Role::load('mel_pro')) {
       Role::create([
@@ -121,6 +154,46 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
     $this->ensureEventFieldStorage('field_promoted', 'boolean', []);
     $this->ensureEventFieldStorage('field_promo_expires', 'datetime', [
       'datetime_type' => 'datetime',
+    ]);
+  }
+
+  /**
+   * Installs the queryable empty-subscription fixture used by Pro resolution.
+   *
+   * The test exercises the compatibility entitlement path and does not need a
+   * Commerce subscription bundle. The production resolver still needs to be
+   * able to prove that no canonical subscription exists before falling back.
+   */
+  private function installEmptySubscriptionFixture(): void {
+    $schema = $this->container->get('database')->schema();
+    if ($schema->tableExists('commerce_subscription')) {
+      return;
+    }
+
+    $schema->createTable('commerce_subscription', [
+      'fields' => [
+        'subscription_id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'billing_schedule' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+      ],
+      'primary key' => ['subscription_id'],
+      'indexes' => [
+        'subscription_owner_schedule' => ['uid', 'billing_schedule'],
+      ],
     ]);
   }
 
@@ -318,6 +391,9 @@ final class ProAutoBoostAndCommsKernelTest extends KernelTestBase {
    * Deletes Pro subscription entities for a specific owner.
    */
   private function deleteOwnerProSubscriptions(User $owner): void {
+    if (!$this->container->get('database')->schema()->tableExists('commerce_subscription')) {
+      return;
+    }
     $storage = $this->container->get('entity_type.manager')->getStorage('commerce_subscription');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)

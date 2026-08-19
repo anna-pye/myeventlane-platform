@@ -80,16 +80,20 @@ final class ProEntitlementReconciler {
       return;
     }
 
-    if ($this->userHasActiveProSubscription($user)) {
+    // A recurring subscription remains active while Commerce retries a failed
+    // renewal. Preserve the explicit grace marker until an order-paid event
+    // confirms recovery.
+    if ($this->isInGrace($user)) {
+      $this->ensureRole($user);
+      $this->syncVendorProFlag($user, TRUE);
+    }
+    elseif ($this->userHasActiveProSubscription($user)) {
       $changed = $this->ensureRole($user);
       $this->syncVendorProFlag($user, TRUE);
       $this->clearGracePeriod($user);
       if ($changed) {
         $this->invalidateUserProTags($user);
       }
-    }
-    elseif ($this->isInGrace($user)) {
-      $this->ensureRole($user);
     }
     else {
       $this->revokeIfManaged($user);

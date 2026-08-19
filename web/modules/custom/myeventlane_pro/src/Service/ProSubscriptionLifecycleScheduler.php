@@ -83,46 +83,118 @@ final class ProSubscriptionLifecycleScheduler {
   }
 
   /**
-   * Handles day-0 dunning immediately when a subscription enters payment failure.
+   * Handles day-0 dunning immediately when a renewal payment is declined.
    *
    * Clears any prior sequence rows for the subscription, queues the day-0
    * email, and records the row as sent (or scheduled if queueing fails).
    */
-  public function onPaymentFailedImmediate(SubscriptionInterface $subscription): void {
-    if (!$this->stateResolver->isPaymentFailure($subscription)) {
-      return;
+  public function onPaymentFailedImmediate(SubscriptionInterface $subscription): bool {
+    $subId = (int) $subscription->id();
+    $customer = $subscription->getCustomer();
+    if ($customer instanceof UserInterface && $this->resolveGraceExpiry($customer) > $this->time->getRequestTime()) {
+      return FALSE;
     }
 
-    $subId = (int) $subscription->id();
     $this->database->delete('myeventlane_pro_failed_payment_sequence')
       ->condition('subscription_id', $subId)
       ->execute();
 
     $now = $this->time->getRequestTime();
+    foreach ([3, 6] as $step) {
+      $this->safeInsertFailedSequenceRow(
+        $subId,
+        $step,
+        $now + ($step * 86400),
+        self::STATUS_SCHEDULED,
+        NULL,
+      );
+    }
 
     $recipient = $this->resolveRecipientEmail($subscription);
     if ($recipient === NULL) {
       $this->logger->error('Pro dunning: no recipient email for subscription @id day-0 notice.', ['@id' => (string) $subId]);
       $this->safeInsertFailedSequenceRow($subId, 0, $now, self::STATUS_SCHEDULED, NULL);
-      return;
+      return TRUE;
     }
 
     $messageId = $this->messagingManager->queue('pro_subscription_payment_failed_day_0', $recipient, [
       'first_name' => $this->resolveCustomerFirstName($subscription),
       'subscription_id' => $subId,
       'step' => 0,
+      // Distinguish a genuine later failed-renewal cycle while keeping replay
+      // events inside the current grace window idempotent.
+      'failure_cycle' => $now,
     ]);
 
     if ($messageId === NULL) {
       $this->logger->error('Pro dunning: messaging queue rejected day-0 email for subscription @id.', ['@id' => (string) $subId]);
       $this->safeInsertFailedSequenceRow($subId, 0, $now, self::STATUS_SCHEDULED, NULL);
-      return;
+      return TRUE;
     }
 
     $this->safeInsertFailedSequenceRow($subId, 0, $now, self::STATUS_SENT, $now);
     $this->logger->notice('Pro dunning: subscription @id entered payment failure; day-0 organiser email queued.', [
       '@id' => (string) $subId,
     ]);
+    return TRUE;
+  }
+
+  /**
+   * Cancels outstanding dunning and queues one recovery confirmation.
+   */
+  public function onPaymentRecovered(SubscriptionInterface $subscription): int {
+    $subscriptionId = (int) $subscription->id();
+    $failureCycle = $this->database->select('myeventlane_pro_failed_payment_sequence', 'f')
+      ->fields('f', ['scheduled_at'])
+      ->condition('subscription_id', $subscriptionId)
+      ->condition('step', 0)
+      ->orderBy('scheduled_at', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    $cancelled = (int) $this->database->update('myeventlane_pro_failed_payment_sequence')
+      ->fields(['status' => self::STATUS_CANCELLED])
+      ->condition('subscription_id', $subscriptionId)
+      ->condition('status', self::STATUS_SCHEDULED)
+      ->execute();
+
+    // A normal successful renewal has no failed-payment cycle and must not
+    // generate a recovery message.
+    if ($failureCycle === FALSE) {
+      return $cancelled;
+    }
+
+    $recipient = $this->resolveRecipientEmail($subscription);
+    if ($recipient === NULL) {
+      $this->logger->error('Pro recovery: no recipient email for subscription @id.', [
+        '@id' => (string) $subscriptionId,
+      ]);
+      return $cancelled;
+    }
+
+    $cycle = (int) $failureCycle;
+    $messageId = $this->messagingManager->queue(
+      'pro_subscription_payment_recovered',
+      $recipient,
+      [
+        'first_name' => $this->resolveCustomerFirstName($subscription),
+        'subscription_id' => $subscriptionId,
+        'failure_cycle' => $cycle,
+        'manage_url' => '/vendor/pro/manage',
+      ],
+      [
+        'idempotency_key' => sprintf('pro-payment-recovered:%d:%d', $subscriptionId, $cycle),
+      ],
+    );
+
+    if ($messageId !== NULL) {
+      $this->logger->notice('Pro recovery: organiser confirmation queued for subscription @id.', [
+        '@id' => (string) $subscriptionId,
+      ]);
+    }
+
+    return $cancelled;
   }
 
   /**
@@ -163,16 +235,15 @@ final class ProSubscriptionLifecycleScheduler {
     $graceSeconds = $this->getGraceSeconds();
 
     foreach ($this->loadProSubscriptions() as $subscription) {
-      if (!$this->stateResolver->isPaymentFailure($subscription)) {
-        continue;
-      }
-
       $customer = $subscription->getCustomer();
       if (!$customer instanceof UserInterface || $customer->isAnonymous()) {
         continue;
       }
 
       $graceExpiry = $this->resolveGraceExpiry($customer);
+      if ($graceExpiry <= $now) {
+        continue;
+      }
       $sequenceStart = $graceExpiry > 0 ? ($graceExpiry - $graceSeconds) : $now;
 
       foreach ([3, 6] as $step) {
@@ -212,7 +283,12 @@ final class ProSubscriptionLifecycleScheduler {
       /** @var \Drupal\commerce_recurring\Entity\SubscriptionInterface[] $subscriptions */
       $subscriptions = $storage->loadMultiple($chunk);
       foreach ($subscriptions as $subscription) {
-        if (!$subscription instanceof SubscriptionInterface || !$this->stateResolver->isActive($subscription)) {
+        if (!$subscription instanceof SubscriptionInterface) {
+          continue;
+        }
+
+        $customer = $subscription->getCustomer();
+        if ($customer instanceof UserInterface && $this->resolveGraceExpiry($customer) > $this->time->getRequestTime()) {
           continue;
         }
 
@@ -329,12 +405,8 @@ final class ProSubscriptionLifecycleScheduler {
         continue;
       }
 
-      if ($this->stateResolver->isActive($subscription)) {
-        $this->markFailedSequence((int) $id, self::STATUS_CANCELLED);
-        continue;
-      }
-
-      if (!$this->stateResolver->isPaymentFailure($subscription)) {
+      $customer = $subscription->getCustomer();
+      if (!$customer instanceof UserInterface || $this->resolveGraceExpiry($customer) <= $now) {
         $this->markFailedSequence((int) $id, self::STATUS_CANCELLED);
         continue;
       }

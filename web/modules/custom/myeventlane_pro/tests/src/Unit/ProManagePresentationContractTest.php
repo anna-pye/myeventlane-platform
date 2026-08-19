@@ -21,6 +21,8 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString("'Deeper analytics'|t", $template);
     self::assertStringContainsString("'Pro email templates'|t", $template);
     self::assertStringContainsString("'Marketing and branding tools'|t", $template);
+    self::assertStringContainsString("'A free 7-day Boost for each event'|t", $template);
+    self::assertStringContainsString('No Boost payment is created.', $template);
     self::assertStringContainsString("'Cancel at period end'|t", $template);
     self::assertStringContainsString("'Reactivate MEL Pro'|t", $template);
     self::assertStringContainsString("'Invoices and receipts'|t", $template);
@@ -32,9 +34,55 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertIsString($controller);
     self::assertIsString($template);
 
-    self::assertStringContainsString('$renewalDateStale = TRUE', $controller);
+    self::assertStringContainsString('$this->billingDateResolver->resolve', $controller);
+    self::assertStringContainsString("\$renewalDateStale = \$billingDate['stale']", $controller);
     self::assertStringContainsString("'Your billing date needs review'|t", $template);
     self::assertStringContainsString('We do not have a future renewal date to show', $template);
+  }
+
+  public function testTrialShowsItsFirstBillingDateWhenAvailable(): void {
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.module');
+    $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
+    self::assertIsString($module);
+    self::assertIsString($template);
+
+    self::assertStringContainsString("'billing_date_label' => NULL", $module);
+    self::assertStringContainsString("'Your first monthly charge is due on @date", $template);
+    self::assertStringContainsString("billing_date_label|default('Next billing date'|t)", $template);
+  }
+
+  public function testManageThemeExposesReactivationAndBillingHistory(): void {
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.module');
+    self::assertIsString($module);
+
+    self::assertStringContainsString("'reactivate_url' => NULL", $module);
+    self::assertStringContainsString("'billing_history' => []", $module);
+  }
+
+  public function testCancelledOrganiserCanStillOpenManagePage(): void {
+    $routing = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.routing.yml');
+    self::assertIsString($routing);
+
+    self::assertMatchesRegularExpression(
+      "/myeventlane_pro\\.manage:.*?_role: 'vendor'.*?myeventlane_pro\\.billing_portal:/s",
+      $routing,
+    );
+  }
+
+  public function testCancelledOrganiserSeesRestartInsteadOfActiveBillingControls(): void {
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProBillingController.php');
+    $module = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.module');
+    $template = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
+    self::assertIsString($controller);
+    self::assertIsString($module);
+    self::assertIsString($template);
+
+    self::assertStringContainsString("!(\$status['has_active_subscription'] ?? FALSE)", $controller);
+    self::assertStringContainsString("\$status['can_manage_billing'] ?? FALSE", $controller);
+    self::assertStringContainsString("'overview_url' => NULL", $module);
+    self::assertStringContainsString('status.is_pro|default(false)', $template);
+    self::assertStringContainsString("'Restart MEL Pro'|t", $template);
+    self::assertStringContainsString("'View Pro options'|t", $template);
   }
 
   public function testBillingPortalUsesTrustedExternalRedirect(): void {

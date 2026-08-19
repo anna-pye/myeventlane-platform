@@ -329,7 +329,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
 
     try {
       $this->database->merge('myeventlane_pro_recovery_attribution')
-        ->key([
+        ->keys([
           'order_id' => $orderId,
           'tracking_step' => $trackingStep,
         ])
