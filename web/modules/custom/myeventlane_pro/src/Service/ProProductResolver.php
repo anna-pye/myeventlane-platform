@@ -56,6 +56,38 @@ final class ProProductResolver {
   }
 
   /**
+   * Finds the sellable Pro variation for a first trial or paid restart.
+   */
+  public function findVariationForEligibility(bool $trialEligible): ?ProductVariationInterface {
+    $scheduleId = $trialEligible
+      ? ProBillingSchedule::TRIAL
+      : ProBillingSchedule::RESTART;
+
+    return $this->findSellableByBillingSchedule($scheduleId);
+  }
+
+  /**
+   * Finds a sellable Pro variation assigned to a billing schedule.
+   */
+  public function findSellableByBillingSchedule(string $scheduleId): ?ProductVariationInterface {
+    $storage = $this->entityTypeManager->getStorage('commerce_product_variation');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('type', self::VARIATION_TYPE)
+      ->condition('billing_schedule', $scheduleId)
+      ->condition('status', 1)
+      ->execute();
+
+    foreach ($storage->loadMultiple($ids) as $variation) {
+      if ($variation instanceof ProductVariationInterface && $this->isVariationSellable($variation)) {
+        return $variation;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
    * Loads a variation by SKU, trying exact match then common case variants.
    */
   private function loadVariationBySkuCaseInsensitive(string $sku): ?ProductVariationInterface {

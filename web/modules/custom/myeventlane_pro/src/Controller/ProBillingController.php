@@ -17,6 +17,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_pro\Service\ProBillingPortalService;
 use Drupal\myeventlane_pro\Service\ProBillingDateResolver;
+use Drupal\myeventlane_pro\Service\ProBillingSchedule;
 use Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStatusService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -30,8 +31,6 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 final class ProBillingController implements ContainerInjectionInterface {
 
   use StringTranslationTrait;
-
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -121,6 +120,10 @@ final class ProBillingController implements ContainerInjectionInterface {
     $billingPortalEnabled = (bool) ($settings->get('billing_portal_enabled') ?? FALSE)
       && (bool) ($status['can_manage_billing'] ?? FALSE);
     $billingPortalUrl = Url::fromRoute('myeventlane_pro.billing_portal')->toString();
+    $paymentMethodUpdateUrl = Url::fromRoute('myeventlane_pro.payment_method_update')->toString();
+    $paymentRetryUrl = ($status['is_in_grace'] ?? FALSE)
+      ? Url::fromRoute('myeventlane_pro.payment_retry')->toString()
+      : NULL;
     $supportUrl = trim((string) ($settings->get('billing_support_url') ?? ''));
 
     $cancelUrl = NULL;
@@ -153,6 +156,8 @@ final class ProBillingController implements ContainerInjectionInterface {
       '#billing_schedule_label' => $this->t('Monthly'),
       '#billing_portal_enabled' => $billingPortalEnabled,
       '#billing_portal_url' => $billingPortalUrl,
+      '#payment_method_update_url' => $paymentMethodUpdateUrl,
+      '#payment_retry_url' => $paymentRetryUrl,
       '#billing_support_url' => $supportUrl !== '' ? $supportUrl : NULL,
       '#overview_url' => $overviewUrl,
       '#attached' => [
@@ -234,7 +239,7 @@ final class ProBillingController implements ContainerInjectionInterface {
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', $uid)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'DESC')
       ->range(0, 1)
       ->execute();

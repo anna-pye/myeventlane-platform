@@ -78,6 +78,12 @@
               {% if row.subscription_url %}
                 <a href="{{ row.subscription_url }}" class="mel-pro-report__action">{{ 'View sub'|t }}</a>
               {% endif %}
+              {% if row.payment_update_email_url %}
+                <a href="{{ row.payment_update_email_url }}" class="mel-pro-report__action">{{ 'Send payment link'|t }}</a>
+              {% endif %}
+              {% if row.payment_retry_url %}
+                <a href="{{ row.payment_retry_url }}" class="mel-pro-report__action">{{ 'Retry payment'|t }}</a>
+              {% endif %}
             </td>
           </tr>
         {% endfor %}

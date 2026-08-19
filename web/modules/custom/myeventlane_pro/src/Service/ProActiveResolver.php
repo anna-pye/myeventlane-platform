@@ -18,7 +18,6 @@ use Psr\Log\LoggerInterface;
  */
 final class ProActiveResolver {
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
 
   /**
    * Store IDs already warned for compatibility fallback.
@@ -142,7 +141,7 @@ final class ProActiveResolver {
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', (int) $account->id())
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'DESC')
       ->execute();
 

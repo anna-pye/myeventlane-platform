@@ -38,6 +38,22 @@ myeventlane_pro.billing_portal:
   requirements:
     _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
 
+myeventlane_pro.payment_method_update:
+  path: '/vendor/pro/payment-method'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProBillingController::portal'
+    _title: 'Update MEL Pro payment method'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+
+myeventlane_pro.payment_retry:
+  path: '/vendor/pro/payment/retry'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProPaymentRetryForm'
+    _title: 'Retry MEL Pro payment'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_pro\Controller\ProOverviewController::accessProVendor'
+
 myeventlane_pro.cancel_request:
   path: '/vendor/pro/cancel'
   defaults:
@@ -78,6 +94,30 @@ myeventlane_pro.admin_report:
     _title: 'Pro subscriptions'
   requirements:
     _permission: 'view pro reporting'
+
+myeventlane_pro.admin_payment_update_email:
+  path: '/admin/platform/pro/{user}/send-payment-update'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProAdminPaymentUpdateEmailForm'
+    _title: 'Send Pro payment update link'
+  requirements:
+    _permission: 'manage pro payment recovery'
+  options:
+    parameters:
+      user:
+        type: entity:user
+
+myeventlane_pro.admin_payment_retry:
+  path: '/admin/platform/pro/{user}/retry-payment'
+  defaults:
+    _form: '\Drupal\myeventlane_pro\Form\ProAdminPaymentRetryForm'
+    _title: 'Retry Pro payment'
+  requirements:
+    _permission: 'manage pro payment recovery'
+  options:
+    parameters:
+      user:
+        type: entity:user
 
 myeventlane_pro.diagnostics:
   path: '/admin/reports/myeventlane/pro-status'

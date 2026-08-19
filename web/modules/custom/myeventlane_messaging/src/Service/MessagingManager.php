@@ -50,6 +50,7 @@ final class MessagingManager {
     'pro_subscription_payment_failed_day_3',
     'pro_subscription_payment_failed_day_6',
     'pro_subscription_payment_recovered',
+    'pro_subscription_payment_update_link',
     'order_confirmation',
     'order_invoice',
     'rsvp_confirmation',

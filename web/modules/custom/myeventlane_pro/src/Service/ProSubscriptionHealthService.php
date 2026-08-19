@@ -16,7 +16,6 @@ use Psr\Log\LoggerInterface;
  */
 final class ProSubscriptionHealthService {
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const PRO_PRICE_FALLBACK = 49.0;
   private const BATCH_SIZE = 200;
 
@@ -135,7 +134,7 @@ final class ProSubscriptionHealthService {
     $storage = $this->entityTypeManager->getStorage('commerce_subscription');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'ASC')
       ->execute();
 

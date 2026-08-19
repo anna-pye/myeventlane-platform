@@ -1,0 +1,16 @@
+enabled: true
+subject: 'Securely update your MEL Pro payment method'
+preheader: 'Use this secure link to update the card saved for MEL Pro.'
+body_html: |
+  <p>Hi {{ first_name|default('there') }},</p>
+  <p>MyEventLane support has sent you a secure link to update the payment method saved for MEL Pro.</p>
+  <p><a href="{{ payment_update_url }}">Update your MEL Pro payment method</a></p>
+  <p>You will need to sign in. Your card details are entered securely through Stripe and are not visible to MyEventLane staff.</p>
+  <p>You can review your Pro status at <a href="{{ manage_url }}">Manage MEL Pro</a>.</p>
+  <p>Thanks,<br>MyEventLane</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: support
+    utm_campaign: pro_payment_update

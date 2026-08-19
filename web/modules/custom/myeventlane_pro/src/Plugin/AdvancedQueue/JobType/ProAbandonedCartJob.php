@@ -174,10 +174,10 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
   }
 
   /**
-   * TRUE when the order has at least one line item with quantity greater than zero.
+   * TRUE when the order contains an item with a positive quantity.
    *
-   * Commerce orders do not implement a generic entity isEmpty(); emptiness for carts
-   * is determined from order items (matches AbandonedCartScheduler).
+   * Commerce orders do not implement a generic entity isEmpty(). Cart emptiness
+   * is determined from order items, matching AbandonedCartScheduler.
    */
   private function orderHasPurchasableItems(OrderInterface $order): bool {
     foreach ($order->getItems() as $orderItem) {
@@ -191,7 +191,11 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
   /**
    * Sends reminder via MessagingManager template or fallback mail.
    */
-  private function sendReminder(OrderInterface $order, string $step, string $recipient): bool {
+  private function sendReminder(
+    OrderInterface $order,
+    string $step,
+    string $recipient,
+  ): bool {
     $template = $step === 'w2' ? 'pro_cart_abandoned_w2' : 'pro_cart_abandoned_w1';
     $cartUrl = Url::fromRoute('commerce_cart.page', [], ['absolute' => TRUE])->toString();
 
@@ -207,9 +211,7 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
       'order_id' => (int) $order->id(),
       'step' => $step,
       'item_count' => count($order->getItems()),
-      'trial_days' => max(0, (int) $this->configFactory
-        ->get('commerce_recurring.commerce_billing_schedule.mel_pro_monthly')
-        ->get('configuration.trial_interval.number')),
+      'trial_days' => $this->resolveTrialDays($order),
       'monthly_price' => 'A$' . number_format(
         (float) ($this->configFactory->get('myeventlane_pro.settings')->get('pro_price') ?? 49),
         2,
@@ -229,15 +231,21 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     }
 
     $subject = 'Finish setting up MyEventLane Pro';
+    $billingDescription = $context['trial_days'] > 0
+      ? sprintf(
+        'Pro includes a %d-day free period, then %s per month until cancelled.',
+        $context['trial_days'],
+        $context['monthly_price'],
+      )
+      : sprintf(
+        'Pro restarts at %s per month from checkout confirmation.',
+        $context['monthly_price'],
+      );
     $body = [
       "Hi {$firstName},",
       '',
       'You started setting up MyEventLane Pro but did not finish.',
-      sprintf(
-        'Pro includes a %d-day free period, then %s per month until cancelled.',
-        $context['trial_days'],
-        $context['monthly_price'],
-      ),
+      $billingDescription,
       "Return to your secure Pro checkout: {$cartUrl}",
     ];
     $result = $this->mailManager->mail(
@@ -254,6 +262,24 @@ final class ProAbandonedCartJob extends JobTypeBase implements ContainerFactoryP
     );
 
     return !empty($result['result']);
+  }
+
+  /**
+   * Resolves the trial length from the Pro variation actually in the order.
+   */
+  private function resolveTrialDays(OrderInterface $order): int {
+    foreach ($order->getItems() as $orderItem) {
+      $variation = $orderItem->getPurchasedEntity();
+      if (!$variation || !$variation->hasField('billing_schedule') || $variation->get('billing_schedule')->isEmpty()) {
+        continue;
+      }
+      $scheduleId = (string) $variation->get('billing_schedule')->target_id;
+      return max(0, (int) $this->configFactory
+        ->get('commerce_recurring.commerce_billing_schedule.' . $scheduleId)
+        ->get('configuration.trial_interval.number'));
+    }
+
+    return 0;
   }
 
   /**

@@ -9,6 +9,7 @@ use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_pro\Service\ProBillingSchedule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -49,7 +50,7 @@ final class ProReactivateForm extends ConfirmFormBase {
     $ids = $this->entityTypeManager->getStorage('commerce_subscription')->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', (int) $this->currentUser->id())
-      ->condition('billing_schedule', 'mel_pro_monthly')
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->condition('state', ['trial', 'active'], 'IN')
       ->sort('subscription_id', 'DESC')
       ->range(0, 1)

@@ -21,7 +21,6 @@ use Psr\Log\LoggerInterface;
  */
 final class ProSubscriptionLifecycleScheduler {
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const BATCH_SIZE = 200;
   private const RENEWAL_REMINDER_WINDOW_SECONDS = 259200;
   private const STATUS_SCHEDULED = 'scheduled';
@@ -687,7 +686,7 @@ final class ProSubscriptionLifecycleScheduler {
     $storage = $this->entityTypeManager->getStorage('commerce_subscription');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'ASC')
       ->execute();
 

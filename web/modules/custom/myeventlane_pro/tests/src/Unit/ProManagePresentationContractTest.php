@@ -26,6 +26,59 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString("'Cancel at period end'|t", $template);
     self::assertStringContainsString("'Reactivate MEL Pro'|t", $template);
     self::assertStringContainsString("'Invoices and receipts'|t", $template);
+    self::assertStringContainsString("'Update payment method'|t", $template);
+    self::assertStringContainsString("'Retry payment'|t", $template);
+  }
+
+  public function testPaymentRecoveryRoutesUseDedicatedRecurringFlow(): void {
+    $routing = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.routing.yml');
+    $service = file_get_contents(dirname(__DIR__, 3) . '/src/Service/ProPaymentRecoveryService.php');
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProBillingController.php');
+    self::assertIsString($routing);
+    self::assertIsString($service);
+    self::assertIsString($controller);
+
+    self::assertStringContainsString("path: '/vendor/pro/payment-method'", $routing);
+    self::assertMatchesRegularExpression(
+      "/myeventlane_pro\\.payment_method_update:.*?ProBillingController::portal/s",
+      $routing,
+    );
+    self::assertStringContainsString('new TrustedRedirectResponse($url)', $controller);
+    self::assertStringContainsString("path: '/vendor/pro/payment/retry'", $routing);
+    self::assertStringContainsString("private const PAYMENT_GATEWAY = 'stripe_pe_recurring'", $service);
+    self::assertStringContainsString("Job::create('myeventlane_pro_payment_retry'", $service);
+    self::assertStringContainsString("catch (DuplicateJobException)", $service);
+    self::assertStringContainsString("setWithExpire(\$retryKey, TRUE, 300)", $service);
+    self::assertStringContainsString("\$this->lock->acquire(\$lockName", $service);
+    self::assertStringContainsString("field_pro_grace_expires", $service);
+    self::assertStringContainsString("only available during an active Pro grace period", $service);
+    $job = file_get_contents(dirname(__DIR__, 3) . '/src/Plugin/AdvancedQueue/JobType/ProPaymentRetryJob.php');
+    self::assertIsString($job);
+    self::assertStringContainsString('allow_duplicates: FALSE', $job);
+    self::assertStringContainsString('$this->recurringOrderManager->closeOrder($order)', $job);
+    self::assertStringContainsString('Normal dunning remains scheduled', $job);
+  }
+
+  public function testStaffRecoveryKeepsCardEntryWithOrganiserAndStripe(): void {
+    $routing = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.routing.yml');
+    $permissions = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_pro.permissions.yml');
+    $emailForm = file_get_contents(dirname(__DIR__, 3) . '/src/Form/ProAdminPaymentUpdateEmailForm.php');
+    $retryForm = file_get_contents(dirname(__DIR__, 3) . '/src/Form/ProAdminPaymentRetryForm.php');
+    $template = file_get_contents(dirname(__DIR__, 3) . '/config/install/myeventlane_messaging.template.pro_subscription_payment_update_link.yml');
+    self::assertIsString($routing);
+    self::assertIsString($permissions);
+    self::assertIsString($emailForm);
+    self::assertIsString($retryForm);
+    self::assertIsString($template);
+
+    self::assertStringContainsString("path: '/admin/platform/pro/{user}/send-payment-update'", $routing);
+    self::assertStringContainsString("path: '/admin/platform/pro/{user}/retry-payment'", $routing);
+    self::assertStringContainsString("_permission: 'manage pro payment recovery'", $routing);
+    self::assertStringContainsString('restrict access: true', $permissions);
+    self::assertStringContainsString('not receive or handle the card details', $emailForm);
+    self::assertStringContainsString('isInActiveGracePeriod', $retryForm);
+    self::assertStringContainsString('pro-payment-update-link:%d:%d', $emailForm);
+    self::assertStringContainsString('{{ payment_update_url }}', $template);
   }
 
   public function testManagePageDoesNotPresentStaleRenewalAsFutureBilling(): void {
@@ -138,6 +191,8 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString("'Advanced organiser analytics'|t", $template);
     self::assertStringContainsString("'Pro email templates'|t", $template);
     self::assertStringContainsString('30-day trial, then @price per month', $template);
+    self::assertStringContainsString('@price per month from today', $template);
+    self::assertStringContainsString('trial_eligible', $template);
     self::assertSame(1, substr_count($template, '{{ subscribe_form }}'));
     self::assertStringNotContainsString('Automated refunds', $template);
     self::assertStringNotContainsString('Revenue Growth', $template);

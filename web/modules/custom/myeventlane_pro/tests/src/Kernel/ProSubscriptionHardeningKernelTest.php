@@ -22,6 +22,7 @@ use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
 use Drupal\myeventlane_pro\EventSubscriber\ProSubscriptionSubscriber;
 use Drupal\myeventlane_pro\Service\ProSubscriptionHealthService;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver;
+use Drupal\state_machine\Plugin\Field\FieldType\StateItemInterface;
 use Drupal\user\Entity\Role;
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
@@ -371,20 +372,40 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     $user->set('field_pro_grace_expires', time() - 10);
     $user->save();
 
-    $subscription = $this->createMock(SubscriptionInterface::class);
-    $subscription->method('getState')->willReturn(new class {
-      public function getId(): string {
-        return 'active';
-      }
-      public function getLabel(): string {
-        return 'Active';
-      }
+    $currentState = 'active';
+    $state = $this->createMock(StateItemInterface::class);
+    $state->method('getId')->willReturnCallback(static function () use (&$currentState): string {
+      return $currentState;
     });
+    $state->method('getLabel')->willReturnCallback(static function () use (&$currentState): string {
+      return ucfirst($currentState);
+    });
+    $state->method('isTransitionAllowed')->willReturnCallback(
+      static function (string $transitionId) use (&$currentState): bool {
+        return $transitionId === 'expire' && $currentState === 'active';
+      },
+    );
+    $state->method('applyTransitionById')->willReturnCallback(
+      static function (string $transitionId) use (&$currentState): void {
+        if ($transitionId !== 'expire' || $currentState !== 'active') {
+          throw new \InvalidArgumentException('Transition is not allowed.');
+        }
+        $currentState = 'expired';
+      },
+    );
 
-    $this->reconcilerWithSubscription($subscription)->reconcileExpiredGracePeriods();
+    $subscription = $this->createMock(SubscriptionInterface::class);
+    $subscription->method('getState')->willReturn($state);
+    $subscription->method('setEndTime')->willReturnSelf();
+    $subscription->method('removeScheduledChanges')->willReturnSelf();
+    $subscription->expects($this->once())->method('save');
+
+    $revoked = $this->reconcilerWithSubscription($subscription)->reconcileExpiredGracePeriods();
 
     $reloaded = User::load((int) $user->id());
     $this->assertNotNull($reloaded);
+    $this->assertSame(1, $revoked);
+    $this->assertSame('expired', $currentState);
     $this->assertFalse($reloaded->hasRole('mel_pro'));
     $this->assertSame('', (string) $reloaded->get('field_pro_grace_expires')->value);
   }
@@ -512,6 +533,7 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
       'pro_subscription_payment_failed_day_3',
       'pro_subscription_payment_failed_day_6',
       'pro_subscription_payment_recovered',
+      'pro_subscription_payment_update_link',
     ] as $template) {
       $this->assertTrue(
         $method->invoke($manager, $template, $recipient, []),

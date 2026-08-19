@@ -62,6 +62,12 @@ final class ProAdminReportController extends ControllerBase {
       $rows[] = $row + [
         'user_edit_url' => $userLink,
         'subscription_url' => $subscriptionLink,
+        'payment_update_email_url' => $this->currentUser()->hasPermission('manage pro payment recovery') && $row['uid'] > 0 && $row['subscription_state_id'] === 'active'
+          ? Url::fromRoute('myeventlane_pro.admin_payment_update_email', ['user' => $row['uid']])->toString()
+          : NULL,
+        'payment_retry_url' => $this->currentUser()->hasPermission('manage pro payment recovery') && $row['uid'] > 0 && $row['is_in_grace']
+          ? Url::fromRoute('myeventlane_pro.admin_payment_retry', ['user' => $row['uid']])->toString()
+          : NULL,
       ];
     }
 

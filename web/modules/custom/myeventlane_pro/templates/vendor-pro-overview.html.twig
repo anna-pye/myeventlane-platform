@@ -13,7 +13,11 @@
       {% if not is_pro and subscribe_form %}
         <div class="mel-pro-overview__hero-cta" id="mel-pro-upgrade">
           {{ subscribe_form }}
-          <p>{{ '30-day trial, then @price per month. Cancel at the end of any billing period.'|t({'@price': pro_price}) }}</p>
+          {% if trial_eligible %}
+            <p>{{ '30-day trial, then @price per month. Cancel at the end of any billing period.'|t({'@price': pro_price}) }}</p>
+          {% else %}
+            <p>{{ '@price per month from today. Cancel at the end of any billing period.'|t({'@price': pro_price}) }}</p>
+          {% endif %}
         </div>
       {% elseif is_pro and manage_url %}
         <a href="{{ manage_url }}" class="mel-button mel-button--primary">{{ 'Manage MEL Pro'|t }}</a>

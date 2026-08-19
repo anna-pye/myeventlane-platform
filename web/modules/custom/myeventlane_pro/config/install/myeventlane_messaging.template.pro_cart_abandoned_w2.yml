@@ -4,7 +4,11 @@ preheader: "Your Pro organiser checkout is still available."
 body_html: |
   <p style="font-size:16px;color:#1a1a2e;">Hi {{ first_name }},</p>
   <p style="font-size:15px;color:#444;">This is your final reminder that your MyEventLane Pro setup is not complete.</p>
+  {% if trial_days > 0 %}
   <p style="font-size:15px;color:#444;">If you continue, your {{ trial_days }}-day free period starts when checkout is confirmed. After that, Pro renews at {{ monthly_price }} per month until cancelled.</p>
+  {% else %}
+  <p style="font-size:15px;color:#444;">If you continue, Pro restarts at {{ monthly_price }} per month from checkout confirmation and renews monthly until cancelled.</p>
+  {% endif %}
   <p style="text-align:center;margin:28px 0;">
     <a href="{{ cart_url }}" style="display:inline-block;padding:14px 28px;border-radius:999px;background:#8E7CFF;color:#fff;text-decoration:none;font-weight:600;font-size:15px;">Complete Pro setup</a>
   </p>

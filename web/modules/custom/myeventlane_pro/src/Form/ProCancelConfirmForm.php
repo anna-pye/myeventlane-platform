@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_pro\Service\ProBillingSchedule;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -18,8 +19,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Uses Commerce Recurring's native scheduled cancellation.
  */
 final class ProCancelConfirmForm extends ConfirmFormBase {
-
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
 
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
@@ -81,7 +80,7 @@ final class ProCancelConfirmForm extends ConfirmFormBase {
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', $this->currentUser->id())
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->condition('state', ['trial', 'active'], 'IN')
       ->execute();
 

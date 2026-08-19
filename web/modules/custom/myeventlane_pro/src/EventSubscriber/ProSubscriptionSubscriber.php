@@ -16,6 +16,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
+use Drupal\myeventlane_pro\Service\ProBillingSchedule;
 use Drupal\myeventlane_pro\Service\ProBoostProvisioner;
 use Drupal\myeventlane_pro\Service\ProSubscriptionLifecycleScheduler;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStateResolver;
@@ -64,7 +65,7 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
   public function onPaymentDeclined(PaymentDeclinedEvent $event): void {
     $handled = FALSE;
     foreach ($this->recurringOrderManager->collectSubscriptions($event->getOrder()) as $subscription) {
-      if (!$subscription instanceof SubscriptionInterface || $subscription->getBillingSchedule()->id() !== 'mel_pro_monthly') {
+      if (!$subscription instanceof SubscriptionInterface || !ProBillingSchedule::isPro($subscription->getBillingSchedule()->id())) {
         continue;
       }
       $user = $subscription->getCustomer();
@@ -90,7 +91,7 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
    */
   public function onOrderPaid(OrderEvent $event): void {
     foreach ($this->recurringOrderManager->collectSubscriptions($event->getOrder()) as $subscription) {
-      if (!$subscription instanceof SubscriptionInterface || $subscription->getBillingSchedule()->id() !== 'mel_pro_monthly') {
+      if (!$subscription instanceof SubscriptionInterface || !ProBillingSchedule::isPro($subscription->getBillingSchedule()->id())) {
         continue;
       }
       $user = $subscription->getCustomer();

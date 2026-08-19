@@ -15,7 +15,6 @@ use Drupal\user\UserInterface;
  */
 final class ProReportingService {
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const PRO_ROLE = 'mel_pro';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const BATCH_SIZE = 50;
@@ -78,7 +77,7 @@ final class ProReportingService {
     return (int) $this->entityTypeManager->getStorage('commerce_subscription')
       ->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->condition('state', 'active')
       ->count()
       ->execute();
@@ -90,7 +89,7 @@ final class ProReportingService {
     return (int) $this->entityTypeManager->getStorage('commerce_subscription')
       ->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->condition('state', 'canceled')
       ->condition('changed', $thirtyDaysAgo, '>=')
       ->count()
@@ -105,7 +104,7 @@ final class ProReportingService {
 
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->condition('state', 'active')
       ->execute();
 
@@ -143,7 +142,7 @@ final class ProReportingService {
 
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('created', 'DESC')
       ->execute();
 
@@ -179,6 +178,7 @@ final class ProReportingService {
         $email = '';
         $isManaged = FALSE;
         $hasProRole = FALSE;
+        $isInGrace = FALSE;
 
         if ($user instanceof UserInterface) {
           $username = $user->getAccountName() ?? $user->getDisplayName();
@@ -186,6 +186,9 @@ final class ProReportingService {
           $hasProRole = in_array(self::PRO_ROLE, $user->getRoles(), TRUE);
           if ($user->hasField(self::MANAGED_FIELD)) {
             $isManaged = (bool) $user->get(self::MANAGED_FIELD)->value;
+          }
+          if ($user->hasField('field_pro_grace_expires')) {
+            $isInGrace = (int) ($user->get('field_pro_grace_expires')->value ?? 0) >= $this->time->getRequestTime();
           }
         }
 
@@ -211,6 +214,7 @@ final class ProReportingService {
           'created' => date('Y-m-d', (int) $subscription->getCreatedTime()),
           'is_managed' => $isManaged,
           'has_pro_role' => $hasProRole,
+          'is_in_grace' => $isInGrace,
         ];
       }
 

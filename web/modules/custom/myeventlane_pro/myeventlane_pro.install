@@ -1351,6 +1351,39 @@ function myeventlane_pro_update_10020(): void {
 }
 
 /**
+ * Adds paid-from-today Pro restarts and the sibling catalogue variation.
+ */
+function myeventlane_pro_update_10021(): void {
+  $schedule = \Drupal\commerce_recurring\Entity\BillingSchedule::load('mel_pro_monthly_restart');
+  if ($schedule === NULL) {
+    $schedule = \Drupal\commerce_recurring\Entity\BillingSchedule::create([
+      'id' => 'mel_pro_monthly_restart',
+      'label' => 'MEL Pro Monthly Restart',
+      'displayLabel' => 'Monthly subscription',
+      'billingType' => 'prepaid',
+      'combineSubscriptions' => FALSE,
+      'retrySchedule' => [1, 3, 5],
+      'unpaidSubscriptionState' => 'canceled',
+      'plugin' => 'rolling',
+      'configuration' => [
+        'trial_interval' => [],
+        'interval' => [
+          'number' => 1,
+          'unit' => 'month',
+        ],
+      ],
+      'prorater' => 'proportional',
+      'proraterConfiguration' => [],
+    ]);
+    $schedule->save();
+  }
+
+  if (!\Drupal::service('myeventlane_pro.catalog_ensurer')->ensureDefaultCatalog()) {
+    throw new \RuntimeException('Unable to create the MEL Pro paid restart variation.');
+  }
+}
+
+/**
  * Ensures the canonical MEL Pro role exists.
  *
  * Called during module install and can be used to prevent duplication.
