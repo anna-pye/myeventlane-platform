@@ -131,7 +131,7 @@
             <a href="{{ billing_portal_url }}" class="mel-button mel-button--secondary">{{ 'View Stripe billing'|t }}</a>
           {% else %}
             <p class="mel-pro-manage__fallback">{{ 'Need to change your payment method or billing details? Our support team can help.'|t }}</p>
-            <a href="{{ billing_support_url|default('/vendor/support') }}" class="mel-button mel-button--primary">{{ 'Contact support'|t }}</a>
+            <a href="{{ path('myeventlane_pro.support') }}" class="mel-button mel-button--primary">{{ 'Get Pro help'|t }}</a>
           {% endif %}
         {% endif %}
         {% if cancel_url %}
@@ -169,6 +169,6 @@
       <strong>{{ 'Not sure which Pro tool to use next?'|t }}</strong>
       <p>{{ 'Start with Analytics to see what is working, then use Messages or Marketing to invite your audience back.'|t }}</p>
     </div>
-    <a href="/vendor/support" class="mel-button mel-button--secondary">{{ 'Ask for help'|t }}</a>
+    <a href="{{ path('myeventlane_pro.support') }}" class="mel-button mel-button--secondary">{{ 'Get Pro help'|t }}</a>
   </aside>
 </div>

@@ -89,6 +89,20 @@ function myeventlane_pro_theme(): array {
       ],
       'template' => 'vendor-pro-manage',
     ],
+    'vendor_pro_support' => [
+      'variables' => [
+        'pro_price' => '',
+        'manage_url' => NULL,
+        'plans_url' => NULL,
+        'payment_method_url' => NULL,
+        'analytics_url' => NULL,
+        'messages_url' => NULL,
+        'marketing_url' => NULL,
+        'events_url' => NULL,
+        'contact_support_url' => NULL,
+      ],
+      'template' => 'vendor-pro-support',
+    ],
     'admin_pro_report' => [
       'variables' => [
         'metrics' => [],
