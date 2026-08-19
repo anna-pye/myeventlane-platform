@@ -299,12 +299,9 @@ final class ProEntitlementReconciler {
           continue;
         }
 
-        if ($this->userHasActiveProSubscription($user)) {
-          $this->clearGracePeriod($user);
-          $this->syncVendorProFlag($user, TRUE);
-          continue;
-        }
-
+        // An expired grace marker is an unresolved failed-payment cycle.
+        // Commerce can keep the subscription state active during retries, so
+        // only the order-paid event may clear this marker as recovery.
         if ($user->hasRole(self::PRO_ROLE)) {
           $revoked++;
         }

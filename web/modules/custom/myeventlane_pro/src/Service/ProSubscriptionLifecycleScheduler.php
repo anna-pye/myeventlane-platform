@@ -10,6 +10,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Database\IntegrityConstraintViolationException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
@@ -39,6 +40,7 @@ final class ProSubscriptionLifecycleScheduler {
     private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
     private readonly ProBoostProvisioner $proBoostProvisioner,
     private readonly ConfigFactoryInterface $configFactory,
+    private readonly UrlGeneratorInterface $urlGenerator,
   ) {}
 
   /**
@@ -124,6 +126,8 @@ final class ProSubscriptionLifecycleScheduler {
       // Distinguish a genuine later failed-renewal cycle while keeping replay
       // events inside the current grace window idempotent.
       'failure_cycle' => $now,
+    ], [
+      'idempotency_key' => sprintf('pro-payment-failed:%d:%d:0', $subId, $now),
     ]);
 
     if ($messageId === NULL) {
@@ -181,7 +185,11 @@ final class ProSubscriptionLifecycleScheduler {
         'first_name' => $this->resolveCustomerFirstName($subscription),
         'subscription_id' => $subscriptionId,
         'failure_cycle' => $cycle,
-        'manage_url' => '/vendor/pro/manage',
+        'manage_url' => $this->urlGenerator->generateFromRoute(
+          'myeventlane_pro.manage',
+          [],
+          ['absolute' => TRUE],
+        ),
       ],
       [
         'idempotency_key' => sprintf('pro-payment-recovered:%d:%d', $subscriptionId, $cycle),
@@ -434,6 +442,14 @@ final class ProSubscriptionLifecycleScheduler {
         'first_name' => $this->resolveCustomerFirstName($subscription),
         'subscription_id' => (int) $subscription->id(),
         'step' => $step,
+        'failure_cycle' => max(0, (int) $row->scheduled_at - ($step * 86400)),
+      ], [
+        'idempotency_key' => sprintf(
+          'pro-payment-failed:%d:%d:%d',
+          (int) $subscription->id(),
+          max(0, (int) $row->scheduled_at - ($step * 86400)),
+          $step,
+        ),
       ]);
 
       if ($messageId === NULL) {

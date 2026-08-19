@@ -45,6 +45,7 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     'user',
     'field',
     'field_ui',
+    'filter',
     'file',
     'node',
     'path_alias',
@@ -99,7 +100,6 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     'myeventlane_legal',
     'myeventlane_location',
     'myeventlane_metrics',
-    'myeventlane_questions',
     'myeventlane_rsvp',
     'myeventlane_schema',
     'myeventlane_surface',
@@ -120,6 +120,8 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
 
     $this->installEntitySchema('user');
     $this->installEntitySchema('commerce_subscription');
+    $this->installEntitySchema('commerce_store');
+    $this->installEntitySchema('path_alias');
     $this->installEntitySchema('myeventlane_vendor');
     $this->installSchema('myeventlane_messaging', [
       'myeventlane_message',
@@ -171,6 +173,15 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     $this->assertNotNull($reloaded);
     $this->assertTrue($reloaded->hasField('field_pro_grace_expires'));
     $this->assertGreaterThan(0, (int) $reloaded->get('field_pro_grace_expires')->value);
+
+    $rows = $this->container->get('database')
+      ->select('myeventlane_pro_failed_payment_sequence', 'f')
+      ->fields('f', ['step', 'status'])
+      ->condition('subscription_id', 1001)
+      ->orderBy('step')
+      ->execute()
+      ->fetchAllKeyed();
+    $this->assertSame([0 => 'sent', 3 => 'scheduled', 6 => 'scheduled'], array_map('strval', $rows));
   }
 
   /**
@@ -263,6 +274,19 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
       ->fetchField();
     $this->assertSame('1', (string) $recoveryCount);
 
+    $storedContext = $this->container->get('database')
+      ->select('myeventlane_message', 'm')
+      ->fields('m', ['context'])
+      ->condition('template', 'pro_subscription_payment_recovered')
+      ->condition('recipient', 'declined_event@example.com')
+      ->execute()
+      ->fetchField();
+    $context = is_string($storedContext)
+      ? unserialize($storedContext, ['allowed_classes' => FALSE])
+      : [];
+    $this->assertIsArray($context);
+    $this->assertMatchesRegularExpression('#^https?://[^/]+/vendor/pro/manage$#', (string) ($context['manage_url'] ?? ''));
+
     // A replayed order-paid event must not duplicate the recovery email.
     $subscriber->onOrderPaid(new OrderEvent($order));
     $recoveryCount = $this->container->get('database')
@@ -332,6 +356,32 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
 
     $reconciler = $this->container->get('myeventlane_pro.entitlement_reconciler');
     $reconciler->reconcileExpiredGracePeriods();
+
+    $reloaded = User::load((int) $user->id());
+    $this->assertNotNull($reloaded);
+    $this->assertFalse($reloaded->hasRole('mel_pro'));
+    $this->assertSame('', (string) $reloaded->get('field_pro_grace_expires')->value);
+  }
+
+  /**
+   * Active Commerce state cannot override an unresolved expired grace cycle.
+   */
+  public function testExpiredGraceRevokesWhileSubscriptionStillActive(): void {
+    $user = $this->createManagedProUser('grace_active_but_unpaid@example.com');
+    $user->set('field_pro_grace_expires', time() - 10);
+    $user->save();
+
+    $subscription = $this->createMock(SubscriptionInterface::class);
+    $subscription->method('getState')->willReturn(new class {
+      public function getId(): string {
+        return 'active';
+      }
+      public function getLabel(): string {
+        return 'Active';
+      }
+    });
+
+    $this->reconcilerWithSubscription($subscription)->reconcileExpiredGracePeriods();
 
     $reloaded = User::load((int) $user->id());
     $this->assertNotNull($reloaded);
@@ -413,15 +463,25 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     $context = [
       'first_name' => 'Grace',
       'subscription_id' => 34567,
-      'step' => 0,
+      'step' => 3,
+      'failure_cycle' => 1000,
     ];
 
-    $first = $manager->queue('pro_subscription_payment_failed_day_0', 'grace@example.com', $context);
-    $second = $manager->queue('pro_subscription_payment_failed_day_0', 'grace@example.com', $context);
+    $first = $manager->queue('pro_subscription_payment_failed_day_3', 'grace@example.com', $context, [
+      'idempotency_key' => 'pro-payment-failed:34567:1000:3',
+    ]);
+    $second = $manager->queue('pro_subscription_payment_failed_day_3', 'grace@example.com', $context, [
+      'idempotency_key' => 'pro-payment-failed:34567:1000:3',
+    ]);
+    $laterCycle = $context;
+    $laterCycle['failure_cycle'] = 2000;
+    $third = $manager->queue('pro_subscription_payment_failed_day_3', 'grace@example.com', $laterCycle, [
+      'idempotency_key' => 'pro-payment-failed:34567:2000:3',
+    ]);
 
     $count = (int) $this->container->get('database')
       ->select('myeventlane_message', 'm')
-      ->condition('template', 'pro_subscription_payment_failed_day_0')
+      ->condition('template', 'pro_subscription_payment_failed_day_3')
       ->condition('recipient', 'grace@example.com')
       ->countQuery()
       ->execute()
@@ -430,7 +490,9 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     $this->assertIsString($first);
     $this->assertNotSame('', $first);
     $this->assertNull($second);
-    $this->assertSame(1, $count);
+    $this->assertIsString($third);
+    $this->assertNotSame('', $third);
+    $this->assertSame(2, $count);
   }
 
   /**
@@ -561,6 +623,7 @@ final class ProSubscriptionHardeningKernelTest extends KernelTestBase {
     $entityTypeManager->method('getStorage')->willReturnMap([
       ['commerce_subscription', $subscriptionStorage],
       ['myeventlane_vendor', $vendorStorage],
+      ['user', $this->container->get('entity_type.manager')->getStorage('user')],
     ]);
 
     return new ProEntitlementReconciler(

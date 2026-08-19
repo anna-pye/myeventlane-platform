@@ -147,7 +147,6 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     if ($this->stateResolver->isPaymentFailure($subscription)) {
       $graceSeconds = $this->resolveGraceSeconds();
       $graceExpiry = $this->time->getRequestTime() + $graceSeconds;
-      $this->reconciler->setGracePeriod($user, $graceExpiry);
 
       // Day-0 dunning only when *entering* failure, not on every save while still failed.
       $original = $subscription->original ?? NULL;
@@ -156,6 +155,9 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
       if (!$wasAlreadyPaymentFailure) {
         $this->lifecycleScheduler->onPaymentFailedImmediate($subscription);
       }
+      // Start dunning before setting grace. The scheduler uses an existing
+      // future grace marker to reject replayed failure events.
+      $this->reconciler->setGracePeriod($user, $graceExpiry);
     }
 
     if ($this->stateResolver->isActive($subscription)) {

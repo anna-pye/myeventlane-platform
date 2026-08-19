@@ -60,6 +60,7 @@ services:
       - '@myeventlane_pro.recovery_analytics'
       - '@myeventlane_pro.pro_boost_provisioner'
       - '@config.factory'
+      - '@url_generator'
 
   myeventlane_pro.pro_boost_provisioner:
     class: Drupal\myeventlane_pro\Service\ProBoostProvisioner
