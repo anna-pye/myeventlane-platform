@@ -475,6 +475,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     'myeventlane_pro.cancel_request',
     'myeventlane_pro.cancel_confirm',
     'myeventlane_pro.overview',
+    'myeventlane_pro.support',
   ], TRUE)) {
     $variables['page']['shell_page_title'] = t('MEL Pro');
   }

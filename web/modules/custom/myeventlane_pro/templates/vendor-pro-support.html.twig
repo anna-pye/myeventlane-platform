@@ -1,0 +1,119 @@
+{#
+/**
+ * @file
+ * Organiser-facing MEL Pro guidance and support pathways.
+ */
+#}
+<div class="mel-pro-support">
+  <header class="mel-pro-support__hero">
+    <p class="mel-pro-manage__eyebrow"><span class="mel-pro-badge">PRO</span> {{ 'Help for organisers'|t }}</p>
+    <h1>{{ 'Make the most of MEL Pro'|t }}</h1>
+    <p>{{ 'Understand your plan, use your included tools and manage billing without having to guess what happens next.'|t }}</p>
+    <div class="mel-pro-support__actions">
+      <a href="{{ manage_url }}" class="mel-button mel-button--primary">{{ 'Manage my Pro plan'|t }}</a>
+      <a href="#pro-how-it-works" class="mel-button mel-button--secondary">{{ 'See how Pro works'|t }}</a>
+    </div>
+  </header>
+
+  <nav class="mel-pro-support__quick-links" aria-label="{{ 'MEL Pro help topics'|t }}">
+    <a href="#pro-included">{{ 'What is included'|t }}</a>
+    <a href="#pro-billing">{{ 'Billing and payments'|t }}</a>
+    <a href="#pro-cancellation">{{ 'Cancellation and restart'|t }}</a>
+    <a href="#pro-faq">{{ 'Common questions'|t }}</a>
+  </nav>
+
+  <div class="mel-pro-support__layout">
+    <div class="mel-pro-support__content">
+      <section id="pro-how-it-works" class="mel-pro-support__section mel-card" aria-labelledby="pro-how-heading">
+        <p class="mel-pro-manage__eyebrow">{{ 'Your subscription'|t }}</p>
+        <h2 id="pro-how-heading">{{ 'How MEL Pro works'|t }}</h2>
+        <ol class="mel-pro-support__steps">
+          <li>
+            <strong>{{ 'Start once with a 30-day free trial'|t }}</strong>
+            <span>{{ 'The free trial is available once per organiser. Add a card securely through Stripe; your first charge is due when the trial ends.'|t }}</span>
+          </li>
+          <li>
+            <strong>{{ 'Continue monthly'|t }}</strong>
+            <span>{{ 'After the trial, Pro renews at @price each month until you cancel.'|t({'@price': pro_price}) }}</span>
+          </li>
+          <li>
+            <strong>{{ 'Manage it yourself'|t }}</strong>
+            <span>{{ 'Update your payment method, view invoices, cancel at period end or reactivate from your Pro account.'|t }}</span>
+          </li>
+        </ol>
+        <p class="mel-pro-support__note">{{ 'Returning organisers restart at @price per month from checkout confirmation. A second free trial is not applied.'|t({'@price': pro_price}) }}</p>
+      </section>
+
+      <section id="pro-included" class="mel-pro-support__section mel-card" aria-labelledby="pro-included-heading">
+        <p class="mel-pro-manage__eyebrow">{{ 'Included with Pro'|t }}</p>
+        <h2 id="pro-included-heading">{{ 'Tools to grow your events'|t }}</h2>
+        <div class="mel-pro-support__tool-grid">
+          <a href="{{ analytics_url }}"><strong>{{ 'Deeper analytics'|t }}</strong><span>{{ 'Understand views, bookings and event performance.'|t }}</span></a>
+          <a href="{{ messages_url }}"><strong>{{ 'Pro email templates'|t }}</strong><span>{{ 'Reuse organiser messaging for your guests.'|t }}</span></a>
+          <a href="{{ marketing_url }}"><strong>{{ 'Marketing and branding'|t }}</strong><span>{{ 'Keep your organiser identity consistent.'|t }}</span></a>
+          <a href="{{ events_url }}"><strong>{{ 'A free seven-day Boost for each event'|t }}</strong><span>{{ 'Each eligible published event receives one Boost while Pro is active. No Boost payment is created.'|t }}</span></a>
+        </div>
+      </section>
+
+      <section id="pro-billing" class="mel-pro-support__section mel-card" aria-labelledby="pro-billing-heading">
+        <p class="mel-pro-manage__eyebrow">{{ 'Billing and payments'|t }}</p>
+        <h2 id="pro-billing-heading">{{ 'Keep billing under your control'|t }}</h2>
+        <div class="mel-pro-support__split">
+          <div>
+            <h3>{{ 'Payment method'|t }}</h3>
+            <p>{{ 'Stripe securely stores and processes your card details. MyEventLane does not receive your full card number.'|t }}</p>
+            <a href="{{ payment_method_url }}">{{ 'Update payment method'|t }}</a>
+          </div>
+          <div>
+            <h3>{{ 'Invoices and receipts'|t }}</h3>
+            <p>{{ 'Your Pro billing history and available invoice or receipt downloads appear on the Manage Pro page.'|t }}</p>
+            <a href="{{ manage_url }}">{{ 'View Pro billing history'|t }}</a>
+          </div>
+          <div>
+            <h3>{{ 'If a payment fails'|t }}</h3>
+            <p>{{ 'Pro remains available during the seven-day grace period. Update your card and retry payment before the grace period ends to avoid losing access.'|t }}</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="pro-cancellation" class="mel-pro-support__section mel-card" aria-labelledby="pro-cancel-heading">
+        <p class="mel-pro-manage__eyebrow">{{ 'Cancellation and restart'|t }}</p>
+        <h2 id="pro-cancel-heading">{{ 'You keep access until the period ends'|t }}</h2>
+        <p>{{ 'Cancelling schedules Pro to end at the close of your current paid period. It does not remove your tools immediately and it does not create another charge after that end date.'|t }}</p>
+        <p>{{ 'Changed your mind? Reactivate from Manage Pro before the end date. After Pro has ended, you can restart at @price per month without another trial.'|t({'@price': pro_price}) }}</p>
+        <a href="{{ manage_url }}" class="mel-button mel-button--secondary">{{ 'Manage cancellation or reactivation'|t }}</a>
+      </section>
+
+      <section id="pro-faq" class="mel-pro-support__section mel-card" aria-labelledby="pro-faq-heading">
+        <p class="mel-pro-manage__eyebrow">{{ 'Common questions'|t }}</p>
+        <h2 id="pro-faq-heading">{{ 'Quick answers'|t }}</h2>
+        <div class="mel-pro-support__faq">
+          <details>
+            <summary>{{ 'Can I receive another free trial after cancelling?'|t }}</summary>
+            <p>{{ 'No. The 30-day trial is available once per organiser. A returning subscription starts at @price per month.'|t({'@price': pro_price}) }}</p>
+          </details>
+          <details>
+            <summary>{{ 'Will cancelling remove Pro immediately?'|t }}</summary>
+            <p>{{ 'No. Your access continues until the displayed end date, unless the subscription ends earlier because an unpaid grace period expires.'|t }}</p>
+          </details>
+          <details>
+            <summary>{{ 'Does Pro use the organiser Stripe Connect account?'|t }}</summary>
+            <p>{{ 'No. MEL Pro is billed separately from your event-ticket and Connect payments.'|t }}</p>
+          </details>
+          <details>
+            <summary>{{ 'How does the included Boost work?'|t }}</summary>
+            <p>{{ 'Each eligible published event receives one seven-day Boost while Pro is active. It does not create a Boost order or payment.'|t }}</p>
+          </details>
+        </div>
+      </section>
+    </div>
+
+    <aside class="mel-pro-support__contact mel-card" aria-labelledby="pro-contact-heading">
+      <p class="mel-pro-manage__eyebrow">{{ 'Still need help?'|t }}</p>
+      <h2 id="pro-contact-heading">{{ 'Talk to MyEventLane support'|t }}</h2>
+      <p>{{ 'Tell us whether your question is about billing, access, cancellation or using a Pro tool so we can route it correctly.'|t }}</p>
+      <a href="{{ contact_support_url }}" class="mel-button mel-button--primary">{{ 'Contact Pro support'|t }}</a>
+      <a href="{{ plans_url }}" class="mel-pro-support__secondary-link">{{ 'Compare Pro plan details'|t }}</a>
+    </aside>
+  </div>
+</div>

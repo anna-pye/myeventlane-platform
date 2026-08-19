@@ -30,6 +30,14 @@ myeventlane_pro.manage:
   requirements:
     _role: 'vendor'
 
+myeventlane_pro.support:
+  path: '/vendor/pro/support'
+  defaults:
+    _controller: '\Drupal\myeventlane_pro\Controller\ProSupportController::page'
+    _title: 'MEL Pro help'
+  requirements:
+    _role: 'vendor'
+
 myeventlane_pro.billing_portal:
   path: '/vendor/pro/billing-portal'
   defaults:

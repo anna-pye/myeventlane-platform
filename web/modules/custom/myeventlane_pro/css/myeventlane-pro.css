@@ -688,6 +688,244 @@
   color: #526174;
 }
 
+/* Pro support page. */
+.mel-pro-support {
+  width: 100%;
+  max-width: 1280px;
+  color: #293241;
+}
+
+.mel-pro-support__hero {
+  padding: clamp(1.5rem, 4vw, 3rem);
+  border: 1px solid #eadff7;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fff8f1 0%, #f2eeff 100%);
+}
+
+.mel-pro-support__hero h1 {
+  margin: 0;
+  font-size: clamp(2rem, 5vw, 3.25rem);
+  line-height: 1.08;
+}
+
+.mel-pro-support__hero > p:not(.mel-pro-manage__eyebrow) {
+  max-width: 48rem;
+  margin: 0.75rem 0 0;
+  color: #526174;
+  font-size: 1.05rem;
+  line-height: 1.6;
+}
+
+.mel-pro-support__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.mel-pro-support__quick-links {
+  display: flex;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+  padding-bottom: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.mel-pro-support__quick-links a {
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0.7rem 1rem;
+  border: 1px solid #ded9d3;
+  border-radius: 999px;
+  background: #fff;
+  color: #293241;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mel-pro-support__quick-links a:hover,
+.mel-pro-support__quick-links a:focus-visible {
+  border-color: #6e7ef2;
+  outline: 3px solid rgba(110, 126, 242, 0.2);
+  outline-offset: 2px;
+}
+
+.mel-pro-support__layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.mel-pro-support__content {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.mel-pro-support__section {
+  scroll-margin-top: 2rem;
+}
+
+.mel-pro-support__section h2,
+.mel-pro-support__contact h2 {
+  margin: 0 0 0.75rem;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+}
+
+.mel-pro-support__section h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+}
+
+.mel-pro-support__steps {
+  display: grid;
+  gap: 1rem;
+  margin: 1.25rem 0;
+  padding: 0;
+  counter-reset: pro-step;
+  list-style: none;
+}
+
+.mel-pro-support__steps li {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  align-items: start;
+  counter-increment: pro-step;
+}
+
+.mel-pro-support__steps li::before {
+  grid-row: 1 / span 2;
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  border-radius: 50%;
+  background: #e9e4ff;
+  color: #46328d;
+  font-weight: 800;
+  content: counter(pro-step);
+}
+
+.mel-pro-support__steps span,
+.mel-pro-support__tool-grid span,
+.mel-pro-support__split p,
+.mel-pro-support__contact p {
+  color: #637083;
+  line-height: 1.55;
+}
+
+.mel-pro-support__note {
+  margin: 1rem 0 0;
+  padding: 1rem;
+  border-radius: 12px;
+  background: #eaf4ff;
+  color: #334155;
+}
+
+.mel-pro-support__tool-grid,
+.mel-pro-support__split {
+  display: grid;
+  gap: 1rem;
+}
+
+.mel-pro-support__tool-grid a,
+.mel-pro-support__split > div {
+  display: grid;
+  gap: 0.3rem;
+  padding: 1rem;
+  border: 1px solid #e7e3df;
+  border-radius: 14px;
+  background: #fffaf5;
+}
+
+.mel-pro-support__tool-grid a {
+  color: #293241;
+  text-decoration: none;
+}
+
+.mel-pro-support__tool-grid a:hover,
+.mel-pro-support__tool-grid a:focus-visible {
+  border-color: #6e7ef2;
+  box-shadow: 0 8px 20px rgba(110, 126, 242, 0.12);
+}
+
+.mel-pro-support__split p {
+  margin: 0;
+}
+
+.mel-pro-support__faq {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mel-pro-support__faq details {
+  padding: 1rem;
+  border: 1px solid #e7e3df;
+  border-radius: 12px;
+}
+
+.mel-pro-support__faq summary {
+  min-height: 44px;
+  color: #293241;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mel-pro-support__faq summary:focus-visible {
+  outline: 3px solid rgba(110, 126, 242, 0.25);
+  outline-offset: 3px;
+}
+
+.mel-pro-support__faq p {
+  margin: 0.75rem 0 0;
+  color: #637083;
+  line-height: 1.55;
+}
+
+.mel-pro-support__contact {
+  align-self: start;
+  background: #eef6ff;
+}
+
+.mel-pro-support__contact .mel-button {
+  width: 100%;
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+.mel-pro-support__secondary-link {
+  display: inline-block;
+  margin-top: 1rem;
+  color: #4658c9;
+  font-weight: 700;
+}
+
+@media (min-width: 720px) {
+  .mel-pro-support__tool-grid,
+  .mel-pro-support__split {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1040px) {
+  .mel-pro-support__layout {
+    grid-template-columns: minmax(0, 1fr) minmax(280px, 0.34fr);
+    align-items: start;
+  }
+
+  .mel-pro-support__contact {
+    position: sticky;
+    top: 1.5rem;
+  }
+}
+
+@media (max-width: 540px) {
+  .mel-pro-support__actions .mel-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 #myeventlane-pro-cancel-request {
   width: 100%;
   max-width: 760px;
