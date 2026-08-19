@@ -130,7 +130,7 @@ final class ProSubscriptionStatusService {
     // Cancellation requests are enabled by default in install config. Preserve
     // that contract for existing sites where the key has not yet been saved.
     $cancelRequestEnabled = (bool) ($this->configFactory->get('myeventlane_pro.settings')->get('cancel_request_enabled') ?? TRUE);
-    $canCancel = $canManageBilling && $isManaged && $hasActiveSubscription && $cancelRequestEnabled;
+    $canCancel = $canManageBilling && $isManaged && $hasActiveSubscription && !$isInGrace && $cancelRequestEnabled;
 
     $label = 'Inactive';
     $message = 'Upgrade to MEL Pro to unlock advanced organiser tools.';
@@ -146,15 +146,15 @@ final class ProSubscriptionStatusService {
       $message = 'Your MEL Pro trial is active.';
       $uiState = 'active';
     }
-    elseif ($hasActiveSubscription && $this->stateResolver->isActive($subscription)) {
-      $label = 'Active';
-      $message = 'Your MEL Pro subscription is active.';
-      $uiState = 'active';
-    }
     elseif ($isInGrace) {
       $label = 'Grace period';
       $message = $this->formatGraceMessage($graceDays);
       $uiState = 'grace';
+    }
+    elseif ($hasActiveSubscription && $this->stateResolver->isActive($subscription)) {
+      $label = 'Active';
+      $message = 'Your MEL Pro subscription is active.';
+      $uiState = 'active';
     }
     elseif ($subscription instanceof SubscriptionInterface && $subscriptionState !== '' && $this->stateResolver->isExpired($subscription)) {
       $label = 'Expired';

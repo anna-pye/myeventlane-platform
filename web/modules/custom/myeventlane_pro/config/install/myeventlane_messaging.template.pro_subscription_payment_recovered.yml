@@ -1,0 +1,15 @@
+enabled: true
+subject: 'Your MEL Pro payment is sorted'
+preheader: 'Your payment was successful and your Pro access continues.'
+body_html: |
+  <p>Hi {{ first_name|default('there') }},</p>
+  <p>Your MEL Pro payment was successful and your Pro access continues.</p>
+  <p>The payment reminders for this billing cycle have been cancelled.</p>
+  <p><a href="{{ manage_url }}">View your Pro billing and receipts</a></p>
+  <p>Thanks,<br>MyEventLane</p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: lifecycle
+    utm_campaign: pro_payment_recovered

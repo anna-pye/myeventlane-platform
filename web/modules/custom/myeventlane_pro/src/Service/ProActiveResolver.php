@@ -205,7 +205,7 @@ final class ProActiveResolver {
    * Resolves vendor ID from owner and optional store.
    */
   private function resolveVendorIdByOwner(int $uid, int $storeId): int {
-    if ($uid <= 0) {
+    if ($uid <= 0 || !$this->entityTypeManager->hasDefinition('myeventlane_vendor')) {
       return 0;
     }
 

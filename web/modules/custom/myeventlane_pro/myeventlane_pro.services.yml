@@ -60,6 +60,7 @@ services:
       - '@myeventlane_pro.recovery_analytics'
       - '@myeventlane_pro.pro_boost_provisioner'
       - '@config.factory'
+      - '@url_generator'
 
   myeventlane_pro.pro_boost_provisioner:
     class: Drupal\myeventlane_pro\Service\ProBoostProvisioner
@@ -207,6 +208,11 @@ services:
       - '@datetime.time'
       - '@date.formatter'
       - '@string_translation'
+
+  myeventlane_pro.billing_date_resolver:
+    class: Drupal\myeventlane_pro\Service\ProBillingDateResolver
+    arguments:
+      - '@datetime.time'
 
   myeventlane_pro.message_builder:
     class: Drupal\myeventlane_pro\Service\ProMessageBuilder

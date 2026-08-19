@@ -80,16 +80,20 @@ final class ProEntitlementReconciler {
       return;
     }
 
-    if ($this->userHasActiveProSubscription($user)) {
+    // A recurring subscription remains active while Commerce retries a failed
+    // renewal. Preserve the explicit grace marker until an order-paid event
+    // confirms recovery.
+    if ($this->isInGrace($user)) {
+      $this->ensureRole($user);
+      $this->syncVendorProFlag($user, TRUE);
+    }
+    elseif ($this->userHasActiveProSubscription($user)) {
       $changed = $this->ensureRole($user);
       $this->syncVendorProFlag($user, TRUE);
       $this->clearGracePeriod($user);
       if ($changed) {
         $this->invalidateUserProTags($user);
       }
-    }
-    elseif ($this->isInGrace($user)) {
-      $this->ensureRole($user);
     }
     else {
       $this->revokeIfManaged($user);
@@ -295,12 +299,9 @@ final class ProEntitlementReconciler {
           continue;
         }
 
-        if ($this->userHasActiveProSubscription($user)) {
-          $this->clearGracePeriod($user);
-          $this->syncVendorProFlag($user, TRUE);
-          continue;
-        }
-
+        // An expired grace marker is an unresolved failed-payment cycle.
+        // Commerce can keep the subscription state active during retries, so
+        // only the order-paid event may clear this marker as recovery.
         if ($user->hasRole(self::PRO_ROLE)) {
           $revoked++;
         }

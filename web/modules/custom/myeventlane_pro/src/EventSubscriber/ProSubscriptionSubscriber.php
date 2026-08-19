@@ -9,6 +9,8 @@ use Drupal\commerce_recurring\Event\RecurringEvents;
 use Drupal\commerce_recurring\Event\PaymentDeclinedEvent;
 use Drupal\commerce_recurring\Event\SubscriptionEvent;
 use Drupal\commerce_recurring\RecurringOrderManagerInterface;
+use Drupal\commerce_order\Event\OrderEvent;
+use Drupal\commerce_order\Event\OrderEvents;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -50,6 +52,9 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
       RecurringEvents::SUBSCRIPTION_INSERT => 'onSubscriptionInsert',
       RecurringEvents::SUBSCRIPTION_UPDATE => 'onSubscriptionUpdate',
       RecurringEvents::PAYMENT_DECLINED => 'onPaymentDeclined',
+      // Run after other order-paid subscribers so a stale user entity saved by
+      // confirmation/invoice listeners cannot restore a cleared grace marker.
+      OrderEvents::ORDER_PAID => ['onOrderPaid', -100],
     ];
   }
 
@@ -57,18 +62,43 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
    * Starts the grace and dunning sequence on the first failed renewal attempt.
    */
   public function onPaymentDeclined(PaymentDeclinedEvent $event): void {
+    $handled = FALSE;
     foreach ($this->recurringOrderManager->collectSubscriptions($event->getOrder()) as $subscription) {
-      if (!$subscription instanceof SubscriptionInterface || $subscription->getBillingScheduleId() !== 'mel_pro_monthly') {
+      if (!$subscription instanceof SubscriptionInterface || $subscription->getBillingSchedule()->id() !== 'mel_pro_monthly') {
         continue;
       }
       $user = $subscription->getCustomer();
       if (!$user instanceof UserInterface || $user->isAnonymous()) {
         continue;
       }
-      $this->reconciler->setGracePeriod($user, $this->time->getRequestTime() + $this->resolveGraceSeconds());
       if ((int) $event->getNumRetries() === 0) {
-        $this->lifecycleScheduler->onPaymentFailedImmediate($subscription);
+        if ($this->lifecycleScheduler->onPaymentFailedImmediate($subscription)) {
+          $this->reconciler->setGracePeriod($user, $this->time->getRequestTime() + $this->resolveGraceSeconds());
+        }
       }
+      $this->reconciler->reconcileUser($user);
+      $handled = TRUE;
+    }
+    if ($handled) {
+      // MEL Pro sends its own organiser-specific, idempotent dunning sequence.
+      $event->stopPropagation();
+    }
+  }
+
+  /**
+   * Clears Pro grace after a previously declined recurring order is paid.
+   */
+  public function onOrderPaid(OrderEvent $event): void {
+    foreach ($this->recurringOrderManager->collectSubscriptions($event->getOrder()) as $subscription) {
+      if (!$subscription instanceof SubscriptionInterface || $subscription->getBillingSchedule()->id() !== 'mel_pro_monthly') {
+        continue;
+      }
+      $user = $subscription->getCustomer();
+      if (!$user instanceof UserInterface || $user->isAnonymous()) {
+        continue;
+      }
+      $this->reconciler->clearGracePeriod($user);
+      $this->lifecycleScheduler->onPaymentRecovered($subscription);
       $this->reconciler->reconcileUser($user);
     }
   }
@@ -117,14 +147,17 @@ final class ProSubscriptionSubscriber implements EventSubscriberInterface {
     if ($this->stateResolver->isPaymentFailure($subscription)) {
       $graceSeconds = $this->resolveGraceSeconds();
       $graceExpiry = $this->time->getRequestTime() + $graceSeconds;
-      $this->reconciler->setGracePeriod($user, $graceExpiry);
 
       // Day-0 dunning only when *entering* failure, not on every save while still failed.
-      $wasAlreadyPaymentFailure = $subscription->original instanceof SubscriptionInterface
-        && $this->stateResolver->isPaymentFailure($subscription->original);
+      $original = $subscription->original ?? NULL;
+      $wasAlreadyPaymentFailure = $original instanceof SubscriptionInterface
+        && $this->stateResolver->isPaymentFailure($original);
       if (!$wasAlreadyPaymentFailure) {
         $this->lifecycleScheduler->onPaymentFailedImmediate($subscription);
       }
+      // Start dunning before setting grace. The scheduler uses an existing
+      // future grace marker to reject replayed failure events.
+      $this->reconciler->setGracePeriod($user, $graceExpiry);
     }
 
     if ($this->stateResolver->isActive($subscription)) {

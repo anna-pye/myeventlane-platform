@@ -16,6 +16,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Url;
 use Drupal\myeventlane_pro\Service\ProBillingPortalService;
+use Drupal\myeventlane_pro\Service\ProBillingDateResolver;
 use Drupal\myeventlane_pro\Service\ProRecoveryAnalyticsService;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStatusService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -40,6 +41,7 @@ final class ProBillingController implements ContainerInjectionInterface {
     private readonly ProRecoveryAnalyticsService $recoveryAnalyticsService,
     private readonly ProSubscriptionStatusService $statusService,
     private readonly ProBillingPortalService $billingPortalService,
+    private readonly ProBillingDateResolver $billingDateResolver,
     private readonly AccountProxyInterface $currentUser,
     private readonly TimeInterface $time,
   ) {}
@@ -56,6 +58,7 @@ final class ProBillingController implements ContainerInjectionInterface {
       $container->get('myeventlane_pro.recovery_analytics'),
       $container->get('myeventlane_pro.subscription_status'),
       $container->get('myeventlane_pro.billing_portal'),
+      $container->get('myeventlane_pro.billing_date_resolver'),
       $container->get('current_user'),
       $container->get('datetime.time'),
     );
@@ -79,24 +82,21 @@ final class ProBillingController implements ContainerInjectionInterface {
 
     $status = $this->statusService->getStatusForUser($user);
     $state = $subscription->getState();
-    $statusLabel = ucfirst($state->getLabel() ?? $state->getId());
+    $statusLabel = (string) ($status['status_label'] ?? ucfirst($state->getLabel() ?? $state->getId()));
 
-    $nextBilling = NULL;
-    $renewalInDays = NULL;
-    $renewalDateStale = FALSE;
-    if (method_exists($subscription, 'getNextRenewalTime')) {
-      $timestamp = $subscription->getNextRenewalTime();
-      if ($timestamp) {
-        $renewalTimestamp = (int) $timestamp;
-        $delta = $renewalTimestamp - $this->time->getRequestTime();
-        if ($delta > 0) {
-          $nextBilling = date('F j, Y', $renewalTimestamp);
-          $renewalInDays = (int) ceil($delta / 86400);
-        }
-        else {
-          $renewalDateStale = TRUE;
-        }
-      }
+    $billingDate = $this->billingDateResolver->resolve($subscription, (bool) ($status['is_trial'] ?? FALSE));
+    $nextBilling = is_int($billingDate['timestamp'])
+      ? date('F j, Y', $billingDate['timestamp'])
+      : NULL;
+    $renewalInDays = $billingDate['days'];
+    $renewalDateStale = $billingDate['stale'];
+    $billingDateLabel = ($status['is_trial'] ?? FALSE)
+      ? $this->t('First billing date')
+      : $this->t('Next billing date');
+    if (($status['is_in_grace'] ?? FALSE) || !($status['has_active_subscription'] ?? FALSE)) {
+      $nextBilling = NULL;
+      $renewalInDays = NULL;
+      $renewalDateStale = FALSE;
     }
 
     $startedDate = NULL;
@@ -118,7 +118,8 @@ final class ProBillingController implements ContainerInjectionInterface {
     }
 
     $settings = $this->configFactory->get('myeventlane_pro.settings');
-    $billingPortalEnabled = (bool) ($settings->get('billing_portal_enabled') ?? FALSE);
+    $billingPortalEnabled = (bool) ($settings->get('billing_portal_enabled') ?? FALSE)
+      && (bool) ($status['can_manage_billing'] ?? FALSE);
     $billingPortalUrl = Url::fromRoute('myeventlane_pro.billing_portal')->toString();
     $supportUrl = trim((string) ($settings->get('billing_support_url') ?? ''));
 
@@ -139,6 +140,7 @@ final class ProBillingController implements ContainerInjectionInterface {
       '#subscription_status' => $statusLabel,
       '#started_date' => $startedDate,
       '#next_billing_date' => $nextBilling,
+      '#billing_date_label' => $billingDateLabel,
       '#renewal_in_days' => $renewalInDays,
       '#renewal_date_stale' => $renewalDateStale,
       '#grace_days_remaining' => $graceDaysRemaining,
@@ -152,6 +154,7 @@ final class ProBillingController implements ContainerInjectionInterface {
       '#billing_portal_enabled' => $billingPortalEnabled,
       '#billing_portal_url' => $billingPortalUrl,
       '#billing_support_url' => $supportUrl !== '' ? $supportUrl : NULL,
+      '#overview_url' => $overviewUrl,
       '#attached' => [
         'library' => ['myeventlane_pro/pro'],
       ],
