@@ -329,7 +329,7 @@ final class ProBoostProvisioner {
     $subscriptionStorage = $this->entityTypeManager->getStorage('commerce_subscription');
     $ids = $subscriptionStorage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', 'mel_pro_monthly')
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'DESC')
       ->range(0, max(1, $limit * 2))
       ->execute();

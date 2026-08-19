@@ -11,6 +11,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_pro\Service\ProBillingSchedule;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStatusService;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -19,8 +20,6 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Schedules a Pro subscription cancellation at the paid period end.
  */
 final class ProCancelRequestForm extends FormBase {
-
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
 
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
@@ -119,7 +118,7 @@ final class ProCancelRequestForm extends FormBase {
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', (int) $user->id())
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'DESC')
       ->range(0, 1)
       ->execute();

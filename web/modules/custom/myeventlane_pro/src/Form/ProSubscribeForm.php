@@ -17,6 +17,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\myeventlane_pro\Service\ProProductResolver;
+use Drupal\myeventlane_pro\Service\ProTrialEligibility;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -26,9 +27,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * State-changing action (cart add) happens inside submitForm(), which is
  * POST-only and automatically CSRF-protected by Form API.
  *
- * Pro must check out alone on stripe_pe_recurring (off_session). The shared
- * default cart may already hold tickets/boost; those lines are cleared before
- * Pro is added so mixed carts cannot be charged entirely on PE.
+ * Pro must check out alone on stripe_pe_recurring (off_session). A shared cart
+ * containing tickets or Boost items is preserved and the organiser is asked to
+ * finish or empty it before starting Pro.
  */
 final class ProSubscribeForm extends FormBase {
 
@@ -40,6 +41,7 @@ final class ProSubscribeForm extends FormBase {
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
     private readonly ProProductResolver $productResolver,
+    private readonly ProTrialEligibility $trialEligibility,
     private readonly ProActiveResolver $activeResolver,
     private readonly CartProviderInterface $cartProvider,
     private readonly CartManagerInterface $cartManager,
@@ -55,6 +57,7 @@ final class ProSubscribeForm extends FormBase {
     return new static(
       $container->get('current_user'),
       $container->get('myeventlane_pro.product_resolver'),
+      $container->get('myeventlane_pro.trial_eligibility'),
       $container->get('myeventlane_pro.active_resolver'),
       $container->get('commerce_cart.cart_provider'),
       $container->get('commerce_cart.cart_manager'),
@@ -80,10 +83,15 @@ final class ProSubscribeForm extends FormBase {
       return $form;
     }
 
+    $trialEligible = $user instanceof UserInterface
+      && $this->trialEligibility->isEligible($user);
+
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Start 30-day Pro trial — then @price/month', ['@price' => $pro_price ?? '$49']),
+      '#value' => $trialEligible
+        ? $this->t('Start 30-day Pro trial — then @price/month', ['@price' => $pro_price ?? '$49'])
+        : $this->t('Restart MEL Pro — @price/month', ['@price' => $pro_price ?? '$49']),
       '#attributes' => [
         'class' => ['mel-btn', 'mel-btn--cta', 'mel-btn--lg', 'mel-pro-upgrade-btn'],
       ],
@@ -112,7 +120,8 @@ final class ProSubscribeForm extends FormBase {
       return;
     }
 
-    $variation = $this->productResolver->findActiveVariation();
+    $trialEligible = $this->trialEligibility->isEligible($user);
+    $variation = $this->productResolver->findVariationForEligibility($trialEligible);
     if (!$variation) {
       $this->logger->warning(
         'No active Pro variation found (configure a published commerce variation of type @type or set pro_variation_sku). Configured SKU: @sku',
@@ -161,18 +170,19 @@ final class ProSubscribeForm extends FormBase {
       $cart->save();
     }
 
-    // Pro must not share a cart with tickets/boost/etc. Mixed carts would either
-    // charge tickets on off_session PE or charge Pro without a dedicated PE path.
+    // Never discard an organiser's ticket or Boost cart. Pro cannot share that
+    // cart because mixed items could be charged through the wrong gateway.
     if ($this->cartHasNonProItems($cart)) {
       $this->logger->notice(
-        'Clearing non-Pro lines from cart @order_id before Pro subscribe for user @uid.',
+        'Preserving non-Pro cart @order_id and blocking Pro subscribe for user @uid.',
         [
           '@order_id' => (string) $cart->id(),
           '@uid' => (string) $currentUid,
         ],
       );
-      $this->cartManager->emptyCart($cart);
-      $this->messenger()->addStatus($this->t('Your previous cart items were removed so Pro can be checked out on its own. Add tickets again after your subscription is active if needed.'));
+      $this->messenger()->addWarning($this->t('Your ticket or Boost cart has been kept. Complete or empty that cart before starting Pro, because Pro must be checked out separately.'));
+      $form_state->setRedirect('commerce_cart.page');
+      return;
     }
 
     $this->cartManager->addEntity($cart, $variation);
@@ -222,8 +232,8 @@ final class ProSubscribeForm extends FormBase {
    */
   private function buildCheckoutRedirectUrl(OrderInterface $order): Url {
     try {
-      // Use generic checkout entrypoint first. Commerce resolves the active cart
-      // for the current customer and avoids order-specific access denials.
+      // Use the generic checkout first. Commerce resolves the active cart for
+      // the current customer and avoids order-specific access denials.
       if ($this->accessManager->checkNamedRoute('commerce_checkout.checkout', [], $this->currentUser, TRUE)->isAllowed()) {
         $this->logger->notice(
           'Redirecting Pro checkout to generic checkout route for order @order_id and user @uid.',

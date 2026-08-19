@@ -91,6 +91,12 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
     }
 
     if ($this->isProOnlyOrder($order)) {
+      // Commerce Recurring places each renewal order. Only the initial Pro
+      // checkout should receive the welcome email; renewal receipts are owned
+      // by OrderPaidInvoiceSubscriber.
+      if ($this->isRecurringRenewalOrder($order)) {
+        return;
+      }
       $this->sendProSubscriptionStarted($order, $mail);
       return;
     }
@@ -133,6 +139,14 @@ final class OrderPlacedSubscriber implements EventSubscriberInterface {
       }
     }
     return TRUE;
+  }
+
+  /**
+   * Checks whether Commerce Recurring generated this billing-period order.
+   */
+  private function isRecurringRenewalOrder(OrderInterface $order): bool {
+    return $order->hasField('billing_period')
+      && !$order->get('billing_period')->isEmpty();
   }
 
   /**

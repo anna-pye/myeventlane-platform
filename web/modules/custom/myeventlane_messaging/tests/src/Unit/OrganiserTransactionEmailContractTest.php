@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_messaging\Unit;
 
+use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\myeventlane_messaging\EventSubscriber\OrderPlacedSubscriber;
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -13,11 +16,31 @@ use PHPUnit\Framework\TestCase;
  */
 final class OrganiserTransactionEmailContractTest extends TestCase {
 
+  /**
+   * A Commerce Recurring billing-period order is not a new subscription.
+   */
+  public function testRecurringProRenewalDoesNotQualifyForWelcomeEmail(): void {
+    $billingPeriod = $this->createMock(FieldItemListInterface::class);
+    $billingPeriod->method('isEmpty')->willReturn(FALSE);
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('hasField')->with('billing_period')->willReturn(TRUE);
+    $order->method('get')->with('billing_period')->willReturn($billingPeriod);
+
+    $subscriber = (new \ReflectionClass(OrderPlacedSubscriber::class))
+      ->newInstanceWithoutConstructor();
+    $method = new \ReflectionMethod(OrderPlacedSubscriber::class, 'isRecurringRenewalOrder');
+
+    self::assertTrue($method->invoke($subscriber, $order));
+  }
+
   public function testProOrdersUseDedicatedIdempotentConfirmation(): void {
     $subscriber = $this->moduleFile('src/EventSubscriber/OrderPlacedSubscriber.php');
     $template = $this->syncConfig('myeventlane_messaging.template.pro_subscription_started.yml');
 
     self::assertStringContainsString('isProOnlyOrder($order)', $subscriber);
+    self::assertStringContainsString('isRecurringRenewalOrder($order)', $subscriber);
+    self::assertStringContainsString("hasField('billing_period')", $subscriber);
+    self::assertStringContainsString("get('billing_period')->isEmpty()", $subscriber);
     self::assertStringContainsString("queue('pro_subscription_started'", $subscriber);
     self::assertStringContainsString("'order:%d:pro_subscription_started'", $subscriber);
     self::assertStringContainsString("commerce_recurring.commerce_billing_schedule.mel_pro_monthly", $subscriber);

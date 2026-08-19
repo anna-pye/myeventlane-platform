@@ -24,7 +24,6 @@ final class ProSubscriptionStatusService {
 
   use StringTranslationTrait;
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const GRACE_FIELD = 'field_pro_grace_expires';
   private const PRO_ROLE = 'mel_pro';
@@ -79,7 +78,7 @@ final class ProSubscriptionStatusService {
       'is_subscription_managed' => FALSE,
       'has_active_subscription' => FALSE,
       'subscription_state' => '',
-      'billing_schedule' => self::BILLING_SCHEDULE,
+      'billing_schedule' => ProBillingSchedule::TRIAL,
       'grace_expires' => NULL,
       'grace_expires_label' => NULL,
       'grace_period_days' => $graceDays,
@@ -200,7 +199,7 @@ final class ProSubscriptionStatusService {
       'is_subscription_managed' => $isManaged,
       'has_active_subscription' => $hasActiveSubscription,
       'subscription_state' => $subscriptionState,
-      'billing_schedule' => self::BILLING_SCHEDULE,
+      'billing_schedule' => $subscription->getBillingSchedule()->id(),
       'grace_expires' => $graceExpires > 0 ? $graceExpires : NULL,
       'grace_expires_label' => $graceExpiresLabel,
       'grace_period_days' => $graceDays,
@@ -233,7 +232,7 @@ final class ProSubscriptionStatusService {
       'is_subscription_managed' => FALSE,
       'has_active_subscription' => FALSE,
       'subscription_state' => '',
-      'billing_schedule' => self::BILLING_SCHEDULE,
+      'billing_schedule' => ProBillingSchedule::TRIAL,
       'grace_expires' => NULL,
       'grace_expires_label' => NULL,
       'grace_period_days' => $graceDays,
@@ -283,7 +282,7 @@ final class ProSubscriptionStatusService {
       ->getQuery()
       ->accessCheck(FALSE)
       ->condition('uid', (int) $user->id())
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->sort('subscription_id', 'DESC')
       ->range(0, 1)
       ->execute();

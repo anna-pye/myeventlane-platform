@@ -82,6 +82,8 @@ function myeventlane_pro_theme(): array {
         'billing_schedule_label' => NULL,
         'billing_portal_enabled' => FALSE,
         'billing_portal_url' => NULL,
+        'payment_method_update_url' => NULL,
+        'payment_retry_url' => NULL,
         'billing_support_url' => NULL,
         'overview_url' => NULL,
       ],

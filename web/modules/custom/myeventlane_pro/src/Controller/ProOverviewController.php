@@ -18,6 +18,7 @@ use Drupal\myeventlane_pro\Form\ProSubscribeForm;
 use Drupal\myeventlane_pro\Service\ProActiveResolver;
 use Drupal\myeventlane_pro\Service\ProProductResolver;
 use Drupal\myeventlane_pro\Service\ProSubscriptionStatusService;
+use Drupal\myeventlane_pro\Service\ProTrialEligibility;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -38,6 +39,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
     private readonly FormBuilderInterface $formBuilder,
     private readonly ProActiveResolver $proActiveResolver,
     private readonly ProSubscriptionStatusService $statusService,
+    private readonly ProTrialEligibility $trialEligibility,
   ) {}
 
   /**
@@ -52,6 +54,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       $container->get('form_builder'),
       $container->get('myeventlane_pro.active_resolver'),
       $container->get('myeventlane_pro.subscription_status'),
+      $container->get('myeventlane_pro.trial_eligibility'),
     );
   }
 
@@ -72,6 +75,8 @@ final class ProOverviewController implements ContainerInjectionInterface {
     $cancelUrl = NULL;
     $supportUrl = trim((string) ($this->configFactory->get('myeventlane_pro.settings')->get('billing_support_url') ?? ''));
     $subscribeForm = [];
+    $trialEligible = $user instanceof UserInterface
+      && $this->trialEligibility->isEligible($user);
 
     if ($isPro) {
       $manageUrl = Url::fromRoute('myeventlane_pro.manage')->toString();
@@ -97,6 +102,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
       '#is_pro' => $isPro,
       '#pro_price' => $formattedPrice,
       '#subscribe_form' => $subscribeForm,
+      '#trial_eligible' => $trialEligible,
       '#manage_url' => $manageUrl,
       '#pro_status' => $status,
       '#status_card' => $statusCard,
@@ -134,10 +140,22 @@ final class ProOverviewController implements ContainerInjectionInterface {
         $this->t('Priority support (coming soon)'),
       ],
       '#actions' => [
-        'dashboard' => ['url' => Url::fromRoute('myeventlane_vendor.console.dashboard'), 'title' => $this->t('Go to Dashboard')],
-        'manage' => ['url' => Url::fromRoute('myeventlane_pro.manage'), 'title' => $this->t('Manage Subscription')],
-        'analytics' => ['url' => Url::fromRoute('myeventlane_analytics.dashboard'), 'title' => $this->t('View Analytics')],
-        'branding' => ['url' => Url::fromRoute('myeventlane_pro.branding'), 'title' => $this->t('Branding settings')],
+        'dashboard' => [
+          'url' => Url::fromRoute('myeventlane_vendor.console.dashboard'),
+          'title' => $this->t('Go to Dashboard'),
+        ],
+        'manage' => [
+          'url' => Url::fromRoute('myeventlane_pro.manage'),
+          'title' => $this->t('Manage Subscription'),
+        ],
+        'analytics' => [
+          'url' => Url::fromRoute('myeventlane_analytics.dashboard'),
+          'title' => $this->t('View Analytics'),
+        ],
+        'branding' => [
+          'url' => Url::fromRoute('myeventlane_pro.branding'),
+          'title' => $this->t('Branding settings'),
+        ],
       ],
       '#attached' => [
         'library' => ['myeventlane_pro/pro'],

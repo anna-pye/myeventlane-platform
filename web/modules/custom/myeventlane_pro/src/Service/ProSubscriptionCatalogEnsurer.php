@@ -8,6 +8,7 @@ use Drupal\commerce_product\Entity\Product;
 use Drupal\commerce_product\Entity\ProductType;
 use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_product\Entity\ProductVariationType;
+use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_recurring\Entity\BillingSchedule;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -26,9 +27,9 @@ final class ProSubscriptionCatalogEnsurer {
 
   private const VARIATION_TYPE = 'mel_pro_subscription_variation';
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
-
   private const DEFAULT_SKU = 'MEL-Pro';
+
+  private const RESTART_SKU_SUFFIX = '-restart';
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -44,9 +45,10 @@ final class ProSubscriptionCatalogEnsurer {
    *   TRUE on success or if catalog was already OK.
    */
   public function ensureDefaultCatalog(): bool {
-    if ($this->productResolver->findActiveVariation() !== NULL) {
-      $this->logger->notice('MEL Pro subscription catalog already has a sellable variation; nothing to create.');
-      return TRUE;
+    $trialVariation = $this->productResolver
+      ->findSellableByBillingSchedule(ProBillingSchedule::TRIAL);
+    if ($trialVariation !== NULL) {
+      return $this->ensureRestartVariation($trialVariation);
     }
 
     if (!ProductType::load(self::PRODUCT_TYPE)) {
@@ -63,10 +65,10 @@ final class ProSubscriptionCatalogEnsurer {
       return FALSE;
     }
 
-    $billingSchedule = BillingSchedule::load(self::BILLING_SCHEDULE);
+    $billingSchedule = BillingSchedule::load(ProBillingSchedule::TRIAL);
     if ($billingSchedule === NULL) {
       $this->logger->error('Billing schedule @id is missing. Import commerce_recurring configuration.', [
-        '@id' => self::BILLING_SCHEDULE,
+        '@id' => ProBillingSchedule::TRIAL,
       ]);
       return FALSE;
     }
@@ -133,7 +135,7 @@ final class ProSubscriptionCatalogEnsurer {
         ],
       );
 
-      return TRUE;
+      return $this->ensureRestartVariation($variation);
     }
     catch (\Throwable $e) {
       $this->logger->error('Failed to create MEL Pro catalog: @message', [
@@ -143,6 +145,56 @@ final class ProSubscriptionCatalogEnsurer {
     }
   }
 
+  /**
+   * Ensures a paid-from-today sibling variation exists for returning users.
+   */
+  public function ensureRestartVariation(ProductVariationInterface $trialVariation): bool {
+    if ($this->productResolver->findVariationForEligibility(FALSE) !== NULL) {
+      return TRUE;
+    }
+
+    $billingSchedule = BillingSchedule::load(ProBillingSchedule::RESTART);
+    if ($billingSchedule === NULL) {
+      $this->logger->error('Restart billing schedule @id is missing.', [
+        '@id' => ProBillingSchedule::RESTART,
+      ]);
+      return FALSE;
+    }
+
+    $product = $trialVariation->getProduct();
+    $price = $trialVariation->getPrice();
+    if ($product === NULL || $price === NULL) {
+      return FALSE;
+    }
+
+    try {
+      $variation = ProductVariation::create([
+        'type' => self::VARIATION_TYPE,
+        'sku' => $this->pickUniqueSku($trialVariation->getSku() . self::RESTART_SKU_SUFFIX),
+        'title' => 'MEL Pro Monthly Restart',
+        'status' => 1,
+        'price' => $price,
+        'billing_schedule' => $billingSchedule,
+        'subscription_type' => [
+          'target_plugin_id' => 'product_variation',
+        ],
+      ]);
+      $variation->save();
+      $product->addVariation($variation);
+      $product->save();
+      return TRUE;
+    }
+    catch (\Throwable $exception) {
+      $this->logger->error('Failed to create MEL Pro restart variation: @message', [
+        '@message' => $exception->getMessage(),
+      ]);
+      return FALSE;
+    }
+  }
+
+  /**
+   * Loads the default Commerce store, falling back to the first store.
+   */
   private function loadDefaultStore(): ?StoreInterface {
     $storage = $this->entityTypeManager->getStorage('commerce_store');
     $ids = $storage->getQuery()
@@ -163,6 +215,9 @@ final class ProSubscriptionCatalogEnsurer {
     return $store instanceof StoreInterface ? $store : NULL;
   }
 
+  /**
+   * Returns an available SKU derived from the provided base value.
+   */
   private function pickUniqueSku(string $baseSku): string {
     $baseSku = trim($baseSku) !== '' ? trim($baseSku) : self::DEFAULT_SKU;
     $sku = $baseSku;
@@ -175,6 +230,9 @@ final class ProSubscriptionCatalogEnsurer {
     return $sku;
   }
 
+  /**
+   * Checks whether a product variation already uses the SKU.
+   */
   private function variationSkuInUse(EntityStorageInterface $storage, string $sku): bool {
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)

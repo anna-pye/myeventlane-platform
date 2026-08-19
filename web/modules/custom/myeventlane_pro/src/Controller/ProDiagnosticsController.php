@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_pro\Controller;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\myeventlane_pro\Service\ProBillingSchedule;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Url;
@@ -22,7 +23,6 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class ProDiagnosticsController extends ControllerBase {
 
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const GRACE_FIELD = 'field_pro_grace_expires';
 
@@ -113,7 +113,7 @@ final class ProDiagnosticsController extends ControllerBase {
       $subscriptionIds = $subscriptionStorage->getQuery()
         ->accessCheck(FALSE)
         ->condition('uid', (int) $uid)
-        ->condition('billing_schedule', self::BILLING_SCHEDULE)
+        ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
         ->execute();
 
       $hasActiveSubscription = FALSE;

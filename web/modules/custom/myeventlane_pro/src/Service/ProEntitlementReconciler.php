@@ -27,7 +27,6 @@ final class ProEntitlementReconciler {
   private const PRO_ROLE = 'mel_pro';
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const GRACE_FIELD = 'field_pro_grace_expires';
-  private const BILLING_SCHEDULE = 'mel_pro_monthly';
   private const BATCH_SIZE = 50;
 
   public function __construct(
@@ -110,7 +109,7 @@ final class ProEntitlementReconciler {
 
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->execute();
 
     $processedUids = [];
@@ -193,7 +192,7 @@ final class ProEntitlementReconciler {
     $storage = $this->entityTypeManager->getStorage('commerce_subscription');
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
-      ->condition('billing_schedule', self::BILLING_SCHEDULE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
       ->condition('uid', $user->id())
       ->execute();
 
@@ -300,12 +299,33 @@ final class ProEntitlementReconciler {
         }
 
         // An expired grace marker is an unresolved failed-payment cycle.
-        // Commerce can keep the subscription state active during retries, so
-        // only the order-paid event may clear this marker as recovery.
-        if ($user->hasRole(self::PRO_ROLE)) {
+        // Commerce can keep the subscription state active during retries. The
+        // subscription must become terminal before entitlement is revoked, or
+        // the active resolver can immediately treat the organiser as Pro again
+        // and Commerce can continue attempting renewals.
+        $hadRole = $user->hasRole(self::PRO_ROLE);
+        if (!$this->expireActiveProSubscriptions($user)) {
+          $this->logger->critical(
+            'Unable to expire active Pro subscriptions for user @uid after grace ended. ' .
+            'Entitlement was retained to avoid charging for inaccessible Pro service.',
+            ['@uid' => $user->id()],
+          );
+          continue;
+        }
+
+        // Saving the subscription dispatches lifecycle subscribers which can
+        // update the user entity, so reload before applying the final derived
+        // entitlement state.
+        $userStorage->resetCache([(int) $user->id()]);
+        $user = $userStorage->load((int) $user->id());
+        if (!$user instanceof UserInterface) {
+          continue;
+        }
+
+        $this->revokeIfManaged($user);
+        if ($hadRole && !$user->hasRole(self::PRO_ROLE)) {
           $revoked++;
         }
-        $this->revokeIfManaged($user);
         $this->syncVendorProFlag($user, FALSE);
         $this->invalidateUserProTags($user);
       }
@@ -314,6 +334,62 @@ final class ProEntitlementReconciler {
     }
 
     return $revoked;
+  }
+
+  /**
+   * Expires every active MEL Pro subscription owned by a user.
+   *
+   * @return bool
+   *   TRUE when no active Pro subscription remains. FALSE when a required
+   *   transition was unavailable or a subscription could not be saved.
+   */
+  private function expireActiveProSubscriptions(UserInterface $user): bool {
+    $storage = $this->entityTypeManager->getStorage('commerce_subscription');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('billing_schedule', ProBillingSchedule::ALL, 'IN')
+      ->condition('uid', $user->id())
+      ->execute();
+
+    if ($ids === []) {
+      return TRUE;
+    }
+
+    $activeSubscriptions = [];
+    foreach ($storage->loadMultiple($ids) as $subscription) {
+      if (!$this->stateResolver->isActive($subscription)) {
+        continue;
+      }
+      if (!$subscription->getState()->isTransitionAllowed('expire')) {
+        return FALSE;
+      }
+      $activeSubscriptions[] = $subscription;
+    }
+
+    try {
+      foreach ($activeSubscriptions as $subscription) {
+        $subscription->getState()->applyTransitionById('expire');
+        $subscription->setEndTime($this->time->getRequestTime());
+        $subscription->removeScheduledChanges();
+        $subscription->save();
+      }
+    }
+    catch (\Throwable $exception) {
+      $this->logger->critical('Failed to expire Pro subscription after grace ended for user @uid: @message', [
+        '@uid' => $user->id(),
+        '@message' => $exception->getMessage(),
+      ]);
+      return FALSE;
+    }
+
+    $storage->resetCache($ids);
+    foreach ($storage->loadMultiple($ids) as $subscription) {
+      if ($this->stateResolver->isActive($subscription)) {
+        return FALSE;
+      }
+    }
+
+    return TRUE;
   }
 
   /**

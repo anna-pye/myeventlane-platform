@@ -98,6 +98,11 @@ services:
       - '@entity_type.manager'
       - '@config.factory'
 
+  myeventlane_pro.trial_eligibility:
+    class: Drupal\myeventlane_pro\Service\ProTrialEligibility
+    arguments:
+      - '@entity_type.manager'
+
   myeventlane_pro.catalog_ensurer:
     class: Drupal\myeventlane_pro\Service\ProSubscriptionCatalogEnsurer
     arguments:
@@ -226,6 +231,15 @@ services:
       - '@entity_type.manager'
       - '@logger.channel.myeventlane_pro'
       - '@?myeventlane_core.stripe'
+
+  myeventlane_pro.payment_recovery:
+    class: Drupal\myeventlane_pro\Service\ProPaymentRecoveryService
+    arguments:
+      - '@entity_type.manager'
+      - '@logger.channel.myeventlane_pro'
+      - '@lock.persistent'
+      - '@keyvalue.expirable'
+      - '@datetime.time'
 
   myeventlane_pro.pro_access:
     class: Drupal\myeventlane_pro\Service\ProAccessService

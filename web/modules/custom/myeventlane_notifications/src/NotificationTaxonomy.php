@@ -251,6 +251,7 @@ final class NotificationTaxonomy {
       'pro_subscription_payment_failed_day_0',
       'pro_subscription_payment_failed_day_3',
       'pro_subscription_payment_failed_day_6',
+      'pro_subscription_payment_update_link',
       'pro_subscription_payment_recovered' => [
         'context' => NotificationContext::BUSINESS,
         'domain' => NotificationDomain::SALES,

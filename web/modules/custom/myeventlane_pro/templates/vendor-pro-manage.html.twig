@@ -121,8 +121,14 @@
 
       <div class="mel-pro-manage__actions">
         {% if status.can_manage_billing|default(false) %}
+          {% if payment_method_update_url %}
+            <a href="{{ payment_method_update_url }}" class="mel-button mel-button--primary">{{ 'Update payment method'|t }}</a>
+          {% endif %}
+          {% if status.is_in_grace|default(false) and payment_retry_url %}
+            <a href="{{ payment_retry_url }}" class="mel-button mel-button--secondary">{{ 'Retry payment'|t }}</a>
+          {% endif %}
           {% if billing_portal_enabled and billing_portal_url %}
-            <a href="{{ billing_portal_url }}" class="mel-button mel-button--primary">{{ 'Manage billing'|t }}</a>
+            <a href="{{ billing_portal_url }}" class="mel-button mel-button--secondary">{{ 'View Stripe billing'|t }}</a>
           {% else %}
             <p class="mel-pro-manage__fallback">{{ 'Need to change your payment method or billing details? Our support team can help.'|t }}</p>
             <a href="{{ billing_support_url|default('/vendor/support') }}" class="mel-button mel-button--primary">{{ 'Contact support'|t }}</a>
