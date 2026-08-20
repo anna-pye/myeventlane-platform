@@ -98,6 +98,17 @@ services:
       - '@entity_type.manager'
       - '@config.factory'
 
+  myeventlane_pro.activation_readiness:
+    class: Drupal\myeventlane_pro\Service\ProActivationReadinessChecker
+    arguments:
+      - '@config.factory'
+      - '@config.storage'
+      - '@config.storage.sync'
+      - '@database'
+      - '@state'
+      - '@myeventlane_pro.product_resolver'
+      - '@datetime.time'
+
   myeventlane_pro.trial_eligibility:
     class: Drupal\myeventlane_pro\Service\ProTrialEligibility
     arguments:

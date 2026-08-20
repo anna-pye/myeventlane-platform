@@ -153,20 +153,37 @@ final class TicketBookingSessionService {
   }
 
   private function getSession(): ?SessionInterface {
+    // Public ticket availability is also evaluated by cron and CLI indexers.
+    // Those contexts must never try to start or read an HTTP session.
+    if (PHP_SAPI === 'cli') {
+      return NULL;
+    }
+
     $request = $this->requestStack->getCurrentRequest();
     if (!$request || !$request->hasSession()) {
       return NULL;
     }
+
     return $request->getSession();
   }
 
   private function startSession(): void {
+    if (PHP_SAPI === 'cli') {
+      return;
+    }
+
     if ($this->sessionManager->isStarted()) {
       return;
     }
     $request = $this->requestStack->getCurrentRequest();
     if ($request && $request->hasSession()) {
-      $this->sessionManager->start();
+      try {
+        $this->sessionManager->start();
+      }
+      catch (\RuntimeException) {
+        // Session-backed grants are optional. Fail closed when the response
+        // has already started or no writable session is available.
+      }
     }
   }
 
