@@ -7,8 +7,10 @@
 
 declare(strict_types=1);
 
+use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
@@ -243,6 +245,8 @@ function myeventlane_account_theme_suggestions_page_alter(array &$suggestions, a
  */
 function myeventlane_account_preprocess_page__account(array &$variables): void {
   $variables['account_settings_compact_header'] = FALSE;
+  $variables['account_header_actions'] = [];
+  $variables['account_payment_method_notice'] = [];
   $account = \Drupal::currentUser();
   $route_name = \Drupal::routeMatch()->getRouteName();
 
@@ -261,6 +265,9 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
   if ($account->isAnonymous()) {
     return;
   }
+
+  $variables['account_header_actions'] = _myeventlane_account_payment_method_header_actions($route_name, $account);
+  $variables['account_payment_method_notice'] = _myeventlane_account_payment_method_notice($route_name, $account);
 
   $variables['account_settings_compact_header'] = in_array($route_name, [
     'myeventlane_account.settings',
@@ -296,6 +303,115 @@ function myeventlane_account_preprocess_page__account(array &$variables): void {
 }
 
 /**
+ * Explains the boundary between checkout cards and MEL Pro billing.
+ */
+function _myeventlane_account_payment_method_notice(?string $route_name, AccountInterface $account): array {
+  if (!in_array($route_name, [
+    'entity.commerce_payment_method.collection',
+    'entity.commerce_payment_method.add_form',
+    'entity.commerce_payment_method.edit_form',
+    'entity.commerce_payment_method.delete_form',
+  ], TRUE) || $account->isAnonymous()) {
+    return [];
+  }
+
+  $notice = [
+    '#type' => 'container',
+    '#attributes' => [
+      'class' => ['mel-account-payment-methods__scope-notice', 'mel-alert', 'mel-alert--info'],
+      'role' => 'note',
+    ],
+    'title' => [
+      '#markup' => '<strong>' . t('Checkout payment methods') . '</strong>',
+    ],
+    'message' => [
+      '#type' => 'html_tag',
+      '#tag' => 'p',
+      '#value' => t('Cards saved here belong to your general MyEventLane payment account. They do not change the card used for MEL Pro.'),
+    ],
+  ];
+
+  if ($account->hasRole('vendor') || $account->hasRole('administrator')) {
+    $notice['pro_link'] = [
+      '#type' => 'link',
+      '#title' => t('Manage MEL Pro billing'),
+      '#url' => Url::fromRoute('myeventlane_pro.manage'),
+      '#attributes' => [
+        'class' => ['button', 'button--small'],
+      ],
+    ];
+  }
+
+  return $notice;
+}
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function myeventlane_account_form_commerce_payment_method_add_form_alter(array &$form, FormStateInterface $form_state): void {
+  $gateway_id = (string) ($form_state->get('payment_gateway') ?? '');
+  if ($gateway_id === '') {
+    return;
+  }
+
+  $gateway = \Drupal::entityTypeManager()->getStorage('commerce_payment_gateway')->load($gateway_id);
+  if (!$gateway instanceof PaymentGatewayInterface || $gateway->getPluginId() !== 'stripe') {
+    return;
+  }
+
+  $configuration = $gateway->getPlugin()->getConfiguration();
+  if (_myeventlane_account_stripe_gateway_has_client_key($configuration)) {
+    return;
+  }
+
+  $form['payment_method_configuration_error'] = [
+    '#type' => 'container',
+    '#weight' => -100,
+    '#attributes' => [
+      'class' => ['mel-alert', 'mel-alert--error'],
+      'role' => 'alert',
+    ],
+    'message' => [
+      '#markup' => t('Adding a checkout payment method is temporarily unavailable. No card details have been collected. Please try again later or contact support.'),
+    ],
+  ];
+  $form['actions']['submit_payment_method']['#disabled'] = TRUE;
+
+  \Drupal::logger('myeventlane_account')->error('Saved payment-method form blocked because Stripe gateway @gateway has no publishable key.', [
+    '@gateway' => $gateway_id,
+  ]);
+}
+
+/**
+ * Returns whether a Stripe gateway has the public client key Stripe.js needs.
+ */
+function _myeventlane_account_stripe_gateway_has_client_key(array $configuration): bool {
+  return trim((string) ($configuration['publishable_key'] ?? '')) !== '';
+}
+
+/**
+ * Builds route-specific actions for the saved payment-method account surface.
+ */
+function _myeventlane_account_payment_method_header_actions(?string $route_name, AccountInterface $account): array {
+  if ($route_name !== 'entity.commerce_payment_method.collection' || $account->isAnonymous()) {
+    return [];
+  }
+
+  return [
+    'add_payment_method' => [
+      '#type' => 'link',
+      '#title' => t('Add payment method'),
+      '#url' => Url::fromRoute('entity.commerce_payment_method.add_form', [
+        'user' => $account->id(),
+      ]),
+      '#attributes' => [
+        'class' => ['button', 'button--primary', 'mel-my-account__header-action'],
+      ],
+    ],
+  ];
+}
+
+/**
  * Single H1 title per hub route (page shell); body templates must not repeat H1.
  */
 function _myeventlane_account_page_heading(?string $route_name) {
@@ -312,6 +428,10 @@ function _myeventlane_account_page_heading(?string $route_name) {
     'myeventlane_notifications.preferences' => t('Notification preferences'),
     'myeventlane_core.my_categories' => t('Your communities'),
     'myeventlane_rsvp.user_list' => t('RSVPs'),
+    'entity.commerce_payment_method.collection' => t('Saved payment methods'),
+    'entity.commerce_payment_method.add_form' => t('Add a payment method'),
+    'entity.commerce_payment_method.edit_form' => t('Update payment method'),
+    'entity.commerce_payment_method.delete_form' => t('Remove payment method'),
     default => NULL,
   };
 }
@@ -332,6 +452,10 @@ function _myeventlane_account_page_description(?string $route_name) {
     'myeventlane_notifications.preferences' => t('Choose how and when we reach you.'),
     'myeventlane_core.my_categories' => t('Stay connected with the categories you follow.'),
     'myeventlane_rsvp.user_list' => t('Events you have RSVP’d to.'),
+    'entity.commerce_payment_method.collection' => t('Manage payment methods saved securely with Stripe for eligible non-Pro payments.'),
+    'entity.commerce_payment_method.add_form' => t('Save a payment method securely with Stripe. MyEventLane does not store your full card details.'),
+    'entity.commerce_payment_method.edit_form' => t('Update the billing details associated with this saved payment method.'),
+    'entity.commerce_payment_method.delete_form' => t('Review the payment method before removing it from your account.'),
     default => NULL,
   };
 }

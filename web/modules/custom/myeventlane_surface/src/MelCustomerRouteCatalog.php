@@ -30,6 +30,10 @@ final class MelCustomerRouteCatalog {
     'myeventlane_core.my_categories',
     'view.mel_saved_events.page_1',
     'myeventlane_account.followed_organisers',
+    'entity.commerce_payment_method.collection',
+    'entity.commerce_payment_method.add_form',
+    'entity.commerce_payment_method.edit_form',
+    'entity.commerce_payment_method.delete_form',
   ];
 
   /**
