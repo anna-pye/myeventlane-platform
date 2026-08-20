@@ -6,10 +6,12 @@ namespace Drupal\myeventlane_pro\Commands;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_pro\Service\ProActivationReadinessChecker;
 use Drupal\myeventlane_pro\Service\ProEntitlementReconciler;
 use Drupal\myeventlane_pro\Service\ProSubscriptionCatalogEnsurer;
 use Drupal\user\UserInterface;
 use Drush\Commands\DrushCommands;
+use Symfony\Component\Console\Command\Command;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -22,6 +24,7 @@ final class ProAdminCommands extends DrushCommands {
     private readonly ProEntitlementReconciler $reconciler,
     private readonly ConfigFactoryInterface $configFactory,
     private readonly ProSubscriptionCatalogEnsurer $catalogEnsurer,
+    private readonly ProActivationReadinessChecker $activationReadiness,
   ) {
     parent::__construct();
   }
@@ -35,6 +38,7 @@ final class ProAdminCommands extends DrushCommands {
       $container->get('myeventlane_pro.entitlement_reconciler'),
       $container->get('config.factory'),
       $container->get('myeventlane_pro.catalog_ensurer'),
+      $container->get('myeventlane_pro.activation_readiness'),
     );
   }
 
@@ -50,10 +54,12 @@ final class ProAdminCommands extends DrushCommands {
    * @usage drush mel:pro-extend-grace --uid=42 --days=7
    *   Adds seven days to user 42’s grace window.
    */
-  public function extendGrace(array $options = [
-    'uid' => NULL,
-    'days' => NULL,
-  ]): void {
+  public function extendGrace(
+    array $options = [
+      'uid' => NULL,
+      'days' => NULL,
+    ],
+  ): void {
     $uid = isset($options['uid']) ? (int) $options['uid'] : 0;
     if ($uid <= 0) {
       $this->logger()->error('The --uid option is required.');
@@ -126,6 +132,54 @@ final class ProAdminCommands extends DrushCommands {
     else {
       $this->logger()->error('MEL Pro catalog could not be ensured. Check watchdog and Commerce config.');
     }
+  }
+
+  /**
+   * Runs the read-only MEL Pro activation gate.
+   *
+   * @param array $options
+   *   Command options.
+   *
+   * @command mel:pro-activation-readiness
+   * @option environment Target environment: staging or production.
+   * @option format Output format: table or json.
+   * @usage drush mel:pro-activation-readiness --environment=staging
+   * @usage drush mel:pro-activation-readiness --environment=production --format=json
+   *
+   * @return int
+   *   Zero when automated checks pass, otherwise one.
+   */
+  public function activationReadiness(
+    array $options = [
+      'environment' => 'staging',
+      'format' => 'table',
+    ],
+  ): int {
+    $environment = strtolower(trim((string) ($options['environment'] ?? 'staging')));
+    $format = strtolower(trim((string) ($options['format'] ?? 'table')));
+
+    try {
+      $report = $this->activationReadiness->check($environment);
+    }
+    catch (\InvalidArgumentException $exception) {
+      $this->logger()->error($exception->getMessage());
+      return Command::FAILURE;
+    }
+
+    if ($format === 'json') {
+      $encoded = json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+      $this->output()->writeln($encoded === FALSE ? '{}' : $encoded);
+    }
+    else {
+      foreach ($report['checks'] as $check) {
+        $this->output()->writeln(sprintf('[%s] %s — %s', strtoupper($check['status']), $check['id'], $check['message']));
+      }
+      $this->output()->writeln($report['ready']
+        ? 'Automated checks passed. Complete the MANUAL provider and hosting checks before activation.'
+        : 'NOT READY. Resolve every FAIL result before activation.');
+    }
+
+    return $report['ready'] ? Command::SUCCESS : Command::FAILURE;
   }
 
 }

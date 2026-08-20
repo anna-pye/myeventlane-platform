@@ -6,5 +6,6 @@ services:
       - '@myeventlane_pro.entitlement_reconciler'
       - '@config.factory'
       - '@myeventlane_pro.catalog_ensurer'
+      - '@myeventlane_pro.activation_readiness'
     tags:
       - { name: drush.command }
