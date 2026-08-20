@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Session\AccountInterface;
@@ -354,7 +355,7 @@ function myeventlane_account_form_commerce_payment_method_add_form_alter(array &
   }
 
   $gateway = \Drupal::entityTypeManager()->getStorage('commerce_payment_gateway')->load($gateway_id);
-  if ($gateway === NULL || $gateway->getPluginId() !== 'stripe') {
+  if (!$gateway instanceof PaymentGatewayInterface || $gateway->getPluginId() !== 'stripe') {
     return;
   }
 
