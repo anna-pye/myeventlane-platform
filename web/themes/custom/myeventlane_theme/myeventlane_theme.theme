@@ -1949,6 +1949,15 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
     if ($route_name === 'entity.commerce_order.user_view') {
       $variables['attributes']['class'][] = 'mel-commerce-order-detail';
     }
+
+    if (in_array($route_name, [
+      'entity.commerce_payment_method.collection',
+      'entity.commerce_payment_method.add_form',
+      'entity.commerce_payment_method.edit_form',
+      'entity.commerce_payment_method.delete_form',
+    ], TRUE)) {
+      $variables['attributes']['class'][] = 'mel-account-payment-methods';
+    }
   }
 
   $auth_minimal = FALSE;

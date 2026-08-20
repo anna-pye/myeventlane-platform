@@ -12,6 +12,8 @@
  * - account_show_header_logo: When TRUE, prepend dashboard home/logo control (dashboard route).
  * - account_heading: Optional custom H1 markup object; when absent, greeting uses Welcome line.
  * - account_page_description: Optional lede below the shell H1.
+ * - account_header_actions: Optional route-specific primary actions.
+ * - account_payment_method_notice: Checkout-versus-Pro payment scope guidance.
  * - account_settings_compact_header: TRUE on Settings hub routes (tighter header; form owns sections).
  */
 #}
@@ -68,6 +70,11 @@
               <p class="mel-my-account__lede">{{ account_page_description }}</p>
             {% endif %}
           </div>
+          {% if account_header_actions %}
+            <div class="mel-my-account__header-actions">
+              {{ account_header_actions }}
+            </div>
+          {% endif %}
           <div class="mel-my-account__avatar" aria-hidden="true">
             {% if avatar_url %}
               <img src="{{ avatar_url }}" alt="" width="44" height="44" />
@@ -87,6 +94,10 @@
           <div class="mel-my-account__workflow-progress">
             {{ mel_workflow_region_progress }}
           </div>
+        {% endif %}
+
+        {% if account_payment_method_notice %}
+          {{ account_payment_method_notice }}
         {% endif %}
 
         {# Page content (My Tickets, My Events, order detail) #}
