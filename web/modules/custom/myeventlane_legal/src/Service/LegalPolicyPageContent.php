@@ -5,9 +5,13 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_legal\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\myeventlane_core\Policy\DirectChargeCopy;
 
 /**
- * Launch-ready legal policy page content (draft — requires legal review).
+ * Owner-approved legal policy page content for the direct-charge migration.
+ *
+ * This records the product owner's approval. It is not independent legal
+ * advice; that distinction remains documented in the Stage 14 decision record.
  */
 final class LegalPolicyPageContent {
 
@@ -27,7 +31,7 @@ final class LegalPolicyPageContent {
       ? '<p>Email <a href="mailto:' . htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8') . '">' . htmlspecialchars($supportEmail, ENT_QUOTES, 'UTF-8') . '</a> or use our <a href="/contact">Contact page</a>.</p>'
       : '<p>Use our <a href="/contact">Contact page</a> or the Help Centre.</p>';
 
-    $reviewNotice = '<p class="mel-legal-review-notice"><strong>Legal review notice:</strong> This page is a launch-ready draft and should be reviewed before production legal sign-off.</p>';
+    $reviewNotice = '';
 
     return [
       '/privacy' => [
@@ -44,10 +48,7 @@ final class LegalPolicyPageContent {
       ],
       '/vendor-terms' => [
         'title' => 'Vendor Agreement',
-        'body' => '<p>This Vendor Agreement sets out the terms under which organisers use MyEventLane to list events and sell tickets or manage RSVPs.</p>'
-          . '<p><strong>Last updated:</strong> ' . $date . '</p>'
-          . '<p><em>Full legal text to be inserted by qualified advisers. This is a structure placeholder only.</em></p>'
-          . $reviewNotice,
+        'body' => self::buildVendorTermsBody($date, $contactBlock),
       ],
     ];
   }
@@ -99,7 +100,7 @@ final class LegalPolicyPageContent {
       . '<h3>Using MyEventLane</h3>'
       . '<p>MyEventLane helps people discover events and helps organisers publish listings, sell tickets, and manage RSVPs. You must use the platform lawfully, provide accurate information, and respect other users.</p>'
       . '<h3>Platform role</h3>'
-      . '<p>MyEventLane is a marketplace and technology platform. We are <strong>not</strong> the organiser or host of events listed on the site unless we clearly say otherwise. Organisers are responsible for their events, listings, pricing, and attendee communication.</p>'
+      . '<p>' . DirectChargeCopy::CUSTOMER_SELLER . ' MyEventLane is <strong>not</strong> the organiser or host unless we clearly say otherwise. Organisers are responsible for their events, listings, pricing, attendee communication and compliance with applicable law.</p>'
       . '<h3>Accounts</h3>'
       . '<p>You are responsible for keeping your login details secure and for activity on your account. Tell us promptly if you suspect unauthorised access.</p>'
       . '<h3>Event listings</h3>'
@@ -107,9 +108,11 @@ final class LegalPolicyPageContent {
       . '<h3>Tickets and RSVPs</h3>'
       . '<p>When you RSVP or purchase a ticket, you enter an arrangement with the event organiser. MyEventLane facilitates booking and payment processing but does not guarantee that an event will proceed as described.</p>'
       . '<h3>Payments and fees</h3>'
-      . '<p>Paid tickets are processed through Stripe. Platform and payment fees may apply and are shown before you complete checkout. See our <a href="/pricing">Pricing &amp; fees</a> page for general information.</p>'
+      . '<p>Ticket payments are direct charges on the organiser\'s connected Stripe account. MyEventLane does not receive and later pay out the organiser\'s ticket revenue. Any MEL platform fee and applicable Stripe processing fee must be shown before you complete checkout. See our <a href="/pricing">Pricing &amp; fees</a> page for general information.</p>'
       . '<h3>Refunds</h3>'
-      . '<p>Refund rules depend on the event and organiser policy. Platform-level guidance is in our <a href="/help/policies/refund-policy">Refund policy</a>. Organisers may set additional conditions on their event pages.</p>'
+      . '<p>The organiser is responsible for the event and its refund policy, subject to rights that cannot be excluded under Australian Consumer Law. MyEventLane may provide the refund workflow and support, but an approved refund is funded from the organiser\'s connected Stripe account and processed by Stripe. See our <a href="/help/policies/refund-policy">refund guidance</a>.</p>'
+      . '<h3>Disputes and chargebacks</h3>'
+      . '<p>The organiser, as seller, is responsible for responding to payment disputes about their event and providing requested evidence. Stripe controls the dispute process and outcome. MyEventLane may provide order or booking records but cannot decide a Stripe dispute.</p>'
       . '<h3>Organiser responsibilities</h3>'
       . '<p>Organisers must provide accurate event information, comply with applicable laws, honour reasonable attendee expectations, and use attendee data only for legitimate event-related purposes. Separate <a href="/vendor-terms">Vendor Terms</a> apply when you host events on MyEventLane.</p>'
       . '<h3>Community standards</h3>'
@@ -120,6 +123,26 @@ final class LegalPolicyPageContent {
       . '<p>Organisers may change or cancel events. If that happens, follow the organiser’s instructions and our Help Centre guidance. MyEventLane is not responsible for organiser decisions about postponement or cancellation.</p>'
       . '<h3>Limits and disclaimers</h3>'
       . '<p>The platform is provided on an &quot;as available&quot; basis. To the extent permitted by law, MyEventLane limits its liability for organiser conduct, event outcomes, and indirect loss. Nothing in these draft Terms excludes rights that cannot be excluded under Australian consumer law. Final liability wording requires legal review.</p>'
+      . '<h3>Contact</h3>'
+      . $contactBlock;
+  }
+
+  private static function buildVendorTermsBody(string $date, string $contactBlock): string {
+    return '<h2>Organiser Agreement</h2>'
+      . '<p><strong>Last updated:</strong> ' . $date . '</p>'
+      . '<p>This agreement applies when you list or run an event, sell tickets, or manage RSVPs through MyEventLane.</p>'
+      . '<h3>Your role as seller</h3>'
+      . '<p>You are the seller for each paid event you publish. You are responsible for the event, ticket descriptions, pricing, delivery, attendee communication, cancellations, refunds and compliance with applicable law. MyEventLane provides the marketplace and booking workflow.</p>'
+      . '<h3>Stripe account and ticket revenue</h3>'
+      . '<p>Paid ticket transactions are direct charges on your connected Stripe account. Your ticket revenue belongs to you and is managed through Stripe. Stripe sends available funds to your nominated bank account according to your Stripe payout schedule. MyEventLane does not hold or manually release your ticket-sale funds.</p>'
+      . '<h3>Fees</h3>'
+      . '<p>MyEventLane deducts its disclosed platform fee when a ticket payment is processed. Stripe separately charges processing fees under your Stripe account and payment method. Current fees must be shown in the applicable pricing and order surfaces.</p>'
+      . '<h3>Refunds, cancellations and disputes</h3>'
+      . '<p>You must handle refund requests fairly and meet obligations that cannot be excluded under Australian Consumer Law. Refunds processed through MyEventLane are funded from your connected Stripe account. Keep sufficient funds available for refunds, cancellations and disputes. Stripe controls dispute and chargeback processing; you must respond and provide requested evidence. MyEventLane may provide booking records but cannot decide a Stripe dispute.</p>'
+      . '<h3>Stripe verification and payouts</h3>'
+      . '<p>You must keep your connected Stripe account, identity information and bank details accurate. Stripe controls verification, restrictions, payout timing and bank settlement. MyEventLane cannot release a payout, change your Stripe payout schedule or edit your bank account.</p>'
+      . '<h3>Event and attendee responsibilities</h3>'
+      . '<p>You must provide accurate event information, communicate material changes promptly, run events safely, use attendee data only for legitimate event purposes, and comply with venue requirements and applicable laws.</p>'
       . '<h3>Contact</h3>'
       . $contactBlock;
   }

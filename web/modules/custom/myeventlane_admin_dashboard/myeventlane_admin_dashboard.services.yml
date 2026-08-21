@@ -66,6 +66,7 @@ services:
       - '@logger.channel.myeventlane_admin_dashboard'
       - '@csrf_token'
       - '@myeventlane_core.stripe'
+      - '@config.factory'
 
   myeventlane_admin_dashboard.payout_batch_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\PayoutBatchController
@@ -75,6 +76,7 @@ services:
       - '@logger.channel.myeventlane_admin_dashboard'
       - '@csrf_token'
       - '@myeventlane_core.stripe'
+      - '@config.factory'
 
   myeventlane_admin_dashboard.stripe_webhook_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\StripeWebhookController
@@ -94,6 +96,7 @@ services:
       - '@current_user'
       - '@entity_type.manager'
       - '@myeventlane_core.stripe'
+      - '@config.factory'
 
   myeventlane_admin_dashboard.payout_batch_ui_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\PayoutBatchUiController

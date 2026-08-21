@@ -96,7 +96,7 @@ final class VendorSettingsHubBuilder {
         $this->section(
           'payments',
           (string) $this->t('Payments'),
-          (string) $this->t('Connected Stripe account, payouts, refunds, and tax exports — managed in Payments.'),
+          (string) $this->t('Connected Stripe account, Stripe payouts, refunds, and tax exports — managed in Payments.'),
           (string) $this->t('Open Payments'),
           $this->safeRouteUrl('myeventlane_vendor.console.payments') ?? '/vendor/payments',
         ),

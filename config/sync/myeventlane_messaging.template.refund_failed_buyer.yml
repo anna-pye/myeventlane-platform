@@ -5,7 +5,7 @@ body_html: |-
 
   Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) could not be fully confirmed yet.
 
-  Our team has been notified and will review this. We'll email you again once it's resolved.
+  MyEventLane support can investigate the recorded refund state with the organiser. We'll email you again when there is a confirmed outcome.
 
   Order reference: {{ order_number }}
 utm:

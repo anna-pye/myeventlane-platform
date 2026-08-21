@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_vendor\Controller;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Policy\DirectChargeCopy;
 use Drupal\myeventlane_core\Service\OnboardingManager;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_vendor\Entity\Vendor;
@@ -192,7 +193,7 @@ final class VendorOnboardStripeController extends ControllerBase {
           'class' => ['mel-stripe-phase', 'mel-stripe-phase--action'],
         ],
         'message' => [
-          '#markup' => '<p><strong>' . $this->t('Finish setting up Stripe') . '</strong> ' . $this->t('Complete the remaining steps in Stripe to enable payouts.') . '</p>',
+          '#markup' => '<p><strong>' . $this->t('Finish setting up Stripe') . '</strong> ' . $this->t('Complete the remaining steps in Stripe to enable Stripe payouts.') . '</p>',
         ],
       ];
       $onboard_footer['continue_label'] = $this->t('Continue setting up payments');
@@ -204,7 +205,7 @@ final class VendorOnboardStripeController extends ControllerBase {
           'class' => ['mel-onboard-stripe-intro'],
         ],
         'text' => [
-          '#markup' => '<p>' . $this->t('💸 Want to sell tickets? Connect Stripe to get paid directly.') . '</p>',
+          '#markup' => '<p>' . $this->t(DirectChargeCopy::PAYMENT) . '</p>',
         ],
       ];
 
@@ -218,7 +219,7 @@ final class VendorOnboardStripeController extends ControllerBase {
           '#items' => [
             $this->t('Accept credit and debit card payments'),
             $this->t('Secure, PCI-compliant processing'),
-            $this->t('Automatic payouts to your bank account'),
+            $this->t('Stripe payouts to your nominated bank account'),
             $this->t('Built-in fraud protection'),
           ],
         ],

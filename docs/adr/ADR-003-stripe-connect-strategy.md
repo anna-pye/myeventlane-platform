@@ -1,8 +1,12 @@
 # ADR-003 — Stripe Connect Strategy (Option A vs Option B)
 
-**Status:** Proposed recommendation (evidence-backed); pending Product ratification  
+**Status:** Historical recommendation; superseded by [ADR-004](./ADR-004-organiser-direct-charges.md)
 **Date:** 20 July 2026  
 **Related:** [`ADR-002-payment-runtime.md`](./ADR-002-payment-runtime.md), [`payment-critical-findings.md`](../architecture/payment-critical-findings.md)
+
+> Product selected organiser direct charges on 20 August 2026. The Option A
+> recommendation below is retained as historical audit evidence, not current
+> implementation guidance.
 
 ---
 

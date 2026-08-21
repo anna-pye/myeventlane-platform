@@ -118,7 +118,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $form['payments']['stripe_fee_percent'] = [
       '#type' => 'number',
       '#title' => $this->t('Stripe application fee percentage'),
-      '#description' => $this->t('Percentage deducted from vendor payout (e.g. 3 for 3%). Applied to ticket revenue only, not donations.'),
+      '#description' => $this->t('MEL platform fee percentage applied when the ticket payment is processed (e.g. 3 for 3%). Applies to ticket revenue only, not donations.'),
       '#default_value' => (string) ($config->get('stripe_fee_percent') ?? 3),
       '#min' => 0,
       '#max' => 100,
@@ -129,7 +129,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $form['payments']['stripe_fee_fixed_cents'] = [
       '#type' => 'number',
       '#title' => $this->t('Stripe application fee fixed (cents)'),
-      '#description' => $this->t('Fixed fee in cents deducted from vendor payout (e.g. 30 for $0.30).'),
+      '#description' => $this->t('Fixed MEL platform fee in cents applied when the ticket payment is processed (e.g. 30 for $0.30).'),
       '#default_value' => (string) ($config->get('stripe_fee_fixed_cents') ?? 30),
       '#min' => 0,
       '#step' => 1,
@@ -139,7 +139,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $form['payments']['fee_payer'] = [
       '#type' => 'select',
       '#title' => $this->t('Who pays platform fee'),
-      '#description' => $this->t('Buyer: platform fee shown as order adjustment. Organiser absorbs: no fee to buyer; organiser pays via reduced payout.'),
+      '#description' => $this->t('Buyer: MEL platform fee is shown as an order adjustment. Organiser absorbs: no fee is added to the buyer; the fee is applied to the organiser payment.'),
       '#options' => [
         'buyer' => $this->t('Buyer'),
         'organizer_absorbs' => $this->t('Organiser absorbs'),

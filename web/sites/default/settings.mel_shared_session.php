@@ -217,6 +217,7 @@ $config['social_auth_google.settings']['endpoints'] = '';
 $mel_stripe_secret = $melGetEnv('MEL_STRIPE_SECRET_KEY');
 if ($mel_stripe_secret !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;
+  $config['commerce_payment.commerce_payment_gateway.stripe_connect']['configuration']['secret_key'] = $mel_stripe_secret;
   $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['secret_key'] = $mel_stripe_secret;
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['secret_key'] = $mel_stripe_secret;
 }
@@ -224,6 +225,7 @@ if ($mel_stripe_secret !== '') {
 $mel_stripe_publishable = $melGetEnv('MEL_STRIPE_PUBLISHABLE_KEY');
 if ($mel_stripe_publishable !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['publishable_key'] = $mel_stripe_publishable;
+  $config['commerce_payment.commerce_payment_gateway.stripe_connect']['configuration']['publishable_key'] = $mel_stripe_publishable;
   $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['publishable_key'] = $mel_stripe_publishable;
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['publishable_key'] = $mel_stripe_publishable;
 }
@@ -231,6 +233,11 @@ if ($mel_stripe_publishable !== '') {
 $mel_stripe_webhook = $melGetEnv('MEL_STRIPE_WEBHOOK_SECRET');
 if ($mel_stripe_webhook !== '') {
   $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['webhook_signing_secret'] = $mel_stripe_webhook;
+}
+
+$mel_stripe_connect_webhook = $melGetEnv('MEL_STRIPE_CONNECT_WEBHOOK_SECRET');
+if ($mel_stripe_connect_webhook !== '') {
+  $config['commerce_payment.commerce_payment_gateway.stripe_connect']['configuration']['webhook_signing_secret'] = $mel_stripe_connect_webhook;
 }
 
 $mel_pro_webhook = $melGetEnv('MEL_PRO_WEBHOOK_SECRET');

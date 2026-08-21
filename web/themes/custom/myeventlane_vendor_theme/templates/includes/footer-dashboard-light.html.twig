@@ -19,7 +19,7 @@
       {% if footer_context.environment %}
         <span class="mel-badge mel-badge--env">{{ footer_context.environment }}</span>
       {% endif %}
-      <span class="mel-footer-dashboard__balance">{{ 'Payout balance'|t }}: {{ footer_context.payout_balance|default('$0.00') }}</span>
+      <span class="mel-footer-dashboard__balance">{{ 'Stripe payout balance'|t }}: {{ footer_context.payout_balance|default('$0.00') }}</span>
     </div>
     <nav class="mel-footer-dashboard__links" aria-label="{{ 'Account links'|t }}">
       {% if logged_in %}

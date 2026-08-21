@@ -20,10 +20,10 @@ final class VendorPayoutsPresentationContractTest extends TestCase {
     $template = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/payouts.html.twig');
 
     self::assertIsString($template);
-    self::assertStringContainsString('Payout status', $template);
-    self::assertStringContainsString('Payout balances', $template);
+    self::assertStringContainsString('Stripe payout status', $template);
+    self::assertStringContainsString('Stripe payout balances', $template);
     self::assertStringContainsString('Recent ticket transactions', $template);
-    self::assertStringContainsString('Bank transfers are shown in the payout balance above.', $template);
+    self::assertStringContainsString('Stripe bank payouts are shown in the balance above.', $template);
     self::assertStringNotContainsString("{{ 'Actions'|t }}", $template);
   }
 

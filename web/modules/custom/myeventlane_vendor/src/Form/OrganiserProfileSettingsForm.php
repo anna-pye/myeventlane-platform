@@ -1032,7 +1032,7 @@ class OrganiserProfileSettingsForm extends FormBase {
       ],
     ];
     $form['store']['_intro'] = [
-      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal details for invoices. For Stripe connection, payouts, and refunds, open Payments.') . '</p>',
+      '#markup' => '<p class="mel-vendor-settings-v2__section-lede">' . $this->t('Legal details for invoices. For Stripe connection, Stripe payouts, and refunds, open Payments.') . '</p>',
       '#weight' => -10,
     ];
     $form['store']['business'] = [
@@ -1150,7 +1150,7 @@ class OrganiserProfileSettingsForm extends FormBase {
       '#attributes' => [
         'class' => ['button', 'button--primary', 'mel-btn', 'mel-btn--primary', 'mel-vendor-settings-v2__actions-link'],
       ],
-      '#prefix' => '<p class="mel-vendor-settings-v2__status-note">' . $this->t('Stripe connection and payout status live in Payments.') . '</p>',
+      '#prefix' => '<p class="mel-vendor-settings-v2__status-note">' . $this->t('Stripe connection and Stripe payout status live in Payments.') . '</p>',
     ];
   }
 

@@ -1,4 +1,6 @@
 platform_fee_percent: 1.5
+direct_charge_enabled: false
+direct_charge_fee_model_approved: false
 stripe_fee_percent: 3.0
 stripe_fee_fixed_cents: 30
 fee_payer: buyer

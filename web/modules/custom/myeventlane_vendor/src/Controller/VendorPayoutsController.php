@@ -106,7 +106,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       'balance' => $available,
       'next_payout' => !empty($health['payouts_enabled'])
         ? (string) $this->t("On Stripe's usual schedule")
-        : (string) $this->t('Once payouts are enabled'),
+        : (string) $this->t('Once Stripe payouts are enabled'),
       'last_payout' => $lastPayoutLabel,
     ];
 
@@ -127,7 +127,7 @@ final class VendorPayoutsController extends VendorConsoleBaseController implemen
       ];
     }
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => (string) $this->t('Payouts'),
+      'title' => (string) $this->t('Stripe payouts'),
       'header_actions' => $headerActions,
       'body' => [
         '#theme' => 'myeventlane_vendor_payouts',

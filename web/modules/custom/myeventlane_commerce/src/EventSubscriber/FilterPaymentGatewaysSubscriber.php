@@ -6,8 +6,10 @@ namespace Drupal\myeventlane_commerce\EventSubscriber;
 
 use Drupal\commerce_payment\Event\FilterPaymentGatewaysEvent;
 use Drupal\commerce_payment\Event\PaymentEvents;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_commerce\Service\OrderItemClassifier;
+use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
@@ -32,10 +34,14 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
 
   private const CARD_GATEWAY_ID = 'stripe';
 
+  private const DIRECT_CHARGE_GATEWAY_ID = 'stripe_connect';
+
   public function __construct(
     private readonly OrderItemClassifier $orderItemClassifier,
     private readonly AccountProxyInterface $currentUser,
     private readonly LoggerInterface $logger,
+    private readonly ?ConfigFactoryInterface $configFactory = NULL,
+    private readonly ?StripeConnectPaymentService $stripeConnectPayment = NULL,
   ) {}
 
   /**
@@ -54,6 +60,28 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
     $order = $event->getOrder();
     $gateways = $event->getPaymentGateways();
     if ($gateways === []) {
+      return;
+    }
+
+    $directChargeEnabled = $this->configFactory !== NULL
+      && (bool) $this->configFactory->get('myeventlane_core.settings')->get('direct_charge_enabled');
+    $requiresDirectCharge = $this->stripeConnectPayment?->requiresDirectCharge($order) ?? FALSE;
+
+    if ($directChargeEnabled && $requiresDirectCharge) {
+      $validation = $this->stripeConnectPayment->validateDirectChargeOrder($order);
+      foreach ($gateways as $id => $gateway) {
+        if (!$validation['valid'] || $gateway->id() !== self::DIRECT_CHARGE_GATEWAY_ID) {
+          unset($gateways[$id]);
+        }
+      }
+
+      if ($gateways === []) {
+        $this->logger->error('Direct-charge checkout blocked for order @oid: @reason', [
+          '@oid' => (string) ($order->id() ?? 'new'),
+          '@reason' => $validation['message'] ?? 'The direct-charge gateway is unavailable.',
+        ]);
+      }
+      $event->setPaymentGateways($gateways);
       return;
     }
 
@@ -81,6 +109,16 @@ final class FilterPaymentGatewaysSubscriber implements EventSubscriberInterface 
 
     foreach ($gateways as $id => $gateway) {
       $gatewayId = $gateway->id();
+
+      // The direct-charge gateway is never available outside the explicit
+      // organiser-revenue branch above. This keeps the enabled config entity
+      // dormant while the migration switch is off and excludes it from all
+      // platform-account checkouts.
+      if ($gatewayId === self::DIRECT_CHARGE_GATEWAY_ID) {
+        unset($gateways[$id]);
+        $removed[] = $gatewayId;
+        continue;
+      }
 
       if ($gatewayId === self::MANUAL_GATEWAY_ID && !$isAdministrator) {
         unset($gateways[$id]);

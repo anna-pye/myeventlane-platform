@@ -104,7 +104,7 @@ final class EventCancelledWorker extends AutomationWorkerBase {
     // Check if event has paid tickets (needs refund info).
     // @todo Check if event has paid tickets and include refund process text.
     $context['has_paid_tickets'] = FALSE;
-    $context['refund_info'] = 'If you purchased tickets, refunds will be processed automatically.';
+    $context['refund_info'] = 'The organiser is responsible for refund decisions and must meet applicable law. MyEventLane can help process an approved refund from the organiser\'s connected Stripe account. Timing depends on Stripe, the payment method and the financial institution.';
 
     // Send email.
     try {

@@ -27,7 +27,7 @@ body: |
 
       <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">
         <p style="margin: 5px 0;">If you have any questions or concerns, please contact the event organiser.</p>
-        <p style="margin: 5px 0;">Refunds will be processed automatically if applicable.</p>
+        <p style="margin: 5px 0;">You remain responsible for refunds for your event. MyEventLane can help process eligible refunds through the booking system, but the refunded money comes from your connected Stripe account. Make sure sufficient funds are available.</p>
       </div>
     </div>
   </div>

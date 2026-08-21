@@ -6,6 +6,8 @@ body_html: |-
   Order: {{ order_number }}
   Amount: {{ refunded_amount }}
 
+  You remain responsible for the refund decision for your event, subject to applicable law. If you approve it, the refunded money comes from your connected Stripe account.
+
   Please review and approve or reject this request in your vendor dashboard.
 utm:
   enable: true

@@ -14,8 +14,8 @@ help_articles:
     article_type: Guide
     keywords: 'buy ticket, checkout, purchase, order'
     cta_label: 'Browse events'
-    cta_link: '/events'
-    alias: '/help/attendees/how-to-buy-tickets'
+    cta_link: /events
+    alias: /help/attendees/how-to-buy-tickets
     featured: true
   how_to_rsvp:
     seed_key: how_to_rsvp
@@ -28,8 +28,8 @@ help_articles:
     article_type: Guide
     keywords: 'free event, rsvp, register'
     cta_label: 'Find free events'
-    cta_link: '/events'
-    alias: '/help/attendees/how-to-rsvp-to-a-free-event'
+    cta_link: /events
+    alias: /help/attendees/how-to-rsvp-to-a-free-event
     featured: true
   how_to_access_tickets:
     seed_key: how_to_access_tickets
@@ -38,26 +38,26 @@ help_articles:
     body: '<p>Your tickets are sent to your account email and can also be found in your MyEventLane account. Open the QR code at the gate for quick entry.</p>'
     audience:
       - Attendees
-    topic: 'Check-in'
+    topic: Check-in
     article_type: FAQ
     keywords: 'ticket email, qr code, check in'
     cta_label: 'Open your account'
-    cta_link: '/user'
-    alias: '/help/attendees/how-to-access-your-tickets'
+    cta_link: /user
+    alias: /help/attendees/how-to-access-your-tickets
     featured: false
   how_to_request_refund:
     seed_key: how_to_request_refund
     title: 'How to request a refund'
     summary: 'Check eligibility and send a refund request through the right channel.'
-    body: '<p>Open your booking, review the organiser refund policy, then submit a refund request. If approved, the refund returns to the original payment method.</p>'
+    body: '<p>Open your booking, review the organiser refund policy and submit a refund request. Your payment was processed through the organiser&rsquo;s connected Stripe account. The organiser is responsible for the event and its refund policy, subject to your rights under Australian Consumer Law. MyEventLane support can help investigate the booking and refund status. If approved and processed, the refund returns to the original payment method.</p>'
     audience:
       - Attendees
     topic: Refunds
     article_type: Troubleshooting
     keywords: 'refund request, cancellation, ticket refund'
     cta_label: 'Read refund policy'
-    cta_link: '/help/policies/refund-policy'
-    alias: '/help/attendees/how-to-request-a-refund'
+    cta_link: /help/policies/refund-policy
+    alias: /help/attendees/how-to-request-a-refund
     featured: true
   how_to_create_event:
     seed_key: how_to_create_event
@@ -70,8 +70,8 @@ help_articles:
     article_type: Guide
     keywords: 'create event, publish event, organiser'
     cta_label: 'Open organiser dashboard'
-    cta_link: '/dashboard'
-    alias: '/help/organisers/how-to-create-an-event'
+    cta_link: /dashboard
+    alias: /help/organisers/how-to-create-an-event
     featured: true
   choosing_rsvp_or_paid:
     seed_key: choosing_rsvp_or_paid
@@ -84,8 +84,8 @@ help_articles:
     article_type: Overview
     keywords: 'rsvp vs paid, ticket setup, pricing'
     cta_label: 'Configure ticket types'
-    cta_link: '/dashboard'
-    alias: '/help/organisers/choosing-rsvp-or-paid-tickets'
+    cta_link: /dashboard
+    alias: /help/organisers/choosing-rsvp-or-paid-tickets
     featured: false
   managing_dashboard:
     seed_key: managing_dashboard
@@ -98,8 +98,177 @@ help_articles:
     article_type: Guide
     keywords: 'event dashboard, analytics, organiser tools'
     cta_label: 'Go to dashboard'
-    cta_link: '/dashboard'
-    alias: '/help/organisers/managing-your-event-dashboard'
+    cta_link: /dashboard
+    alias: /help/organisers/managing-your-event-dashboard
+    featured: true
+  how_ticket_payments_work:
+    seed_key: how_ticket_payments_work
+    title: 'How ticket payments work'
+    summary: 'Who receives ticket payments and how Stripe sends funds to your bank.'
+    body: '<p>Ticket payments are processed through your connected Stripe account. Your ticket revenue belongs to you and is managed through Stripe. Stripe sends available funds to your nominated bank account according to your Stripe payout schedule. MyEventLane does not hold or manually release your ticket-sale funds.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Overview
+    keywords: 'ticket payments, ticket revenue, Stripe, direct charge'
+    cta_label: 'Open Payments'
+    cta_link: /vendor/payments
+    alias: /help/vendors/payouts-and-fees
+    featured: true
+  connecting_stripe:
+    seed_key: connecting_stripe
+    title: 'Connecting Stripe'
+    summary: 'Connect and verify the Stripe account that will process your ticket payments.'
+    body: '<p>Connect Stripe before publishing paid tickets. Complete the identity, business and bank details Stripe requests. Ticket payments then go to your connected Stripe account. MyEventLane cannot complete Stripe verification for you.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Guide
+    keywords: 'connect Stripe, onboarding, verification, payment account'
+    cta_label: 'Connect Stripe'
+    cta_link: /stripe/connect
+    alias: /help/organisers/connecting-stripe
+    featured: true
+  receiving_ticket_money:
+    seed_key: receiving_ticket_money
+    title: 'When will I receive my ticket money?'
+    summary: 'How Stripe payout timing works after a ticket payment.'
+    body: '<p>Stripe controls when available funds are sent from your Stripe account to your nominated bank account. Timing depends on your Stripe payout schedule, account status and bank processing. MyEventLane cannot release a payout or promise an arrival date.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: FAQ
+    keywords: 'ticket money, payout timing, bank, Stripe schedule'
+    cta_label: 'Manage payouts in Stripe'
+    cta_link: /vendor/payments
+    alias: /help/organisers/when-will-i-receive-ticket-money
+    featured: true
+  understanding_stripe_payouts:
+    seed_key: understanding_stripe_payouts
+    title: 'Understanding Stripe payouts'
+    summary: 'Read pending, available and paid-out Stripe balances.'
+    body: '<p>Your Stripe balance can include pending and available funds. Stripe sends available funds to your nominated bank account according to your Stripe payout schedule. MyEventLane may show information reported by Stripe but does not create or release these payouts.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Overview
+    keywords: 'Stripe payout, available balance, pending balance, paid out'
+    cta_label: 'Open Payments'
+    cta_link: /vendor/payments
+    alias: /help/organisers/understanding-stripe-payouts
+    featured: false
+  mel_and_stripe_fees:
+    seed_key: mel_and_stripe_fees
+    title: 'MEL fees and Stripe fees'
+    summary: 'Understand the separate fees charged by MyEventLane and Stripe.'
+    body: '<p>The MEL platform fee pays for the MyEventLane booking service and is applied when the ticket payment is processed. Stripe processing fees are charged under your Stripe account and payment method. Review the order breakdown and your Stripe payment record when reconciling fees.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: FAQ
+    keywords: 'MEL platform fee, Stripe processing fee, application fee'
+    cta_label: 'View pricing'
+    cta_link: /pricing
+    alias: /help/organisers/mel-fees-and-stripe-fees
+    featured: true
+  organiser_refunds:
+    seed_key: organiser_refunds
+    title: 'How refunds work for organisers'
+    summary: 'Your responsibility, the funding account and how MEL can help process a refund.'
+    body: '<p>You remain responsible for refunds for your event. MyEventLane can help you process a refund through the booking system, but the refunded money comes from your connected Stripe account. Make sure sufficient funds are available to cover refunds, disputes or event cancellations.</p>'
+    audience: [Organisers]
+    topic: Refunds
+    article_type: Guide
+    keywords: 'refund, connected Stripe account, refund balance, organiser responsibility'
+    cta_label: 'Review refund requests'
+    cta_link: /vendor/refunds
+    alias: /help/handling-refunds-organiser
+    featured: true
+  cancelling_an_event:
+    seed_key: cancelling_an_event
+    title: 'What happens if I cancel an event?'
+    summary: 'Communicate the cancellation and prepare your Stripe account for refunds.'
+    body: '<p>Tell attendees promptly and follow the cancellation and refund commitments for your event, subject to applicable law. Refunds processed through MyEventLane come from your connected Stripe account. Ensure sufficient funds are available and review any failed refund rather than promising automatic completion.</p>'
+    audience: [Organisers]
+    topic: Refunds
+    article_type: Guide
+    keywords: 'cancel event, attendee refund, failed refund, Stripe balance'
+    cta_label: 'Open your events'
+    cta_link: /dashboard
+    alias: /help/organisers/cancelling-an-event
+    featured: true
+  disputes_and_chargebacks:
+    seed_key: disputes_and_chargebacks
+    title: 'Payment disputes and chargebacks'
+    summary: 'What Stripe controls and what evidence an organiser may need to provide.'
+    body: '<p>A customer may dispute a ticket payment through their bank. The dispute is attached to the payment in your connected Stripe account. Stripe controls the dispute process, deadlines, fees and outcome. You are responsible for responding with accurate event, booking and attendance evidence. MyEventLane support can help locate platform records but cannot decide the dispute.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Troubleshooting
+    keywords: 'dispute, chargeback, evidence, Stripe decision'
+    cta_label: 'Contact support'
+    cta_link: /contact
+    alias: /help/organisers/payment-disputes-and-chargebacks
+    featured: true
+  stripe_payment_delays:
+    seed_key: stripe_payment_delays
+    title: 'Why Stripe may hold or delay a payment'
+    summary: 'Common reasons funds stay pending or a Stripe payout is delayed.'
+    body: '<p>Stripe may keep funds pending or restrict payouts while it reviews a payment, verifies your account or manages risk. Check your Stripe account for the specific requirement. MyEventLane does not hold the funds and cannot release them.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Troubleshooting
+    keywords: 'Stripe hold, delayed payment, pending funds, risk review'
+    cta_label: 'Open Payments'
+    cta_link: /vendor/payments
+    alias: /help/organisers/why-stripe-may-delay-a-payment
+    featured: false
+  stripe_needs_attention:
+    seed_key: stripe_needs_attention
+    title: 'Why my Stripe account needs attention'
+    summary: 'Resolve Stripe verification or account requirements that affect payments or payouts.'
+    body: '<p>Stripe needs attention means Stripe has requested information or restricted a capability. Open Stripe, review the outstanding requirement and provide it directly to Stripe. MyEventLane can explain the affected platform feature but cannot approve Stripe verification.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Troubleshooting
+    keywords: 'Stripe needs attention, verification, restricted account'
+    cta_label: 'Review Stripe setup'
+    cta_link: /stripe/connect
+    alias: /help/organisers/stripe-account-needs-attention
+    featured: true
+  updating_bank_account:
+    seed_key: updating_bank_account
+    title: 'Updating my bank account'
+    summary: 'Change the bank account Stripe uses for payouts.'
+    body: '<p>Manage your nominated bank account in Stripe. MyEventLane cannot view full bank details or change the destination of a Stripe payout. Confirm changes and security prompts directly in Stripe.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Guide
+    keywords: 'bank account, payout destination, update bank, Stripe'
+    cta_label: 'Manage payouts in Stripe'
+    cta_link: /vendor/payments
+    alias: /help/organisers/updating-my-bank-account
+    featured: false
+  reconciling_sales_with_stripe:
+    seed_key: reconciling_sales_with_stripe
+    title: 'Reconciling ticket sales with Stripe'
+    summary: 'Match MEL orders, refunds and fees to Stripe payment records.'
+    body: '<p>Match the MyEventLane order number and ticket totals to the payment metadata in Stripe. Record the MEL platform fee, Stripe processing fee, refunds, disputes and Stripe payout separately. A Stripe payout may combine several payments and adjustments.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Guide
+    keywords: 'reconcile, ticket sales, Stripe payment, platform fee, payout'
+    cta_label: 'Open Payments'
+    cta_link: /vendor/payments
+    alias: /help/organisers/reconciling-ticket-sales-with-stripe
+    featured: false
+  mel_stripe_responsibilities:
+    seed_key: mel_stripe_responsibilities
+    title: 'What MEL can and cannot do with my Stripe account'
+    summary: 'The support boundary between MyEventLane and Stripe.'
+    body: '<p>MyEventLane can investigate order state, ticket records, MEL fees, webhook processing and refund workflow records. Stripe controls connected-account verification, Stripe processing fees, payout timing, bank settlement, restrictions, disputes and chargebacks. MyEventLane cannot hold or release your ticket revenue, change a Stripe payout schedule, edit your bank account or decide a Stripe dispute.</p>'
+    audience: [Organisers]
+    topic: Payments
+    article_type: Overview
+    keywords: 'MEL support, Stripe support, responsibilities, payout control'
+    cta_label: 'Contact support'
+    cta_link: /contact
+    alias: /help/organisers/what-mel-can-do-with-stripe
     featured: true
   vendor_dashboard_overview:
     seed_key: vendor_dashboard_overview
@@ -112,22 +281,22 @@ help_articles:
     article_type: Guide
     keywords: 'vendor dashboard, vendor workspace, stall'
     cta_label: 'Help'
-    cta_link: '/help/vendors'
-    alias: '/help/vendors/vendor-dashboard-overview'
+    cta_link: /help/vendors
+    alias: /help/vendors/vendor-dashboard-overview
     featured: false
   refund_policy:
     seed_key: refund_policy
     title: 'Refunds on MyEventLane'
     summary: 'How ticket refunds work on MyEventLane, what organisers decide, and what the platform supports.'
-    body: '<h2>Refunds on MyEventLane</h2><p>MyEventLane connects event organisers with people who want to attend. <strong>Refund decisions are made by the event organiser</strong>, based on their event policy and the circumstances of each request.</p><h3>MyEventLane&rsquo;s role</h3><p>We provide the tools for ticketing, payments, and refund processing. We do not automatically refund every ticket &mdash; that depends on the organiser&rsquo;s policy and whether a refund is approved.</p><p>When a refund is approved:</p><ul><li>It is usually returned to the <strong>original payment method</strong></li><li>Timing can vary depending on your bank or card provider</li><li>You will receive confirmation when the refund is processed</li></ul><h3>Ticket refund process</h3><ol><li>Open your booking from your confirmation email or MyEventLane account.</li><li>Check the organiser&rsquo;s refund policy on the event page.</li><li>Submit a refund request through the appropriate channel shown on your booking.</li><li>If approved, the refund is processed back to your original payment method.</li></ol><p>If an event is <strong>cancelled or significantly changed</strong>, the organiser should communicate next steps. Contact them first; use platform support if you cannot reach them.</p><h3>RSVP (free) events</h3><p>RSVP events do not involve a ticket payment through MyEventLane. If you can no longer attend, update or cancel your RSVP if the event allows it, or contact the organiser directly.</p><h3>What we cannot promise</h3><p>We cannot guarantee that every refund request will be approved. That is the organiser&rsquo;s decision. MyEventLane does not provide legal advice about consumer rights.</p><p><a href="/contact">Need help?</a> Start at the <a href="/help">Help Centre</a> or contact support.</p>'
+    body: '<h2>Refunds on MyEventLane</h2><p>For each paid event, the event organiser is the seller. MyEventLane provides the marketplace and booking workflow. Your ticket payment is processed through the event organiser&rsquo;s connected Stripe account. The organiser is responsible for the event and its refund policy, subject to your rights under Australian Consumer Law.</p><h3>MyEventLane&rsquo;s role</h3><p>MyEventLane provides the booking and refund workflow and can help investigate a booking or refund status. The organiser authorises and funds an event refund, and Stripe processes it from the organiser&rsquo;s connected Stripe account. MyEventLane does not hold the organiser&rsquo;s ticket revenue.</p><h3>Requesting a refund</h3><ol><li>Open your booking from your confirmation email or account.</li><li>Review the event refund policy and your consumer rights.</li><li>Submit the request through the channel shown on the booking.</li><li>Track the request until it is approved, processed or declined.</li></ol><p>An approved refund is normally sent to the original payment method. Arrival timing depends on Stripe, the payment method and the financial institution, so MyEventLane cannot guarantee a fixed date.</p><h3>Cancelled or significantly changed events</h3><p>The organiser should communicate next steps and meet their obligations under applicable law. Contact the organiser first. Contact MyEventLane support if you cannot reach them or the recorded refund state appears wrong.</p><h3>Free RSVP events</h3><p>RSVP events do not involve a ticket payment. Update or cancel your RSVP if available, or contact the organiser.</p><p><a href="/contact">Need help?</a> Start at the <a href="/help">Help Centre</a> or contact support.</p>'
     audience:
       - General
     topic: Refunds
     article_type: Policy
     keywords: 'refund rules, policy, cancelled event, rsvp refund'
     cta_label: 'Contact support'
-    cta_link: '/contact'
-    alias: '/help/policies/refund-policy'
+    cta_link: /contact
+    alias: /help/policies/refund-policy
     featured: true
   community_guidelines:
     seed_key: community_guidelines
@@ -140,50 +309,50 @@ help_articles:
     article_type: Policy
     keywords: 'community rules, safety, respectful behaviour, inclusion'
     cta_label: 'Trust and safety'
-    cta_link: '/help/policies/trust-and-safety'
-    alias: '/help/policies/community-guidelines'
+    cta_link: /help/policies/trust-and-safety
+    alias: /help/policies/community-guidelines
     featured: true
   trust_and_safety:
     seed_key: trust_and_safety
     title: 'Trust and safety'
     summary: 'Community expectations, reporting concerns, fraud awareness, and safe participation on MyEventLane.'
-    body: '<h2>Trust &amp; Safety</h2><p>MyEventLane is built for real-world community events. We expect everyone &mdash; attendees, organisers, and vendors &mdash; to participate safely and respectfully.</p><h3>Community expectations</h3><ul><li>Be honest in event listings and communications</li><li>Treat others with respect, including staff and volunteers</li><li>Follow venue rules and local laws</li><li>Do not use the platform to harass, scam, or mislead people</li></ul><h3>Reporting concerns</h3><p>If something on MyEventLane does not feel right:</p><ol><li><strong>Event or listing issue</strong> &mdash; use report options on the event page where available, or contact the organiser.</li><li><strong>Platform or account issue</strong> &mdash; visit the <a href="/help">Help Centre</a> or <a href="/contact">contact support</a>.</li><li><strong>Urgent safety risk</strong> &mdash; contact local emergency services first; then tell us so we can review the listing.</li></ol><h3>Fraud prevention</h3><ul><li>Pay for tickets <strong>through MyEventLane checkout</strong></li><li>Check event details, organiser information, and refund policy before you buy</li><li>Be cautious of pressure to pay outside the platform</li><li>Never share passwords or full payment card details in messages</li></ul><p>Stripe processes payments on MyEventLane; organisers connect their own payout accounts.</p><h3>Safe participation</h3><ul><li>Share only information needed to book or RSVP</li><li>Keep your account secure with a strong password</li><li>Meet in public, well-lit places for pickup or collection events where possible</li><li>Look after personal belongings at events</li></ul><p>For platform transparency metrics, see <a href="/trust">Trust &amp; transparency</a>.</p>'
+    body: '<h2>Trust &amp; Safety</h2><p>MyEventLane is built for real-world community events. We expect everyone &mdash; attendees, organisers, and vendors &mdash; to participate safely and respectfully.</p><h3>Community expectations</h3><ul><li>Be honest in event listings and communications</li><li>Treat others with respect, including staff and volunteers</li><li>Follow venue rules and local laws</li><li>Do not use the platform to harass, scam, or mislead people</li></ul><h3>Reporting concerns</h3><p>If something on MyEventLane does not feel right:</p><ol><li><strong>Event or listing issue</strong> &mdash; use report options on the event page where available, or contact the organiser.</li><li><strong>Platform or account issue</strong> &mdash; visit the <a href="/help">Help Centre</a> or <a href="/contact">contact support</a>.</li><li><strong>Urgent safety risk</strong> &mdash; contact local emergency services first; then tell us so we can review the listing.</li></ol><h3>Fraud prevention</h3><ul><li>Pay for tickets <strong>through MyEventLane checkout</strong></li><li>Check event details, organiser information, and refund policy before you buy</li><li>Be cautious of pressure to pay outside the platform</li><li>Never share passwords or full payment card details in messages</li></ul><p>For each paid event, the event organiser is the seller. MyEventLane provides the marketplace and booking workflow. Ticket payments are processed through the organiser&rsquo;s connected Stripe account. MyEventLane does not hold or manually release organiser ticket-sale funds.</p><h3>Safe participation</h3><ul><li>Share only information needed to book or RSVP</li><li>Keep your account secure with a strong password</li><li>Meet in public, well-lit places for pickup or collection events where possible</li><li>Look after personal belongings at events</li></ul><p>For platform transparency metrics, see <a href="/trust">Trust &amp; transparency</a>.</p>'
     audience:
       - General
     topic: 'Trust & safety'
     article_type: Policy
     keywords: 'trust, safety, fraud, reporting, community'
     cta_label: 'Community guidelines'
-    cta_link: '/help/policies/community-guidelines'
-    alias: '/help/policies/trust-and-safety'
+    cta_link: /help/policies/community-guidelines
+    alias: /help/policies/trust-and-safety
     featured: true
 support_panels:
   buy_tickets:
     title: 'Need help buying tickets?'
     summary: 'Get help with checkout and payments'
-    link_path: '/help/attendees'
-    analytics_key: buy_tickets
-    article_seed_key: how_to_buy_tickets
+    link_path: /help/attendees
     surfaces:
       - checkout
     route_names:
       - commerce_checkout.form
+    analytics_key: buy_tickets
+    article_seed_key: how_to_buy_tickets
   create_event:
     title: 'How to create an event'
     summary: 'Step-by-step guide to publishing your event.'
-    link_path: '/help/organisers'
-    analytics_key: create_event
+    link_path: /help/organisers
     surfaces:
       - event_creation_wizard
+    analytics_key: create_event
   vendor_dashboard:
     title: 'Managing your events'
     summary: 'Learn how to manage and track your events'
-    link_path: '/help/vendors'
-    analytics_key: vendor_dashboard
-    article_seed_key: vendor_dashboard_overview
+    link_path: /help/vendors
     surfaces:
       - vendor
       - vendor_dashboard
     route_names:
       - myeventlane_vendor.dashboard
       - myeventlane_vendor.console.dashboard
+    analytics_key: vendor_dashboard
+    article_seed_key: vendor_dashboard_overview

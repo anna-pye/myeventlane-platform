@@ -4,6 +4,8 @@ body_html: |-
   A refund for Order {{ order_number }} ({{ refunded_amount }}) requires review.
 
   Reason: {{ error_message }}
+
+  Check your connected Stripe account, including whether sufficient funds are available, then retry or contact MyEventLane support with the order reference.
 utm:
   enable: true
   params:

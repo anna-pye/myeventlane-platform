@@ -24,7 +24,7 @@
         <span class="mel-badge mel-badge--env">{{ footer_context.environment }}</span>
       </div>
       <div class="mel-footer__metrics">
-        <span>{{ 'Payout balance'|t }}: {{ footer_context.payout_balance }}</span>
+        <span>{{ 'Stripe payout balance'|t }}: {{ footer_context.payout_balance }}</span>
         {% if footer_context.open_tickets > 0 %}
         <span class="mel-badge mel-badge--alert">{{ footer_context.open_tickets }} {{ 'open support tickets'|t }}</span>
         {% endif %}
@@ -54,7 +54,7 @@
           <a href="{{ footer_context.vendor_console_urls.analytics }}">{{ 'Analytics'|t }}</a>
           {% endif %}
           {% if footer_context.vendor_console_urls.payouts %}
-          <a href="{{ footer_context.vendor_console_urls.payouts }}">{{ 'Payouts'|t }}</a>
+          <a href="{{ footer_context.vendor_console_urls.payouts }}">{{ 'Stripe payouts'|t }}</a>
           {% endif %}
         </div>
       </div>

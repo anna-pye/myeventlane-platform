@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_admin_dashboard\Service;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -34,6 +35,7 @@ final class PayoutBatchWorkflowService {
     protected AccountProxyInterface $currentUser,
     protected EntityTypeManagerInterface $entityTypeManager,
     protected StripeService $stripeService,
+    protected ConfigFactoryInterface $configFactory,
   ) {}
 
   /**
@@ -51,6 +53,7 @@ final class PayoutBatchWorkflowService {
    *   On unexpected database errors.
    */
   public function createBatchFromLedger(array $ledgerIds): int {
+    $this->assertLegacyTransfersAllowed();
     $ids = array_filter(array_map('intval', $ledgerIds), fn(int $v) => $v > 0);
     if (empty($ids)) {
       throw new \InvalidArgumentException('No valid ledger IDs provided.');
@@ -151,6 +154,7 @@ final class PayoutBatchWorkflowService {
    * @throws \RuntimeException
    */
   public function submitBatch(int $batchId): void {
+    $this->assertLegacyTransfersAllowed();
     $batch = $this->loadBatch($batchId);
     if ($batch->status !== 'draft') {
       throw new \RuntimeException("Cannot submit batch #{$batchId}: status is '{$batch->status}', expected 'draft'.");
@@ -177,6 +181,7 @@ final class PayoutBatchWorkflowService {
    * @throws \RuntimeException
    */
   public function approveBatch(int $batchId): void {
+    $this->assertLegacyTransfersAllowed();
     $batch = $this->loadBatch($batchId);
     if ($batch->status !== 'pending') {
       throw new \RuntimeException("Cannot approve batch #{$batchId}: status is '{$batch->status}', expected 'pending'.");
@@ -219,6 +224,7 @@ final class PayoutBatchWorkflowService {
    * @throws \RuntimeException
    */
   public function cancelBatch(int $batchId): void {
+    $this->assertLegacyTransfersAllowed();
     $batch = $this->loadBatch($batchId);
     $allowed = ['draft', 'pending', 'approved'];
     if (!in_array($batch->status, $allowed, TRUE)) {
@@ -259,6 +265,7 @@ final class PayoutBatchWorkflowService {
    * @throws \RuntimeException
    */
   public function executeBatch(int $batchId): array {
+    $this->assertLegacyTransfersAllowed();
     $batch = $this->loadBatch($batchId);
     if ($batch->status !== 'approved') {
       throw new \RuntimeException("Cannot execute batch #{$batchId}: status is '{$batch->status}', expected 'approved'.");
@@ -510,6 +517,15 @@ final class PayoutBatchWorkflowService {
     }
 
     return $labels;
+  }
+
+  /**
+   * Prevents any legacy liability or transfer mutation in direct-charge mode.
+   */
+  private function assertLegacyTransfersAllowed(): void {
+    if ((bool) $this->configFactory->get('myeventlane_core.settings')->get('direct_charge_enabled')) {
+      throw new \LogicException('Legacy MEL payout workflow is disabled in direct-charge mode.');
+    }
   }
 
   /**

@@ -207,11 +207,20 @@ final class PlatformMetricsService {
     $existing = array_map('intval', $existing);
 
     $orderStorage = $this->entityTypeManager->getStorage('commerce_order');
+    $directChargeEnabled = (bool) $this->configFactory
+      ->get('myeventlane_core.settings')
+      ->get('direct_charge_enabled');
 
     // Auto-create ledger rows for payout-eligible orders without one.
     foreach ($orders as $o) {
       $orderId = (int) ($o['order_id'] ?? 0);
       if ($orderId <= 0 || in_array($orderId, $existing, TRUE)) {
+        continue;
+      }
+
+      // Direct-charge orders belong to the organiser in Stripe and must never
+      // become a MEL transfer liability. Historical rows remain reportable.
+      if ($directChargeEnabled) {
         continue;
       }
 

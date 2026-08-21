@@ -65,7 +65,7 @@
   {# ── Payouts ── #}
   <section class="mel-card mel-payments-hub__section" id="payouts" aria-labelledby="mel-payments-payouts-heading" data-mel-analytics-event="payout_viewed">
     <div class="mel-card__header mel-payments-hub__section-header">
-      <h2 id="mel-payments-payouts-heading" class="mel-card__title">{{ 'Payouts'|t }}</h2>
+      <h2 id="mel-payments-payouts-heading" class="mel-card__title">{{ 'Stripe payouts'|t }}</h2>
       {% if payouts.history_url %}
         <a class="mel-payments-hub__link" href="{{ payouts.history_url }}">{{ 'View history'|t }}</a>
       {% endif %}
@@ -86,7 +86,7 @@
           <dd>{{ payouts.pending }}</dd>
         </div>
         <div class="mel-payments-hub__fact">
-          <dt>{{ 'Last payout'|t }}</dt>
+          <dt>{{ 'Last Stripe payout'|t }}</dt>
           <dd>
             {% if payouts.last %}
               {{ payouts.last.amount }} · {{ payouts.last.date_label }} · {{ payouts.last.status }}
@@ -96,7 +96,7 @@
           </dd>
         </div>
         <div class="mel-payments-hub__fact">
-          <dt>{{ 'Next expected payout'|t }}</dt>
+          <dt>{{ 'Next expected Stripe payout'|t }}</dt>
           <dd>{{ payouts.next_expected }}</dd>
         </div>
       </dl>
@@ -155,7 +155,7 @@
               <dd>{{ health.charges_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>
             </div>
             <div class="mel-payments-hub__fact">
-              <dt>{{ 'Payouts'|t }}</dt>
+              <dt>{{ 'Stripe payouts'|t }}</dt>
               <dd>{{ health.payouts_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>
             </div>
           </dl>

@@ -62,7 +62,7 @@ final class VendorWorkspaceHealthService {
     if ($attention !== []) {
       $tone = 'attention';
       $headline = (string) $this->t('A few account settings need attention');
-      $summary = (string) $this->t('Finish the highlighted items so guests and payouts stay smooth.');
+      $summary = (string) $this->t('Finish the highlighted items so guests and Stripe payouts stay smooth.');
       $next = (string) ($attention[0]['next_step'] ?? $this->t('Open the first yellow item below.'));
       $cta_label = (string) ($attention[0]['cta_label'] ?? $this->t('Review settings'));
       $cta_url = (string) ($attention[0]['cta_url'] ?? $this->safeRouteUrl('myeventlane_vendor.console.settings_profile') ?? '/vendor/settings/profile');
@@ -159,7 +159,7 @@ final class VendorWorkspaceHealthService {
       'tone' => $ready ? 'success' : ($attention ? 'attention' : 'muted'),
       'icon' => $ready ? 'success' : 'attention',
       'detail' => $ready
-        ? (string) $this->t('You can sell tickets and receive payouts.')
+        ? (string) $this->t('You can sell tickets and receive Stripe payouts.')
         : (string) ($payment['summary'] ?? $this->t('Connect Stripe to get paid.')),
       'next_step' => (string) ($payment['next_step'] ?? $this->t('Open Payments to connect Stripe.')),
       'cta_label' => (string) $this->t('Open Payments'),

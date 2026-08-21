@@ -1,0 +1,11 @@
+--- a/js/commerce_stripe.payment_element.js
++++ b/js/commerce_stripe.payment_element.js
+@@ -25,6 +25,9 @@
+         const stripeOptions = {
+           apiVersion: settings.apiVersion,
+         };
++        if (settings.stripeAccount) {
++          stripeOptions.stripeAccount = settings.stripeAccount;
++        }
+         // Create a Stripe client.
+         const stripe = Stripe(settings.publishableKey, stripeOptions);

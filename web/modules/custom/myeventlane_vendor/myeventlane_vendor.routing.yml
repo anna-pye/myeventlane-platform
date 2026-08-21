@@ -643,7 +643,7 @@ myeventlane_vendor.console.payouts:
   path: '/vendor/payouts'
   defaults:
     _controller: 'myeventlane_vendor.controller.vendor_payouts:payouts'
-    _title: 'Payouts'
+    _title: 'Stripe payouts'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 

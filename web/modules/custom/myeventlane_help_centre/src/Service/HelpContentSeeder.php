@@ -189,7 +189,7 @@ final class HelpContentSeeder {
       if ($seedKey === '') {
         continue;
       }
-      $existing = $this->loadSeededArticle($seedKey, (string) $item['title']);
+      $existing = $this->loadSeededArticle($seedKey, (string) $item['title'], (string) $item['alias']);
       $isNew = $existing === NULL;
       if (!$isNew && !$this->nodeNeedsSeedUpdate($existing, $item)) {
         continue;
@@ -366,7 +366,7 @@ final class HelpContentSeeder {
   /**
    * Loads an existing help article by seed key, then title fallback.
    */
-  private function loadSeededArticle(string $seedKey, string $title): ?NodeInterface {
+  private function loadSeededArticle(string $seedKey, string $title, string $alias = ''): ?NodeInterface {
     $storage = $this->entityTypeManager->getStorage('node');
     if ($this->hasHelpSeedKeyField()) {
       $existing = $storage->loadByProperties([
@@ -382,11 +382,29 @@ final class HelpContentSeeder {
       'type' => 'help_article',
       'title' => $title,
     ]);
-    if ($existing === []) {
-      return NULL;
+    if ($existing !== []) {
+      $node = reset($existing);
+      return $node instanceof NodeInterface ? $node : NULL;
     }
-    $node = reset($existing);
-    return $node instanceof NodeInterface ? $node : NULL;
+
+    // An existing managed article can pre-date seed keys or have an old
+    // title. Matching its stable alias migrates it instead of duplicating it.
+    if ($alias !== '') {
+      $aliases = $this->entityTypeManager->getStorage('path_alias')->loadByProperties([
+        'alias' => $alias,
+      ]);
+      foreach ($aliases as $pathAlias) {
+        $path = (string) $pathAlias->getPath();
+        if (preg_match('#^/node/(\d+)$#', $path, $matches)) {
+          $node = $storage->load((int) $matches[1]);
+          if ($node instanceof NodeInterface && $node->bundle() === 'help_article') {
+            return $node;
+          }
+        }
+      }
+    }
+
+    return NULL;
   }
 
   /**

@@ -108,18 +108,18 @@ final class VendorPaymentsHubBuilder {
     $hasCompletedSales = (float) ($revenue['gross_raw'] ?? 0.0) > 0;
     $payoutsEnabled = !empty($health['payouts_enabled']);
     if (!$payoutsEnabled) {
-      $payoutEmptyTitle = (string) $this->t('Payouts are not enabled yet');
+      $payoutEmptyTitle = (string) $this->t('Stripe payouts are not enabled yet');
       $payoutEmptyBody = $hasCompletedSales
         ? (string) $this->t('Your completed ticket sales are included in net earnings above. Finish your Stripe payout details so cleared funds can reach your bank.')
         : (string) $this->t('Finish your Stripe payout details before selling paid tickets so cleared funds can reach your bank.');
     }
     elseif ($hasCompletedSales) {
-      $payoutEmptyTitle = (string) $this->t('No payout has arrived yet');
+      $payoutEmptyTitle = (string) $this->t('No Stripe payout has arrived yet');
       $payoutEmptyBody = (string) $this->t("Your completed sales are recorded above. Stripe will show a payout here once funds clear on its usual schedule.");
     }
     else {
-      $payoutEmptyTitle = (string) $this->t('No payouts yet');
-      $payoutEmptyBody = (string) $this->t("We'll show your first payout after paid ticket sales begin and the funds clear.");
+      $payoutEmptyTitle = (string) $this->t('No Stripe payouts yet');
+      $payoutEmptyBody = (string) $this->t('Stripe payouts will appear here when Stripe reports them. Manage payout timing and bank details in Stripe.');
     }
     $billingUrl = $this->safeRouteUrl('myeventlane_donations.vendor_mel_billing');
     $supportUrl = $this->safeRouteUrl('myeventlane_escalations_portal.vendor_list')
@@ -155,7 +155,7 @@ final class VendorPaymentsHubBuilder {
         'last' => $lastPayout,
         'next_expected' => !empty($health['payouts_enabled'])
           ? (string) $this->t("On Stripe's usual schedule after sales clear")
-          : (string) $this->t('Available once payouts are enabled'),
+          : (string) $this->t('Available once Stripe payouts are enabled'),
         'history_url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts'),
         'empty' => $lastPayout === NULL && $this->isZeroBalance($available) && $this->isZeroBalance($pending),
         'empty_title' => $payoutEmptyTitle,
@@ -178,7 +178,7 @@ final class VendorPaymentsHubBuilder {
       ],
       'support' => [
         'title' => (string) $this->t('Need a hand?'),
-        'body' => (string) $this->t('If something looks wrong with a payout or refund, our support team can help.'),
+        'body' => (string) $this->t('If something looks wrong with a Stripe payout or refund, our support team can help investigate the recorded state.'),
         'cta_label' => (string) $this->t('Contact support'),
         'cta_url' => $supportUrl,
         'help_label' => (string) $this->t('Help Centre'),

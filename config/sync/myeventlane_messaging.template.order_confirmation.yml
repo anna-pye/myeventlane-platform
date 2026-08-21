@@ -132,6 +132,14 @@ body_html: |
       </tr>
     {% endif %}
 
+    {% if (is_paid ?? true) and organiser_name %}
+      <tr>
+        <td style="padding:0 0 20px 0;font-size:14px;line-height:1.5;color:#5c6370;">
+          <strong>Seller:</strong> {{ organiser_name }}. Your ticket payment was processed through the organiser's connected Stripe account. MyEventLane provides the marketplace and booking workflow.
+        </td>
+      </tr>
+    {% endif %}
+
     <tr>
       <td style="padding:8px 0 24px 0;">
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background-color:#f7f7f8;border-radius:8px;">

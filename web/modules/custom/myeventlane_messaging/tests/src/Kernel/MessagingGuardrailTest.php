@@ -430,7 +430,7 @@ final class MessagingGuardrailTest extends KernelTestBase {
     if ($key === 'event_cancelled') {
       return $base + [
         'has_paid_tickets' => FALSE,
-        'refund_info' => 'Refunds will be processed automatically.',
+        'refund_info' => 'The organiser is responsible for refund decisions. Approved refunds are processed from the organiser\'s connected Stripe account.',
       ];
     }
 
@@ -502,4 +502,3 @@ final class MessagingGuardrailTest extends KernelTestBase {
   }
 
 }
-

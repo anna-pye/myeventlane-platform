@@ -5,6 +5,12 @@ myeventlane_core.settings:
     platform_fee_percent:
       type: float
       label: 'Platform fee percentage (0-100, e.g. 1.5 for 1.5%)'
+    direct_charge_enabled:
+      type: boolean
+      label: 'Enable organiser direct-charge mode and disable legacy MEL transfers'
+    direct_charge_fee_model_approved:
+      type: boolean
+      label: 'Finance approval recorded for the direct-charge application-fee model'
     operational_extras_platform_fee_percent:
       type: float
       label: 'Operational extras platform fee percentage (0-100); empty uses double ticket fee'

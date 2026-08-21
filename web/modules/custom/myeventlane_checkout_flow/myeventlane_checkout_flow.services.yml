@@ -65,6 +65,19 @@ services:
       - '@myeventlane_commerce.currency_formatter.lazy'
       - '@date.formatter'
       - '@myeventlane_checkout_flow.order_pricing_breakdown'
+      - '@myeventlane_checkout_flow.seller_identity'
+
+  myeventlane_checkout_flow.seller_identity:
+    class: Drupal\myeventlane_checkout_flow\Service\SellerIdentityResolver
+    arguments:
+      - '@entity_type.manager'
+
+  myeventlane_checkout_flow.seller_identity_snapshot_subscriber:
+    class: Drupal\myeventlane_checkout_flow\EventSubscriber\SellerIdentitySnapshotSubscriber
+    arguments:
+      - '@myeventlane_checkout_flow.seller_identity'
+    tags:
+      - { name: event_subscriber }
 
   myeventlane_checkout_flow.vendor_ownership_resolver:
     class: Drupal\myeventlane_checkout_flow\Service\VendorOwnershipResolver

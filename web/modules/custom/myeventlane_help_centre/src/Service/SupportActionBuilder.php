@@ -107,7 +107,7 @@ final class SupportActionBuilder {
       ], $include_debug_metadata);
 
       $this->tryAddRoute($actions, 'vendor_payouts', 'myeventlane_vendor.console.payouts', [], $account, [
-        'label' => (string) $this->t('Payouts'),
+        'label' => (string) $this->t('Stripe payouts'),
         'audience' => 'vendor',
         'style' => 'link',
         'weight' => 20,

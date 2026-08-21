@@ -85,7 +85,7 @@ final class VendorSupportHubBuilder {
       ],
       'search' => [
         'title' => (string) $this->t('Search Help'),
-        'body' => (string) $this->t('Find guides for tickets, payouts, Messages, and more.'),
+        'body' => (string) $this->t('Find guides for tickets, Stripe payouts, Messages, and more.'),
         'cta_label' => (string) $this->t('Search Help'),
         'cta_url' => $this->safeRouteUrl('myeventlane_help_centre.search')
         ?? $this->safeRouteUrl('myeventlane_help_centre.home')
@@ -142,7 +142,7 @@ final class VendorSupportHubBuilder {
         ])),
       ],
       'payments_note' => [
-        'title' => (string) $this->t('Refunds & payouts'),
+        'title' => (string) $this->t('Refunds and Stripe payouts'),
         'body' => (string) $this->t('Money questions belong in Payments — not a second refund desk here.'),
         'cta_label' => (string) $this->t('Open Payments'),
         'cta_url' => $this->safeRouteUrl('myeventlane_vendor.console.payments') ?? '/vendor/payments',

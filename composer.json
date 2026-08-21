@@ -110,6 +110,9 @@
       },
       "drupal/image_widget_crop": {
         "Fix ImmutableConfigException when saving crop widget settings (3496678)": "patches/image-widget-crop-immutable-config.patch"
+      },
+      "drupal/commerce_stripe": {
+        "Allow Payment Element to confirm connected-account direct charges": "patches/commerce-stripe-connected-account-payment-element.patch"
       }
     },
     "drupal-scaffold": {

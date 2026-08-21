@@ -1327,7 +1327,7 @@ final class VendorDashboardViewModelBuilder {
       ],
       [
         'key' => 'payouts',
-        'label' => (string) $this->t('Payouts'),
+        'label' => (string) $this->t('Stripe payouts'),
         'value' => $payoutReady ? (string) $this->t('Ready') : (string) $this->t('Setup'),
         'context' => (string) $this->t('Stripe readiness'),
         'severity' => $payoutReady ? 'success' : 'warning',

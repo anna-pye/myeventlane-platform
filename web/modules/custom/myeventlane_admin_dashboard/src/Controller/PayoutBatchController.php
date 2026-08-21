@@ -8,6 +8,7 @@ use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
@@ -38,6 +39,7 @@ final class PayoutBatchController extends ControllerBase {
     protected LoggerInterface $payoutLogger,
     protected CsrfTokenGenerator $csrfToken,
     protected StripeService $stripeService,
+    protected ConfigFactoryInterface $migrationConfigFactory,
   ) {}
 
   /**
@@ -50,6 +52,7 @@ final class PayoutBatchController extends ControllerBase {
       $container->get('logger.channel.myeventlane_admin_dashboard'),
       $container->get('csrf_token'),
       $container->get('myeventlane_core.stripe'),
+      $container->get('config.factory'),
     );
   }
 
@@ -57,6 +60,9 @@ final class PayoutBatchController extends ControllerBase {
    * Processes a batch payout: one Stripe transfer per vendor (store).
    */
   public function executeBatch(Request $request): RedirectResponse {
+    if ((bool) $this->migrationConfigFactory->get('myeventlane_core.settings')->get('direct_charge_enabled')) {
+      throw new AccessDeniedHttpException('Legacy MEL transfers are disabled in direct-charge mode.');
+    }
     $this->validateCsrf($request);
     $days = $this->extractDays($request);
 
