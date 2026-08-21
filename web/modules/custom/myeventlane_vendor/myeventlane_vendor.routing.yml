@@ -181,6 +181,19 @@ myeventlane_vendor.stripe_manage:
   options:
     _maintenance_access: FALSE
 
+# Historical access to the legacy Express Dashboard while a distinct
+# replacement account is pending. The controller reads both account references
+# from protected store fields and never accepts an account ID from the URL.
+myeventlane_vendor.stripe_manage_previous:
+  path: '/stripe/manage/previous'
+  defaults:
+    _controller: '\Drupal\myeventlane_vendor\Controller\StripeConnectController::managePrevious'
+    _title: 'Open previous Stripe account'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _maintenance_access: FALSE
+
 # Create-event marketing entry. Route is public; CreateEventGatewayController::gateway()
 # redirects anonymous users to login and enforces vendor onboarding before event creation.
 myeventlane_vendor.create_event_gateway:

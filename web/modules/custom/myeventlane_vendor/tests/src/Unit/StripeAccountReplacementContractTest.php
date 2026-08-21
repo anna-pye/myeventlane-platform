@@ -52,12 +52,15 @@ final class StripeAccountReplacementContractTest extends TestCase {
     $form = file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Form/StripeAccountReconnectForm.php');
     $service = file_get_contents($root . '/web/modules/custom/myeventlane_core/src/Service/StripeService.php');
     $controller = file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Controller/StripeConnectController.php');
+    $health = file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Service/VendorPaymentsHealthService.php');
     self::assertIsString($routing);
     self::assertIsString($form);
     self::assertIsString($service);
     self::assertIsString($controller);
+    self::assertIsString($health);
 
     self::assertStringContainsString("path: '/stripe/reconnect'", $routing);
+    self::assertStringContainsString("path: '/stripe/manage/previous'", $routing);
     self::assertStringContainsString('extends ConfirmFormBase', $form);
     self::assertStringContainsString('No existing account was replaced', $form);
     self::assertStringContainsString('beginConnectAccountReplacement', $form);
@@ -69,6 +72,11 @@ final class StripeAccountReplacementContractTest extends TestCase {
     self::assertStringContainsString('promoteConnectAccountReplacement', $controller);
     self::assertStringContainsString('MANAGE_DEST_RECONNECT', $controller);
     self::assertStringNotContainsString('createLoginLink($accountId)', $controller);
+    self::assertStringContainsString('public function managePrevious()', $controller);
+    self::assertStringContainsString('resolvePendingReplacementAccountId($store)', $controller);
+    self::assertStringContainsString('createLoginLinkIfEligible($previousAccountId)', $controller);
+    self::assertStringContainsString("'myeventlane_vendor.stripe_manage_previous'", $health);
+    self::assertStringContainsString("'secondary_cta_url' => \$previousManageUrl", $health);
     self::assertStringNotContainsString('accounts->delete', $service);
     self::assertStringNotContainsString('accounts->del', $service);
   }

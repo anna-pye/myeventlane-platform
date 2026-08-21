@@ -41,6 +41,7 @@ final class VendorPaymentsHealthService {
       'query' => ['destination' => '/vendor/payments'],
     ]);
     $manageUrl = $this->safeRouteUrl('myeventlane_vendor.stripe_manage');
+    $previousManageUrl = $this->safeRouteUrl('myeventlane_vendor.stripe_manage_previous');
     $resumeUrl = $connectUrl;
 
     $base = [
@@ -120,8 +121,8 @@ final class VendorPaymentsHealthService {
         'cta_url' => $this->safeRouteUrl('myeventlane_vendor.stripe_reconnect', [], [
           'query' => ['destination' => '/vendor/payments'],
         ]),
-        'secondary_cta_label' => $manageUrl ? (string) $this->t('Open previous Stripe account') : NULL,
-        'secondary_cta_url' => $manageUrl,
+        'secondary_cta_label' => $previousManageUrl ? (string) $this->t('Open previous Stripe account') : NULL,
+        'secondary_cta_url' => $previousManageUrl,
         'connected' => FALSE,
         'verification_status' => (string) $this->t('Reconnection in progress'),
         'needs_attention' => TRUE,

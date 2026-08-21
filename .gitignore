@@ -205,6 +205,9 @@ memory/
 docs/internal/
 *.bak
 
+# Local Git worktrees belong outside the repository index.
+/.worktrees/
+
 # Local path pointers and ACE/agent workspace backups (do not commit).
 # Narrow patterns only — not a broad .tmp-* ignore (fixtures/release artefacts).
 .mel-*-backup-path.txt
