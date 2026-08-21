@@ -28,7 +28,8 @@ must be evidenced by the operator before go-live.
 The production gate expects:
 
 - `stripe` and `stripe_pe_recurring` enabled in live mode;
-- separate restricted Stripe keys for ordinary and recurring payments;
+- `pk_live_...` publishable keys and separate `rk_live_...` restricted keys
+  for ordinary and recurring payments;
 - signing secrets supplied at runtime, never in active or exported config;
 - the 30-day trial and no-trial restart schedules;
 - published A$49 trial and restart variations;

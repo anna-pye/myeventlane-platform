@@ -50,4 +50,28 @@ final class TicketBookingSessionServiceTest extends UnitTestCase {
     self::assertSame([], $service->getUnlockedTierIds(42));
   }
 
+  /**
+   * @covers ::getUnlockedTierIds
+   * @covers ::recordAccessGrant
+   */
+  public function testSentHeadersFailClosedWithoutStartingSession(): void {
+    $requestStack = $this->createMock(RequestStack::class);
+    $requestStack->expects(self::never())->method('getCurrentRequest');
+
+    $sessionManager = $this->createMock(SessionManagerInterface::class);
+    $sessionManager->method('isStarted')->willReturn(FALSE);
+    $sessionManager->expects(self::never())->method('start');
+
+    $service = new TicketBookingSessionService(
+      $requestStack,
+      $sessionManager,
+      static fn (): bool => FALSE,
+      static fn (): bool => TRUE,
+    );
+
+    self::assertSame([], $service->getUnlockedTierIds(42));
+    $service->recordAccessGrant(42, 7, 9, [11, 12]);
+    self::assertSame([], $service->getUnlockedTierIds(42));
+  }
+
 }

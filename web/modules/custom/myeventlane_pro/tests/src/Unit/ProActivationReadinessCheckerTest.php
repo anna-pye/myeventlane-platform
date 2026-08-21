@@ -63,6 +63,40 @@ final class ProActivationReadinessCheckerTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::check
+   */
+  public function testProductionRejectsRestrictedTestKeysInLiveMode(): void {
+    $checker = $this->checker('live', 'rk_test_standard', 'rk_test_recurring');
+
+    $report = $checker->check('production');
+    $failed = array_column(array_filter(
+      $report['checks'],
+      static fn (array $check): bool => $check['status'] === 'fail',
+    ), 'id');
+
+    self::assertFalse($report['ready']);
+    self::assertContains('gateway.stripe.key_environment', $failed);
+    self::assertContains('gateway.stripe.least_privilege', $failed);
+    self::assertContains('gateway.stripe_pe_recurring.key_environment', $failed);
+    self::assertContains('gateway.stripe_pe_recurring.least_privilege', $failed);
+  }
+
+  /**
+   * @covers ::check
+   */
+  public function testProductionAcceptsSeparatedRestrictedLiveKeys(): void {
+    $checker = $this->checker('live', 'rk_live_standard', 'rk_live_recurring');
+
+    $report = $checker->check('production');
+
+    self::assertTrue($report['ready']);
+    self::assertSame([], array_values(array_filter(
+      $report['checks'],
+      static fn (array $check): bool => $check['status'] === 'fail',
+    )));
+  }
+
+  /**
    * Builds a readiness checker with controlled configuration and entities.
    */
   private function checker(

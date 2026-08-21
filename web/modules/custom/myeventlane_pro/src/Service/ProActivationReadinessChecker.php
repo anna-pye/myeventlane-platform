@@ -58,7 +58,11 @@ final class ProActivationReadinessChecker {
     foreach (['stripe' => $standard, 'stripe_pe_recurring' => $recurring] as $id => $gateway) {
       $this->add($checks, 'gateway.' . $id . '.credentials', $gateway['publishable_key_present'] && $gateway['secret_key_present'] ? 'pass' : 'fail',
         sprintf('%s must have a publishable key and server key.', $id));
-      $keyStatus = $gateway['key_type'] === 'restricted'
+      $keysMatchEnvironment = $gateway['publishable_key_environment'] === $expectedMode
+        && $gateway['server_key_environment'] === $expectedMode;
+      $this->add($checks, 'gateway.' . $id . '.key_environment', $keysMatchEnvironment ? 'pass' : 'fail',
+        sprintf('%s publishable and server keys must both be %s-mode credentials.', $id, $expectedMode));
+      $keyStatus = $gateway['key_type'] === 'restricted' && $gateway['server_key_environment'] === $expectedMode
         ? 'pass'
         : ($environment === 'production' ? 'fail' : 'warn');
       $this->add($checks, 'gateway.' . $id . '.least_privilege', $keyStatus,
@@ -125,6 +129,7 @@ final class ProActivationReadinessChecker {
   private function gatewaySnapshot(string $id): array {
     $config = $this->configFactory->get('commerce_payment.commerce_payment_gateway.' . $id);
     $configuration = (array) $config->get('configuration');
+    $publishableKey = trim((string) ($configuration['publishable_key'] ?? ''));
     $serverKey = trim((string) ($configuration['secret_key'] ?? ''));
 
     return [
@@ -132,12 +137,27 @@ final class ProActivationReadinessChecker {
       'plugin' => (string) $config->get('plugin'),
       'mode' => (string) ($configuration['mode'] ?? ''),
       'usage' => (string) ($configuration['payment_method_usage'] ?? ''),
-      'publishable_key_present' => trim((string) ($configuration['publishable_key'] ?? '')) !== '',
+      'publishable_key_present' => $publishableKey !== '',
       'secret_key_present' => $serverKey !== '',
       'webhook_secret_present' => trim((string) ($configuration['webhook_signing_secret'] ?? '')) !== '',
       'key_type' => str_starts_with($serverKey, 'rk_') ? 'restricted' : (str_starts_with($serverKey, 'sk_') ? 'secret' : 'unknown'),
+      'publishable_key_environment' => $this->keyEnvironment($publishableKey),
+      'server_key_environment' => $this->keyEnvironment($serverKey),
       'secret_key' => $serverKey,
     ];
+  }
+
+  /**
+   * Identifies the Stripe environment encoded in a credential prefix.
+   */
+  private function keyEnvironment(string $key): string {
+    if (preg_match('/^[psr]k_test_/', $key) === 1) {
+      return 'test';
+    }
+    if (preg_match('/^[psr]k_live_/', $key) === 1) {
+      return 'live';
+    }
+    return 'unknown';
   }
 
   /**
