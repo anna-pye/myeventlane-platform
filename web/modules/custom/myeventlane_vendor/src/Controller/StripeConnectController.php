@@ -251,7 +251,7 @@ final class StripeConnectController extends ControllerBase {
         if ($eligibility['configuration_compatible'] === FALSE) {
           $this->messenger()->addWarning($this->t('Your current Stripe connection cannot be used for organiser direct charges. Reconnect using the approved Stripe configuration. Your existing account remains recorded until the replacement is ready.'));
           return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
-            'query' => $destStr !== '' ? ['destination' => $destStr] : [],
+            'query' => $destStr !== '' ? ['return_to' => $destStr] : [],
           ])->toString());
         }
         if ($eligibility['configuration_compatible'] === NULL) {
@@ -376,7 +376,11 @@ final class StripeConnectController extends ControllerBase {
       throw new AccessDeniedHttpException('You must be logged in.');
     }
 
-    $destination = $request->query->get('destination');
+    $destination = $request->query->get('return_to');
+    if (!is_string($destination) || $destination === '') {
+      // Backwards compatibility for Account Links created before this fix.
+      $destination = $request->query->get('destination');
+    }
     $dest = is_string($destination) ? $destination : '';
     if ($dest !== '' && (!str_starts_with($dest, '/') || str_starts_with($dest, '//'))) {
       $dest = '';
@@ -411,8 +415,10 @@ final class StripeConnectController extends ControllerBase {
       else {
         $this->messenger()->addWarning($this->t('We couldn\'t find your Stripe account. Please start the Stripe connection again.'));
       }
+      $restartQueryName = $isReplacement ? 'return_to' : 'destination';
+      $restartQuery = $dest ? [$restartQueryName => $dest] : [];
       return new RedirectResponse(Url::fromRoute($isReplacement ? 'myeventlane_vendor.stripe_reconnect' : 'myeventlane_vendor.stripe_connect', [], [
-        'query' => $dest ? ['destination' => $dest] : [],
+        'query' => $restartQuery,
       ])->setAbsolute()->toString());
     }
 
@@ -446,7 +452,7 @@ final class StripeConnectController extends ControllerBase {
       if (!$eligibility['eligible']) {
         $this->messenger()->addWarning($this->t('Finish the remaining Stripe verification steps. Your existing account remains recorded until the replacement can accept direct ticket payments.'));
         return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
-          'query' => $dest !== '' ? ['destination' => $dest] : [],
+          'query' => $dest !== '' ? ['return_to' => $dest] : [],
         ])->toString());
       }
 
@@ -562,7 +568,7 @@ final class StripeConnectController extends ControllerBase {
         ]);
         $this->messenger()->addWarning($this->t('Your current Stripe connection cannot be used for organiser direct charges. Reconnect using the approved Stripe configuration. Your existing account remains recorded until the replacement is ready.'));
         return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
-          'query' => ['destination' => '/vendor/payments'],
+          'query' => ['return_to' => '/vendor/payments'],
         ])->toString());
       }
 

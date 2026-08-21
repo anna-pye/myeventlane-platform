@@ -64,6 +64,11 @@ final class StripeAccountReplacementContractTest extends TestCase {
     self::assertStringContainsString('extends ConfirmFormBase', $form);
     self::assertStringContainsString('No existing account was replaced', $form);
     self::assertStringContainsString('beginConnectAccountReplacement', $form);
+    self::assertStringContainsString("\$form['#action'] = Url::fromRoute('myeventlane_vendor.stripe_reconnect'", $form);
+    self::assertStringContainsString("'query' => ['return_to' => \$destination]", $form);
+    self::assertStringContainsString("\$request?->query->get('destination')", $form);
+    self::assertStringContainsString("'return_to' => \$destination", $form);
+    self::assertStringNotContainsString("'query' => ['destination' => \$destination]", $form);
     self::assertStringContainsString('beginConnectAccountReplacement', $service);
     self::assertStringContainsString('promoteConnectAccountReplacement', $service);
     self::assertStringContainsString("set('field_stripe_previous_id', \$previousAccountId)", $service);
@@ -92,6 +97,7 @@ final class StripeAccountReplacementContractTest extends TestCase {
     self::assertStringContainsString('DirectChargeCopy::RECONNECT_GATE', $gate);
     self::assertStringContainsString("'reconnection_pending'", $health);
     self::assertStringContainsString("'myeventlane_vendor.stripe_reconnect'", $health);
+    self::assertStringContainsString("'query' => ['return_to' => '/vendor/payments']", $health);
   }
 
 }

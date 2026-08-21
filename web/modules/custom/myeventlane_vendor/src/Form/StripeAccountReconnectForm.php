@@ -78,6 +78,15 @@ final class StripeAccountReconnectForm extends ConfirmFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $form = parent::buildForm($form, $form_state);
+    $destination = $this->resolveReturnDestination();
+
+    // Drupal reserves the "destination" query parameter and uses it to
+    // override every redirect response during KernelEvents::RESPONSE. Submit
+    // this form with a non-reserved parameter so the trusted one-time Stripe
+    // Account Link remains the actual Location header.
+    $form['#action'] = Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
+      'query' => ['return_to' => $destination],
+    ])->toString();
     $form['migration_notice'] = [
       '#type' => 'container',
       '#weight' => -10,
@@ -86,6 +95,24 @@ final class StripeAccountReconnectForm extends ConfirmFormBase {
       ],
     ];
     return $form;
+  }
+
+  /**
+   * Resolves a safe organiser return path without exposing a redirect target.
+   */
+  private function resolveReturnDestination(): string {
+    $request = $this->reconnectRequestStack->getCurrentRequest();
+    $destination = $request?->query->get('return_to');
+    if (!is_string($destination) || $destination === '') {
+      // Backwards compatibility for links rendered before this fix.
+      $destination = $request?->query->get('destination');
+    }
+
+    return is_string($destination)
+      && str_starts_with($destination, '/')
+      && !str_starts_with($destination, '//')
+      ? $destination
+      : '/vendor/payments';
   }
 
   /**
@@ -112,19 +139,13 @@ final class StripeAccountReconnectForm extends ConfirmFormBase {
       return;
     }
 
-    $request = $this->reconnectRequestStack->getCurrentRequest();
-    $destination = $request?->query->get('destination');
-    $destination = is_string($destination)
-      && str_starts_with($destination, '/')
-      && !str_starts_with($destination, '//')
-      ? $destination
-      : '/vendor/payments';
+    $destination = $this->resolveReturnDestination();
 
     try {
       $replacementAccountId = $this->stripeService->beginConnectAccountReplacement($store, $email, 'AU');
       $query = [
         'replacement' => '1',
-        'destination' => $destination,
+        'return_to' => $destination,
       ];
       $returnUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', [], [
         'absolute' => TRUE,
@@ -132,7 +153,7 @@ final class StripeAccountReconnectForm extends ConfirmFormBase {
       ])->toString();
       $refreshUrl = Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
         'absolute' => TRUE,
-        'query' => ['destination' => $destination],
+        'query' => ['return_to' => $destination],
       ])->toString();
       $accountLink = $this->stripeService->createAccountLink($replacementAccountId, $returnUrl, $refreshUrl);
       $url = is_string($accountLink->url ?? NULL) ? $accountLink->url : '';
