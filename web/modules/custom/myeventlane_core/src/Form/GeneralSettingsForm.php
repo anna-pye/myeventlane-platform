@@ -95,7 +95,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $form['payments']['platform_fee_percent'] = [
       '#type' => 'number',
       '#title' => $this->t('Platform fee percentage (tickets)'),
-      '#description' => $this->t('Percentage applied to ticket subtotals only (excludes donations, Boost, and operational extras). For example, 1.5 applies a 1.5% platform fee. Set to 0 to disable.'),
+      '#description' => $this->t('GST-inclusive MEL platform fee applied to ticket subtotals only (excludes donations, Boost, and operational extras). This same percentage is used for the Stripe direct-charge application fee. For example, 1.5 applies a 1.5% fee. Set to 0 to disable.'),
       '#default_value' => (string) $ticket_fee,
       '#min' => 0,
       '#max' => 100,
@@ -115,25 +115,12 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#size' => 5,
     ];
 
-    $form['payments']['stripe_fee_percent'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Stripe application fee percentage'),
-      '#description' => $this->t('MEL platform fee percentage applied when the ticket payment is processed (e.g. 3 for 3%). Applies to ticket revenue only, not donations.'),
-      '#default_value' => (string) ($config->get('stripe_fee_percent') ?? 3),
-      '#min' => 0,
-      '#max' => 100,
-      '#step' => 0.1,
-      '#size' => 5,
-    ];
-
-    $form['payments']['stripe_fee_fixed_cents'] = [
-      '#type' => 'number',
-      '#title' => $this->t('Stripe application fee fixed (cents)'),
-      '#description' => $this->t('Fixed MEL platform fee in cents applied when the ticket payment is processed (e.g. 30 for $0.30).'),
-      '#default_value' => (string) ($config->get('stripe_fee_fixed_cents') ?? 30),
-      '#min' => 0,
-      '#step' => 1,
-      '#size' => 5,
+    $form['payments']['direct_charge_fee_model'] = [
+      '#type' => 'item',
+      '#title' => $this->t('Direct-charge fee model'),
+      '#markup' => $this->t('@rate% of the ticket subtotal, GST included, with no fixed fee. Change the ticket percentage above to adjust both the checkout fee and Stripe application fee together.', [
+        '@rate' => number_format($ticket_fee, 1),
+      ]),
     ];
 
     $form['payments']['fee_payer'] = [
@@ -162,14 +149,6 @@ final class GeneralSettingsForm extends ConfigFormBase {
       ? PlatformFeeDefaults::normalizePercent($v)
       : $existing_fee;
 
-    $v = $form_state->getValue(['payments', 'stripe_fee_percent']);
-    $stripe_fee_percent = is_numeric($v) ? (float) $v : 3;
-    $stripe_fee_percent = max(0, min(100, $stripe_fee_percent));
-
-    $v = $form_state->getValue(['payments', 'stripe_fee_fixed_cents']);
-    $stripe_fee_fixed_cents = is_numeric($v) ? (int) $v : 30;
-    $stripe_fee_fixed_cents = max(0, $stripe_fee_fixed_cents);
-
     $fee_payer = $form_state->getValue(['payments', 'fee_payer']);
     $fee_payer = in_array($fee_payer, ['buyer', 'organizer_absorbs'], TRUE) ? $fee_payer : 'buyer';
 
@@ -186,8 +165,6 @@ final class GeneralSettingsForm extends ConfigFormBase {
       ->set('default_currency', $form_state->getValue(['defaults', 'default_currency']))
       ->set('platform_fee_percent', $platform_fee_percent)
       ->set('operational_extras_platform_fee_percent', $operational_extras_platform_fee_percent)
-      ->set('stripe_fee_percent', $stripe_fee_percent)
-      ->set('stripe_fee_fixed_cents', $stripe_fee_fixed_cents)
       ->set('fee_payer', $fee_payer)
       ->save();
 

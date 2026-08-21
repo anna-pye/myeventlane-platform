@@ -10,6 +10,13 @@
 MyEventLane will use Stripe Connect direct charges for organiser-owned ticket
 sales:
 
+The MyEventLane owner approved an initial MEL platform fee of 1.5%, including
+GST, with no fixed fee on 21 August 2026. The percentage remains adjustable at
+**Admin → Configuration → MyEventLane → General settings**. The configured
+ticket percentage is the single source for both the buyer-visible Commerce
+adjustment and Stripe `application_fee_amount`; changing it must not introduce
+a separate fixed fee.
+
 > Customer → organiser connected Stripe account → MEL application fee
 
 The PaymentIntent is created in the organiser's connected Stripe account. It
@@ -70,8 +77,8 @@ off until all of these are evidenced in the target environment:
    and a verified Connect webhook signing secret.
 2. Stripe account-controller and liability settings match the seller, refund
    and dispute wording approved for the product.
-3. MEL application-fee percentage, fixed component, GST treatment and displayed
-   adjustments reconcile to the actual PaymentIntent.
+3. The configured GST-inclusive MEL ticket-fee percentage and displayed
+   adjustment reconcile to `application_fee_amount`, with a zero fixed fee.
 4. Test-mode checkout, return, asynchronous webhook, refund, failed-payment and
    replay scenarios pass for a connected account.
 5. Checkout, confirmation, invoice, receipt and refund output identify the

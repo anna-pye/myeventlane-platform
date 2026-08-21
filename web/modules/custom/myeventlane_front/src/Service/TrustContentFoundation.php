@@ -52,13 +52,10 @@ final class TrustContentFoundation {
   private function getPricingPageDefinition(): array {
     $config = $this->configFactory->get('myeventlane_core.settings');
     $platformFee = $this->formatPercent($config->get('platform_fee_percent'));
-    $stripeFeePercent = $this->formatPercent($config->get('stripe_fee_percent'));
-    $stripeFixedCents = (int) ($config->get('stripe_fee_fixed_cents') ?? 30);
-    $stripeFixed = '$' . number_format($stripeFixedCents / 100, 2);
     $feePayer = (string) ($config->get('fee_payer') ?? 'buyer');
     $feePayerText = $feePayer === 'organizer_absorbs'
-      ? 'Organisers can choose to absorb platform fees so attendees see the ticket price they expect at checkout.'
-      : 'By default, platform and payment processing fees are shown to attendees at checkout before they pay.';
+      ? 'The organiser absorbs the MEL platform fee, so it is not added to the attendee total.'
+      : 'The GST-inclusive MEL platform fee is shown to attendees at checkout before they pay.';
 
     return [
       'title' => 'Pricing & Fees',
@@ -69,8 +66,8 @@ final class TrustContentFoundation {
         . '<h3>Paid ticket events</h3>'
         . '<p>Paid events use secure checkout powered by <strong>Stripe</strong>. When you sell tickets, two types of fees may apply:</p>'
         . '<ul>'
-        . '<li><strong>MyEventLane platform fee</strong> — currently <strong>' . htmlspecialchars($platformFee, ENT_QUOTES, 'UTF-8') . '</strong> on ticket sales. This supports hosting, support, and platform development.</li>'
-        . '<li><strong>Stripe payment processing</strong> — Stripe charges card processing (currently about <strong>' . htmlspecialchars($stripeFeePercent, ENT_QUOTES, 'UTF-8') . ' + ' . htmlspecialchars($stripeFixed, ENT_QUOTES, 'UTF-8') . ' AUD</strong> per successful card payment). Stripe sets these rates; they can change. See <a href="https://stripe.com/au/pricing" rel="noopener noreferrer" target="_blank">Stripe pricing</a> for current details.</li>'
+        . '<li><strong>MyEventLane platform fee</strong> — currently <strong>' . htmlspecialchars($platformFee, ENT_QUOTES, 'UTF-8') . '</strong>, including GST, on ticket sales. This supports hosting, support, and platform development.</li>'
+        . '<li><strong>Stripe payment processing</strong> — Stripe charges the organiser\'s connected Stripe account according to its pricing and payment method. MyEventLane does not add a fixed Stripe amount to its platform fee. See <a href="https://stripe.com/au/pricing" rel="noopener noreferrer" target="_blank">Stripe pricing</a> for current details.</li>'
         . '</ul>'
         . '<h3>Who pays fees</h3>'
         . '<p>' . htmlspecialchars($feePayerText, ENT_QUOTES, 'UTF-8') . '</p>'

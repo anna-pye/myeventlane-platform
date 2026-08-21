@@ -961,3 +961,20 @@ function myeventlane_core_update_9122(): void {
     $config->set('support_email', 'support@myeventlane.com.au')->save();
   }
 }
+
+/**
+ * Consolidates direct-charge fees on the configurable ticket platform rate.
+ */
+function myeventlane_core_update_9123(): void {
+  $config = \Drupal::configFactory()->getEditable('myeventlane_core.settings');
+  if (!is_numeric($config->get('platform_fee_percent'))) {
+    $config->set('platform_fee_percent', 1.5);
+  }
+
+  $config
+    ->set('direct_charge_fee_model_approved', TRUE)
+    ->set('platform_fee_gst_inclusive', TRUE)
+    ->clear('stripe_fee_percent')
+    ->clear('stripe_fee_fixed_cents')
+    ->save();
+}

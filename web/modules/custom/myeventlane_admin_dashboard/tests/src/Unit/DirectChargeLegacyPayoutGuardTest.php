@@ -30,11 +30,12 @@ final class DirectChargeLegacyPayoutGuardTest extends TestCase {
     self::assertStringContainsString('assertLegacyTransfersAllowed', $workflow);
   }
 
-  public function testMigrationSwitchDefaultsOff(): void {
+  public function testMigrationSwitchDefaultsOffWithApprovedFeeModel(): void {
     $install = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/config/install/myeventlane_core.settings.yml');
     self::assertIsString($install);
     self::assertStringContainsString('direct_charge_enabled: false', $install);
-    self::assertStringContainsString('direct_charge_fee_model_approved: false', $install);
+    self::assertStringContainsString('direct_charge_fee_model_approved: true', $install);
+    self::assertStringContainsString('platform_fee_gst_inclusive: true', $install);
   }
 
 }

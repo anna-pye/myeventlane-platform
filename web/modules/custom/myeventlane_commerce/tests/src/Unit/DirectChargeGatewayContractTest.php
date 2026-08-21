@@ -37,7 +37,22 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringContainsString("'application_fee_amount' =>", $service);
     self::assertStringContainsString("'mel_charge_model' => 'organiser_direct_charge'", $service);
     self::assertStringContainsString("get('direct_charge_fee_model_approved')", $service);
+    self::assertStringContainsString("get('platform_fee_percent')", $service);
+    self::assertStringContainsString("get('platform_fee_gst_inclusive')", $service);
+    self::assertStringContainsString('calculateApplicationFee($ticketRevenue, $feePercentage, 0)', $service);
+    self::assertStringNotContainsString("get('stripe_fee_percent')", $service);
+    self::assertStringNotContainsString("get('stripe_fee_fixed_cents')", $service);
     self::assertStringContainsString('validateApplicationFeeForDirectCharge', $service);
+  }
+
+  public function testGeneralSettingsHasOneAdjustableTicketFeeSource(): void {
+    $form = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Form/GeneralSettingsForm.php');
+    self::assertIsString($form);
+    self::assertStringContainsString("['payments']['platform_fee_percent']", $form);
+    self::assertStringContainsString('GST-inclusive MEL platform fee', $form);
+    self::assertStringContainsString('with no fixed fee', $form);
+    self::assertStringNotContainsString("['payments']['stripe_fee_percent']", $form);
+    self::assertStringNotContainsString("['payments']['stripe_fee_fixed_cents']", $form);
   }
 
   public function testStripeJsPatchCarriesTheConnectedAccount(): void {

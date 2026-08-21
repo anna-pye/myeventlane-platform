@@ -22,6 +22,7 @@ final class DirectChargeCopyContractTest extends TestCase {
     'config/sync/myeventlane_messaging.template.vendor_event_cancellation.yml',
     'web/modules/custom/myeventlane_core/src/Form/GeneralSettingsForm.php',
     'web/modules/custom/myeventlane_event_studio/templates/mel-event-studio.html.twig',
+    'web/modules/custom/myeventlane_front/src/Service/TrustContentFoundation.php',
     'web/modules/custom/myeventlane_legal/src/Service/LegalPolicyPageContent.php',
     'web/modules/custom/myeventlane_refunds/src/Form/VendorRefundRequestApproveForm.php',
     'web/modules/custom/myeventlane_vendor/myeventlane_vendor.routing.yml',

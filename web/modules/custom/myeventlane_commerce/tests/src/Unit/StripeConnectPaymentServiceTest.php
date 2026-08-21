@@ -98,8 +98,7 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
 
     $config = $this->createMock(ImmutableConfig::class);
     $config->method('get')->willReturnMap([
-      ['stripe_fee_percent', 3],
-      ['stripe_fee_fixed_cents', 30],
+      ['platform_fee_percent', 1.5],
     ]);
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
@@ -108,7 +107,7 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
     $params = $service->getConnectPaymentIntentParams($order);
 
     $this->assertArrayNotHasKey('transfer_data', $params);
-    $this->assertSame(180, $params['application_fee_amount']);
+    $this->assertSame(75, $params['application_fee_amount']);
     $this->assertSame('organiser_direct_charge', $params['metadata']['mel_charge_model']);
     $this->assertSame('acct_ticket_vendor', $params['metadata']['mel_connected_account']);
   }
@@ -222,8 +221,7 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
 
     $config = $this->createMock(ImmutableConfig::class);
     $config->method('get')->willReturnMap([
-      ['stripe_fee_percent', 3],
-      ['stripe_fee_fixed_cents', 30],
+      ['platform_fee_percent', 1.5],
     ]);
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
@@ -252,6 +250,26 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::calculateApplicationFee
+   */
+  public function testApplicationFeeUsesAdjustableTicketRateWithNoFixedFee(): void {
+    $ticket_item = $this->orderItem('default', '100.00');
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$ticket_item]);
+
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturnMap([
+      ['platform_fee_percent', 1.5],
+    ]);
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
+
+    $service = $this->service([$ticket_item], config_factory: $config_factory);
+    $this->assertSame(150, $service->calculateApplicationFee($order));
+    $this->assertSame(225, $service->calculateApplicationFee($order, 0.0225));
+  }
+
+  /**
    * @covers ::validateApplicationFeeForDirectCharge
    */
   public function testBuyerVisibleFeeMustEqualApplicationFee(): void {
@@ -259,14 +277,14 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
     $order = $this->createMock(OrderInterface::class);
     $order->method('getItems')->willReturn([$ticket_item]);
     $order->method('getAdjustments')->willReturn([
-      $this->adjustment('myeventlane_platform_fee', new Price('0.75', 'AUD')),
+      $this->adjustment('myeventlane_platform_fee', new Price('1.00', 'AUD')),
     ]);
 
     $config = $this->createMock(ImmutableConfig::class);
     $config->method('get')->willReturnMap([
       ['fee_payer', 'buyer'],
-      ['stripe_fee_percent', 3],
-      ['stripe_fee_fixed_cents', 30],
+      ['platform_fee_gst_inclusive', TRUE],
+      ['platform_fee_percent', 1.5],
     ]);
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
@@ -276,6 +294,25 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
 
     $this->assertFalse($result['valid']);
     $this->assertSame('The MEL application fee does not match the platform fee shown on this order.', $result['message']);
+  }
+
+  /**
+   * @covers ::validateApplicationFeeForDirectCharge
+   */
+  public function testDirectChargeRejectsNonGstInclusiveFeeModel(): void {
+    $order = $this->createMock(OrderInterface::class);
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturnMap([
+      ['platform_fee_gst_inclusive', FALSE],
+    ]);
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
+
+    $result = $this->service([], config_factory: $config_factory)
+      ->validateApplicationFeeForDirectCharge($order);
+
+    $this->assertFalse($result['valid']);
+    $this->assertSame('The MEL application fee must use the approved GST-inclusive model.', $result['message']);
   }
 
   /**

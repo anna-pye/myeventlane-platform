@@ -276,6 +276,13 @@ final class StripeConnectPaymentService {
    */
   public function validateApplicationFeeForDirectCharge(OrderInterface $order): array {
     $settings = $this->configFactory->get('myeventlane_core.settings');
+    if (!(bool) $settings->get('platform_fee_gst_inclusive')) {
+      return [
+        'valid' => FALSE,
+        'message' => 'The MEL application fee must use the approved GST-inclusive model.',
+      ];
+    }
+
     if ((string) $settings->get('fee_payer') !== 'buyer') {
       return ['valid' => TRUE, 'message' => NULL];
     }
@@ -455,16 +462,12 @@ final class StripeConnectPaymentService {
    *   The order.
    * @param float $feePercentage
    *   Fee percentage (e.g., 0.03 for 3%).
-   * @param int $fixedFeeCents
-   *   Fixed fee in cents (e.g., 30 for $0.30).
-   *
    * @return int
    *   Application fee in cents (calculated on ticket revenue only).
    */
-  public function calculateApplicationFee(OrderInterface $order, ?float $feePercentage = NULL, ?int $fixedFeeCents = NULL): int {
+  public function calculateApplicationFee(OrderInterface $order, ?float $feePercentage = NULL): int {
     $config = $this->configFactory->get('myeventlane_core.settings');
-    $feePercentage = $feePercentage ?? (float) ($config->get('stripe_fee_percent') ?? 3) / 100;
-    $fixedFeeCents = $fixedFeeCents ?? (int) ($config->get('stripe_fee_fixed_cents') ?? 30);
+    $feePercentage = $feePercentage ?? (float) ($config->get('platform_fee_percent') ?? 1.5) / 100;
 
     // Calculate fee only on ticket revenue (excludes donations).
     $ticketRevenue = $this->calculateTicketRevenue($order);
@@ -472,7 +475,7 @@ final class StripeConnectPaymentService {
       return 0;
     }
 
-    return $this->stripeService->calculateApplicationFee($ticketRevenue, $feePercentage, $fixedFeeCents);
+    return $this->stripeService->calculateApplicationFee($ticketRevenue, $feePercentage, 0);
   }
 
   /**
@@ -485,10 +488,10 @@ final class StripeConnectPaymentService {
    * Example:
    * - Tickets: $100.00
    * - Organiser donations: $20.00
-   * - Application fee (3% + $0.30 on $100): $3.30
+   * - Application fee (1.5% GST-inclusive on $100): $1.50
    * - Total charged: $120.00
    * - Organiser charge: $120.00 on the connected account
-   * - MEL application fee: $3.30
+   * - MEL application fee: $1.50
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.

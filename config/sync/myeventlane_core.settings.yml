@@ -1,8 +1,7 @@
 platform_fee_percent: 1.5
 direct_charge_enabled: false
-direct_charge_fee_model_approved: false
-stripe_fee_percent: 3.0
-stripe_fee_fixed_cents: 30
+direct_charge_fee_model_approved: true
+platform_fee_gst_inclusive: true
 fee_payer: buyer
 support_email: support@myeventlane.com.au
 checkout_rate_limit_per_minute: 15
