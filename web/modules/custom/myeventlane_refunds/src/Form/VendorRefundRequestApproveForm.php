@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Policy\DirectChargeCopy;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
 use Drupal\myeventlane_refunds\Service\RefundOrderInspector;
 use Drupal\myeventlane_refunds\Service\RefundProcessor;
@@ -126,7 +127,7 @@ final class VendorRefundRequestApproveForm extends FormBase {
       '#markup' => '<p><strong>' . $this->t('Buyer requested:') . '</strong> ' . $requestedAmount . '</p>',
     ];
     $form['summary']['decision_copy'] = [
-      '#markup' => '<p>Choose which tickets to refund. MEL will calculate the exact amount before processing.</p>',
+      '#markup' => '<p>' . $this->t('Choose which tickets to refund. MyEventLane will calculate the exact amount before processing.') . '</p><p><strong>' . $this->t(DirectChargeCopy::REFUND) . '</strong></p>',
     ];
     $form['summary']['ticket_state'] = [
       '#markup' => '<p><strong>' . count($attendeeOptions) . ' tickets available for refund</strong></p>',

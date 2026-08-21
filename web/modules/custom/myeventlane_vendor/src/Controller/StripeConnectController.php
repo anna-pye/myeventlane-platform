@@ -20,7 +20,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
- * Controller for Stripe Connect Express onboarding and management.
+ * Controller for Stripe Connect onboarding and management.
  */
 final class StripeConnectController extends ControllerBase {
 
@@ -187,7 +187,18 @@ final class StripeConnectController extends ControllerBase {
   }
 
   /**
-   * Starts or resumes Stripe Connect Express onboarding (Account Links).
+   * Resolves the pending replacement account without exposing it in a URL.
+   */
+  private function resolvePendingReplacementAccountId(StoreInterface $store): ?string {
+    if (!$store->hasField('field_stripe_replacement_id') || $store->get('field_stripe_replacement_id')->isEmpty()) {
+      return NULL;
+    }
+    $accountId = trim((string) $store->get('field_stripe_replacement_id')->value);
+    return str_starts_with($accountId, 'acct_') ? $accountId : NULL;
+  }
+
+  /**
+   * Starts or resumes Stripe Connect onboarding (Account Links).
    */
   public function connect(Request $request): RedirectResponse {
     $log = $this->loggerChannelFactory->get('myeventlane_vendor');
@@ -232,6 +243,18 @@ final class StripeConnectController extends ControllerBase {
 
     if (!empty($accountId)) {
       try {
+        $eligibility = $this->stripeService->validateDirectChargeAccountEligibility($accountId);
+        if ($eligibility['configuration_compatible'] === FALSE) {
+          $this->messenger()->addWarning($this->t('Your current Stripe connection cannot be used for organiser direct charges. Reconnect using the approved Stripe configuration. Your existing account remains recorded until the replacement is ready.'));
+          return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
+            'query' => $destStr !== '' ? ['destination' => $destStr] : [],
+          ])->toString());
+        }
+        if ($eligibility['configuration_compatible'] === NULL) {
+          $this->messenger()->addError($this->t('We could not verify your Stripe account configuration. No account was changed. Please try again or contact support.'));
+          return $this->redirectToDashboard();
+        }
+
         $status = $this->stripeService->getAccountStatus($accountId);
         $this->stripeService->applyConnectStatusToCommerceStore($store, $status);
         $this->syncStripeAccountFieldsToVendor($store, $vendor);
@@ -351,7 +374,7 @@ final class StripeConnectController extends ControllerBase {
 
     $destination = $request->query->get('destination');
     $dest = is_string($destination) ? $destination : '';
-    if ($dest !== '' && !str_starts_with($dest, '/')) {
+    if ($dest !== '' && (!str_starts_with($dest, '/') || str_starts_with($dest, '//'))) {
       $dest = '';
     }
 
@@ -368,17 +391,23 @@ final class StripeConnectController extends ControllerBase {
     }
     $this->syncVendorStoreReference($vendor, $store);
 
+    $isReplacement = $request->query->get('replacement') === '1';
     $qid = $request->query->get('account_id');
     $qidStr = is_string($qid) ? $qid : '';
-    $accountId = $this->resolveValidatedAccountId($qidStr !== '' ? $qidStr : NULL, $store);
+    $accountId = $isReplacement
+      ? $this->resolvePendingReplacementAccountId($store)
+      : $this->resolveValidatedAccountId($qidStr !== '' ? $qidStr : NULL, $store);
     if ($accountId === NULL) {
-      if ($qidStr !== '') {
+      if ($isReplacement) {
+        $this->messenger()->addError($this->t('We could not find a pending Stripe reconnection. No existing account was replaced.'));
+      }
+      elseif ($qidStr !== '') {
         $this->messenger()->addError($this->t('Something didn\'t match with your Stripe account. Please start the Stripe connection again from your dashboard.'));
       }
       else {
         $this->messenger()->addWarning($this->t('We couldn\'t find your Stripe account. Please start the Stripe connection again.'));
       }
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+      return new RedirectResponse(Url::fromRoute($isReplacement ? 'myeventlane_vendor.stripe_reconnect' : 'myeventlane_vendor.stripe_connect', [], [
         'query' => $dest ? ['destination' => $dest] : [],
       ])->setAbsolute()->toString());
     }
@@ -398,6 +427,43 @@ final class StripeConnectController extends ControllerBase {
     catch (\Exception $e) {
       $log->error('Stripe callback: @m', ['@m' => $e->getMessage()]);
       $this->messenger()->addError($this->t('We couldn\'t check your Stripe account status. Please try again, or contact Support if it keeps happening.'));
+      if ($dest !== '') {
+        return new RedirectResponse($dest);
+      }
+      return $this->redirectToDashboard();
+    }
+
+    if ($isReplacement) {
+      $eligibility = $this->stripeService->validateDirectChargeAccountEligibility($accountId);
+      if ($eligibility['configuration_compatible'] !== TRUE) {
+        $this->messenger()->addError($this->t('The replacement Stripe account does not match the approved direct-charge configuration. No existing account was replaced. Please contact support.'));
+        return $this->redirectToVendorSettings();
+      }
+      if (!$eligibility['eligible']) {
+        $this->messenger()->addWarning($this->t('Finish the remaining Stripe verification steps. Your existing account remains recorded until the replacement can accept direct ticket payments.'));
+        return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
+          'query' => $dest !== '' ? ['destination' => $dest] : [],
+        ])->toString());
+      }
+
+      try {
+        $this->stripeService->promoteConnectAccountReplacement($store, $accountId, $status);
+        $this->syncStripeAccountFieldsToVendor($store, $vendor);
+      }
+      catch (\Throwable $exception) {
+        $log->error('Stripe replacement promotion failed for store @sid: @message', [
+          '@sid' => (string) $store->id(),
+          '@message' => $exception->getMessage(),
+        ]);
+        $this->messenger()->addError($this->t('Stripe setup completed, but MyEventLane could not safely switch the account. No existing account was replaced. Please contact support.'));
+        return $this->redirectToVendorSettings();
+      }
+
+      $log->notice('Stripe replacement promoted: store @sid, account @acct.', [
+        '@sid' => (string) $store->id(),
+        '@acct' => StripeService::maskAccountId($accountId),
+      ]);
+      $this->messenger()->addStatus($this->t('Stripe reconnection complete. Your account is ready for direct ticket payments.'));
       if ($dest !== '') {
         return new RedirectResponse($dest);
       }

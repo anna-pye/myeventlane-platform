@@ -1,0 +1,19 @@
+uuid: ee9225b3-d99f-4f34-85d4-f431c83e5677
+langcode: en
+status: true
+dependencies: {  }
+id: commerce_store.field_stripe_replacement_id
+field_name: field_stripe_replacement_id
+entity_type: commerce_store
+type: string
+settings:
+  max_length: 255
+  case_sensitive: false
+  is_ascii: true
+module: core
+locked: false
+cardinality: 1
+translatable: false
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

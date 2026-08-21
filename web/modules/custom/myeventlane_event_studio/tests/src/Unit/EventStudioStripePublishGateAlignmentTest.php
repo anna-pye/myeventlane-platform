@@ -50,18 +50,21 @@ final class EventStudioStripePublishGateAlignmentTest extends UnitTestCase {
     $twig = file_get_contents(dirname(__DIR__, 3) . '/templates/mel-event-studio.html.twig');
     $preprocess = file_get_contents(dirname(__DIR__, 3) . '/src/EventStudioPreprocess.php');
     $gate = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/PaidPublishStripeGate.php');
+    $policy = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Policy/DirectChargeCopy.php');
 
     $this->assertIsString($twig);
     $this->assertIsString($preprocess);
     $this->assertIsString($gate);
+    $this->assertIsString($policy);
     $this->assertStringContainsString('Finish payment setup before publishing', $twig);
     $this->assertStringContainsString('Confirm your legal and tax details', $twig);
     $this->assertStringContainsString("myeventlane_vendor.console.settings_profile", $twig);
-    $this->assertStringContainsString('To accept event payments, finish your Stripe setup so payouts can reach your bank.', $twig);
+    $this->assertStringContainsString('To accept event payments, finish your Stripe setup. Ticket payments go to your connected Stripe account, and Stripe sends available funds to your bank.', $twig);
     $this->assertStringContainsString('Resume Stripe setup', $twig);
     $this->assertStringContainsString('mel_stripe_connect_url', $twig);
     $this->assertStringContainsString('myeventlane_vendor.stripe_connect', $preprocess);
-    $this->assertStringContainsString('To accept event payments, finish your Stripe setup so payouts can reach your bank.', $gate);
+    $this->assertStringContainsString('DirectChargeCopy::PUBLISH_GATE', $gate);
+    $this->assertStringContainsString('To accept event payments, finish your Stripe setup. Ticket payments go to your connected Stripe account, and Stripe sends available funds to your bank.', $policy);
     $this->assertStringContainsString("in_array(\$event_type, ['paid', 'both'], TRUE)", $preprocess);
     $this->assertStringContainsString("\$accepts_donations", $preprocess);
   }

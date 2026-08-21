@@ -9,6 +9,8 @@ body_html: |-
   Reason: {{ rejection_reason }}
   {% endif %}
 
+  This decision does not affect rights you may have under Australian Consumer Law. Contact the organiser first, or contact MyEventLane support if you cannot resolve the issue.
+
   <a href="{{ my_tickets_url }}">View your tickets</a>
 utm:
   enable: true

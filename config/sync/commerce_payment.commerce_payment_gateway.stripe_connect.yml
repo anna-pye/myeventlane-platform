@@ -1,0 +1,41 @@
+uuid: f66efc3c-60c9-4282-9e7c-0acac798f27e
+langcode: en
+status: false
+dependencies:
+  module:
+    - commerce_stripe
+    - myeventlane_commerce
+id: stripe_connect
+label: 'Stripe Connect — organiser ticket payments'
+weight: 10
+plugin: stripe_connect
+configuration:
+  display_label: 'Credit or debit card'
+  mode: test
+  payment_method_types:
+    - stripe_card
+  collect_billing_information: true
+  publishable_key: ''
+  secret_key: ''
+  express_checkout:
+    enable_on_cart: false
+    allowed_payment_method_types: {  }
+    collect_phone_number: false
+    collect_billing_address: true
+  webhook_signing_secret: ''
+  payment_method_usage: on_session
+  capture_method: automatic
+  style:
+    theme: stripe
+    layout: tabs
+  checkout_form_display_label:
+    custom_label: ''
+    show_payment_method_logos: 'no'
+    include_logos: {  }
+conditions:
+  -
+    plugin: current_currency
+    configuration:
+      currencies:
+        - AUD
+conditionOperator: AND

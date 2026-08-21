@@ -447,3 +447,12 @@ function myeventlane_legal_update_9009(): string {
   drupal_flush_all_caches();
   return 'Expanded launch-ready privacy, terms, and cookie policy page content.';
 }
+
+/**
+ * Align customer and organiser terms with direct-charge seller responsibility.
+ */
+function myeventlane_legal_update_9010(): string {
+  _myeventlane_legal_create_policy_pages();
+  drupal_flush_all_caches();
+  return 'Aligned customer and organiser terms with the direct-charge payment model.';
+}

@@ -19,9 +19,9 @@ use Psr\Log\LoggerInterface;
  * Service for handling Stripe Connect payments for ticket sales.
  *
  * This service ensures correct financial handling:
- * - Ticket revenue → transferred to vendor (minus platform fee)
- * - Organiser donations → transferred to vendor (no application fee)
- * - Platform donations → retained by platform (not transferred to vendor)
+ * - Ticket revenue → charged on the organiser connected account
+ * - Organiser donations → charged on the organiser connected account
+ * - Platform-owned products → charged separately on the platform account
  * - Application fees calculated only on ticket revenue.
  */
 final class StripeConnectPaymentService {
@@ -63,7 +63,7 @@ final class StripeConnectPaymentService {
    *   The Stripe account ID (acct_xxx), or NULL if not found or not needed.
    */
   public function getStripeAccountIdForOrder(OrderInterface $order): ?string {
-    if (!$this->orderRequiresConnect($order)) {
+    if (!$this->requiresDirectCharge($order)) {
       return NULL;
     }
 
@@ -151,6 +151,155 @@ final class StripeConnectPaymentService {
       return [
         'valid' => FALSE,
         'message' => $this->t('This event\'s organiser has not set up card payments yet. Please try another event or contact the organiser.'),
+      ];
+    }
+
+    return ['valid' => TRUE, 'message' => NULL];
+  }
+
+  /**
+   * Validates the fail-closed ownership boundary for a direct charge.
+   *
+   * A Stripe PaymentIntent has one merchant account. Platform-owned products
+   * and revenue for more than one organiser therefore cannot share it.
+   *
+   * @return array{valid: bool, message: string|null, account_id: string|null}
+   *   The validation result and the single connected account when valid.
+   */
+  public function validateDirectChargeOrder(OrderInterface $order): array {
+    if ($this->orderItemClassifier->requiresRecurringPaymentGateway($order)) {
+      return [
+        'valid' => FALSE,
+        'message' => 'MEL Pro and recurring products cannot share an organiser direct charge.',
+        'account_id' => NULL,
+      ];
+    }
+
+    $accountIds = [];
+    $hasOrganiserRevenue = FALSE;
+
+    foreach ($order->getItems() as $item) {
+      $totalPrice = $item->getTotalPrice();
+      if (!$totalPrice || $totalPrice->getNumber() <= 0) {
+        continue;
+      }
+
+      if ($item->bundle() === 'boost' || $this->orderItemClassifier->isPlatformDonation($item)) {
+        return [
+          'valid' => FALSE,
+          'message' => 'Platform-owned products cannot share an organiser direct charge.',
+          'account_id' => NULL,
+        ];
+      }
+
+      if ($this->orderItemClassifier->isOrganiserDonation($item)
+        || $this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($item)) {
+        $hasOrganiserRevenue = TRUE;
+        $accountId = $this->resolveStripeAccountIdFromOrderItemEvent($item);
+        if ($accountId !== NULL) {
+          $accountIds[$accountId] = TRUE;
+        }
+      }
+      else {
+        return [
+          'valid' => FALSE,
+          'message' => 'Operational or unclassified products cannot share an organiser direct charge.',
+          'account_id' => NULL,
+        ];
+      }
+    }
+
+    if (!$hasOrganiserRevenue) {
+      return ['valid' => FALSE, 'message' => 'This order has no organiser-owned revenue.', 'account_id' => NULL];
+    }
+
+    if ($accountIds === []) {
+      $store = $order->getStore();
+      $fallback = $store instanceof StoreInterface ? $this->getStripeAccountIdFromStore($store) : NULL;
+      if ($fallback !== NULL) {
+        $accountIds[$fallback] = TRUE;
+      }
+    }
+
+    if (count($accountIds) !== 1) {
+      return [
+        'valid' => FALSE,
+        'message' => $accountIds === []
+          ? 'The organiser has not completed Stripe payment setup.'
+          : 'Tickets from different organisers cannot share one direct charge.',
+        'account_id' => NULL,
+      ];
+    }
+
+    $accountId = (string) array_key_first($accountIds);
+    $settings = $this->configFactory->get('myeventlane_core.settings');
+    if ((bool) $settings->get('direct_charge_enabled')) {
+      if (!(bool) $settings->get('direct_charge_fee_model_approved')) {
+        return [
+          'valid' => FALSE,
+          'message' => 'The direct-charge application-fee model has not been approved.',
+          'account_id' => NULL,
+        ];
+      }
+
+      $feeValidation = $this->validateApplicationFeeForDirectCharge($order);
+      if (!$feeValidation['valid']) {
+        return [
+          'valid' => FALSE,
+          'message' => $feeValidation['message'],
+          'account_id' => NULL,
+        ];
+      }
+
+      $eligibility = $this->stripeService->validateDirectChargeAccountEligibility($accountId);
+      if (!$eligibility['eligible']) {
+        return [
+          'valid' => FALSE,
+          'message' => $eligibility['reason'] ?? 'The connected Stripe account is not eligible for direct charges.',
+          'account_id' => NULL,
+        ];
+      }
+    }
+
+    return [
+      'valid' => TRUE,
+      'message' => NULL,
+      'account_id' => $accountId,
+    ];
+  }
+
+  /**
+   * Proves the buyer-visible MEL fee equals the Stripe application fee.
+   *
+   * @return array{valid: bool, message: string|null}
+   *   A fail-closed fee reconciliation result.
+   */
+  public function validateApplicationFeeForDirectCharge(OrderInterface $order): array {
+    $settings = $this->configFactory->get('myeventlane_core.settings');
+    if (!(bool) $settings->get('platform_fee_gst_inclusive')) {
+      return [
+        'valid' => FALSE,
+        'message' => 'The MEL application fee must use the approved GST-inclusive model.',
+      ];
+    }
+
+    if ((string) $settings->get('fee_payer') !== 'buyer') {
+      return ['valid' => TRUE, 'message' => NULL];
+    }
+
+    $displayedFeeCents = 0;
+    foreach ($order->getAdjustments() as $adjustment) {
+      if ($adjustment->getSourceId() !== 'myeventlane_platform_fee') {
+        continue;
+      }
+      $displayedFeeCents += (int) round((float) $adjustment->getAmount()->getNumber() * 100);
+    }
+
+    $applicationFeeCents = $this->calculateApplicationFee($order);
+    if ($displayedFeeCents !== $applicationFeeCents) {
+      return [
+        'valid' => FALSE,
+        'message' => 'The MEL application fee does not match the platform fee shown on this order.',
       ];
     }
 
@@ -298,7 +447,7 @@ final class StripeConnectPaymentService {
   /**
    * Calculates vendor transfer amount in cents (ticket + organiser donations).
    */
-  public function calculateVendorTransferAmount(OrderInterface $order): int {
+  public function calculateOrganiserChargeRevenue(OrderInterface $order): int {
     return $this->calculateTicketRevenue($order) + $this->calculateOrganiserDonationRevenue($order);
   }
 
@@ -307,22 +456,18 @@ final class StripeConnectPaymentService {
    *
    * IMPORTANT: Application fee is calculated ONLY on ticket revenue,
    * NOT on donations. Organiser and platform donations do not incur
-   * vendor payout fees.
+   * MEL application fees.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
    * @param float $feePercentage
    *   Fee percentage (e.g., 0.03 for 3%).
-   * @param int $fixedFeeCents
-   *   Fixed fee in cents (e.g., 30 for $0.30).
-   *
    * @return int
    *   Application fee in cents (calculated on ticket revenue only).
    */
-  public function calculateApplicationFee(OrderInterface $order, ?float $feePercentage = NULL, ?int $fixedFeeCents = NULL): int {
+  public function calculateApplicationFee(OrderInterface $order, ?float $feePercentage = NULL): int {
     $config = $this->configFactory->get('myeventlane_core.settings');
-    $feePercentage = $feePercentage ?? (float) ($config->get('stripe_fee_percent') ?? 3) / 100;
-    $fixedFeeCents = $fixedFeeCents ?? (int) ($config->get('stripe_fee_fixed_cents') ?? 30);
+    $feePercentage = $feePercentage ?? (float) ($config->get('platform_fee_percent') ?? 1.5) / 100;
 
     // Calculate fee only on ticket revenue (excludes donations).
     $ticketRevenue = $this->calculateTicketRevenue($order);
@@ -330,24 +475,23 @@ final class StripeConnectPaymentService {
       return 0;
     }
 
-    return $this->stripeService->calculateApplicationFee($ticketRevenue, $feePercentage, $fixedFeeCents);
+    return $this->stripeService->calculateApplicationFee($ticketRevenue, $feePercentage, 0);
   }
 
   /**
-   * Gets payment intent parameters for Connect destination charge.
+   * Gets PaymentIntent parameters for an organiser direct charge.
    *
    * STRIPE CONNECT MATH:
-   * - Customer pays: total order amount (tickets + donations + fees + tax)
-   * - Platform receives: application_fee_amount + platform donation revenue
-   * - Vendor receives: ticket revenue + organiser donations - application_fee.
+   * The request itself must be made in the connected-account context. This
+   * method deliberately returns no transfer_data or destination parameter.
    *
    * Example:
    * - Tickets: $100.00
    * - Organiser donations: $20.00
-   * - Application fee (3% + $0.30 on $100): $3.30
+   * - Application fee (1.5% GST-inclusive on $100): $1.50
    * - Total charged: $120.00
-   * - Vendor receives: $120.00 - $3.30 = $116.70
-   * - Platform receives: $3.30 (fee)
+   * - Organiser charge: $120.00 on the connected account
+   * - MEL application fee: $1.50
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order
    *   The order.
@@ -356,16 +500,17 @@ final class StripeConnectPaymentService {
    *   Parameters to add to PaymentIntent creation, or empty array if not needed.
    */
   public function getConnectPaymentIntentParams(OrderInterface $order): array {
-    $accountId = $this->getStripeAccountIdForOrder($order);
-    if (empty($accountId)) {
+    $validation = $this->validateDirectChargeOrder($order);
+    if (!$validation['valid'] || $validation['account_id'] === NULL) {
       return [];
     }
+    $accountId = $validation['account_id'];
 
     $ticketRevenue = $this->calculateTicketRevenue($order);
     $organiserDonationRevenue = $this->calculateOrganiserDonationRevenue($order);
-    $vendorTransferAmount = $ticketRevenue + $organiserDonationRevenue;
+    $organiserChargeRevenue = $this->calculateOrganiserChargeRevenue($order);
 
-    if ($vendorTransferAmount <= 0) {
+    if ($organiserChargeRevenue <= 0) {
       return [];
     }
 
@@ -373,26 +518,21 @@ final class StripeConnectPaymentService {
 
     $params = [
       'application_fee_amount' => $applicationFee,
-      'transfer_data' => [
-        'destination' => $accountId,
-        'amount' => $vendorTransferAmount,
-      ],
       'metadata' => [
         'order_id' => (string) $order->id(),
+        'mel_charge_model' => 'organiser_direct_charge',
+        'mel_connected_account' => $accountId,
       ],
     ];
 
-    $platformDonationRevenue = $this->calculateDonationRevenue($order) - $organiserDonationRevenue;
     $this->logger->info(
-      'Stripe Connect params for order @order_id: ticket_revenue=@ticket, organiser_donation_revenue=@organiser, platform_donation_revenue=@platform, transfer_amount=@transfer, fee=@fee, vendor_receives=@vendor',
+      'Stripe direct-charge params for order @order_id: account=@account, ticket_revenue=@ticket, organiser_donation_revenue=@organiser, application_fee=@fee',
       [
         '@order_id' => $order->id(),
+        '@account' => $accountId,
         '@ticket' => $ticketRevenue,
         '@organiser' => $organiserDonationRevenue,
-        '@platform' => $platformDonationRevenue,
-        '@transfer' => $vendorTransferAmount,
         '@fee' => $applicationFee,
-        '@vendor' => $vendorTransferAmount - $applicationFee,
       ]
     );
 
@@ -405,7 +545,7 @@ final class StripeConnectPaymentService {
    * Boost-only orders use the platform account. Mixed boost + ticket/donation orders
    * still require Connect for the vendor-paid portion.
    */
-  private function orderRequiresConnect(OrderInterface $order): bool {
+  public function requiresDirectCharge(OrderInterface $order): bool {
     $hasBoost = FALSE;
     $requiresConnect = FALSE;
 

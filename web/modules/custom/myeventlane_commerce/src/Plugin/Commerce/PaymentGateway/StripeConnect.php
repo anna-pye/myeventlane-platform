@@ -6,17 +6,23 @@ namespace Drupal\myeventlane_commerce\Plugin\Commerce\PaymentGateway;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
-use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsStoredPaymentMethodsInterface;
+use Drupal\commerce_payment\Entity\PaymentMethodInterface;
+use Drupal\commerce_price\Price;
 use Drupal\commerce_stripe\Plugin\Commerce\PaymentGateway\StripePaymentElement;
 use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;
+use Drupal\user\UserInterface;
+use Stripe\Event;
 use Stripe\PaymentIntent;
+use Stripe\PaymentMethod;
+use Stripe\Stripe as StripeLibrary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Provides the Stripe Connect payment gateway.
  *
- * Extends the Stripe PaymentElement gateway to add Connect destination charges
- * for vendor ticket sales.
+ * Creates organiser direct charges in the connected Stripe account context.
  *
  * @CommercePaymentGateway(
  *   id = "stripe_connect",
@@ -24,16 +30,15 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   display_label = @Translation("Credit card"),
  *   forms = {
  *     "offsite-payment" = "Drupal\commerce_stripe\PluginForm\OffsiteRedirect\PaymentOffsiteForm",
- *     "add-payment-method" = "Drupal\commerce_stripe\PluginForm\PaymentMethodAddForm",
  *   },
- *   payment_method_types = {"credit_card"},
+ *   payment_method_types = {"stripe_card"},
  *   credit_card_types = {
  *     "amex", "dinersclub", "discover", "jcb", "mastercard", "visa"
  *   },
  *   requires_billing_information = TRUE,
  * )
  */
-class StripeConnect extends StripePaymentElement implements SupportsStoredPaymentMethodsInterface {
+class StripeConnect extends StripePaymentElement {
 
   /**
    * The Stripe Connect payment service.
@@ -55,22 +60,166 @@ class StripeConnect extends StripePaymentElement implements SupportsStoredPaymen
    * {@inheritdoc}
    */
   public function createPaymentIntent(OrderInterface $order, $intent_attributes = [], ?PaymentInterface $payment = NULL): PaymentIntent {
-    /** @var array $intent_attributes */
-    $connectParams = $this->stripeConnectPayment->getConnectPaymentIntentParams($order);
+    $previousAccount = $this->enterConnectedAccountContext($order, TRUE);
+    try {
+      /** @var array $intent_attributes */
+      $connectParams = $this->stripeConnectPayment->getConnectPaymentIntentParams($order);
 
-    if (!empty($connectParams)) {
-      // Deep-merge metadata so we never overwrite keys set by Commerce or
-      // contrib modules (e.g. payment_intent_id added by commerce_stripe).
-      if (isset($connectParams['metadata']) && isset($intent_attributes['metadata'])) {
-        $connectParams['metadata'] = array_merge(
-          $connectParams['metadata'],
-          (array) $intent_attributes['metadata'],
-        );
+      if (!empty($connectParams)) {
+        // Deep-merge metadata so we never overwrite keys set by Commerce or
+        // contrib modules (e.g. payment_intent_id added by commerce_stripe).
+        if (isset($connectParams['metadata']) && isset($intent_attributes['metadata'])) {
+          $connectParams['metadata'] = array_merge(
+            (array) $intent_attributes['metadata'],
+            $connectParams['metadata'],
+          );
+        }
+        $intent_attributes = array_merge($intent_attributes, $connectParams);
       }
-      $intent_attributes = array_merge($intent_attributes, $connectParams);
+
+      return parent::createPaymentIntent($order, $intent_attributes, $payment);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function createPayment(PaymentInterface $payment, $capture = TRUE): void {
+    $previousAccount = $this->enterConnectedAccountContext($payment->getOrder());
+    try {
+      parent::createPayment($payment, $capture);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function onReturn(OrderInterface $order, Request $request): void {
+    $previousAccount = $this->enterConnectedAccountContext($order);
+    try {
+      parent::onReturn($order, $request);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * Processes Connect webhook objects in their originating account context.
+   *
+   * Connect events include the connected account on the event envelope. The
+   * parent handler may retrieve related Stripe objects, so the same account
+   * context is required for both synchronous and queued webhook processing.
+   */
+  public function processWebHook(?int $webhook_event_id, Event $webhook_event): ?Response {
+    $accountId = trim((string) ($webhook_event->account ?? ''));
+    if (!str_starts_with($accountId, 'acct_')) {
+      throw new \LogicException('Connected Stripe account is missing from direct-charge webhook.');
     }
 
-    return parent::createPaymentIntent($order, $intent_attributes, $payment);
+    $previousAccount = StripeLibrary::getAccountId();
+    StripeLibrary::setAccountId($accountId);
+    try {
+      return parent::processWebHook($webhook_event_id, $webhook_event);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function capturePayment(PaymentInterface $payment, ?Price $amount = NULL): void {
+    $previousAccount = $this->enterConnectedAccountContext($payment->getOrder());
+    try {
+      parent::capturePayment($payment, $amount);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function voidPayment(PaymentInterface $payment): void {
+    $previousAccount = $this->enterConnectedAccountContext($payment->getOrder());
+    try {
+      parent::voidPayment($payment);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function refundPayment(PaymentInterface $payment, ?Price $amount = NULL): void {
+    $previousAccount = $this->enterConnectedAccountContext($payment->getOrder());
+    try {
+      parent::refundPayment($payment, $amount);
+    }
+    finally {
+      StripeLibrary::setAccountId($previousAccount);
+    }
+  }
+
+  /**
+   * Direct-charge payment methods cannot be reused across organiser accounts.
+   */
+  protected function isReusable(): bool {
+    return FALSE;
+  }
+
+  /**
+   * A gateway-level customer ID cannot identify customers in many accounts.
+   */
+  public function getRemoteCustomerId(UserInterface $account): ?string {
+    return NULL;
+  }
+
+  /**
+   * Keeps the local method single-use and avoids creating Stripe Customers.
+   */
+  public function attachCustomerToStripePaymentMethod(PaymentMethodInterface $payment_method, array $payment_details): PaymentMethod {
+    $payment_method->setReusable(FALSE);
+    /** @var \Stripe\PaymentMethod $stripePaymentMethod */
+    $stripePaymentMethod = $payment_details['stripe_payment_method'];
+    return $stripePaymentMethod;
+  }
+
+  /**
+   * Enters the immutable connected-account context for an order.
+   */
+  private function enterConnectedAccountContext(OrderInterface $order, bool $persist = FALSE): ?string {
+    $accountId = trim((string) ($order->getData('stripe_connected_account_id') ?? ''));
+    if ($accountId === '') {
+      $validation = $this->stripeConnectPayment->validateDirectChargeOrder($order);
+      if (!$validation['valid'] || $validation['account_id'] === NULL) {
+        throw new \LogicException($validation['message'] ?? 'Direct-charge account validation failed.');
+      }
+      $accountId = $validation['account_id'];
+    }
+
+    if (!str_starts_with($accountId, 'acct_')) {
+      throw new \LogicException('Invalid connected Stripe account for direct charge.');
+    }
+
+    if ($persist && $order->getData('stripe_connected_account_id') !== $accountId) {
+      $order->setData('stripe_connected_account_id', $accountId);
+    }
+
+    $previousAccount = StripeLibrary::getAccountId();
+    StripeLibrary::setAccountId($accountId);
+    return $previousAccount;
   }
 
 }

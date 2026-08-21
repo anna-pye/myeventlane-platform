@@ -24,8 +24,8 @@ access admin dashboard:
   restrict access: TRUE
 
 'view myeventlane payouts':
-  title: 'View MyEventLane payouts'
-  description: 'View payout liability and management on the admin dashboard.'
+  title: 'View legacy transfer history'
+  description: 'View historical MEL transfer liabilities. This route is unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'view myeventlane reports':
@@ -39,36 +39,36 @@ access admin dashboard:
   restrict access: TRUE
 
 'manage myeventlane payouts':
-  title: 'Manage MyEventLane payouts'
-  description: 'Mark payouts as paid and record Stripe transfer IDs.'
+  title: 'Manage legacy transfer history'
+  description: 'Legacy permission retained for pre-migration records; unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'reverse myeventlane payouts':
-  title: 'Reverse MyEventLane payouts'
-  description: 'Reverse a paid payout back to unpaid status.'
+  title: 'Reverse legacy transfer records'
+  description: 'Legacy permission retained for pre-migration records; unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'request myeventlane payouts':
-  title: 'Request MyEventLane payouts'
-  description: 'Queue unpaid ledger rows into a payout batch and submit for approval.'
+  title: 'Request legacy transfer batches'
+  description: 'Legacy permission retained for pre-migration records; unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'approve myeventlane payouts':
-  title: 'Approve MyEventLane payouts'
-  description: 'Approve a pending payout batch (finance gate).'
+  title: 'Approve legacy transfer batches'
+  description: 'Legacy permission retained for pre-migration records; unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'execute myeventlane payouts':
-  title: 'Execute MyEventLane payouts'
-  description: 'Create Stripe transfers for approved payout batches or individual ledger entries.'
+  title: 'Execute legacy transfer batches'
+  description: 'Legacy permission retained for rollback only; unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'cancel myeventlane payouts':
-  title: 'Cancel MyEventLane payouts'
-  description: 'Cancel a payout batch, releasing ledger rows back to unpaid.'
+  title: 'Cancel legacy transfer batches'
+  description: 'Legacy permission retained for pre-migration records; unavailable in direct-charge mode.'
   restrict access: TRUE
 
 'execute myeventlane payout batches':
-  title: 'Execute MyEventLane payout batches'
-  description: 'Create grouped Stripe transfers per vendor for selected unpaid entries.'
+  title: 'Execute grouped legacy transfers'
+  description: 'Legacy permission retained for rollback only; unavailable in direct-charge mode.'
   restrict access: TRUE

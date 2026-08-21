@@ -80,6 +80,9 @@ final class VendorPaymentsHealthService {
       $accountId = trim((string) $store->get('field_stripe_account_id')->value);
     }
     $hasAccount = $accountId !== '' && str_starts_with($accountId, 'acct_');
+    $replacementPending = $store->hasField('field_stripe_replacement_id')
+      && !$store->get('field_stripe_replacement_id')->isEmpty()
+      && str_starts_with(trim((string) $store->get('field_stripe_replacement_id')->value), 'acct_');
 
     $charges = $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()
       ? (bool) $store->get('field_stripe_charges_enabled')->value
@@ -104,6 +107,27 @@ final class VendorPaymentsHealthService {
       return $base;
     }
 
+    if ($replacementPending) {
+      return array_merge($base, [
+        'state' => 'reconnection_pending',
+        'tone' => 'attention',
+        'headline' => (string) $this->t('Finish reconnecting Stripe'),
+        'summary' => (string) $this->t('Your replacement Stripe account still needs setup or verification.'),
+        'why' => (string) $this->t('Direct ticket payments require the approved connected-account configuration.'),
+        'impact' => (string) $this->t('Paid ticket sales stay blocked until the replacement is ready.'),
+        'next_step' => (string) $this->t('Continue the remaining steps in Stripe.'),
+        'cta_label' => (string) $this->t('Continue Stripe reconnection'),
+        'cta_url' => $this->safeRouteUrl('myeventlane_vendor.stripe_reconnect', [], [
+          'query' => ['destination' => '/vendor/payments'],
+        ]),
+        'secondary_cta_label' => $manageUrl ? (string) $this->t('Open previous Stripe account') : NULL,
+        'secondary_cta_url' => $manageUrl,
+        'connected' => FALSE,
+        'verification_status' => (string) $this->t('Reconnection in progress'),
+        'needs_attention' => TRUE,
+      ]);
+    }
+
     $base['secondary_cta_label'] = $manageUrl ? (string) $this->t('Open Stripe') : NULL;
     $base['secondary_cta_url'] = $manageUrl;
 
@@ -112,11 +136,11 @@ final class VendorPaymentsHealthService {
         'state' => 'ready',
         'tone' => 'success',
         'headline' => (string) $this->t('Ready to receive payments'),
-        'summary' => (string) $this->t('Stripe is connected. You can sell tickets and receive payouts.'),
-        'why' => (string) $this->t('Your payment account is verified and payouts are enabled.'),
+        'summary' => (string) $this->t('Stripe is connected. You can sell tickets and receive Stripe payouts.'),
+        'why' => (string) $this->t('Your Stripe payment account is verified and Stripe payouts are enabled.'),
         'impact' => (string) $this->t("Ticket sales can reach your bank on Stripe's usual schedule."),
-        'next_step' => (string) $this->t('Check payouts anytime from this page.'),
-        'cta_label' => (string) $this->t('View payouts'),
+        'next_step' => (string) $this->t('Check Stripe payouts anytime from this page.'),
+        'cta_label' => (string) $this->t('View Stripe payouts'),
         'cta_url' => $this->safeRouteUrl('myeventlane_vendor.console.payouts') ?? '/vendor/payouts',
         'connected' => TRUE,
         'verification_status' => (string) $this->t('Connected'),
@@ -133,7 +157,7 @@ final class VendorPaymentsHealthService {
         'headline' => (string) $this->t('Stripe needs attention'),
         'summary' => (string) $this->t('Stripe needs more information before payments can continue smoothly.'),
         'why' => (string) $this->t('Verification or account requirements are outstanding in Stripe.'),
-        'impact' => (string) $this->t('Charges or payouts may be paused until this is resolved.'),
+        'impact' => (string) $this->t('Stripe charges or payouts may be paused until this is resolved.'),
         'next_step' => (string) $this->t('Review the outstanding items in Stripe.'),
         'cta_label' => (string) $this->t('Fix issue'),
         'cta_url' => $resumeUrl ?? $manageUrl,
@@ -147,15 +171,15 @@ final class VendorPaymentsHealthService {
       return array_merge($base, [
         'state' => 'payout_delayed',
         'tone' => 'attention',
-        'headline' => (string) $this->t('Payout delayed'),
-        'summary' => (string) $this->t('You can sell tickets, but payouts to your bank are still restricted.'),
+        'headline' => (string) $this->t('Stripe payout delayed'),
+        'summary' => (string) $this->t('You can sell tickets, but Stripe payouts to your bank are still restricted.'),
         'why' => (string) $this->t('Stripe still needs bank or identity details before it can send payouts.'),
-        'impact' => (string) $this->t('Sales may be held until payout details are complete.'),
+        'impact' => (string) $this->t('Stripe may keep funds in your Stripe balance until its payout requirements are complete.'),
         'next_step' => (string) $this->t('Open Stripe and finish your payout details.'),
         'cta_label' => (string) $this->t('Fix issue'),
         'cta_url' => $manageUrl ?? $resumeUrl,
         'connected' => TRUE,
-        'verification_status' => (string) $this->t('Payouts restricted'),
+        'verification_status' => (string) $this->t('Stripe payouts restricted'),
         'needs_attention' => TRUE,
       ]);
     }

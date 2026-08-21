@@ -1,10 +1,14 @@
 # ADR-002 — MEL Payment Runtime Architecture (Current)
 
-**Status:** Accepted as documentation of **current** runtime (not aspirational)  
+**Status:** Historical runtime record; superseded by [ADR-004](./ADR-004-organiser-direct-charges.md) for new organiser ticket payments
 **Date:** 20 July 2026  
 **Deciders:** Audit Phase 1–2 (Engineering documentation)  
 **Evidence:** DDEV runtime inspection + repository map  
 **Related:** [`payment-critical-findings.md`](../architecture/payment-critical-findings.md), [`payment-runtime-map.md`](../architecture/payment-runtime-map.md), [`ADR-003-stripe-connect-strategy.md`](./ADR-003-stripe-connect-strategy.md)
+
+> This document records the runtime observed on 20 July 2026. It is not the
+> approved target architecture and must not be used to re-enable MEL Transfers
+> after direct-charge activation.
 
 ---
 

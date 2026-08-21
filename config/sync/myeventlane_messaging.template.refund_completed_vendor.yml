@@ -3,7 +3,7 @@ subject: 'Refund completed – {{ event_title }}'
 body_html: |-
   The refund for Order {{ order_number }} ({{ refunded_amount }}) has been completed.
 
-  The customer has been notified.
+  Stripe processed the refund from your connected Stripe account. The customer has been notified.
 
   {% if adjustment_note_number %}
   Adjustment note: {{ adjustment_note_number }}

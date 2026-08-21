@@ -682,7 +682,7 @@
                 {% elseif mel_publish_stripe_gate %}
                   <div class="mel-publish-warning mel-publish-warning--stripe" role="region" aria-label="{{ 'Finish payment setup before publishing'|t }}">
                     <h3 class="mel-publish-warning__title">{{ 'Finish payment setup before publishing'|t }}</h3>
-                    <p class="mel-publish-warning__lead">{{ 'To accept event payments, finish your Stripe setup so payouts can reach your bank.'|t }}</p>
+                    <p class="mel-publish-warning__lead">{{ 'To accept event payments, finish your Stripe setup. Ticket payments go to your connected Stripe account, and Stripe sends available funds to your bank.'|t }}</p>
                     <a href="{{ mel_stripe_connect_url }}" class="mel-btn mel-btn--primary mel-publish-warning__cta">
                       {{ 'Resume Stripe setup'|t }}
                     </a>

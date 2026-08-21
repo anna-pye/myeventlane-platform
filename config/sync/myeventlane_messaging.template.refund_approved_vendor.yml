@@ -3,7 +3,7 @@ subject: 'Refund approved – {{ event_title }}'
 body_html: |-
   You approved the refund request for Order {{ order_number }} ({{ refunded_amount }}).
 
-  The refund is being processed.
+  Stripe will process the refund from your connected Stripe account. Make sure sufficient funds are available and review any failure rather than promising a completion date.
 utm:
   enable: true
   params:

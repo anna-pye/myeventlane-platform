@@ -42,11 +42,11 @@
         {% if stripe.stripe_dashboard_url %}
           <a href="{{ stripe.stripe_dashboard_url }}" target="_blank" rel="noopener" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'Open Stripe Dashboard'|t }}</a>
         {% endif %}
-        <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'View payout history'|t }}</a>
+        <a href="{{ path('myeventlane_vendor.console.payouts') }}" class="mel-btn mel-btn--secondary mel-btn--sm">{{ 'View Stripe payout history'|t }}</a>
       </div>
 
     {% elseif phase == 'needs_completion' %}
-      <p class="mel-stripe-panel__lead">{{ 'Finish setting up Stripe so payouts can reach your bank.'|t }}</p>
+      <p class="mel-stripe-panel__lead">{{ 'Finish setting up Stripe so Stripe payouts can reach your bank.'|t }}</p>
       <div class="mel-stripe-panel__actions">
         <a href="{{ stripe.resume_url|default(stripe.connect_url)|default(path('myeventlane_vendor.stripe_connect', {}, {query: {destination: app.request.getPathInfo()}})) }}" class="mel-btn mel-btn--primary mel-button mel-button--primary mel-button--stripe">{{ 'Finish Stripe setup'|t }}</a>
       </div>

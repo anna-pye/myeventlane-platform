@@ -7,6 +7,7 @@
 
 declare(strict_types=1);
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
@@ -634,6 +635,24 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
   $is_commerce_checkout_form = str_starts_with($form_id, 'commerce_checkout_flow_');
   if (in_array($form_id, $workspace_safe_form_ids, TRUE) || $is_commerce_checkout_form) {
     $form_state->set('workspace_safe', TRUE);
+  }
+
+  // Stripe.js must be initialised in the same connected-account context as a
+  // direct-charge PaymentIntent. The contrib patch consumes this setting.
+  if ($is_commerce_checkout_form
+    && (bool) \Drupal::config('myeventlane_core.settings')->get('direct_charge_enabled')
+    && isset($form['#attached']['drupalSettings']['commerceStripePaymentElement'])) {
+    $order = \Drupal::routeMatch()->getParameter('commerce_order');
+    if (is_numeric($order)) {
+      $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);
+    }
+    if ($order instanceof OrderInterface) {
+      $validation = \Drupal::service('myeventlane_commerce.stripe_connect_payment')
+        ->validateDirectChargeOrder($order);
+      if ($validation['valid'] && $validation['account_id'] !== NULL) {
+        $form['#attached']['drupalSettings']['commerceStripePaymentElement']['stripeAccount'] = $validation['account_id'];
+      }
+    }
   }
 
   // Cart Views form: clearer primary action label (conversion layer).

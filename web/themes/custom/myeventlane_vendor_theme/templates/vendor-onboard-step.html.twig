@@ -36,11 +36,11 @@
       {% if stripe_state %}
         <div class="mel-stripe-onboard-summary mel-es-card" role="status">
           {% if stripe_state.payouts_enabled %}
-            <p class="mel-stripe-onboard-summary__line mel-stripe-onboard-summary__line--ok">{{ 'Payouts enabled'|t }} <span aria-hidden="true">✅</span></p>
+            <p class="mel-stripe-onboard-summary__line mel-stripe-onboard-summary__line--ok">{{ 'Stripe payouts enabled'|t }} <span aria-hidden="true">✅</span></p>
           {% elseif stripe_state.is_onboarding_complete %}
             <p class="mel-stripe-onboard-summary__line mel-stripe-onboard-summary__line--ok">{{ 'Stripe is connected — you can accept ticket payments.'|t }}</p>
           {% elseif stripe_state.is_connected %}
-            <p class="mel-stripe-onboard-summary__line">{{ 'Continue setting up payments in Stripe to enable payouts.'|t }}</p>
+            <p class="mel-stripe-onboard-summary__line">{{ 'Continue setting up payments in Stripe to enable Stripe payouts.'|t }}</p>
           {% else %}
             <p class="mel-stripe-onboard-summary__line">{{ 'Connect Stripe to accept ticket payments.'|t }}</p>
           {% endif %}

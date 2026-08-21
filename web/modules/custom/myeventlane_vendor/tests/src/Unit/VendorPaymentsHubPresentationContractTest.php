@@ -32,12 +32,16 @@ final class VendorPaymentsHubPresentationContractTest extends TestCase {
 
   public function testBuilderExplainsBalancesAndUsesPayoutAwareEmptyStates(): void {
     $builder = file_get_contents($this->repositoryRoot() . '/web/modules/custom/myeventlane_vendor/src/Service/VendorPaymentsHubBuilder.php');
+    $template = file_get_contents($this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/templates/payments-hub.html.twig');
     $this->assertIsString($builder);
+    $this->assertIsString($template);
     $this->assertStringContainsString("'available_help'", $builder);
     $this->assertStringContainsString("'pending_help'", $builder);
     $this->assertStringContainsString("'net_help'", $builder);
-    $this->assertStringContainsString('Payouts are not enabled yet', $builder);
-    $this->assertStringContainsString('No payout has arrived yet', $builder);
+    $this->assertStringContainsString('Stripe payouts are not enabled yet', $builder);
+    $this->assertStringContainsString('No Stripe payout has arrived yet', $builder);
+    $this->assertStringContainsString("'Stripe payouts'|t", $template);
+    $this->assertStringContainsString("'Last Stripe payout'|t", $template);
   }
 
   public function testThemeSupportsWideDesktopAndMobileStacking(): void {

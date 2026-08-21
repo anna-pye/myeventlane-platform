@@ -93,7 +93,7 @@ final class VendorEventOverviewController extends VendorConsoleBaseController {
         ],
         'export_csv_url' => $analyticsUrl ?? '#',
         'anomaly_message' => (string) $this->t('No anomalies detected'),
-        'empty_insights_message' => (string) $this->t('Financial insights will appear as bookings and payouts build up.'),
+        'empty_insights_message' => (string) $this->t('Financial insights will appear as bookings and Stripe payouts build up.'),
       ];
     }
     $charts = $this->metricsAggregator->getEventCharts($event);

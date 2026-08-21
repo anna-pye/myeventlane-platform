@@ -5,7 +5,7 @@ body_html: |-
 
   Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been approved and is being processed.
 
-  You should see the refund ({{ refunded_amount }}) within 2–5 business days.
+  Amount being refunded: {{ refunded_amount }}. After Stripe processes the refund, arrival timing depends on the original payment method and your financial institution.
 
   <a href="{{ my_tickets_url }}">View your tickets</a>
 utm:

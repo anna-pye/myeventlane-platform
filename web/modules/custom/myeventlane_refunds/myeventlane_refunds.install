@@ -424,6 +424,8 @@ We\'ll notify you once the event organiser has reviewed your request.
 Order: {{ order_number }}
 Amount: {{ refunded_amount }}
 
+You remain responsible for the refund decision for your event, subject to applicable law. If you approve it, the refunded money comes from your connected Stripe account.
+
 Please review and approve or reject this request in your vendor dashboard.',
     ],
     'refund_approved_buyer' => [
@@ -432,7 +434,7 @@ Please review and approve or reject this request in your vendor dashboard.',
 
 Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been approved and is being processed.
 
-You should see the refund ({{ refunded_amount }}) within 2–5 business days.
+Amount being refunded: {{ refunded_amount }}. After Stripe processes the refund, arrival timing depends on the original payment method and your financial institution.
 
 <a href="{{ my_tickets_url }}">View your tickets</a>',
     ],
@@ -440,7 +442,7 @@ You should see the refund ({{ refunded_amount }}) within 2–5 business days.
       'subject' => 'Refund approved – {{ event_title }}',
       'body' => 'You approved the refund request for Order {{ order_number }} ({{ refunded_amount }}).
 
-The refund is being processed.',
+Stripe will process the refund from your connected Stripe account. Make sure sufficient funds are available and review any failure rather than promising a completion date.',
     ],
     'refund_rejected_buyer' => [
       'subject' => 'Refund request declined – {{ event_title }}',
@@ -451,6 +453,8 @@ Your refund request for <strong>{{ event_title }}</strong> (Order {{ order_numbe
 {% if rejection_reason %}
 Reason: {{ rejection_reason }}
 {% endif %}
+
+This decision does not affect rights you may have under Australian Consumer Law. Contact the organiser first, or contact MyEventLane support if you cannot resolve the issue.
 
 <a href="{{ my_tickets_url }}">View your tickets</a>',
     ],
@@ -468,7 +472,17 @@ Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) ha
 
 Amount refunded: {{ refunded_amount }}
 
-The refund should appear on your card within 2–5 business days.
+{% if adjustment_note_number %}
+<strong>Adjustment note {{ adjustment_note_number }}</strong><br>
+Date: {{ adjustment_note_date }}<br>
+Supplier: {{ supplier_name }}<br>
+{% if supplier_abn %}ABN: {{ supplier_abn }}<br>{% endif %}
+Original invoice: {{ order_number }}<br>
+Reason: {{ adjustment_reason }}<br>
+GST adjustment: {{ gst_adjustment }}
+{% endif %}
+
+Stripe has sent the refund to the original payment method. The time it takes to appear depends on the payment method and financial institution.
 
 {% if tickets_cancelled and tickets_cancelled > 0 %}
 Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
@@ -480,7 +494,14 @@ Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
       'subject' => 'Refund completed – {{ event_title }}',
       'body' => 'The refund for Order {{ order_number }} ({{ refunded_amount }}) has been completed.
 
-The customer has been notified.
+Stripe processed the refund from your connected Stripe account. The customer has been notified.
+
+{% if adjustment_note_number %}
+Adjustment note: {{ adjustment_note_number }}
+Date: {{ adjustment_note_date }}
+Reason: {{ adjustment_reason }}
+GST adjustment: {{ gst_adjustment }}
+{% endif %}
 
 {% if stripe_refund_id %}
 Stripe refund reference: {{ stripe_refund_id }}
@@ -511,15 +532,17 @@ Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
 
 Your refund for <strong>{{ event_title }}</strong> (Order {{ order_number }}) could not be fully confirmed yet.
 
-Our team has been notified and will review this.
+MyEventLane support can investigate the recorded refund state with the organiser. We\'ll email you again when there is a confirmed outcome.
 
-Reference: {{ error_message }}',
+Order reference: {{ order_number }}',
     ],
     'refund_failed_vendor' => [
       'subject' => 'Refund needs attention – {{ event_title }}',
       'body' => 'A refund for Order {{ order_number }} ({{ refunded_amount }}) requires review.
 
-Reason: {{ error_message }}',
+Reason: {{ error_message }}
+
+Check your connected Stripe account, including whether sufficient funds are available, then retry or contact MyEventLane support with the order reference.',
     ],
     'refund_failed_admin' => [
       'subject' => 'Refund failure alert – {{ event_title }}',
@@ -529,6 +552,8 @@ Event: {{ event_title }}
 Order: {{ order_number }}
 Amount: {{ refunded_amount }}
 Reason: {{ error_message }}
+
+Check the MEL refund record and connected-account context. Stripe controls the payment and dispute outcome; staff must not promise to release funds or override Stripe.
 
 {% if stripe_refund_id %}
 Stripe refund reference: {{ stripe_refund_id }}

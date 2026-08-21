@@ -79,6 +79,7 @@ myeventlane_admin_dashboard.payouts:
     _title: 'Payouts'
   requirements:
     _permission: 'view myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
   options:
     _admin_route: TRUE
     _menu_base_route: myeventlane_admin_dashboard.platform_control
@@ -102,6 +103,7 @@ myeventlane_admin_dashboard.payout_mark_paid:
     _title: 'Mark payout paid'
   requirements:
     _permission: 'manage myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     ledger_id: '\d+'
   options:
     _admin_route: TRUE
@@ -114,6 +116,7 @@ myeventlane_admin_dashboard.payout_mark_unpaid:
     _title: 'Reverse payout'
   requirements:
     _permission: 'reverse myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     ledger_id: '\d+'
   options:
     _admin_route: TRUE
@@ -126,6 +129,7 @@ myeventlane_admin_dashboard.payout_bulk_mark_paid:
     _title: 'Bulk mark paid'
   requirements:
     _permission: 'manage myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
   options:
     _admin_route: TRUE
   methods: [POST]
@@ -137,6 +141,7 @@ myeventlane_admin_dashboard.payout_create_transfer:
     _title: 'Create payout transfer'
   requirements:
     _permission: 'execute myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     ledger_id: '\d+'
   options:
     _admin_route: TRUE
@@ -149,6 +154,7 @@ myeventlane_admin_dashboard.payout_batch_transfer:
     _title: 'Batch payout transfer'
   requirements:
     _permission: 'execute myeventlane payout batches'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
   options:
     _admin_route: TRUE
   methods: [POST]
@@ -177,6 +183,7 @@ myeventlane_admin_dashboard.payout_batches:
     _title: 'Payout batches'
   requirements:
     _permission: 'view myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
   options:
     _admin_route: TRUE
     _menu_base_route: myeventlane_admin_dashboard.platform_control
@@ -189,6 +196,7 @@ myeventlane_admin_dashboard.payout_batch_create:
     _title: 'Create payout batch'
   requirements:
     _permission: 'request myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
   options:
     _admin_route: TRUE
   methods: [POST]
@@ -201,6 +209,7 @@ myeventlane_admin_dashboard.payout_batch_view:
     _title_callback: 'myeventlane_admin_dashboard.payout_batch_ui_controller:viewTitle'
   requirements:
     _permission: 'view myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     batch_id: '\d+'
   options:
     _admin_route: TRUE
@@ -214,6 +223,7 @@ myeventlane_admin_dashboard.payout_batch_submit:
     _title: 'Submit payout batch'
   requirements:
     _permission: 'request myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     batch_id: '\d+'
   options:
     _admin_route: TRUE
@@ -227,6 +237,7 @@ myeventlane_admin_dashboard.payout_batch_approve:
     _title: 'Approve payout batch'
   requirements:
     _permission: 'approve myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     batch_id: '\d+'
   options:
     _admin_route: TRUE
@@ -240,6 +251,7 @@ myeventlane_admin_dashboard.payout_batch_execute:
     _title: 'Execute payout batch'
   requirements:
     _permission: 'execute myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     batch_id: '\d+'
   options:
     _admin_route: TRUE
@@ -253,6 +265,7 @@ myeventlane_admin_dashboard.payout_batch_cancel:
     _title: 'Cancel payout batch'
   requirements:
     _permission: 'cancel myeventlane payouts'
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\LegacyPayoutAccess::access'
     batch_id: '\d+'
   options:
     _admin_route: TRUE

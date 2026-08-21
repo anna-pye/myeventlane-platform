@@ -17,7 +17,7 @@ body_html: |-
   GST adjustment: {{ gst_adjustment }}
   {% endif %}
 
-  The refund should appear on your card within 2–5 business days.
+  Stripe has sent the refund to the original payment method. The time it takes to appear depends on the payment method and financial institution.
 
   <a href="{{ my_tickets_url }}">View Digital Pass</a>
 

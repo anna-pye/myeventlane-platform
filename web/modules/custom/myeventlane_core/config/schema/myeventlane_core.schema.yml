@@ -5,15 +5,18 @@ myeventlane_core.settings:
     platform_fee_percent:
       type: float
       label: 'Platform fee percentage (0-100, e.g. 1.5 for 1.5%)'
+    direct_charge_enabled:
+      type: boolean
+      label: 'Enable organiser direct-charge mode and disable legacy MEL transfers'
+    direct_charge_fee_model_approved:
+      type: boolean
+      label: 'Finance approval recorded for the direct-charge application-fee model'
+    platform_fee_gst_inclusive:
+      type: boolean
+      label: 'MEL ticket platform fee includes GST and has no additional fixed component'
     operational_extras_platform_fee_percent:
       type: float
       label: 'Operational extras platform fee percentage (0-100); empty uses double ticket fee'
-    stripe_fee_percent:
-      type: float
-      label: 'Stripe application fee percentage (e.g. 3 for 3%)'
-    stripe_fee_fixed_cents:
-      type: integer
-      label: 'Stripe application fee fixed amount in cents (e.g. 30 for $0.30)'
     fee_payer:
       type: string
       label: 'Who pays platform fee: buyer or organizer_absorbs'

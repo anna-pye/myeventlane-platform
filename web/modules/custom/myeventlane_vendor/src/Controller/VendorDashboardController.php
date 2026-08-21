@@ -373,13 +373,13 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     $stripeStatusFormatted = $stripeStatus;
     $melState = (string) ($stripeStatus['mel_stripe_state'] ?? 'not_connected');
     $stripeStatusFormatted['status_message'] = match ($melState) {
-      'not_connected' => $this->t('Connect Stripe to receive card payments and payouts for your events.'),
+      'not_connected' => $this->t('Connect Stripe to receive card payments and Stripe payouts for your events.'),
       'continue_setup' => $this->t('Finish setting up your Stripe account to go live with ticket sales.'),
       'under_review' => $this->t('Stripe is reviewing your information. This can take a short time — check back soon.'),
-      'action_required' => $this->t('Action is required in Stripe to keep accepting charges or receiving payouts. Review your Stripe account.'),
-      'payouts_restricted' => $this->t('You can sell tickets, but bank payouts are still restricted. Complete your payout details in Stripe.'),
+      'action_required' => $this->t('Action is required in Stripe to keep accepting charges or receiving Stripe payouts. Review your Stripe account.'),
+      'payouts_restricted' => $this->t('You can sell tickets, but Stripe bank payouts are still restricted. Complete your payout details in Stripe.'),
       'ready_to_sell' => (bool) ($stripeStatus['payouts_enabled'] ?? FALSE)
-        ? $this->t('Stripe is ready: you can sell tickets and receive payouts.')
+        ? $this->t('Stripe is ready: you can sell tickets and receive Stripe payouts.')
         : $this->t('Stripe is ready to process charges. Complete any remaining payout or bank details in your Stripe account.'),
       'disabled' => $this->t('This Stripe account cannot be used. Contact support or review messages in your Stripe account.'),
       default => $this->t('Connect Stripe to receive payments from ticket sales and donations.'),
@@ -2076,7 +2076,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       if ($charges_enabled && $payouts_enabled) {
         $status['connected'] = TRUE;
         $status['status'] = 'connected';
-        $status['status_label'] = (string) $this->t('Payouts enabled');
+        $status['status_label'] = (string) $this->t('Stripe payouts enabled');
         $status['mel_stripe_state'] = 'ready_to_sell';
         $status['primary_action'] = 'open_dashboard';
         $status['action_url'] = $status['manage_stripe_url'] ?? $status['connect_url'];
@@ -2088,7 +2088,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       if ($charges_enabled && !$payouts_enabled) {
         $status['connected'] = TRUE;
         $status['status'] = 'connected';
-        $status['status_label'] = (string) $this->t('Payouts restricted');
+        $status['status_label'] = (string) $this->t('Stripe payouts restricted');
         $status['mel_stripe_state'] = 'payouts_restricted';
         $status['primary_action'] = 'open_dashboard';
         $status['action_url'] = $status['manage_stripe_url'] ?? $status['connect_url'];
@@ -2203,7 +2203,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       $notifications[] = [
         'type' => 'info',
         'icon' => 'credit-card',
-        'message' => t('Add or verify your bank in Stripe to receive ticket payouts'),
+        'message' => t('Add or verify your bank in Stripe to receive Stripe ticket payouts'),
         'url' => $stripeStatus['action_url'] ?? $stripeStatus['connect_url'] ?? '/vendor/stripe/connect',
       ];
     }
@@ -2218,7 +2218,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
         $msg = t('Stripe needs more information. Review requirements in Connect.');
       }
       elseif ($is_finish) {
-        $msg = t('Finish Stripe setup to enable payouts');
+        $msg = t('Finish Stripe setup to enable Stripe payouts');
       }
       $notifications[] = [
         'type' => 'warning',
@@ -2417,7 +2417,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
       ],
       [
         'title' => (string) $this->t('Open Payments'),
-        'description' => (string) $this->t('Check payment health, payouts, and refunds.'),
+        'description' => (string) $this->t('Check payment health, Stripe payouts, and refunds.'),
         'url' => $this->safeRouteUrl('myeventlane_vendor.console.payments'),
       ],
     ]);
@@ -2685,7 +2685,7 @@ final class VendorDashboardController extends VendorConsoleBaseController {
     if ($mel === 'payouts_restricted') {
       $alerts[] = [
         'type' => 'info',
-        'title' => (string) $this->t('Finish payout setup'),
+        'title' => (string) $this->t('Finish Stripe payout setup'),
         'message' => (string) $this->t('You can take card payments. Complete bank and verification in Stripe to receive your transfers.'),
         'url' => $actionUrl,
         'link_label' => (string) $this->t('Open Stripe Dashboard'),

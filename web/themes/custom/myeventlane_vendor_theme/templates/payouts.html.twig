@@ -8,17 +8,17 @@
 <div class="mel-payouts">
   <section class="mel-card mel-card--status mel-payouts__health mel-payouts__health--{{ health_tone }}" aria-labelledby="mel-payout-health-heading">
     <div class="mel-payouts__health-copy">
-      <p class="mel-payments-hub__eyebrow">{{ 'Payout status'|t }}</p>
+      <p class="mel-payments-hub__eyebrow">{{ 'Stripe payout status'|t }}</p>
       <div class="mel-payments-hub__health-heading">
         <h2 id="mel-payout-health-heading" class="mel-payments-hub__health-title">
-          {{ health.needs_attention ? 'Finish your payout setup'|t : health.title|default(health.connected ? 'Stripe is connected'|t : 'Connect Stripe to receive payouts'|t) }}
+          {{ health.needs_attention ? 'Finish your Stripe payout setup'|t : health.title|default(health.connected ? 'Stripe is connected'|t : 'Connect Stripe to receive Stripe payouts'|t) }}
         </h2>
         {% if health.status_label %}
           <span class="mel-payments-hub__status">{{ health.status_label }}</span>
         {% endif %}
       </div>
       <p class="mel-payments-hub__health-summary">
-        {{ health.summary|default(health.connected ? 'Your payout details and balances are shown below.'|t : 'Set up Stripe so ticket earnings can reach your bank account.'|t) }}
+        {{ health.summary|default(health.connected ? 'Your Stripe payout details and balances are shown below.'|t : 'Set up Stripe so ticket earnings can reach your bank account.'|t) }}
       </p>
       {% if health.next_step %}
         <p class="mel-payments-hub__next-step"><strong>{{ 'Next step:'|t }}</strong> {{ health.next_step }}</p>
@@ -65,7 +65,7 @@
   <section class="mel-card mel-payments-hub__section" aria-labelledby="mel-payout-balances-heading">
     <div class="mel-payments-hub__section-header">
       <div>
-        <h2 id="mel-payout-balances-heading" class="mel-payments-hub__section-title">{{ 'Payout balances'|t }}</h2>
+        <h2 id="mel-payout-balances-heading" class="mel-payments-hub__section-title">{{ 'Stripe payout balances'|t }}</h2>
         <p class="mel-payouts__section-intro">{{ 'These balances come from Stripe and show what is ready or still processing.'|t }}</p>
       </div>
     </div>
@@ -79,7 +79,7 @@
         <dd>{{ summary.pending_payout|default('$0.00') }}</dd>
       </div>
       <div class="mel-payments-hub__fact">
-        <dt>{{ 'Last bank payout'|t }}</dt>
+        <dt>{{ 'Last Stripe bank payout'|t }}</dt>
         <dd>{{ summary.last_payout|default('—'|t) }}</dd>
       </div>
       <div class="mel-payments-hub__fact">
@@ -93,7 +93,7 @@
     <div class="mel-payments-hub__section-header">
       <div>
         <h2 id="mel-payout-transactions-heading" class="mel-payments-hub__section-title">{{ 'Recent ticket transactions'|t }}</h2>
-        <p class="mel-payouts__section-intro">{{ 'Completed ticket orders contributing to your earnings. Bank transfers are shown in the payout balance above.'|t }}</p>
+        <p class="mel-payouts__section-intro">{{ 'Completed ticket orders contributing to your earnings. Stripe bank payouts are shown in the balance above.'|t }}</p>
       </div>
     </div>
     <div class="mel-payouts__table-scroll">

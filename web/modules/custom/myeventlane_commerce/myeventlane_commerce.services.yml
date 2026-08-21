@@ -20,6 +20,8 @@ services:
       - '@myeventlane_commerce.order_item_classifier'
       - '@current_user'
       - '@logger.channel.myeventlane_commerce'
+      - '@config.factory'
+      - '@myeventlane_commerce.stripe_connect_payment'
     tags:
       - { name: event_subscriber }
 

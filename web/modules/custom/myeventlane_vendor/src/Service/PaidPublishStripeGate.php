@@ -9,6 +9,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\Policy\DirectChargeCopy;
 use Drupal\myeventlane_vendor\Entity\Vendor;
 use Psr\Log\LoggerInterface;
 
@@ -52,6 +53,11 @@ final class PaidPublishStripeGate {
     if (!$store instanceof StoreInterface) {
       $this->logBlocked((int) $account->id(), $vendorId, $storeId, $eventNodeId, 'no_store');
       return $this->blockedMessage();
+    }
+
+    if ($store->hasField('field_stripe_replacement_id') && !$store->get('field_stripe_replacement_id')->isEmpty()) {
+      $this->logBlocked((int) $account->id(), $vendorId, $storeId, $eventNodeId, 'stripe_reconnection_pending');
+      return (string) $this->t(DirectChargeCopy::RECONNECT_GATE);
     }
 
     if (!$store->hasField('field_stripe_account_id')) {
@@ -101,7 +107,7 @@ final class PaidPublishStripeGate {
   }
 
   private function blockedMessage(): string {
-    return (string) $this->t('To accept event payments, finish your Stripe setup so payouts can reach your bank.');
+    return (string) $this->t(DirectChargeCopy::PUBLISH_GATE);
   }
 
   /**

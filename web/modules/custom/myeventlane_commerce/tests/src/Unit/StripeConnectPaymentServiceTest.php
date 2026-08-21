@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_commerce\Unit;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
@@ -82,10 +83,10 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
   }
 
   /**
-   * @covers ::calculateVendorTransferAmount
+   * @covers ::calculateOrganiserChargeRevenue
    * @covers ::getConnectPaymentIntentParams
    */
-  public function testGetConnectPaymentIntentParamsIncludesOrganiserDonationsInTransfer(): void {
+  public function testGetConnectPaymentIntentParamsCreatesDirectChargeApplicationFee(): void {
     $ticket_item = $this->orderItem('default', '50.00');
     $donation_item = $this->orderItem('checkout_donation', '10.00');
 
@@ -97,8 +98,7 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
 
     $config = $this->createMock(ImmutableConfig::class);
     $config->method('get')->willReturnMap([
-      ['stripe_fee_percent', 3],
-      ['stripe_fee_fixed_cents', 30],
+      ['platform_fee_percent', 1.5],
     ]);
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
@@ -106,9 +106,10 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
     $service = $this->service([$ticket_item], config_factory: $config_factory);
     $params = $service->getConnectPaymentIntentParams($order);
 
-    $this->assertSame(6000, $params['transfer_data']['amount']);
-    $this->assertSame('acct_ticket_vendor', $params['transfer_data']['destination']);
-    $this->assertSame(180, $params['application_fee_amount']);
+    $this->assertArrayNotHasKey('transfer_data', $params);
+    $this->assertSame(75, $params['application_fee_amount']);
+    $this->assertSame('organiser_direct_charge', $params['metadata']['mel_charge_model']);
+    $this->assertSame('acct_ticket_vendor', $params['metadata']['mel_connected_account']);
   }
 
   /**
@@ -138,6 +139,39 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
 
     $service = $this->service([$ticket_item]);
     $this->assertSame('acct_mixed_order', $service->getStripeAccountIdForOrder($order));
+  }
+
+  /**
+   * @covers ::validateDirectChargeOrder
+   */
+  public function testDirectChargeRejectsMixedBoostAndTicketOrder(): void {
+    $boost_item = $this->orderItem('boost', '35.00');
+    $ticket_item = $this->orderItem('default', '50.00');
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$boost_item, $ticket_item]);
+
+    $result = $this->service([$ticket_item])->validateDirectChargeOrder($order);
+
+    $this->assertFalse($result['valid']);
+    $this->assertSame('Platform-owned products cannot share an organiser direct charge.', $result['message']);
+    $this->assertNull($result['account_id']);
+  }
+
+  /**
+   * @covers ::validateDirectChargeOrder
+   */
+  public function testDirectChargeAcceptsOneOrganiserAccount(): void {
+    $store = $this->storeWithAccount('acct_one_organiser');
+    $event = $this->eventWithVendorStore($store);
+    $ticket_item = $this->orderItem('default', '50.00', 42, $event);
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$ticket_item]);
+
+    $result = $this->service([$ticket_item])->validateDirectChargeOrder($order);
+
+    $this->assertTrue($result['valid']);
+    $this->assertNull($result['message']);
+    $this->assertSame('acct_one_organiser', $result['account_id']);
   }
 
   /**
@@ -187,8 +221,7 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
 
     $config = $this->createMock(ImmutableConfig::class);
     $config->method('get')->willReturnMap([
-      ['stripe_fee_percent', 3],
-      ['stripe_fee_fixed_cents', 30],
+      ['platform_fee_percent', 1.5],
     ]);
     $config_factory = $this->createMock(ConfigFactoryInterface::class);
     $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
@@ -196,15 +229,15 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
     $service = $this->service([], $this->entityTypeManagerForEvent($event), $config_factory);
     $params = $service->getConnectPaymentIntentParams($order);
 
-    $this->assertSame(1500, $params['transfer_data']['amount']);
-    $this->assertSame('acct_rsvp_only', $params['transfer_data']['destination']);
+    $this->assertArrayNotHasKey('transfer_data', $params);
     $this->assertSame(0, $params['application_fee_amount']);
+    $this->assertSame('acct_rsvp_only', $params['metadata']['mel_connected_account']);
   }
 
   /**
-   * @covers ::calculateVendorTransferAmount
+   * @covers ::calculateOrganiserChargeRevenue
    */
-  public function testCalculateVendorTransferAmountCombinesTicketAndOrganiserDonations(): void {
+  public function testCalculateOrganiserChargeRevenueCombinesTicketAndOrganiserDonations(): void {
     $ticket_item = $this->orderItem('default', '40.00');
     $donation_item = $this->orderItem('checkout_donation', '5.00');
     $platform_donation = $this->orderItem('platform_donation', '3.00');
@@ -213,7 +246,73 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
     $order->method('getItems')->willReturn([$ticket_item, $donation_item, $platform_donation]);
 
     $service = $this->service([$ticket_item]);
-    $this->assertSame(4500, $service->calculateVendorTransferAmount($order));
+    $this->assertSame(4500, $service->calculateOrganiserChargeRevenue($order));
+  }
+
+  /**
+   * @covers ::calculateApplicationFee
+   */
+  public function testApplicationFeeUsesAdjustableTicketRateWithNoFixedFee(): void {
+    $ticket_item = $this->orderItem('default', '100.00');
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$ticket_item]);
+
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturnMap([
+      ['platform_fee_percent', 1.5],
+    ]);
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
+
+    $service = $this->service([$ticket_item], config_factory: $config_factory);
+    $this->assertSame(150, $service->calculateApplicationFee($order));
+    $this->assertSame(225, $service->calculateApplicationFee($order, 0.0225));
+  }
+
+  /**
+   * @covers ::validateApplicationFeeForDirectCharge
+   */
+  public function testBuyerVisibleFeeMustEqualApplicationFee(): void {
+    $ticket_item = $this->orderItem('default', '50.00');
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getItems')->willReturn([$ticket_item]);
+    $order->method('getAdjustments')->willReturn([
+      $this->adjustment('myeventlane_platform_fee', new Price('1.00', 'AUD')),
+    ]);
+
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturnMap([
+      ['fee_payer', 'buyer'],
+      ['platform_fee_gst_inclusive', TRUE],
+      ['platform_fee_percent', 1.5],
+    ]);
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
+
+    $result = $this->service([$ticket_item], config_factory: $config_factory)
+      ->validateApplicationFeeForDirectCharge($order);
+
+    $this->assertFalse($result['valid']);
+    $this->assertSame('The MEL application fee does not match the platform fee shown on this order.', $result['message']);
+  }
+
+  /**
+   * @covers ::validateApplicationFeeForDirectCharge
+   */
+  public function testDirectChargeRejectsNonGstInclusiveFeeModel(): void {
+    $order = $this->createMock(OrderInterface::class);
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturnMap([
+      ['platform_fee_gst_inclusive', FALSE],
+    ]);
+    $config_factory = $this->createMock(ConfigFactoryInterface::class);
+    $config_factory->method('get')->with('myeventlane_core.settings')->willReturn($config);
+
+    $result = $this->service([], config_factory: $config_factory)
+      ->validateApplicationFeeForDirectCharge($order);
+
+    $this->assertFalse($result['valid']);
+    $this->assertSame('The MEL application fee must use the approved GST-inclusive model.', $result['message']);
   }
 
   /**
@@ -234,6 +333,13 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
       static fn (OrderItemInterface $item): bool => !empty($ticket_backed_ids[spl_object_id($item)]),
     );
 
+    if ($config_factory === NULL) {
+      $config = $this->createMock(ImmutableConfig::class);
+      $config->method('get')->willReturn(NULL);
+      $config_factory = $this->createMock(ConfigFactoryInterface::class);
+      $config_factory->method('get')->willReturn($config);
+    }
+
     return new StripeConnectPaymentService(
       $entity_type_manager ?? $this->createMock(EntityTypeManagerInterface::class),
       new StripeService(
@@ -241,11 +347,21 @@ final class StripeConnectPaymentServiceTest extends UnitTestCase {
         $this->createMock(EntityTypeManagerInterface::class),
         $this->createMock(LoggerChannelFactoryInterface::class),
       ),
-      $config_factory ?? $this->createMock(ConfigFactoryInterface::class),
+      $config_factory,
       $this->createMock(LoggerInterface::class),
       new OrderItemClassifier(),
       $classifier,
     );
+  }
+
+  private function adjustment(string $source_id, Price $amount): Adjustment {
+    $reflection = new \ReflectionClass(Adjustment::class);
+    /** @var \Drupal\commerce_order\Adjustment $adjustment */
+    $adjustment = $reflection->newInstanceWithoutConstructor();
+    foreach (['sourceId' => $source_id, 'amount' => $amount] as $property => $value) {
+      $reflection->getProperty($property)->setValue($adjustment, $value);
+    }
+    return $adjustment;
   }
 
   private function storeWithAccount(string $account_id): StoreInterface {

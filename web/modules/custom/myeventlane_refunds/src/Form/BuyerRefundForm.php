@@ -83,7 +83,7 @@ final class BuyerRefundForm extends ConfirmFormBase {
     $amountCents = $this->orderInspector->calculateTicketSubtotalCents($order, $eventId);
     $amount = $amountCents > 0 ? '$' . number_format($amountCents / 100, 2) : $this->t('your tickets');
 
-    return (string) $this->t('This will refund @amount for your tickets to this event. The refund will be processed within 2–5 business days.', [
+    return (string) $this->t('This requests a refund of @amount for your tickets. If approved, Stripe sends it to the original payment method; arrival timing depends on the payment method and financial institution.', [
       '@amount' => $amount,
     ]);
   }

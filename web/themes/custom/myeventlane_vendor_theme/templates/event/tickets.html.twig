@@ -27,7 +27,7 @@
       </div>
       <div class="mel-live-ops__panel">
         <h3 class="mel-live-ops__panel-title">{{ 'Actions'|t }}</h3>
-        <p class="mel-live-ops__panel-intro">{{ 'Configure pricing, checkout, and payouts for this event.'|t }}</p>
+        <p class="mel-live-ops__panel-intro">{{ 'Configure pricing, checkout, and Stripe payouts for this event.'|t }}</p>
         <div class="mel-list mel-list--actions">
           <a class="mel-list__item" href="{{ path('myeventlane_vendor.manage_event.tickets', { event: event_id|default(event.id()) }) }}">
             {{ 'Edit ticket types'|t }}

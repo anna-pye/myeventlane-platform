@@ -22,6 +22,7 @@ final class TaxInvoicePresentationBuilder {
     private readonly CurrencyFormatterInterface $currencyFormatter,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly OrderPricingBreakdownBuilder $orderPricingBreakdown,
+    private readonly SellerIdentityResolver $sellerIdentity,
   ) {}
 
   /**
@@ -42,14 +43,9 @@ final class TaxInvoicePresentationBuilder {
    * }
    */
   public function build(OrderInterface $order): array {
-    $store = $order->getStore();
-    $vendor_name = $store ? $store->label() : '';
-    $abn = '';
-    if ($store && $store->hasField('field_abn')) {
-      $raw = $store->get('field_abn')->value;
-      $abn = ($raw !== NULL && $raw !== '') ? trim((string) $raw) : '';
-    }
-    $vendor_abn = $abn;
+    $seller = $this->sellerIdentity->resolve($order);
+    $vendor_name = $seller['seller_name'];
+    $vendor_abn = $seller['seller_abn'];
 
     $invoice_lines = [];
     $invoice_lines_include_gst_column = FALSE;

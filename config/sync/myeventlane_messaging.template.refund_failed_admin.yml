@@ -8,6 +8,8 @@ body_html: |-
   Amount: {{ refunded_amount }}
   Reason: {{ error_message }}
 
+  Check the MEL refund record and connected-account context. Stripe controls the payment and dispute outcome; staff must not promise to release funds or override Stripe.
+
   {% if stripe_refund_id %}
   Stripe refund reference: {{ stripe_refund_id }}
   {% endif %}
