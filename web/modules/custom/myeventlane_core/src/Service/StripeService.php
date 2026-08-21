@@ -42,6 +42,11 @@ final class StripeService {
   public const MANAGE_DEST_STRIPE_DASHBOARD = 'stripe_dashboard';
 
   /**
+   * Manage route destination: replace an incompatible connected account.
+   */
+  public const MANAGE_DEST_RECONNECT = 'reconnect';
+
+  /**
    * Manage route destination: resume Connect onboarding.
    */
   public const MANAGE_DEST_ONBOARDING = 'onboarding';
@@ -856,10 +861,10 @@ final class StripeService {
   }
 
   /**
-   * Resolves how /stripe/manage should route for a Connect account.
+   * Resolves how /stripe/manage should route for a direct-charge account.
    *
-   * Uses a single eligibility retrieve; Express uses LoginLink, Standard uses
-   * the vendor Stripe Dashboard, incomplete accounts resume onboarding.
+   * Uses the direct-charge responsibility check so an incompatible legacy
+   * account can never fall through to an Express Dashboard LoginLink.
    *
    * @param string $accountId
    *   The Stripe Connect account ID (acct_xxx).
@@ -868,13 +873,47 @@ final class StripeService {
    *   Destination constant, account type when known, and eligibility reason.
    */
   public function resolveStripeManageDestination(string $accountId): array {
-    $eligibility = $this->validateAccountDashboardEligibility($accountId);
+    $eligibility = $this->validateDirectChargeAccountEligibility($accountId);
 
     return [
-      'destination' => self::resolveManageDestinationFromEligibility($eligibility),
+      'destination' => self::resolveDirectChargeManageDestinationFromEligibility($eligibility),
       'account_type' => $eligibility['account_type'] ?? NULL,
       'reason' => $eligibility['reason'] ?? NULL,
     ];
+  }
+
+  /**
+   * Maps direct-charge eligibility to a safe manage-route destination.
+   *
+   * @param array{
+   *   eligible: bool,
+   *   configuration_compatible: bool|null,
+   *   reason: string|null,
+   *   account_type?: string|null
+   * } $eligibility
+   *   Result from validateDirectChargeAccountEligibility().
+   *
+   * @return string
+   *   One of the MANAGE_DEST_* constants.
+   */
+  public static function resolveDirectChargeManageDestinationFromEligibility(array $eligibility): string {
+    if (($eligibility['configuration_compatible'] ?? NULL) === FALSE) {
+      return self::MANAGE_DEST_RECONNECT;
+    }
+
+    if (($eligibility['configuration_compatible'] ?? NULL) !== TRUE) {
+      return self::MANAGE_DEST_UNSUPPORTED;
+    }
+
+    if (!empty($eligibility['eligible'])) {
+      return self::MANAGE_DEST_STRIPE_DASHBOARD;
+    }
+
+    if (($eligibility['reason'] ?? NULL) === 'The connected Stripe account has been deleted.') {
+      return self::MANAGE_DEST_UNSUPPORTED;
+    }
+
+    return self::MANAGE_DEST_ONBOARDING;
   }
 
   /**

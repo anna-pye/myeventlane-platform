@@ -67,6 +67,8 @@ final class StripeAccountReplacementContractTest extends TestCase {
     self::assertStringContainsString("\$eligibility['configuration_compatible'] !== TRUE", $controller);
     self::assertStringContainsString("if (!\$eligibility['eligible'])", $controller);
     self::assertStringContainsString('promoteConnectAccountReplacement', $controller);
+    self::assertStringContainsString('MANAGE_DEST_RECONNECT', $controller);
+    self::assertStringNotContainsString('createLoginLink($accountId)', $controller);
     self::assertStringNotContainsString('accounts->delete', $service);
     self::assertStringNotContainsString('accounts->del', $service);
   }
