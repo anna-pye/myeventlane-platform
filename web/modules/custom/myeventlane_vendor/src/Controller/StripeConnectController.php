@@ -506,11 +506,11 @@ final class StripeConnectController extends ControllerBase {
   }
 
   /**
-   * Opens Stripe management for the vendor’s connected account.
+   * Opens Stripe management for the vendor’s direct-charge connected account.
    *
-   * Express accounts use a Stripe LoginLink; Standard accounts redirect to the
-   * vendor Stripe Dashboard (LoginLink is Express-only). Incomplete accounts
-   * resume Connect onboarding.
+   * Compatible accounts open the full Stripe Dashboard. Incompatible legacy
+   * accounts enter the protected replacement flow, and incomplete compatible
+   * accounts resume Connect onboarding.
    */
   public function manage(): RedirectResponse|TrustedRedirectResponse {
     $logger = $this->loggerChannelFactory->get('myeventlane_vendor');
@@ -550,6 +550,18 @@ final class StripeConnectController extends ControllerBase {
         : 'unknown';
       $reason = (string) ($resolution['reason'] ?? '');
 
+      if ($destination === StripeService::MANAGE_DEST_RECONNECT) {
+        $logger->notice('Stripe manage: incompatible account requires reconnection, store @sid, uid @uid, type @type', [
+          '@sid' => (string) $store->id(),
+          '@uid' => (string) $currentUser->id(),
+          '@type' => $accountType,
+        ]);
+        $this->messenger()->addWarning($this->t('Your current Stripe connection cannot be used for organiser direct charges. Reconnect using the approved Stripe configuration. Your existing account remains recorded until the replacement is ready.'));
+        return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_reconnect', [], [
+          'query' => ['destination' => '/vendor/payments'],
+        ])->toString());
+      }
+
       if ($destination === StripeService::MANAGE_DEST_ONBOARDING) {
         $logger->notice('Stripe manage: resume onboarding, store @sid, uid @uid, type @type, reason @reason', [
           '@sid' => (string) $store->id(),
@@ -580,27 +592,13 @@ final class StripeConnectController extends ControllerBase {
         return $response;
       }
 
-      // Express: LoginLink to the Express Dashboard.
-      $loginLink = $this->stripeService->createLoginLink($accountId);
-
-      if (empty($loginLink->url)) {
-        $this->messenger()->addError($this->t('Failed to generate a Stripe link. Please try again.'));
-        return $this->redirectToDashboard();
-      }
-
-      $url = (string) $loginLink->url;
-      if (!str_starts_with($url, 'https://connect.stripe.com') && !str_starts_with($url, 'https://dashboard.stripe.com')) {
-        $logger->error('Stripe manage: unexpected host for login link, store @sid', [
-          '@sid' => (string) $store->id(),
-        ]);
-        $this->messenger()->addError($this->t('Invalid Stripe link. Please try again or contact support.'));
-        return $this->redirectToDashboard();
-      }
-
-      $response = new TrustedRedirectResponse($url);
-      $response->setTrustedTargetUrl($url);
-      $this->applyOffsiteStripeRedirectHeaders($response);
-      return $response;
+      $logger->error('Stripe manage: unhandled destination, store @sid, uid @uid, destination @destination', [
+        '@sid' => (string) $store->id(),
+        '@uid' => (string) $currentUser->id(),
+        '@destination' => $destination,
+      ]);
+      $this->messenger()->addError($this->t('We could not open Stripe management. Please try again or contact support.'));
+      return $this->redirectToVendorSettings();
     }
     catch (ApiErrorException $e) {
       if ($vendor instanceof Vendor) {

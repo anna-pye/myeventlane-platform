@@ -15,6 +15,69 @@ use Drupal\Tests\UnitTestCase;
 final class StripeManageDestinationTest extends UnitTestCase {
 
   /**
+   * @covers ::resolveDirectChargeManageDestinationFromEligibility
+   * @dataProvider directChargeDestinationProvider
+   *
+   * @param array<string, mixed> $eligibility
+   */
+  public function testResolveDirectChargeManageDestinationFromEligibility(array $eligibility, string $expected): void {
+    $this->assertSame($expected, StripeService::resolveDirectChargeManageDestinationFromEligibility($eligibility));
+  }
+
+  /**
+   * @return array<string, array{0: array<string, mixed>, 1: string}>
+   */
+  public static function directChargeDestinationProvider(): array {
+    return [
+      'legacy Express account must reconnect' => [
+        [
+          'eligible' => FALSE,
+          'configuration_compatible' => FALSE,
+          'reason' => 'The organiser cannot manage this account through the full Stripe Dashboard.',
+          'account_type' => 'express',
+        ],
+        StripeService::MANAGE_DEST_RECONNECT,
+      ],
+      'compatible ready account uses full Dashboard' => [
+        [
+          'eligible' => TRUE,
+          'configuration_compatible' => TRUE,
+          'reason' => NULL,
+          'account_type' => 'standard',
+        ],
+        StripeService::MANAGE_DEST_STRIPE_DASHBOARD,
+      ],
+      'compatible incomplete account resumes onboarding' => [
+        [
+          'eligible' => FALSE,
+          'configuration_compatible' => TRUE,
+          'reason' => 'Stripe has not enabled card charges for this account.',
+          'account_type' => 'standard',
+        ],
+        StripeService::MANAGE_DEST_ONBOARDING,
+      ],
+      'failed verification fails closed' => [
+        [
+          'eligible' => FALSE,
+          'configuration_compatible' => NULL,
+          'reason' => 'Stripe account eligibility could not be verified.',
+          'account_type' => NULL,
+        ],
+        StripeService::MANAGE_DEST_UNSUPPORTED,
+      ],
+      'deleted compatible account fails closed' => [
+        [
+          'eligible' => FALSE,
+          'configuration_compatible' => TRUE,
+          'reason' => 'The connected Stripe account has been deleted.',
+          'account_type' => 'standard',
+        ],
+        StripeService::MANAGE_DEST_UNSUPPORTED,
+      ],
+    ];
+  }
+
+  /**
    * @covers ::resolveManageDestinationFromEligibility
    * @dataProvider destinationProvider
    *
