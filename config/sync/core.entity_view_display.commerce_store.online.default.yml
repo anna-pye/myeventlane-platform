@@ -46,6 +46,8 @@ hidden:
   field_stripe_dashboard_url: true
   field_stripe_onboard_url: true
   field_stripe_payouts_enabled: true
+  field_stripe_previous_id: true
+  field_stripe_replacement_id: true
   field_vendor_reference: true
   is_default: true
   langcode: true
