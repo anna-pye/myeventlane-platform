@@ -24,6 +24,7 @@ final class DirectChargeAccountEligibilityTest extends TestCase {
     ]));
 
     self::assertTrue($result['eligible']);
+    self::assertTrue($result['configuration_compatible']);
     self::assertNull($result['reason']);
     self::assertSame('stripe', $result['losses_payer']);
     self::assertSame('account', $result['fee_payer']);
@@ -38,6 +39,7 @@ final class DirectChargeAccountEligibilityTest extends TestCase {
     ], 'express'));
 
     self::assertFalse($result['eligible']);
+    self::assertFalse($result['configuration_compatible']);
     self::assertSame('MyEventLane is liable for this connected account payment losses.', $result['reason']);
     self::assertSame('application', $result['losses_payer']);
     self::assertSame('application_express', $result['fee_payer']);
@@ -52,6 +54,7 @@ final class DirectChargeAccountEligibilityTest extends TestCase {
     ], chargesEnabled: FALSE));
 
     self::assertFalse($result['eligible']);
+    self::assertTrue($result['configuration_compatible']);
     self::assertSame('Stripe has not enabled card charges for this account.', $result['reason']);
   }
 

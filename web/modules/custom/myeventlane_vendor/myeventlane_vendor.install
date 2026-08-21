@@ -1651,6 +1651,60 @@ function myeventlane_vendor_ensure_brand_media_fields(): void {
 }
 
 /**
+ * Adds protected account references for atomic Stripe reconnection.
+ */
+function myeventlane_vendor_update_10026(): string {
+  $fields = [
+    'field_stripe_replacement_id' => [
+      'storage_uuid' => 'ee9225b3-d99f-4f34-85d4-f431c83e5677',
+      'field_uuid' => 'd1dd7281-7836-4883-821c-7625086b027b',
+      'label' => 'Pending Stripe replacement account ID',
+      'description' => 'Protected migration reference. The current account remains authoritative until this replacement passes direct-charge eligibility checks.',
+    ],
+    'field_stripe_previous_id' => [
+      'storage_uuid' => 'cb3cfdde-d286-4dbf-b802-d6996f86833a',
+      'field_uuid' => '9bddba22-4485-4b4d-8c90-3e205e4ce747',
+      'label' => 'Previous Stripe account ID',
+      'description' => 'Protected audit reference for the account used before direct-charge reconnection. Historical orders retain their own immutable account context.',
+    ],
+  ];
+
+  foreach ($fields as $fieldName => $definition) {
+    if (FieldStorageConfig::loadByName('commerce_store', $fieldName) === NULL) {
+      FieldStorageConfig::create([
+        'uuid' => $definition['storage_uuid'],
+        'field_name' => $fieldName,
+        'entity_type' => 'commerce_store',
+        'type' => 'string',
+        'settings' => [
+          'max_length' => 255,
+          'case_sensitive' => FALSE,
+          'is_ascii' => TRUE,
+        ],
+        'cardinality' => 1,
+        'translatable' => FALSE,
+      ])->save();
+    }
+
+    if (FieldConfig::loadByName('commerce_store', 'online', $fieldName) === NULL) {
+      FieldConfig::create([
+        'uuid' => $definition['field_uuid'],
+        'field_name' => $fieldName,
+        'entity_type' => 'commerce_store',
+        'bundle' => 'online',
+        'label' => $definition['label'],
+        'description' => $definition['description'],
+        'required' => FALSE,
+        'translatable' => FALSE,
+      ])->save();
+    }
+  }
+
+  \Drupal::entityTypeManager()->clearCachedDefinitions();
+  return 'Added protected pending and previous Stripe account references for non-destructive direct-charge reconnection.';
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {

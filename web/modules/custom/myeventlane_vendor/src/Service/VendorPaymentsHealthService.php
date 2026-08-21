@@ -80,6 +80,9 @@ final class VendorPaymentsHealthService {
       $accountId = trim((string) $store->get('field_stripe_account_id')->value);
     }
     $hasAccount = $accountId !== '' && str_starts_with($accountId, 'acct_');
+    $replacementPending = $store->hasField('field_stripe_replacement_id')
+      && !$store->get('field_stripe_replacement_id')->isEmpty()
+      && str_starts_with(trim((string) $store->get('field_stripe_replacement_id')->value), 'acct_');
 
     $charges = $store->hasField('field_stripe_charges_enabled') && !$store->get('field_stripe_charges_enabled')->isEmpty()
       ? (bool) $store->get('field_stripe_charges_enabled')->value
@@ -102,6 +105,27 @@ final class VendorPaymentsHealthService {
     // Connect-only so organisers are not offered a dead manage link.
     if (!$hasAccount) {
       return $base;
+    }
+
+    if ($replacementPending) {
+      return array_merge($base, [
+        'state' => 'reconnection_pending',
+        'tone' => 'attention',
+        'headline' => (string) $this->t('Finish reconnecting Stripe'),
+        'summary' => (string) $this->t('Your replacement Stripe account still needs setup or verification.'),
+        'why' => (string) $this->t('Direct ticket payments require the approved connected-account configuration.'),
+        'impact' => (string) $this->t('Paid ticket sales stay blocked until the replacement is ready.'),
+        'next_step' => (string) $this->t('Continue the remaining steps in Stripe.'),
+        'cta_label' => (string) $this->t('Continue Stripe reconnection'),
+        'cta_url' => $this->safeRouteUrl('myeventlane_vendor.stripe_reconnect', [], [
+          'query' => ['destination' => '/vendor/payments'],
+        ]),
+        'secondary_cta_label' => $manageUrl ? (string) $this->t('Open previous Stripe account') : NULL,
+        'secondary_cta_url' => $manageUrl,
+        'connected' => FALSE,
+        'verification_status' => (string) $this->t('Reconnection in progress'),
+        'needs_attention' => TRUE,
+      ]);
     }
 
     $base['secondary_cta_label'] = $manageUrl ? (string) $this->t('Open Stripe') : NULL;

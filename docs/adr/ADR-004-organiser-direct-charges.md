@@ -24,6 +24,13 @@ uses `application_fee_amount` for the MEL platform fee and does not use
 `transfer_data` or a destination. Stripe manages the organiser's Stripe balance
 and payouts to their nominated bank account.
 
+Connected accounts use this approved configuration:
+
+- Dashboard: Full Stripe Dashboard;
+- fee collection: Stripe bills the connected account;
+- negative balance liability: Stripe; and
+- charge pattern: direct charges.
+
 MyEventLane does not hold organiser ticket revenue or later release it through
 the legacy MEL payout ledger.
 
@@ -86,6 +93,28 @@ off until all of these are evidenced in the target environment:
 6. Local, staging and production managed content is migrated and rescanned.
 7. The legacy Transfer path is proven inaccessible and cannot double-pay a
    direct-charge order.
+
+## Existing-account reconnection
+
+Five existing connected accounts were identified with a configuration that is
+incompatible with the approved responsibility model. They must reconnect using
+new compatible connected accounts. The migration is deliberately
+non-destructive:
+
+1. Keep the current account ID authoritative while replacement onboarding is
+   incomplete.
+2. Store the pending replacement separately and block new paid publishing for
+   that organiser.
+3. Promote the replacement only after card charges are active and Stripe
+   confirms the Full Stripe Dashboard, Stripe fee billing and Stripe negative
+   balance liability configuration.
+4. Archive the previous account ID and retain the immutable connected-account
+   ID already recorded on historical orders.
+5. Never disconnect, close or delete the previous Stripe account as part of
+   the automated flow.
+
+Each organiser must complete Stripe-hosted onboarding. Deployment of this code
+does not prove that any of the five reconnections has completed.
 
 ## Consequences
 

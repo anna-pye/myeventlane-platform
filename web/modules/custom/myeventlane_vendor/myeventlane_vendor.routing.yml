@@ -111,6 +111,18 @@ myeventlane_vendor.stripe_connect:
   options:
     _maintenance_access: FALSE
 
+# Explicit POST-confirmed migration for incompatible connected accounts. The
+# current account remains authoritative until callback eligibility succeeds.
+myeventlane_vendor.stripe_reconnect:
+  path: '/stripe/reconnect'
+  defaults:
+    _form: '\Drupal\myeventlane_vendor\Form\StripeAccountReconnectForm'
+    _title: 'Reconnect Stripe'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_vendor\Access\StripeConnectAccess::access'
+  options:
+    _maintenance_access: FALSE
+
 # Stripe Connect return URL. Route is public so Stripe AccountLink can redirect here;
 # StripeConnectController::callback() requires an authenticated user and validates
 # account_id against the current vendor store before saving Connect status.

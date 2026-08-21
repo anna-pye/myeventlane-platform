@@ -117,7 +117,7 @@ final class StripeService {
   }
 
   /**
-   * Gets or creates the vendor's Express Connect account.
+   * Gets or creates the vendor's compatible Connect account.
    *
    * @param \Drupal\Core\Entity\ContentEntityInterface $vendor
    *   The MEL vendor entity.
@@ -389,6 +389,123 @@ final class StripeService {
   }
 
   /**
+   * Creates or resumes a non-destructive replacement account migration.
+   *
+   * The current account remains authoritative until the replacement completes
+   * onboarding and passes the direct-charge compatibility checks. This keeps
+   * historical payments and refunds bound to their original account.
+   */
+  public function beginConnectAccountReplacement(StoreInterface $store, string $email, string $country = 'AU'): string {
+    foreach (['field_stripe_account_id', 'field_stripe_replacement_id', 'field_stripe_previous_id'] as $fieldName) {
+      if (!$store->hasField($fieldName)) {
+        throw new \RuntimeException(sprintf('Required Stripe migration field %s is missing. Run database updates.', $fieldName));
+      }
+    }
+
+    $activeAccountId = trim((string) $store->get('field_stripe_account_id')->value);
+    if ($activeAccountId === '' || !str_starts_with($activeAccountId, 'acct_')) {
+      throw new \RuntimeException('A valid current Stripe account is required before starting replacement onboarding.');
+    }
+
+    $compatibility = $this->validateDirectChargeAccountEligibility($activeAccountId);
+    if ($compatibility['configuration_compatible'] === NULL) {
+      throw new \RuntimeException('The current Stripe account configuration could not be verified.');
+    }
+    if ($compatibility['configuration_compatible']) {
+      throw new \RuntimeException('The current Stripe account already uses the approved direct-charge configuration.');
+    }
+
+    $pendingAccountId = trim((string) $store->get('field_stripe_replacement_id')->value);
+    if ($pendingAccountId !== '' && str_starts_with($pendingAccountId, 'acct_')) {
+      return $pendingAccountId;
+    }
+
+    if (trim($email) === '') {
+      throw new \InvalidArgumentException('Email is required to create a replacement Connect account.');
+    }
+
+    $account = $this->createConnectAccount(
+      $email,
+      $country,
+      'standard',
+      [
+        'myeventlane_store_id' => (string) $store->id(),
+        'myeventlane_purpose' => 'direct_charge_replacement',
+      ],
+      sprintf('mel-direct-charge-replacement-store-%s', (string) $store->id()),
+    );
+    $pendingAccountId = trim((string) $account->id);
+    if ($pendingAccountId === '' || !str_starts_with($pendingAccountId, 'acct_')) {
+      throw new \RuntimeException('Stripe replacement account creation returned an invalid account ID.');
+    }
+
+    $store->set('field_stripe_replacement_id', $pendingAccountId);
+    $store->save();
+
+    $this->safeLog('notice', 'Started direct-charge account replacement for store @store: @old -> @new.', [
+      '@store' => (string) $store->id(),
+      '@old' => self::maskAccountId($activeAccountId),
+      '@new' => self::maskAccountId($pendingAccountId),
+    ]);
+
+    return $pendingAccountId;
+  }
+
+  /**
+   * Atomically promotes an eligible replacement account on a Commerce store.
+   *
+   * @param array<string, mixed> $status
+   *   Status returned by getAccountStatus() for the replacement account.
+   */
+  public function promoteConnectAccountReplacement(StoreInterface $store, string $replacementAccountId, array $status): string {
+    foreach (['field_stripe_account_id', 'field_stripe_replacement_id', 'field_stripe_previous_id'] as $fieldName) {
+      if (!$store->hasField($fieldName)) {
+        throw new \RuntimeException(sprintf('Required Stripe migration field %s is missing. Run database updates.', $fieldName));
+      }
+    }
+
+    $pendingAccountId = trim((string) $store->get('field_stripe_replacement_id')->value);
+    if ($pendingAccountId === '' || !hash_equals($pendingAccountId, $replacementAccountId)) {
+      throw new \RuntimeException('The Stripe replacement account does not match the pending migration.');
+    }
+
+    $eligibility = $this->validateDirectChargeAccountEligibility($replacementAccountId);
+    if (!$eligibility['eligible']) {
+      throw new \RuntimeException($eligibility['reason'] ?? 'The replacement Stripe account is not ready for direct charges.');
+    }
+
+    $previousAccountId = trim((string) $store->get('field_stripe_account_id')->value);
+    if ($previousAccountId === '' || !str_starts_with($previousAccountId, 'acct_')) {
+      throw new \RuntimeException('The current Stripe account is invalid and cannot be archived.');
+    }
+
+    $store->set('field_stripe_previous_id', $previousAccountId);
+    $store->set('field_stripe_account_id', $replacementAccountId);
+    $store->set('field_stripe_replacement_id', NULL);
+    if ($store->hasField('field_stripe_status')) {
+      $store->set('field_stripe_status', $status['status'] ?? 'pending');
+    }
+    if ($store->hasField('field_stripe_connected')) {
+      $store->set('field_stripe_connected', (bool) ($status['charges_enabled'] ?? FALSE));
+    }
+    if ($store->hasField('field_stripe_charges_enabled')) {
+      $store->set('field_stripe_charges_enabled', (bool) ($status['charges_enabled'] ?? FALSE));
+    }
+    if ($store->hasField('field_stripe_payouts_enabled')) {
+      $store->set('field_stripe_payouts_enabled', (bool) ($status['payouts_enabled'] ?? FALSE));
+    }
+    $store->save();
+
+    $this->safeLog('notice', 'Completed direct-charge account replacement for store @store: @old -> @new.', [
+      '@store' => (string) $store->id(),
+      '@old' => self::maskAccountId($previousAccountId),
+      '@new' => self::maskAccountId($replacementAccountId),
+    ]);
+
+    return $previousAccountId;
+  }
+
+  /**
    * Persists common Connect flags from a getAccountStatus() result on the store.
    */
   public function applyConnectStatusToCommerceStore(StoreInterface $store, array $status): void {
@@ -426,7 +543,13 @@ final class StripeService {
    * @throws \Stripe\Exception\ApiErrorException
    *   If account creation fails.
    */
-  public function createConnectAccount(string $email, string $country = 'AU', string $type = 'standard'): Account {
+  public function createConnectAccount(
+    string $email,
+    string $country = 'AU',
+    string $type = 'standard',
+    array $metadata = [],
+    ?string $idempotencyKey = NULL,
+  ): Account {
     $client = $this->getPlatformClient();
 
     try {
@@ -438,6 +561,9 @@ final class StripeService {
           'transfers' => ['requested' => TRUE],
         ],
       ];
+      if ($metadata !== []) {
+        $parameters['metadata'] = $metadata;
+      }
 
       if ($type === 'standard') {
         // Equivalent to Standard behaviour, expressed as the responsibility
@@ -453,7 +579,10 @@ final class StripeService {
         $parameters['type'] = $type;
       }
 
-      $account = $client->accounts->create($parameters);
+      $requestOptions = $idempotencyKey !== NULL && $idempotencyKey !== ''
+        ? ['idempotency_key' => $idempotencyKey]
+        : NULL;
+      $account = $client->accounts->create($parameters, $requestOptions);
 
       $this->safeLog('info', 'Created Stripe Connect account @id for @email', [
         '@id' => self::maskAccountId((string) $account->id),
@@ -476,7 +605,7 @@ final class StripeService {
   /**
    * Verifies provider-owned responsibilities required by direct charges.
    *
-   * @return array{eligible: bool, reason: string|null, account_type: string|null, losses_payer: string|null, fee_payer: string|null}
+   * @return array{eligible: bool, configuration_compatible: bool|null, reason: string|null, account_type: string|null, losses_payer: string|null, fee_payer: string|null}
    *   A fail-closed eligibility result with no personal account data.
    */
   public function validateDirectChargeAccountEligibility(string $accountId): array {
@@ -493,6 +622,7 @@ final class StripeService {
       ]);
       return [
         'eligible' => FALSE,
+        'configuration_compatible' => NULL,
         'reason' => 'Stripe account eligibility could not be verified.',
         'account_type' => NULL,
         'losses_payer' => NULL,
@@ -504,7 +634,7 @@ final class StripeService {
   /**
    * Evaluates the immutable Stripe controller properties for direct charges.
    *
-   * @return array{eligible: bool, reason: string|null, account_type: string|null, losses_payer: string|null, fee_payer: string|null}
+   * @return array{eligible: bool, configuration_compatible: bool, reason: string|null, account_type: string|null, losses_payer: string|null, fee_payer: string|null}
    *   The direct-charge responsibility decision.
    */
   public static function evaluateDirectChargeAccountEligibility(Account $account): array {
@@ -519,6 +649,11 @@ final class StripeService {
     $capabilities = isset($account->capabilities) && $account->capabilities
       ? $account->capabilities->toArray()
       : [];
+
+    $configurationCompatible = $lossesPayer === 'stripe'
+      && $feePayer === 'account'
+      && $requirements === 'stripe'
+      && $dashboard === 'full';
 
     $reason = NULL;
     if (!empty($account->deleted)) {
@@ -542,6 +677,7 @@ final class StripeService {
 
     return [
       'eligible' => $reason === NULL,
+      'configuration_compatible' => $configurationCompatible,
       'reason' => $reason,
       'account_type' => $accountType,
       'losses_payer' => is_string($lossesPayer) ? $lossesPayer : NULL,

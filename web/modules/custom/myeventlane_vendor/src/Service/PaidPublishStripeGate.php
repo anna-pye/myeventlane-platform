@@ -55,6 +55,11 @@ final class PaidPublishStripeGate {
       return $this->blockedMessage();
     }
 
+    if ($store->hasField('field_stripe_replacement_id') && !$store->get('field_stripe_replacement_id')->isEmpty()) {
+      $this->logBlocked((int) $account->id(), $vendorId, $storeId, $eventNodeId, 'stripe_reconnection_pending');
+      return (string) $this->t(DirectChargeCopy::RECONNECT_GATE);
+    }
+
     if (!$store->hasField('field_stripe_account_id')) {
       $this->logBlocked((int) $account->id(), $vendorId, $storeId, $eventNodeId, 'missing_account_id_field');
       return $this->blockedMessage();

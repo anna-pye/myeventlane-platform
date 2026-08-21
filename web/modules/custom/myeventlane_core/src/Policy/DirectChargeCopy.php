@@ -21,6 +21,8 @@ final class DirectChargeCopy {
 
   public const PUBLISH_GATE = 'To accept event payments, finish your Stripe setup. Ticket payments go to your connected Stripe account, and Stripe sends available funds to your bank.';
 
+  public const RECONNECT_GATE = 'Paid ticket sales stay blocked while you reconnect Stripe. Finish the Stripe steps so direct ticket payments use the approved connected-account configuration.';
+
   private function __construct() {}
 
 }

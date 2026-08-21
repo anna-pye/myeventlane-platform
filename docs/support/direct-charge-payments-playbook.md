@@ -78,6 +78,16 @@ Escalate mismatched amounts, duplicate refunds, wrong connected-account context 
 4. For verification, ask only whether the Stripe requirement is visible and whether the organiser can access it. Do not ask them to send identity or bank documents to MEL support.
 5. Escalate only MEL display, link, webhook or stale-state defects. Stripe timing, verification and bank settlement remain with Stripe.
 
+## Existing-account reconnection procedure
+
+1. Confirm the organiser is on the approved migration list. Do not ask them to disconnect or delete their current Stripe account.
+2. Send the organiser to the authenticated **Reconnect Stripe** flow. Never create a replacement from an emailed account ID.
+3. Explain that paid ticket publishing stays blocked while the replacement is incomplete. Historical payments and refunds remain bound to the previous account.
+4. The organiser completes Stripe-hosted onboarding for a connected account with the Full Stripe Dashboard. Stripe bills processing fees to the organiser and is liable for connected-account negative balances.
+5. Treat a Stripe redirect as progress, not completion. The system switches the store only after card charges are active and the approved responsibility configuration is verified.
+6. If verification fails, preserve both account references, stop repeated replacement attempts and escalate with masked account IDs. Never manually overwrite the active store account ID.
+7. After promotion, verify a test-mode direct charge, connected-account webhook context, refund and rendered receipt before clearing that organiser's migration item.
+
 ## Approved reply snippets
 
 **Where is my money?**
