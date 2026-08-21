@@ -119,7 +119,7 @@ final class VendorPaymentsHealthService {
         'next_step' => (string) $this->t('Continue the remaining steps in Stripe.'),
         'cta_label' => (string) $this->t('Continue Stripe reconnection'),
         'cta_url' => $this->safeRouteUrl('myeventlane_vendor.stripe_reconnect', [], [
-          'query' => ['destination' => '/vendor/payments'],
+          'query' => ['return_to' => '/vendor/payments'],
         ]),
         'secondary_cta_label' => $previousManageUrl ? (string) $this->t('Open previous Stripe account') : NULL,
         'secondary_cta_url' => $previousManageUrl,
