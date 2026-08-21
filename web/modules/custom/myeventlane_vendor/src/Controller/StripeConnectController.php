@@ -160,6 +160,10 @@ final class StripeConnectController extends ControllerBase {
     return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.settings')->toString());
   }
 
+  private function redirectToPayments(): RedirectResponse {
+    return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.payments')->toString());
+  }
+
   /**
    * Validates query account_id against the store’s Connect account; returns usable id.
    */
@@ -622,6 +626,89 @@ final class StripeConnectController extends ControllerBase {
       ]);
       $this->messenger()->addError($this->t('We could not open Stripe management. We could not confirm which Stripe dashboard this account uses. Please try again or contact support.'));
       return $this->redirectToVendorSettings();
+    }
+  }
+
+  /**
+   * Opens the previous Express Dashboard during a guarded replacement.
+   *
+   * The active account remains authoritative until the pending replacement is
+   * eligible and promoted. This route never accepts an account ID from the URL
+   * and cannot create, promote, disconnect, or delete either account.
+   */
+  public function managePrevious(): RedirectResponse|TrustedRedirectResponse {
+    $logger = $this->loggerChannelFactory->get('myeventlane_vendor');
+    $currentUser = $this->currentUser();
+
+    if ($currentUser->isAnonymous()) {
+      throw new AccessDeniedHttpException('You must be logged in to manage Stripe.');
+    }
+
+    $vendor = $this->getCurrentUserVendor();
+    $store = $this->getStoreForConnect($vendor);
+    if (!$store) {
+      $logger->warning('Previous Stripe manage: no store for user @uid', [
+        '@uid' => (string) $currentUser->id(),
+      ]);
+      $this->messenger()->addError($this->t('No store found for your account.'));
+      return $this->redirectToDashboard();
+    }
+    if ($vendor) {
+      $this->syncVendorStoreReference($vendor, $store);
+    }
+
+    $previousAccountId = $this->resolveValidatedAccountId(NULL, $store);
+    $pendingAccountId = $this->resolvePendingReplacementAccountId($store);
+    if ($previousAccountId === NULL || $pendingAccountId === NULL || $previousAccountId === $pendingAccountId) {
+      $logger->warning('Previous Stripe manage: no distinct pending replacement for store @sid, uid @uid', [
+        '@sid' => (string) $store->id(),
+        '@uid' => (string) $currentUser->id(),
+      ]);
+      $this->messenger()->addWarning($this->t('A previous Stripe account is available here only while a replacement connection is in progress.'));
+      return $this->redirectToPayments();
+    }
+
+    try {
+      $loginLink = $this->stripeService->createLoginLinkIfEligible($previousAccountId);
+      if ($loginLink === NULL || empty($loginLink->url) || !is_string($loginLink->url)) {
+        $logger->warning('Previous Stripe manage: account is not eligible for Express Dashboard access, store @sid, uid @uid', [
+          '@sid' => (string) $store->id(),
+          '@uid' => (string) $currentUser->id(),
+        ]);
+        $this->messenger()->addError($this->t('We could not open the previous Stripe account. Sign in to Stripe directly or contact support.'));
+        return $this->redirectToPayments();
+      }
+
+      $url = (string) $loginLink->url;
+      if (!str_starts_with($url, 'https://connect.stripe.com')) {
+        $logger->error('Previous Stripe manage: unexpected login-link host for store @sid, uid @uid', [
+          '@sid' => (string) $store->id(),
+          '@uid' => (string) $currentUser->id(),
+        ]);
+        $this->messenger()->addError($this->t('Stripe returned an invalid account link. Please try again or contact support.'));
+        return $this->redirectToPayments();
+      }
+
+      $response = new TrustedRedirectResponse($url);
+      $response->setTrustedTargetUrl($url);
+      $this->applyOffsiteStripeRedirectHeaders($response);
+      return $response;
+    }
+    catch (ApiErrorException $e) {
+      if ($vendor instanceof Vendor) {
+        $this->logConnectApiError($e, $vendor, $store, $previousAccountId);
+      }
+      $this->messenger()->addError($this->t('We could not open the previous Stripe account. Please try again or contact support.'));
+      return $this->redirectToPayments();
+    }
+    catch (\Throwable $e) {
+      $logger->error('Previous Stripe manage failed for store @sid, uid @uid: @message', [
+        '@sid' => (string) $store->id(),
+        '@uid' => (string) $currentUser->id(),
+        '@message' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('We could not open the previous Stripe account. Please try again or contact support.'));
+      return $this->redirectToPayments();
     }
   }
 
