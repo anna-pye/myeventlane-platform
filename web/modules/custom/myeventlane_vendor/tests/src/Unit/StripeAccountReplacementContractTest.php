@@ -33,6 +33,19 @@ final class StripeAccountReplacementContractTest extends TestCase {
     self::assertStringContainsString('field_stripe_previous_id', $install);
   }
 
+  public function testProtectedAccountReferencesRemainHiddenOnStoreDisplays(): void {
+    $root = $this->repositoryRoot();
+    foreach ([
+      'core.entity_form_display.commerce_store.online.default.yml',
+      'core.entity_view_display.commerce_store.online.default.yml',
+    ] as $filename) {
+      $display = file_get_contents($root . '/config/sync/' . $filename);
+      self::assertIsString($display);
+      self::assertStringContainsString('field_stripe_previous_id: true', $display, $filename);
+      self::assertStringContainsString('field_stripe_replacement_id: true', $display, $filename);
+    }
+  }
+
   public function testReplacementRequiresConfirmationAndNeverDeletesThePreviousAccount(): void {
     $root = $this->repositoryRoot();
     $routing = file_get_contents($root . '/web/modules/custom/myeventlane_vendor/myeventlane_vendor.routing.yml');
