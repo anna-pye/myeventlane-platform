@@ -205,6 +205,24 @@ final class MessagingManager {
         ]);
         return $existing->id;
       }
+      if ($returnExisting && $existing->status === 'queued') {
+        // A queued ledger row alone does not prove that createItem() completed.
+        // Enqueue it again so an interrupted producer cannot turn a Stripe
+        // webhook retry into a false success. Duplicate queue items are safe:
+        // sendMessage() claims the ledger row and skips an already-sent row.
+        $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+          'message_id' => $existing->id,
+        ]);
+        if ($queueItemId === FALSE) {
+          throw new \RuntimeException('Messaging queue rejected the orphan recovery item.');
+        }
+        $this->logger->notice('MessagingManager::queue: queued message durably re-enqueued.', [
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+          'existing_id' => $existing->id,
+        ]);
+        return $existing->id;
+      }
       $this->logger->info('MessagingManager::queue: duplicate skipped (idempotent).', [
         'queue_name' => self::QUEUE_NAME,
         'event_id' => $eventId,
@@ -212,7 +230,7 @@ final class MessagingManager {
         'message_type' => $type,
         'existing_id' => $existing->id,
       ]);
-      if ($returnExisting && in_array((string) $existing->status, ['queued', 'processing', 'dispatching', 'sent'], TRUE)) {
+      if ($returnExisting && in_array((string) $existing->status, ['processing', 'dispatching', 'sent'], TRUE)) {
         return (string) $existing->id;
       }
       return NULL;
@@ -264,7 +282,18 @@ final class MessagingManager {
           'existing_id' => $existing->id,
           'idempotency_key' => $idempotencyKey,
         ]);
-        if ($returnExisting && in_array((string) $existing->status, ['queued', 'processing', 'dispatching', 'sent'], TRUE)) {
+        if ($returnExisting && $existing->status === 'queued') {
+          // The winning producer may have stopped before createItem(). Add an
+          // at-least-once queue item before reporting durable acceptance.
+          $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+            'message_id' => $existing->id,
+          ]);
+          if ($queueItemId === FALSE) {
+            throw new \RuntimeException('Messaging queue rejected the concurrent recovery item.');
+          }
+          return (string) $existing->id;
+        }
+        if ($returnExisting && in_array((string) $existing->status, ['processing', 'dispatching', 'sent'], TRUE)) {
           return (string) $existing->id;
         }
         return NULL;

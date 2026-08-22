@@ -104,10 +104,25 @@ final class DirectChargeMessagingContractTest extends TestCase {
     self::assertIsString($manager);
     self::assertStringContainsString("'return_existing' => TRUE", $handler);
     self::assertStringContainsString('Critical Stripe organiser notification could not be queued', $handler);
-    self::assertStringContainsString("['queued', 'processing', 'dispatching', 'sent']", $manager);
+    self::assertStringContainsString("['processing', 'dispatching', 'sent']", $manager);
+    self::assertStringNotContainsString("['queued', 'processing', 'dispatching', 'sent']", $manager);
     self::assertStringContainsString('$queueItemId === FALSE', $manager);
     self::assertStringContainsString("'status' => 'failed'", $manager);
     self::assertStringContainsString('Without this transition, a later', $manager);
+  }
+
+  public function testInterruptedQueuedLedgerIsReenqueuedBeforeSuccess(): void {
+    $manager = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_messaging/src/Service/MessagingManager.php');
+    $queuedRecoveryPattern = <<<'REGEX'
+/if \(\$returnExisting && \$existing->status === 'queued'\) \{.*?createItem\(\[.*?'message_id' => \$existing->id,.*?return \$existing->id;/s
+REGEX;
+
+    self::assertIsString($manager);
+    self::assertMatchesRegularExpression(
+      $queuedRecoveryPattern,
+      $manager,
+    );
+    self::assertStringContainsString('queued message durably re-enqueued', $manager);
   }
 
   public function testRefundFailureAndRejectionCopyDoesNotOverstateMelControl(): void {
