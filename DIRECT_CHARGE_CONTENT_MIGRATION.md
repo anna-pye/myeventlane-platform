@@ -1,14 +1,15 @@
 # Stage 14 — Direct-charge content migration report
 
-**Status:** Repository and staging content GO; production activation remains NO-GO  
+**Status:** COMPLETE — repository and staging content GO; production activation is a separate guarded phase\
 **Evidence date:** 22 August 2026  
 **Architecture:** Organiser-as-seller Stripe Connect direct charges  
 **Scope:** Customer, organiser, staff and transactional payment wording
 
 ## Decision summary
 
-Stage 14 content blockers are cleared for the current repository and staging
-release. Critical content now agrees with the approved model:
+Stage 14 is complete for its defined Help, support and product-copy migration
+scope. The repository and staging content blockers are cleared. Critical
+content now agrees with the approved model:
 
 > Customer → organiser connected Stripe account → MEL application fee
 
@@ -23,6 +24,10 @@ This is not production activation approval. Direct-charge mode and the
 live-key, real-payment and production webhook evidence are still required by
 ADR-004 before activation.
 
+Production activation evidence is tracked after Stage 14. It does not reopen
+this completed content stage unless a new customer, organiser, staff or
+transactional wording contradiction is found.
+
 ## Evidence boundary
 
 This report distinguishes four evidence layers:
@@ -32,6 +37,10 @@ This report distinguishes four evidence layers:
    HTTP availability.
 3. **Stripe sandbox:** connected-account webhook delivery and queue handling.
 4. **Production:** not claimed by this report.
+
+Stage 14 was closed on 22 August 2026 after the post-implementation repository
+rescan, staging managed-content comparison, rendered acceptance, owner legal
+and support approvals, and signed sandbox webhook/queue acceptance all passed.
 
 The owner approved the customer terms, refund position, seller identity,
 dispute responsibility and support procedure during Stage 14. The repository
@@ -217,7 +226,7 @@ It is not being represented as completed by this report.
 | P1 | Separate MEL platform fees from Stripe processing fees | Complete; initial MEL fee is 1.5% including GST with no fixed fee and remains configurable |
 | P1 | Migrate Help Centre without duplicate legacy articles | Complete on staging |
 | P1 | Migrate critical transactional emails and make acceptance durable | Complete on staging; signed queue probes passed |
-| P1 | Reconnect incompatible existing accounts | In progress; each organiser must complete Stripe-hosted onboarding |
+| P1 | Reconnect incompatible existing accounts | Complete for current attached staging organiser stores; stores 38, 55 and 58 have promoted compatible accounts with the previous account retained |
 | P1 | Prove test-mode checkout, refund, failure and invoice lifecycle | Partially evidenced; retain as activation gate until one complete recorded lifecycle is attached |
 | P0 production | Rescan production managed content and verify live responsibility configuration | Not performed; production activation remains NO-GO |
 
@@ -249,11 +258,14 @@ It is not being represented as completed by this report.
 | PR #844 — refund and operational alert gaps | `9559c0ceb73c74d48e9c398a71621b141a9b8a3b` | Customer refund action and direct-charge alert templates/queue path restored |
 | PR #846 — nullable webhook status | `4c3c1180dcb85d82a0146e8f279524c825381e4c` | Failed signed probe rows reprocessed successfully |
 | PR #847 — restriction transition | `d4ea865b0fab33fd3d230f69c45769b86a19ffca` | Reason-to-reason restriction change no longer queues a duplicate alert |
+| PR #848 — Stage 14 evidence report | `eca2735bf856e69b532924ead262dea00cc6b52a` | Stage 14 evidence merged; staging deploy, security scan and post-merge Composer checks passed |
 
-The current staging release is `/home/mel/staging/releases/20260822112627`
-from artifact revision `d4ea865b0fab33fd3d230f69c45769b86a19ffca`
-(Deploy Staging run `32570200039`). Drupal 11.4.5 bootstraps, the database
-requires no updates and the public staging homepage returned HTTP 200.
+The current staging release is `/home/mel/staging/releases/20260822114842`
+from artifact revision `eca2735bf856e69b532924ead262dea00cc6b52a`
+(Deploy Staging run `32571206800`). Drupal 11.4.5 bootstraps, the database
+requires no updates and the public staging homepage returned HTTP 200. The
+post-merge PHP Composer run `32571206720` and security scan `32571206749` also
+passed.
 
 ## Post-implementation rescan and webhook acceptance
 
@@ -268,6 +280,13 @@ Staging managed-content audit:
 
 Staging Stripe sandbox acceptance:
 
+- current attached organiser stores 38, 55 and 58 have no pending replacement,
+  retain the previous account for history, and pass a read-only Stripe sandbox
+  eligibility check against the approved responsibility settings;
+- store 58 reports payouts disabled in sandbox, which is expected and does not
+  block Stage 14 closure;
+- the earlier five-account provider inventory is not the current attached-store
+  migration count; unattached provider accounts remain untouched;
 - signed `account.updated` ledger rows 248 and 249 processed successfully after
   PR #846 and were skipped as non-restrictions;
 - one over-broad restriction alert discovered during acceptance was suppressed
@@ -283,17 +302,18 @@ Staging Stripe sandbox acceptance:
 
 No live keys, live charge, live refund or production webhook were used.
 
-## Unresolved activation items
+## Post-Stage 14 production activation items
 
-These are no longer Stage 14 repository/staging content contradictions. They
-remain overall direct-charge activation gates:
+Stage 14 does not own these items. They remain ADR-004 production direct-charge
+activation gates:
 
 1. Rescan production managed Help, legal, configurable email and support
    content after the production release.
 2. Verify production connected-account Dashboard, Stripe-fee billing and
    negative-balance responsibility against the approved configuration.
-3. Complete and record the remaining existing-account reconnections. Sandbox
-   payout ineligibility is expected and is not itself a blocker.
+3. Provision and verify the live connected organiser account or accounts used
+   for the controlled production pilot. Sandbox payout ineligibility is
+   expected and is not itself a Stage 14 blocker.
 4. Attach one end-to-end test-mode charge, return, asynchronous webhook, failed
    payment, full refund, supplier invoice/receipt and replay record to the
    release evidence.
@@ -305,10 +325,11 @@ remain overall direct-charge activation gates:
 
 ## GO / NO-GO conclusion
 
-**Stage 14 content migration: GO for the current repository and staging
-environment.** No P0/P1 customer, organiser, staff or transactional wording
-contradiction was found in the verified scope.
+**Stage 14 Help, support and product-copy migration: COMPLETE.** No P0/P1
+customer, organiser, staff or transactional wording contradiction was found in
+the verified repository and staging scope.
 
 **Overall production direct-charge migration: NO-GO until the unresolved
-activation items above are evidenced.** This report does not authorise live
-keys, production charges or enabling the direct-charge switch.
+ADR-004 activation items above are evidenced.** That later operational phase
+does not make Stage 14 incomplete. This report does not authorise live keys,
+production charges or enabling the direct-charge switch.
