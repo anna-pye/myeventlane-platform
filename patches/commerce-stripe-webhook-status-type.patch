@@ -1,0 +1,18 @@
+--- a/src/Plugin/Commerce/PaymentGateway/StripePaymentElement.php
++++ b/src/Plugin/Commerce/PaymentGateway/StripePaymentElement.php
+@@ -1689,13 +1689,13 @@
+    * @param int|null $webhook_event_id
+    *   The webhook event id.
+-   * @param string $webhook_event_status
++   * @param int $webhook_event_status
+    *   The webhook event status.
+    * @param string|null $reason
+    *   The reason for the status.
+    * @param \Drupal\Core\Entity\EntityInterface|null $entity
+    *   The related entity.
+    */
+-  protected function updateWebhookEventStatus(?int $webhook_event_id, string $webhook_event_status, ?string $reason = NULL, ?EntityInterface $entity = NULL): void {
++  protected function updateWebhookEventStatus(?int $webhook_event_id, int $webhook_event_status, ?string $reason = NULL, ?EntityInterface $entity = NULL): void {
+     if ($this->webhookEventModuleIsInstalled && ($webhook_event_id !== NULL)) {
+       WebhookEvent::updateStatus($webhook_event_id, $webhook_event_status, $reason, $entity);
+     }
