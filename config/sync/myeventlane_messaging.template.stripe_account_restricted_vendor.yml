@@ -1,0 +1,19 @@
+enabled: true
+subject: 'Action required: your Stripe account is restricted'
+preheader: 'Open Stripe to review and complete the required steps.'
+body_html: |-
+  <p>Hi {{ organiser_name|default('there') }},</p>
+
+  <p>Stripe has reported a restriction on your connected Stripe account. Ticket payments or Stripe payouts may be affected.</p>
+
+  <p>Stripe status: {{ restriction_reason }}</p>
+
+  <p>Open Stripe to review and complete the requested steps. MyEventLane can investigate whether our displayed status is current, but cannot approve Stripe verification, remove a restriction or release a payout.</p>
+
+  <p><a href="{{ stripe_manage_url }}">Open Stripe</a></p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: stripe_account_restricted_vendor

@@ -70,6 +70,9 @@ final class MessagingManager {
     'refund_failed_buyer',
     'refund_failed_vendor',
     'refund_failed_admin',
+    'stripe_dispute_created_vendor',
+    'stripe_account_restricted_vendor',
+    'stripe_payout_failed_vendor',
     'ticket_tier_waitlist_offer',
   ];
 
@@ -146,11 +149,14 @@ final class MessagingManager {
    *   The template context (must be serializable; no objects for hashing).
    * @param array $opts
    *   Optional: langcode, attachments, scheduled_for, channel, and
-   *   idempotency_key.
+   *   idempotency_key. Set return_existing to TRUE only when the caller needs
+   *   an existing queued/sent message ID to distinguish idempotent success
+   *   from a queue failure.
    *
    * @return string|null
-   *   The message ID (UUID) if queued, NULL if skipped or failed. Caller may pass
-   *   this to sendMessage() for immediate send (e.g. refund notifications).
+   *   The message ID (UUID) if queued, or an existing durable message ID when
+   *   return_existing is TRUE. NULL if skipped or failed. Caller may pass a
+   *   newly queued ID to sendMessage() for immediate send.
    */
   public function queue(string $type, string $to, array $context = [], array $opts = []): ?string {
     $eventId = isset($context['event_id']) && is_numeric($context['event_id']) ? (int) $context['event_id'] : NULL;
@@ -173,6 +179,7 @@ final class MessagingManager {
     }
 
     $contextHash = $this->contextHash($type, $to, $context);
+    $returnExisting = !empty($opts['return_existing']);
     $idempotencyKey = trim((string) ($opts['idempotency_key'] ?? ''));
     if ($idempotencyKey === '') {
       $idempotencyKey = sprintf('message:%s:%s', $type, $contextHash);
@@ -185,10 +192,31 @@ final class MessagingManager {
     if ($existing) {
       if ($existing->status === 'failed'
         && (int) $existing->attempts < self::MAX_DELIVERY_ATTEMPTS) {
-        $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+        $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem([
           'message_id' => $existing->id,
         ]);
+        if ($queueItemId === FALSE) {
+          throw new \RuntimeException('Messaging queue rejected the retryable message item.');
+        }
         $this->logger->notice('MessagingManager::queue: retryable failed message requeued.', [
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+          'existing_id' => $existing->id,
+        ]);
+        return $existing->id;
+      }
+      if ($returnExisting && $existing->status === 'queued') {
+        // A queued ledger row alone does not prove that createItem() completed.
+        // Enqueue it again so an interrupted producer cannot turn a Stripe
+        // webhook retry into a false success. Duplicate queue items are safe:
+        // sendMessage() claims the ledger row and skips an already-sent row.
+        $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+          'message_id' => $existing->id,
+        ]);
+        if ($queueItemId === FALSE) {
+          throw new \RuntimeException('Messaging queue rejected the orphan recovery item.');
+        }
+        $this->logger->notice('MessagingManager::queue: queued message durably re-enqueued.', [
           'queue_name' => self::QUEUE_NAME,
           'message_type' => $type,
           'existing_id' => $existing->id,
@@ -202,6 +230,9 @@ final class MessagingManager {
         'message_type' => $type,
         'existing_id' => $existing->id,
       ]);
+      if ($returnExisting && in_array((string) $existing->status, ['processing', 'dispatching', 'sent'], TRUE)) {
+        return (string) $existing->id;
+      }
       return NULL;
     }
 
@@ -251,6 +282,20 @@ final class MessagingManager {
           'existing_id' => $existing->id,
           'idempotency_key' => $idempotencyKey,
         ]);
+        if ($returnExisting && $existing->status === 'queued') {
+          // The winning producer may have stopped before createItem(). Add an
+          // at-least-once queue item before reporting durable acceptance.
+          $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+            'message_id' => $existing->id,
+          ]);
+          if ($queueItemId === FALSE) {
+            throw new \RuntimeException('Messaging queue rejected the concurrent recovery item.');
+          }
+          return (string) $existing->id;
+        }
+        if ($returnExisting && in_array((string) $existing->status, ['processing', 'dispatching', 'sent'], TRUE)) {
+          return (string) $existing->id;
+        }
         return NULL;
       }
       $this->logger->error('Failed to create message record. @message', [
@@ -264,9 +309,23 @@ final class MessagingManager {
     }
 
     try {
-      $this->queueFactory->get(self::QUEUE_NAME)->createItem(['message_id' => $id]);
+      $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem(['message_id' => $id]);
+      if ($queueItemId === FALSE) {
+        throw new \RuntimeException('Messaging queue rejected the message item.');
+      }
     }
     catch (\Throwable $e) {
+      // Preserve a retryable ledger state. Without this transition, a later
+      // idempotent retry could mistake an unqueued record for success. The
+      // compare-and-set must not overwrite a concurrent worker claim or send.
+      $markedFailed = $this->messageStorage->markQueueInsertFailed($id);
+      if (!$markedFailed) {
+        $this->logger->notice('Queue insert failure did not overwrite advanced message state.', [
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+          'message_id' => $id,
+        ]);
+      }
       $this->logger->error('Failed to queue message id. @message', [
         '@message' => $e->getMessage(),
         'queue_name' => self::QUEUE_NAME,

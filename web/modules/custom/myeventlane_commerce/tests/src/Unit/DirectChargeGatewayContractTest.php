@@ -27,6 +27,11 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringContainsString('avoids creating Stripe Customers', $source);
     self::assertStringContainsString('$webhook_event->account', $source);
     self::assertStringContainsString('missing from direct-charge webhook', $source);
+    self::assertStringContainsString('direct_charge_operational_event_handler', $source);
+    self::assertStringContainsString('operationalEventHandler->supports', $source);
+    self::assertStringContainsString('WebhookEventState::Succeeded', $source);
+    self::assertStringContainsString('WebhookEventState::Skipped', $source);
+    self::assertStringContainsString('WebhookEventState::Failed', $source);
   }
 
   public function testPaymentIntentContainsNoDestinationTransferParameters(): void {
@@ -43,6 +48,15 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringNotContainsString("get('stripe_fee_percent')", $service);
     self::assertStringNotContainsString("get('stripe_fee_fixed_cents')", $service);
     self::assertStringContainsString('validateApplicationFeeForDirectCharge', $service);
+  }
+
+  public function testRefundReturnsTheApplicationFeeWithoutTransferReversal(): void {
+    $gateway = file_get_contents(dirname(__DIR__, 3) . '/src/Plugin/Commerce/PaymentGateway/StripeConnect.php');
+    self::assertIsString($gateway);
+    self::assertStringContainsString("'refund_application_fee' => TRUE", $gateway);
+    self::assertStringNotContainsString("'reverse_transfer' =>", $gateway);
+    self::assertStringContainsString("'partially_refunded'", $gateway);
+    self::assertStringContainsString("'refunded'", $gateway);
   }
 
   public function testGeneralSettingsHasOneAdjustableTicketFeeSource(): void {

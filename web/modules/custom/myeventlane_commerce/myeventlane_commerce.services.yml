@@ -68,6 +68,14 @@ services:
       - '@myeventlane_commerce.order_item_classifier'
       - '@myeventlane_commerce.ticket_backed_order_item_classifier'
 
+  myeventlane_commerce.direct_charge_operational_event_handler:
+    class: Drupal\myeventlane_commerce\Service\DirectChargeOperationalEventHandler
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_messaging.manager'
+      - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_core.domain_detector'
+
   myeventlane_commerce.platform_fee_order_processor:
     class: Drupal\myeventlane_commerce\OrderProcessor\PlatformFeeOrderProcessor
     arguments:

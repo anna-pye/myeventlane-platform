@@ -27,6 +27,7 @@ function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variabl
 
   $eligibility = \Drupal::service('myeventlane_refunds.buyer_eligibility');
   $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
+  $variables['order']['refund_actions'] = [];
 
   foreach ($variables['order']['events'] ?? [] as $key => $eventData) {
     $eventId = (int) ($eventData['id'] ?? 0);
@@ -51,6 +52,14 @@ function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variabl
     if (!$canRefund) {
       $variables['order']['events'][$key]['refund_ineligible_reason'] = $eligibility->getIneligibilityReason($order, $event, $currentUser);
     }
+
+    $variables['order']['refund_actions'][] = [
+      'event_id' => $eventId,
+      'event_title' => $event->label(),
+      'can_refund' => $canRefund,
+      'refund_url' => $variables['order']['events'][$key]['refund_url'],
+      'ineligible_reason' => $variables['order']['events'][$key]['refund_ineligible_reason'] ?? NULL,
+    ];
   }
 }
 

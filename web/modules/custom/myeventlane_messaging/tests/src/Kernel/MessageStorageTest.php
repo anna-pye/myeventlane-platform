@@ -188,6 +188,51 @@ final class MessageStorageTest extends KernelTestBase {
   }
 
   /**
+   * A producer failure cannot overwrite a concurrent worker claim or send.
+   */
+  public function testQueueInsertFailureOnlyMarksUnclaimedQueuedMessage(): void {
+    $queuedId = $this->storage->create([
+      'template' => 'test',
+      'channel' => 'email',
+      'recipient' => 'queued@example.com',
+      'context' => [],
+      'context_hash' => hash('sha256', 'queue-insert-failed'),
+      'status' => 'queued',
+    ]);
+    $processingId = $this->storage->create([
+      'template' => 'test',
+      'channel' => 'email',
+      'recipient' => 'processing@example.com',
+      'context' => [],
+      'context_hash' => hash('sha256', 'queue-insert-processing'),
+      'status' => 'queued',
+    ]);
+    $sentId = $this->storage->create([
+      'template' => 'test',
+      'channel' => 'email',
+      'recipient' => 'sent@example.com',
+      'context' => [],
+      'context_hash' => hash('sha256', 'queue-insert-sent'),
+      'status' => 'sent',
+      'sent' => 200,
+    ]);
+
+    $this->assertTrue($this->storage->claimForDelivery($processingId, 100));
+    $this->assertTrue($this->storage->markQueueInsertFailed($queuedId));
+    $this->assertFalse($this->storage->markQueueInsertFailed($processingId));
+    $this->assertFalse($this->storage->markQueueInsertFailed($sentId));
+
+    $queued = $this->storage->load($queuedId);
+    $processing = $this->storage->load($processingId);
+    $sent = $this->storage->load($sentId);
+    $this->assertSame('failed', $queued->status);
+    $this->assertSame('processing', $processing->status);
+    $this->assertSame('100', (string) $processing->claimed_at);
+    $this->assertSame('sent', $sent->status);
+    $this->assertSame('200', (string) $sent->sent);
+  }
+
+  /**
    * Stale work is retried only before the provider-dispatch boundary.
    */
   public function testStaleClaimRecoveryQuarantinesProviderDispatch(): void {
