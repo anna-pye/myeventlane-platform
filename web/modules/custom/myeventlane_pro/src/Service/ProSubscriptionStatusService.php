@@ -26,7 +26,6 @@ final class ProSubscriptionStatusService {
 
   private const MANAGED_FIELD = 'field_pro_subscription_managed';
   private const GRACE_FIELD = 'field_pro_grace_expires';
-  private const PRO_ROLE = 'mel_pro';
 
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -67,7 +66,7 @@ final class ProSubscriptionStatusService {
    *   trial_ends_at: int|null,
    *   cancel_at_period_end: bool,
    *   ends_at: int|null,
-   * }
+   *   }
    */
   public function getStatusForUser(UserInterface $user): array {
     $graceDays = (int) ($this->configFactory->get('myeventlane_pro.settings')->get('grace_days') ?? 7);
@@ -109,7 +108,6 @@ final class ProSubscriptionStatusService {
       : 0;
     $now = $this->time->getRequestTime();
     $isInGrace = $graceExpires > 0 && $graceExpires >= $now;
-    $hasRole = $user->hasRole(self::PRO_ROLE);
     $isPro = $this->activeResolver->isUserProActive($user);
     $hasActiveSubscription = $subscription !== NULL && $this->stateResolver->isActive($subscription);
     $isTrial = $subscription !== NULL && $this->stateResolver->isTrial($subscription);
@@ -194,12 +192,16 @@ final class ProSubscriptionStatusService {
       }
     }
 
+    $billingSchedule = $subscription instanceof SubscriptionInterface
+      ? $subscription->getBillingSchedule()->id()
+      : ProBillingSchedule::TRIAL;
+
     return [
       'is_pro' => $isPro,
       'is_subscription_managed' => $isManaged,
       'has_active_subscription' => $hasActiveSubscription,
       'subscription_state' => $subscriptionState,
-      'billing_schedule' => $subscription->getBillingSchedule()->id(),
+      'billing_schedule' => $billingSchedule,
       'grace_expires' => $graceExpires > 0 ? $graceExpires : NULL,
       'grace_expires_label' => $graceExpiresLabel,
       'grace_period_days' => $graceDays,
