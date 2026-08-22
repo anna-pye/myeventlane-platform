@@ -113,6 +113,8 @@ help_articles:
     cta_label: 'Open Payments'
     cta_link: /vendor/payments
     alias: /help/vendors/payouts-and-fees
+    legacy_aliases:
+      - /help/payouts-and-fees
     featured: true
   connecting_stripe:
     seed_key: connecting_stripe

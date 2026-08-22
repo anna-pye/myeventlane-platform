@@ -131,6 +131,10 @@ final class HelpContentSeeder {
       if (!is_array($audience)) {
         $audience = $audience !== '' && $audience !== NULL ? [(string) $audience] : [];
       }
+      $legacyAliases = $row['legacy_aliases'] ?? [];
+      if (!is_array($legacyAliases)) {
+        $legacyAliases = $legacyAliases !== '' && $legacyAliases !== NULL ? [(string) $legacyAliases] : [];
+      }
       $out[] = [
         'seed_key' => $seedKey,
         'title' => $title,
@@ -143,6 +147,10 @@ final class HelpContentSeeder {
         'cta_label' => (string) ($row['cta_label'] ?? ''),
         'cta_link' => (string) ($row['cta_link'] ?? ''),
         'alias' => (string) ($row['alias'] ?? ''),
+        'legacy_aliases' => array_values(array_filter(array_map(
+          static fn(mixed $alias): string => trim((string) $alias),
+          $legacyAliases,
+        ))),
         'featured' => (bool) ($row['featured'] ?? FALSE),
       ];
     }
@@ -189,7 +197,12 @@ final class HelpContentSeeder {
       if ($seedKey === '') {
         continue;
       }
-      $existing = $this->loadSeededArticle($seedKey, (string) $item['title'], (string) $item['alias']);
+      $existing = $this->loadSeededArticle(
+        $seedKey,
+        (string) $item['title'],
+        (string) $item['alias'],
+        (array) ($item['legacy_aliases'] ?? []),
+      );
       $isNew = $existing === NULL;
       if (!$isNew && !$this->nodeNeedsSeedUpdate($existing, $item)) {
         continue;
@@ -366,7 +379,7 @@ final class HelpContentSeeder {
   /**
    * Loads an existing help article by seed key, then title fallback.
    */
-  private function loadSeededArticle(string $seedKey, string $title, string $alias = ''): ?NodeInterface {
+  private function loadSeededArticle(string $seedKey, string $title, string $alias = '', array $legacyAliases = []): ?NodeInterface {
     $storage = $this->entityTypeManager->getStorage('node');
     if ($this->hasHelpSeedKeyField()) {
       $existing = $storage->loadByProperties([
@@ -389,9 +402,10 @@ final class HelpContentSeeder {
 
     // An existing managed article can pre-date seed keys or have an old
     // title. Matching its stable alias migrates it instead of duplicating it.
-    if ($alias !== '') {
+    $aliasesToMatch = self::buildAliasCandidates($alias, $legacyAliases);
+    foreach ($aliasesToMatch as $aliasToMatch) {
       $aliases = $this->entityTypeManager->getStorage('path_alias')->loadByProperties([
-        'alias' => $alias,
+        'alias' => $aliasToMatch,
       ]);
       foreach ($aliases as $pathAlias) {
         $path = (string) $pathAlias->getPath();
@@ -405,6 +419,21 @@ final class HelpContentSeeder {
     }
 
     return NULL;
+  }
+
+  /**
+   * Returns unique canonical and legacy aliases in lookup order.
+   *
+   * @param array<int, mixed> $legacyAliases
+   *   Earlier aliases that may identify an existing managed article.
+   *
+   * @return list<string>
+   */
+  private static function buildAliasCandidates(string $alias, array $legacyAliases): array {
+    return array_values(array_unique(array_filter([
+      trim($alias),
+      ...array_map(static fn(mixed $value): string => trim((string) $value), $legacyAliases),
+    ])));
   }
 
   /**
