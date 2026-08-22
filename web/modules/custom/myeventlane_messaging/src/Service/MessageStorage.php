@@ -158,6 +158,21 @@ final class MessageStorage {
   }
 
   /**
+   * Marks a producer queue-insert failure without overwriting worker progress.
+   */
+  public function markQueueInsertFailed(string $id): bool {
+    return $this->connection->update('myeventlane_message')
+      ->fields([
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ])
+      ->condition('id', $id)
+      ->condition('status', 'queued')
+      ->condition('claimed_at', 0)
+      ->execute() === 1;
+  }
+
+  /**
    * Atomically renews an abandoned pre-dispatch processing claim.
    */
   public function reclaimStaleProcessing(

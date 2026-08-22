@@ -107,7 +107,8 @@ final class DirectChargeMessagingContractTest extends TestCase {
     self::assertStringContainsString("['processing', 'dispatching', 'sent']", $manager);
     self::assertStringNotContainsString("['queued', 'processing', 'dispatching', 'sent']", $manager);
     self::assertStringContainsString('$queueItemId === FALSE', $manager);
-    self::assertStringContainsString("'status' => 'failed'", $manager);
+    self::assertStringContainsString('markQueueInsertFailed($id)', $manager);
+    self::assertStringContainsString('must not overwrite a concurrent worker claim or send', $manager);
     self::assertStringContainsString('Without this transition, a later', $manager);
   }
 

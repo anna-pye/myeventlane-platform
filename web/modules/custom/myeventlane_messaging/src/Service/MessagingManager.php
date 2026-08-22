@@ -316,11 +316,16 @@ final class MessagingManager {
     }
     catch (\Throwable $e) {
       // Preserve a retryable ledger state. Without this transition, a later
-      // idempotent retry could mistake an unqueued record for success.
-      $this->messageStorage->update($id, [
-        'status' => 'failed',
-        'claimed_at' => 0,
-      ]);
+      // idempotent retry could mistake an unqueued record for success. The
+      // compare-and-set must not overwrite a concurrent worker claim or send.
+      $markedFailed = $this->messageStorage->markQueueInsertFailed($id);
+      if (!$markedFailed) {
+        $this->logger->notice('Queue insert failure did not overwrite advanced message state.', [
+          'queue_name' => self::QUEUE_NAME,
+          'message_type' => $type,
+          'message_id' => $id,
+        ]);
+      }
       $this->logger->error('Failed to queue message id. @message', [
         '@message' => $e->getMessage(),
         'queue_name' => self::QUEUE_NAME,
