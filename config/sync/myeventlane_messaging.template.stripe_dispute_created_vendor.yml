@@ -1,0 +1,19 @@
+enabled: true
+subject: 'Action required: Stripe dispute for {{ amount }}'
+preheader: 'Respond by {{ response_deadline }} in your connected Stripe account.'
+body_html: |-
+  <p>Hi {{ organiser_name|default('there') }},</p>
+
+  <p>Stripe has opened a dispute for <strong>{{ amount }}</strong> against a ticket payment in your connected Stripe account.</p>
+
+  <p>Reason: {{ reason }}<br>Response deadline: {{ response_deadline }}</p>
+
+  <p>You are responsible for responding with accurate evidence by Stripe's deadline. Stripe and the card network control the dispute process and outcome. MyEventLane can help locate booking, ticket, delivery and attendance records, but cannot decide the dispute.</p>
+
+  <p><a href="{{ stripe_manage_url }}">Open Stripe to review the dispute</a></p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: stripe_dispute_created_vendor

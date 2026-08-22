@@ -8,12 +8,17 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Entity\PaymentMethodInterface;
 use Drupal\commerce_price\Price;
+use Drupal\commerce_stripe\ErrorHelper;
 use Drupal\commerce_stripe\Plugin\Commerce\PaymentGateway\StripePaymentElement;
+use Drupal\commerce_stripe\WebhookEventState;
+use Drupal\myeventlane_commerce\Service\DirectChargeOperationalEventHandler;
 use Drupal\myeventlane_commerce\Service\StripeConnectPaymentService;
 use Drupal\user\UserInterface;
 use Stripe\Event;
+use Stripe\Exception\ApiErrorException;
 use Stripe\PaymentIntent;
 use Stripe\PaymentMethod;
+use Stripe\Refund;
 use Stripe\Stripe as StripeLibrary;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -48,11 +53,17 @@ class StripeConnect extends StripePaymentElement {
   protected StripeConnectPaymentService $stripeConnectPayment;
 
   /**
+   * Queues approved organiser alerts for critical Connect events.
+   */
+  protected DirectChargeOperationalEventHandler $operationalEventHandler;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition): StripePaymentElement {
     $instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
     $instance->stripeConnectPayment = $container->get('myeventlane_commerce.stripe_connect_payment');
+    $instance->operationalEventHandler = $container->get('myeventlane_commerce.direct_charge_operational_event_handler');
     return $instance;
   }
 
@@ -126,6 +137,20 @@ class StripeConnect extends StripePaymentElement {
     $previousAccount = StripeLibrary::getAccountId();
     StripeLibrary::setAccountId($accountId);
     try {
+      if ($this->operationalEventHandler->supports((string) $webhook_event->type)) {
+        try {
+          $result = $this->operationalEventHandler->handle($webhook_event);
+          $status = $result['handled']
+            ? WebhookEventState::Succeeded->value
+            : WebhookEventState::Skipped->value;
+          $this->updateWebhookEventStatus($webhook_event_id, $status, $result['reason']);
+          return NULL;
+        }
+        catch (\Throwable $throwable) {
+          $this->updateWebhookEventStatus($webhook_event_id, WebhookEventState::Failed->value, $throwable->getMessage());
+          throw $throwable;
+        }
+      }
       return parent::processWebHook($webhook_event_id, $webhook_event);
     }
     finally {
@@ -165,7 +190,36 @@ class StripeConnect extends StripePaymentElement {
   public function refundPayment(PaymentInterface $payment, ?Price $amount = NULL): void {
     $previousAccount = $this->enterConnectedAccountContext($payment->getOrder());
     try {
-      parent::refundPayment($payment, $amount);
+      $this->assertPaymentState($payment, ['completed', 'partially_refunded']);
+      $amount = $amount ?: $payment->getAmount();
+      $this->assertRefundAmount($payment, $amount);
+
+      try {
+        $refund = Refund::create([
+          'amount' => $this->minorUnitsConverter->toMinorUnits($amount),
+          'payment_intent' => $payment->getRemoteId(),
+          // Stripe returns the full application fee when the charge becomes
+          // fully refunded, and a proportional amount for partial refunds.
+          'refund_application_fee' => TRUE,
+          'metadata' => [
+            'refund_source' => self::PAYMENT_SOURCE,
+            'refund_uid' => $this->currentUser->id(),
+          ],
+        ], [
+          'idempotency_key' => $this->uuidService->generate(),
+        ]);
+        ErrorHelper::handleErrors($refund, $payment);
+
+        $refundedAmount = $payment->getRefundedAmount()->add($amount);
+        $payment->setState($refundedAmount->lessThan($payment->getAmount())
+          ? 'partially_refunded'
+          : 'refunded');
+        $payment->setRefundedAmount($refundedAmount);
+        $payment->save();
+      }
+      catch (ApiErrorException $exception) {
+        ErrorHelper::handleException($exception, $payment);
+      }
     }
     finally {
       StripeLibrary::setAccountId($previousAccount);

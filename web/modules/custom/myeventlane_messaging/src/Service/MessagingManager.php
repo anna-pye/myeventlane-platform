@@ -70,6 +70,9 @@ final class MessagingManager {
     'refund_failed_buyer',
     'refund_failed_vendor',
     'refund_failed_admin',
+    'stripe_dispute_created_vendor',
+    'stripe_account_restricted_vendor',
+    'stripe_payout_failed_vendor',
     'ticket_tier_waitlist_offer',
   ];
 

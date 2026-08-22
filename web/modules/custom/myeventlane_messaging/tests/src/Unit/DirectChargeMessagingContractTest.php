@@ -59,6 +59,42 @@ final class DirectChargeMessagingContractTest extends TestCase {
     self::assertStringContainsString('sufficient funds', $failed);
   }
 
+  public function testCriticalStripeAlertsMatchTheApprovedResponsibilityBoundary(): void {
+    foreach ([
+      'stripe_dispute_created_vendor',
+      'stripe_account_restricted_vendor',
+      'stripe_payout_failed_vendor',
+    ] as $id) {
+      $sync = $this->syncTemplate($id);
+      $install = $this->installTemplate($id);
+      self::assertSame($sync, $install, $id);
+      self::assertTrue((bool) $sync['enabled'], $id);
+      self::assertStringContainsString('stripe_manage_url', (string) $sync['body_html'], $id);
+      $rendered = $this->renderBody($sync, [
+        'organiser_name' => 'Example Organiser',
+        'amount' => 'AUD 30.00',
+        'reason' => 'general',
+        'response_deadline' => '30 Aug 2026',
+        'restriction_reason' => 'requirements.past_due',
+        'failure_message' => 'Bank account unavailable',
+        'stripe_manage_url' => 'https://vendor.example.test/stripe/manage',
+      ]);
+      self::assertStringNotContainsString('{{', $rendered, $id);
+    }
+
+    $dispute = (string) $this->syncTemplate('stripe_dispute_created_vendor')['body_html'];
+    self::assertStringContainsString('You are responsible for responding', $dispute);
+    self::assertStringContainsString('cannot decide the dispute', $dispute);
+
+    $restriction = (string) $this->syncTemplate('stripe_account_restricted_vendor')['body_html'];
+    self::assertStringContainsString('cannot approve Stripe verification', $restriction);
+    self::assertStringContainsString('remove a restriction', $restriction);
+
+    $payout = (string) $this->syncTemplate('stripe_payout_failed_vendor')['body_html'];
+    self::assertStringContainsString('Stripe controls payout timing', $payout);
+    self::assertStringContainsString('cannot release, reschedule or mark a Stripe payout as paid', $payout);
+  }
+
   public function testRefundFailureAndRejectionCopyDoesNotOverstateMelControl(): void {
     $buyerFailure = (string) $this->syncTemplate('refund_failed_buyer')['body_html'];
     self::assertStringContainsString('investigate the recorded refund state with the organiser', $buyerFailure);

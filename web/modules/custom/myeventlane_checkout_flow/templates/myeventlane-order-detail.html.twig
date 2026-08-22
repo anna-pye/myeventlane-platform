@@ -266,6 +266,28 @@
     </aside>
   {% endif %}
 
+  {% if order.refund_actions|default([])|length > 0 %}
+    <section class="mel-section mel-order-detail__refunds mel-mt-6" aria-labelledby="mel-order-refunds-heading">
+      <h2 class="mel-section-title" id="mel-order-refunds-heading">{{ 'Refunds'|t }}</h2>
+      {% for refund_action in order.refund_actions %}
+        <div class="mel-order-detail__refund-action{% if not loop.first %} mel-mt-3{% endif %}">
+          {% if order.refund_actions|length > 1 and refund_action.event_title %}
+            <h3 class="mel-order-detail__refund-event">{{ refund_action.event_title }}</h3>
+          {% endif %}
+          {% if refund_action.can_refund and refund_action.refund_url %}
+            <a href="{{ refund_action.refund_url }}" class="mel-button mel-button--secondary">
+              {{ 'Request refund'|t }}
+            </a>
+          {% elseif refund_action.ineligible_reason %}
+            <p class="mel-event-refund-note mel-text--muted">
+              {{ refund_action.ineligible_reason }}
+            </p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
   {% if operational_addon_guidance %}
     <div class="mel-order-detail-addon-guidance mel-section mel-mt-4" role="region" aria-label="{{ 'Your add-ons'|t }}">
       {{ operational_addon_guidance }}

@@ -45,9 +45,10 @@ Staff must not say that MyEventLane:
 4. Remind the organiser: “You remain responsible for refunds for your event. MyEventLane can help you process a refund through the booking system, but the refunded money comes from your connected Stripe account.”
 5. Ask the organiser to ensure sufficient funds are available in Stripe. Do not claim MEL maintains a refund reserve.
 6. Initiate the refund through the MEL booking workflow. Never collect card or bank details in support messages.
-7. Record the Stripe refund ID, amount, initiating staff/user ID and resulting MEL state.
-8. If Stripe rejects or leaves the refund pending, preserve the exact provider state. Do not mark it completed manually.
-9. Tell the customer that an approved refund returns to the original payment method. Avoid a fixed arrival promise; timing depends on Stripe, the payment method and the financial institution.
+7. Apply the approved MEL fee rule: a full customer refund also returns the full MEL application fee; a partial customer refund returns the application fee proportionally. Do not apply this rule to platform-owned products.
+8. Record the Stripe refund ID, amount, initiating staff/user ID and resulting MEL state.
+9. If Stripe rejects or leaves the refund pending, preserve the exact provider state. Do not mark it completed manually.
+10. Tell the customer that an approved refund returns to the original payment method. Avoid a fixed arrival promise; timing depends on Stripe, the payment method and the financial institution.
 
 Escalate mismatched amounts, duplicate refunds, wrong connected-account context or missing Stripe object IDs to payments engineering immediately. Stop further refund attempts until the account and idempotency evidence are confirmed.
 
@@ -71,6 +72,8 @@ Escalate mismatched amounts, duplicate refunds, wrong connected-account context 
 7. Record the final Stripe outcome when reported. MEL support must not represent itself as the decision-maker.
 
 ## Stripe payout and account-attention procedure
+
+MyEventLane sends an essential organiser email when Stripe reports a new dispute, an existing connected account becomes restricted, or a Stripe payout fails. Routine successful-payout emails are not sent because Stripe remains the authoritative payout interface and already provides its own status communication.
 
 1. Confirm the organiser is looking at a Stripe payout, not MEL sales reporting or a platform-owned-product payment.
 2. Read the state exactly: pending balance, available balance, payout pending, payout paid, restricted or requirement due.

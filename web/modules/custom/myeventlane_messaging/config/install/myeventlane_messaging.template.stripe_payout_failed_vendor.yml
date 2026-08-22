@@ -1,0 +1,19 @@
+enabled: true
+subject: 'Action required: Stripe payout failed'
+preheader: 'Review the failed {{ amount }} payout in Stripe.'
+body_html: |-
+  <p>Hi {{ organiser_name|default('there') }},</p>
+
+  <p>Stripe could not send a payout of <strong>{{ amount }}</strong> from your connected Stripe account to your nominated bank account.</p>
+
+  <p>Stripe status: {{ failure_message }}</p>
+
+  <p>Open Stripe to review the payout and any bank-account or verification steps. Stripe controls payout timing and bank settlement. MyEventLane cannot release, reschedule or mark a Stripe payout as paid.</p>
+
+  <p><a href="{{ stripe_manage_url }}">Open Stripe</a></p>
+utm:
+  enable: true
+  params:
+    utm_source: email
+    utm_medium: transactional
+    utm_campaign: stripe_payout_failed_vendor
