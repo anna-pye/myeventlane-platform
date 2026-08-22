@@ -112,7 +112,8 @@
         "Fix ImmutableConfigException when saving crop widget settings (3496678)": "patches/image-widget-crop-immutable-config.patch"
       },
       "drupal/commerce_stripe": {
-        "Allow Payment Element to confirm connected-account direct charges": "patches/commerce-stripe-connected-account-payment-element.patch"
+        "Allow Payment Element to confirm connected-account direct charges": "patches/commerce-stripe-connected-account-payment-element.patch",
+        "Fix webhook event status type for PHP 8 strict types": "patches/commerce-stripe-webhook-status-type.patch"
       }
     },
     "drupal-scaffold": {

@@ -78,6 +78,15 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringContainsString("['stripeAccount'] = \$validation['account_id']", $module);
   }
 
+  public function testCommerceStripeWebhookStatusPatchMatchesIntegerEnum(): void {
+    $patch = file_get_contents(dirname(__DIR__, 7) . '/patches/commerce-stripe-webhook-status-type.patch');
+    $composer = file_get_contents(dirname(__DIR__, 7) . '/composer.json');
+    self::assertIsString($patch);
+    self::assertIsString($composer);
+    self::assertStringContainsString('int $webhook_event_status', $patch);
+    self::assertStringContainsString('commerce-stripe-webhook-status-type.patch', $composer);
+  }
+
   public function testGatewayEntityIsDormantUntilTheMigrationSwitchRoutesAnOrder(): void {
     $config = file_get_contents(dirname(__DIR__, 7) . '/config/sync/commerce_payment.commerce_payment_gateway.stripe_connect.yml');
     $subscriber = file_get_contents(dirname(__DIR__, 3) . '/src/EventSubscriber/FilterPaymentGatewaysSubscriber.php');
