@@ -15,10 +15,23 @@ final class TicketBookingSessionService {
 
   private const SESSION_KEY = 'mel_ticket_booking_access';
 
+  private readonly \Closure $isCommandLine;
+  private readonly \Closure $headersSent;
+  private bool $sessionUnavailable = FALSE;
+
   public function __construct(
     private readonly RequestStack $requestStack,
     private readonly SessionManagerInterface $sessionManager,
-  ) {}
+    ?callable $isCommandLine = NULL,
+    ?callable $headersSent = NULL,
+  ) {
+    $this->isCommandLine = $isCommandLine !== NULL
+      ? \Closure::fromCallable($isCommandLine)
+      : static fn (): bool => PHP_SAPI === 'cli';
+    $this->headersSent = $headersSent !== NULL
+      ? \Closure::fromCallable($headersSent)
+      : static fn (): bool => headers_sent();
+  }
 
   /**
    * @return list<int>
@@ -155,7 +168,12 @@ final class TicketBookingSessionService {
   private function getSession(): ?SessionInterface {
     // Public ticket availability is also evaluated by cron and CLI indexers.
     // Those contexts must never try to start or read an HTTP session.
-    if (PHP_SAPI === 'cli') {
+    if (($this->isCommandLine)() || $this->sessionUnavailable) {
+      return NULL;
+    }
+
+    if (!$this->sessionManager->isStarted() && ($this->headersSent)()) {
+      $this->sessionUnavailable = TRUE;
       return NULL;
     }
 
@@ -168,11 +186,15 @@ final class TicketBookingSessionService {
   }
 
   private function startSession(): void {
-    if (PHP_SAPI === 'cli') {
+    if (($this->isCommandLine)() || $this->sessionUnavailable) {
       return;
     }
 
     if ($this->sessionManager->isStarted()) {
+      return;
+    }
+    if (($this->headersSent)()) {
+      $this->sessionUnavailable = TRUE;
       return;
     }
     $request = $this->requestStack->getCurrentRequest();
@@ -181,6 +203,7 @@ final class TicketBookingSessionService {
         $this->sessionManager->start();
       }
       catch (\RuntimeException) {
+        $this->sessionUnavailable = TRUE;
         // Session-backed grants are optional. Fail closed when the response
         // has already started or no writable session is available.
       }
