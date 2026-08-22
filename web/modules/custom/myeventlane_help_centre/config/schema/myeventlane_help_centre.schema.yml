@@ -59,6 +59,11 @@ myeventlane_help_centre.help_content.article:
     alias:
       type: string
       label: 'URL alias'
+    legacy_aliases:
+      type: sequence
+      label: 'Legacy URL aliases'
+      sequence:
+        type: string
     featured:
       type: boolean
       label: 'Featured'
