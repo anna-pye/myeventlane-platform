@@ -91,6 +91,11 @@ final class DirectChargeOperationalEventHandlerTest extends TestCase {
       ['requirements' => ['disabled_reason' => NULL]],
       TRUE,
     ];
+    yield 'restricted reason changed while account remains restricted' => [
+      ['requirements' => ['disabled_reason' => 'requirements.pending_verification']],
+      ['requirements' => ['disabled_reason' => 'requirements.past_due']],
+      FALSE,
+    ];
     yield 'ordinary incomplete onboarding update' => [
       ['charges_enabled' => FALSE, 'details_submitted' => FALSE],
       ['details_submitted' => TRUE],

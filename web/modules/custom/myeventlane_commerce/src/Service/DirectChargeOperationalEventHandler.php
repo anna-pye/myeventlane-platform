@@ -154,8 +154,8 @@ final class DirectChargeOperationalEventHandler {
     $currentReason = trim((string) ($currentRequirements['disabled_reason'] ?? ''));
     $previousReason = trim((string) ($previousRequirements['disabled_reason'] ?? ''));
     return array_key_exists('disabled_reason', $previousRequirements)
-      && $currentReason !== ''
-      && $currentReason !== $previousReason;
+      && $previousReason === ''
+      && $currentReason !== '';
   }
 
   /**
