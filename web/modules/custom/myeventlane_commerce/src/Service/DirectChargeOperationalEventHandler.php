@@ -87,10 +87,14 @@ final class DirectChargeOperationalEventHandler {
 
     $template = self::templateForEventType($eventType);
     $context = $this->buildContext($event, $store);
-    $messageId = $this->messagingManager->queue($template, $recipient, $context, [
-      'langcode' => $store->language()->getId(),
-      'idempotency_key' => sprintf('stripe-event:%s:%s', $eventId, $template),
-    ]);
+    $messageId = self::requireQueuedMessageId(
+      $this->messagingManager->queue($template, $recipient, $context, [
+        'langcode' => $store->language()->getId(),
+        'idempotency_key' => sprintf('stripe-event:%s:%s', $eventId, $template),
+        'return_existing' => TRUE,
+      ]),
+      $eventId,
+    );
 
     $this->logger->notice('Critical Stripe event @event_type accepted for organiser notification for store @store.', [
       '@event_type' => $eventType,
@@ -102,6 +106,20 @@ final class DirectChargeOperationalEventHandler {
     ]);
 
     return ['handled' => TRUE, 'reason' => 'Organiser notification accepted idempotently.'];
+  }
+
+  /**
+   * Requires durable queue acceptance before acknowledging a Stripe webhook.
+   */
+  public static function requireQueuedMessageId(?string $messageId, string $eventId): string {
+    $messageId = trim((string) $messageId);
+    if ($messageId === '') {
+      throw new \RuntimeException(sprintf(
+        'Critical Stripe organiser notification could not be queued for event %s.',
+        $eventId,
+      ));
+    }
+    return $messageId;
   }
 
   /**

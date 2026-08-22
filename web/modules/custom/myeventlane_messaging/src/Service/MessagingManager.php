@@ -149,11 +149,14 @@ final class MessagingManager {
    *   The template context (must be serializable; no objects for hashing).
    * @param array $opts
    *   Optional: langcode, attachments, scheduled_for, channel, and
-   *   idempotency_key.
+   *   idempotency_key. Set return_existing to TRUE only when the caller needs
+   *   an existing queued/sent message ID to distinguish idempotent success
+   *   from a queue failure.
    *
    * @return string|null
-   *   The message ID (UUID) if queued, NULL if skipped or failed. Caller may pass
-   *   this to sendMessage() for immediate send (e.g. refund notifications).
+   *   The message ID (UUID) if queued, or an existing durable message ID when
+   *   return_existing is TRUE. NULL if skipped or failed. Caller may pass a
+   *   newly queued ID to sendMessage() for immediate send.
    */
   public function queue(string $type, string $to, array $context = [], array $opts = []): ?string {
     $eventId = isset($context['event_id']) && is_numeric($context['event_id']) ? (int) $context['event_id'] : NULL;
@@ -176,6 +179,7 @@ final class MessagingManager {
     }
 
     $contextHash = $this->contextHash($type, $to, $context);
+    $returnExisting = !empty($opts['return_existing']);
     $idempotencyKey = trim((string) ($opts['idempotency_key'] ?? ''));
     if ($idempotencyKey === '') {
       $idempotencyKey = sprintf('message:%s:%s', $type, $contextHash);
@@ -188,9 +192,12 @@ final class MessagingManager {
     if ($existing) {
       if ($existing->status === 'failed'
         && (int) $existing->attempts < self::MAX_DELIVERY_ATTEMPTS) {
-        $this->queueFactory->get(self::QUEUE_NAME)->createItem([
+        $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem([
           'message_id' => $existing->id,
         ]);
+        if ($queueItemId === FALSE) {
+          throw new \RuntimeException('Messaging queue rejected the retryable message item.');
+        }
         $this->logger->notice('MessagingManager::queue: retryable failed message requeued.', [
           'queue_name' => self::QUEUE_NAME,
           'message_type' => $type,
@@ -205,6 +212,9 @@ final class MessagingManager {
         'message_type' => $type,
         'existing_id' => $existing->id,
       ]);
+      if ($returnExisting && in_array((string) $existing->status, ['queued', 'processing', 'dispatching', 'sent'], TRUE)) {
+        return (string) $existing->id;
+      }
       return NULL;
     }
 
@@ -254,6 +264,9 @@ final class MessagingManager {
           'existing_id' => $existing->id,
           'idempotency_key' => $idempotencyKey,
         ]);
+        if ($returnExisting && in_array((string) $existing->status, ['queued', 'processing', 'dispatching', 'sent'], TRUE)) {
+          return (string) $existing->id;
+        }
         return NULL;
       }
       $this->logger->error('Failed to create message record. @message', [
@@ -267,9 +280,18 @@ final class MessagingManager {
     }
 
     try {
-      $this->queueFactory->get(self::QUEUE_NAME)->createItem(['message_id' => $id]);
+      $queueItemId = $this->queueFactory->get(self::QUEUE_NAME)->createItem(['message_id' => $id]);
+      if ($queueItemId === FALSE) {
+        throw new \RuntimeException('Messaging queue rejected the message item.');
+      }
     }
     catch (\Throwable $e) {
+      // Preserve a retryable ledger state. Without this transition, a later
+      // idempotent retry could mistake an unqueued record for success.
+      $this->messageStorage->update($id, [
+        'status' => 'failed',
+        'claimed_at' => 0,
+      ]);
       $this->logger->error('Failed to queue message id. @message', [
         '@message' => $e->getMessage(),
         'queue_name' => self::QUEUE_NAME,

@@ -95,6 +95,21 @@ final class DirectChargeMessagingContractTest extends TestCase {
     self::assertStringContainsString('cannot release, reschedule or mark a Stripe payout as paid', $payout);
   }
 
+  public function testCriticalStripeAlertQueueFailureRemainsRetryable(): void {
+    $customModules = dirname(__DIR__, 4);
+    $handler = file_get_contents($customModules . '/myeventlane_commerce/src/Service/DirectChargeOperationalEventHandler.php');
+    $manager = file_get_contents($customModules . '/myeventlane_messaging/src/Service/MessagingManager.php');
+
+    self::assertIsString($handler);
+    self::assertIsString($manager);
+    self::assertStringContainsString("'return_existing' => TRUE", $handler);
+    self::assertStringContainsString('Critical Stripe organiser notification could not be queued', $handler);
+    self::assertStringContainsString("['queued', 'processing', 'dispatching', 'sent']", $manager);
+    self::assertStringContainsString('$queueItemId === FALSE', $manager);
+    self::assertStringContainsString("'status' => 'failed'", $manager);
+    self::assertStringContainsString('Without this transition, a later', $manager);
+  }
+
   public function testRefundFailureAndRejectionCopyDoesNotOverstateMelControl(): void {
     $buyerFailure = (string) $this->syncTemplate('refund_failed_buyer')['body_html'];
     self::assertStringContainsString('investigate the recorded refund state with the organiser', $buyerFailure);

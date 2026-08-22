@@ -38,6 +38,25 @@ final class DirectChargeOperationalEventHandlerTest extends TestCase {
   }
 
   /**
+   * @covers ::requireQueuedMessageId
+   */
+  public function testAcceptedMessageIdIsReturned(): void {
+    self::assertSame(
+      'message-uuid',
+      DirectChargeOperationalEventHandler::requireQueuedMessageId('message-uuid', 'evt_test'),
+    );
+  }
+
+  /**
+   * @covers ::requireQueuedMessageId
+   */
+  public function testQueueFailureThrowsSoTheWebhookCanRetry(): void {
+    $this->expectException(\RuntimeException::class);
+    $this->expectExceptionMessage('could not be queued for event evt_retry');
+    DirectChargeOperationalEventHandler::requireQueuedMessageId(NULL, 'evt_retry');
+  }
+
+  /**
    * @covers ::accountBecameRestricted
    * @dataProvider restrictionTransitions
    */
