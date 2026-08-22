@@ -84,6 +84,8 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertIsString($patch);
     self::assertIsString($composer);
     self::assertStringContainsString('int $webhook_event_status', $patch);
+    self::assertStringContainsString('@@ -1689,13 +1689,13 @@', $patch);
+    self::assertStringNotContainsString('@@ -1689,14 +1689,14 @@', $patch);
     self::assertStringContainsString('commerce-stripe-webhook-status-type.patch', $composer);
   }
 

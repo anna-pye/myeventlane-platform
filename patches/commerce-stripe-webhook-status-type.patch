@@ -1,6 +1,6 @@
 --- a/src/Plugin/Commerce/PaymentGateway/StripePaymentElement.php
 +++ b/src/Plugin/Commerce/PaymentGateway/StripePaymentElement.php
-@@ -1689,14 +1689,14 @@
+@@ -1689,13 +1689,13 @@
     * @param int|null $webhook_event_id
     *   The webhook event id.
 -   * @param string $webhook_event_status
