@@ -118,6 +118,26 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringContainsString('getProBillingClient()', $portal);
   }
 
+  /**
+   * Missing Connect credentials surface the actionable organiser message.
+   */
+  public function testConnectCredentialErrorMessageRemainsInSync(): void {
+    $service = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Service/StripeService.php');
+    $controller = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Controller/StripeConnectController.php');
+
+    self::assertIsString($service);
+    self::assertIsString($controller);
+    self::assertStringContainsString(
+      "throw new \\RuntimeException('Stripe Connect server key is not configured.')",
+      $service,
+    );
+    self::assertStringContainsString(
+      "str_contains(\$msg, 'Stripe Connect server key is not configured')",
+      $controller,
+    );
+    self::assertStringContainsString('MEL_CONNECT_STRIPE_SECRET_KEY', $controller);
+  }
+
   public function testCoreTicketIntentHelperAlsoUsesDirectChargeContext(): void {
     $core = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Service/StripeService.php');
     self::assertIsString($core);

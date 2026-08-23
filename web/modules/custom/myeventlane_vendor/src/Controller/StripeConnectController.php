@@ -333,7 +333,7 @@ final class StripeConnectController extends ControllerBase {
       ]);
 
       $msg = $e->getMessage();
-      if (str_contains($msg, 'Platform Stripe secret key is not configured')) {
+      if (str_contains($msg, 'Stripe Connect server key is not configured')) {
         $this->messenger()->addError($this->t('Stripe Connect is not configured for this environment. Set MEL_CONNECT_STRIPE_SECRET_KEY in the web PHP process—not only in an SSH session—then restart PHP or the web server, run drush cr, and try again. The legacy MEL_STRIPE_SECRET_KEY is supported only as a temporary fallback.'));
         return $this->redirectToDashboard();
       }
