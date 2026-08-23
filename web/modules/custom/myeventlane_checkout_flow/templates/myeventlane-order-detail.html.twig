@@ -16,6 +16,38 @@
     </a>
   </div>
 
+  {% if order.refund_summary %}
+    <section
+      class="mel-order-refund-summary mel-order-refund-summary--{{ order.refund_summary.status }}"
+      aria-labelledby="mel-order-refund-heading"
+      role="status"
+    >
+      <div class="mel-order-refund-summary__icon" aria-hidden="true">✓</div>
+      <div class="mel-order-refund-summary__body">
+        <h2 class="mel-order-refund-summary__heading" id="mel-order-refund-heading">
+          {{ order.refund_summary.heading }}
+        </h2>
+        <dl class="mel-order-refund-summary__amounts">
+          <div>
+            <dt>{{ 'Refunded'|t }}</dt>
+            <dd>{{ order.refund_summary.refunded_amount|commerce_price_format }}</dd>
+          </div>
+          {% if order.refund_summary.status == 'partial' %}
+            <div>
+              <dt>{{ 'Original payment'|t }}</dt>
+              <dd>{{ order.refund_summary.original_paid_amount|commerce_price_format }}</dd>
+            </div>
+            <div>
+              <dt>{{ 'Not refunded'|t }}</dt>
+              <dd>{{ order.refund_summary.remaining_amount|commerce_price_format }}</dd>
+            </div>
+          {% endif %}
+        </dl>
+        <p class="mel-order-refund-summary__message">{{ order.refund_summary.message }}</p>
+      </div>
+    </section>
+  {% endif %}
+
   {% if order.ticket_models|default([])|length > 0 %}
   <div class="mel-order-detail__passes" aria-label="{{ 'Your Digital Passes'|t }}">
     {% for ticket in order.ticket_models %}

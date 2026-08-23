@@ -150,6 +150,7 @@ final class MyTicketsController extends ControllerBase {
     $orderData = $this->orderViewModelBuilder->build($commerce_order, TRUE);
 
     $cacheTags = ['commerce_order:' . $commerce_order->id()];
+    $cacheTags = array_merge($cacheTags, $orderData['cache_tags'] ?? []);
     foreach ($orderData['events'] ?? [] as $eventData) {
       $nid = (int) ($eventData['id'] ?? 0);
       if ($nid) {
@@ -163,7 +164,7 @@ final class MyTicketsController extends ControllerBase {
       '#order' => $orderData,
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => $cacheTags,
+        'tags' => array_values(array_unique($cacheTags)),
       ],
     ];
   }
