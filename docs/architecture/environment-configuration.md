@@ -79,7 +79,11 @@ Same chain **except**:
 - Staging/production cannot load `settings.local.php`.
 - Missing optional local files do not fatal (`file_exists` / `is_readable` guards).
 - Missing required shared session fragment fails deploy verification in `scripts/deploy/remote-deploy.sh`.
-- Secrets must not live in tracked PHP/YAML; use `MEL_STRIPE_*`, `STRIPE_*`, `MEL_POSTMARK_*`, `MEL_QR_SECRET`, `MEL_AUTH_*`, `MEL_OPENAI_API_KEY`.
+- Secrets must not live in tracked PHP/YAML. Stripe server credentials use
+  purpose-specific `MEL_PLATFORM_STRIPE_*`, `MEL_CONNECT_STRIPE_*`, and
+  `MEL_PRO_STRIPE_*` variables. The shared `MEL_STRIPE_*` names are temporary
+  compatibility fallbacks only. Other runtime secrets use `STRIPE_*`,
+  `MEL_POSTMARK_*`, `MEL_QR_SECRET`, `MEL_AUTH_*`, and `MEL_OPENAI_API_KEY`.
 
 ## Ticket QR signing secret
 
@@ -108,4 +112,3 @@ ddev drush mel:health
 ```
 
 Expect Status: **PASS** and a source label such as `settings:myeventlane_qr_secret` (never the raw secret).
-

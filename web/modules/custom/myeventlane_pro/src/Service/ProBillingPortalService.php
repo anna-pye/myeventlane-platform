@@ -57,7 +57,7 @@ final class ProBillingPortalService {
     $returnUrl = Url::fromRoute('myeventlane_pro.manage', [], ['absolute' => TRUE])->toString();
 
     try {
-      $client = $this->stripeService->getPlatformClient();
+      $client = $this->stripeService->getProBillingClient();
       $session = $client->billingPortal->sessions->create([
         'customer' => $customerId,
         'return_url' => $returnUrl,
@@ -125,7 +125,7 @@ final class ProBillingPortalService {
       }
 
       try {
-        $client = $this->stripeService->getPlatformClient();
+        $client = $this->stripeService->getProBillingClient();
         $pm = $client->paymentMethods->retrieve($remoteId, []);
         $customer = $pm->customer ?? NULL;
         if (is_string($customer) && str_starts_with($customer, 'cus_')) {

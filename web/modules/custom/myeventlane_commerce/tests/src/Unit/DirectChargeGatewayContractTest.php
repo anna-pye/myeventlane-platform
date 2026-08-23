@@ -102,6 +102,20 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringContainsString('webhook_signing_secret:', $config);
     self::assertStringContainsString('if ($gatewayId === self::DIRECT_CHARGE_GATEWAY_ID)', $subscriber);
     self::assertStringContainsString('MEL_STRIPE_CONNECT_WEBHOOK_SECRET', $settings);
+    self::assertStringContainsString('MEL_CONNECT_STRIPE_SECRET_KEY', $settings);
+    self::assertStringContainsString('MEL_PLATFORM_STRIPE_SECRET_KEY', $settings);
+    self::assertStringContainsString('MEL_PRO_STRIPE_SECRET_KEY', $settings);
+  }
+
+  public function testPurposeSpecificStripeClientsAreUsed(): void {
+    $core = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Service/StripeService.php');
+    $portal = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_pro/src/Service/ProBillingPortalService.php');
+    self::assertIsString($core);
+    self::assertIsString($portal);
+    self::assertStringContainsString('function getConnectClient', $core);
+    self::assertStringContainsString('function getPlatformPaymentsClient', $core);
+    self::assertStringContainsString('function getProBillingClient', $core);
+    self::assertStringContainsString('getProBillingClient()', $portal);
   }
 
   public function testCoreTicketIntentHelperAlsoUsesDirectChargeContext(): void {

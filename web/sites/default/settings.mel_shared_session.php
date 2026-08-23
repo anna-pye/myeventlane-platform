@@ -140,8 +140,17 @@ $settings['reverse_proxy_trusted_headers'] =
 // Do not commit live keys in config/sync; set env vars on the host (e.g. systemd
 // Environment=, .env consumed by PHP-FPM, or platform secret store).
 //
-//   MEL_STRIPE_SECRET_KEY       — sk_test_… / sk_live_…
-//   MEL_STRIPE_PUBLISHABLE_KEY  — pk_test_… / pk_live_…
+//   MEL_PLATFORM_STRIPE_SECRET_KEY      — MEL one-off payments (Boost and
+//                                         contributions to MyEventLane)
+//   MEL_PLATFORM_STRIPE_PUBLISHABLE_KEY — browser key for MEL one-off payments
+//   MEL_CONNECT_STRIPE_SECRET_KEY       — organiser Connect commerce
+//   MEL_CONNECT_STRIPE_PUBLISHABLE_KEY  — browser key for Connect commerce
+//   MEL_PRO_STRIPE_SECRET_KEY           — MEL Pro Billing and subscriptions
+//   MEL_PRO_STRIPE_PUBLISHABLE_KEY      — browser key for MEL Pro checkout
+//
+// MEL_STRIPE_SECRET_KEY and MEL_STRIPE_PUBLISHABLE_KEY remain temporary
+// compatibility fallbacks. A readiness warning is expected while either
+// fallback causes two payment purposes to share one server credential.
 //   MEL_STRIPE_WEBHOOK_SECRET   — whsec_… (Payment Element gateway webhook)
 //   MEL_PRO_WEBHOOK_SECRET      — whsec_… (Pro lifecycle audit webhook)
 //   MEL_PAYOUT_WEBHOOK_SECRET   — whsec_… (Connect payout ledger webhook)
@@ -214,20 +223,36 @@ foreach ($mel_social_google as $key => $value) {
 $config['social_auth_google.settings']['scopes'] = '';
 $config['social_auth_google.settings']['endpoints'] = '';
 
-$mel_stripe_secret = $melGetEnv('MEL_STRIPE_SECRET_KEY');
-if ($mel_stripe_secret !== '') {
-  $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['secret_key'] = $mel_stripe_secret;
-  $config['commerce_payment.commerce_payment_gateway.stripe_connect']['configuration']['secret_key'] = $mel_stripe_secret;
-  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['secret_key'] = $mel_stripe_secret;
-  $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['secret_key'] = $mel_stripe_secret;
+$mel_stripe_secret_fallback = $melGetEnv('MEL_STRIPE_SECRET_KEY');
+$mel_stripe_publishable_fallback = $melGetEnv('MEL_STRIPE_PUBLISHABLE_KEY');
+$mel_stripe_gateway_credentials = [
+  'stripe' => [
+    'secret_key' => $melGetEnv('MEL_PLATFORM_STRIPE_SECRET_KEY') ?: $mel_stripe_secret_fallback,
+    'publishable_key' => $melGetEnv('MEL_PLATFORM_STRIPE_PUBLISHABLE_KEY') ?: $mel_stripe_publishable_fallback,
+  ],
+  'stripe_connect' => [
+    'secret_key' => $melGetEnv('MEL_CONNECT_STRIPE_SECRET_KEY') ?: $mel_stripe_secret_fallback,
+    'publishable_key' => $melGetEnv('MEL_CONNECT_STRIPE_PUBLISHABLE_KEY') ?: $mel_stripe_publishable_fallback,
+  ],
+  'stripe_pe_recurring' => [
+    'secret_key' => $melGetEnv('MEL_PRO_STRIPE_SECRET_KEY') ?: $mel_stripe_secret_fallback,
+    'publishable_key' => $melGetEnv('MEL_PRO_STRIPE_PUBLISHABLE_KEY') ?: $mel_stripe_publishable_fallback,
+  ],
+];
+foreach ($mel_stripe_gateway_credentials as $gateway_id => $credentials) {
+  foreach ($credentials as $credential_name => $credential_value) {
+    if ($credential_value !== '') {
+      $config['commerce_payment.commerce_payment_gateway.' . $gateway_id]['configuration'][$credential_name] = $credential_value;
+    }
+  }
 }
 
-$mel_stripe_publishable = $melGetEnv('MEL_STRIPE_PUBLISHABLE_KEY');
-if ($mel_stripe_publishable !== '') {
-  $config['commerce_payment.commerce_payment_gateway.stripe']['configuration']['publishable_key'] = $mel_stripe_publishable;
-  $config['commerce_payment.commerce_payment_gateway.stripe_connect']['configuration']['publishable_key'] = $mel_stripe_publishable;
-  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['publishable_key'] = $mel_stripe_publishable;
-  $config['commerce_payment.commerce_payment_gateway.stripe_pe_recurring']['configuration']['publishable_key'] = $mel_stripe_publishable;
+// Retain the legacy staging gateway override until that entity is retired.
+if ($mel_stripe_secret_fallback !== '') {
+  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['secret_key'] = $mel_stripe_secret_fallback;
+}
+if ($mel_stripe_publishable_fallback !== '') {
+  $config['commerce_payment.commerce_payment_gateway.stripe_myeventlane_v2']['configuration']['publishable_key'] = $mel_stripe_publishable_fallback;
 }
 
 $mel_stripe_webhook = $melGetEnv('MEL_STRIPE_WEBHOOK_SECRET');
