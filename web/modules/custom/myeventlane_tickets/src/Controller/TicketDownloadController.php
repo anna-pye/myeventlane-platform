@@ -236,7 +236,8 @@ final class TicketDownloadController extends ControllerBase {
    */
   private function respondWithIssuedTicket($ticket) {
     $status = (string) $ticket->get('status')->value;
-    if (in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)) {
+    if (in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)
+      || $ticket->getFulfilmentStatus() === Ticket::FULFILMENT_CANCELLED) {
       throw new AccessDeniedHttpException('This ticket is no longer valid.');
     }
     if (!$this->canAccessTicket($ticket)) {
