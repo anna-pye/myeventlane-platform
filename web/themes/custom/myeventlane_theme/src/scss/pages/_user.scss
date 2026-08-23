@@ -699,6 +699,67 @@
   margin-inline: auto;
 }
 
+.mel-order-refund-summary {
+  display: flex;
+  gap: spacing.mel-space(3);
+  padding: spacing.mel-space(4);
+  border: 1px solid color.adjust(colors.$mel-color-success, $alpha: -0.55);
+  border-radius: radii.$mel-radius-md;
+  background: color.adjust(colors.$mel-color-success, $alpha: -0.92);
+  box-shadow: shadows.$mel-shadow-sm;
+}
+
+.mel-order-refund-summary__icon {
+  display: grid;
+  flex: 0 0 2rem;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  background: colors.$mel-color-success;
+  color: colors.$mel-color-on-primary;
+  font-weight: typography.$mel-font-bold;
+}
+
+.mel-order-refund-summary__body {
+  min-width: 0;
+}
+
+.mel-order-refund-summary__heading {
+  margin: 0;
+  color: colors.$mel-color-text;
+  font-size: typography.mel-font-size(lg);
+}
+
+.mel-order-refund-summary__amounts {
+  display: grid;
+  gap: spacing.mel-space(2);
+  margin: spacing.mel-space(3) 0 0;
+
+  > div {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: spacing.mel-space(2);
+  }
+
+  dt {
+    color: colors.$mel-color-text-muted;
+  }
+
+  dd {
+    margin: 0;
+    color: colors.$mel-color-text;
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+.mel-order-refund-summary__message {
+  margin: spacing.mel-space(3) 0 0;
+  color: colors.$mel-color-text-muted;
+  font-size: typography.mel-font-size(sm);
+}
+
 .mel-event-readiness {
   border-radius: radii.$mel-radius-md;
   background: colors.$mel-color-surface;

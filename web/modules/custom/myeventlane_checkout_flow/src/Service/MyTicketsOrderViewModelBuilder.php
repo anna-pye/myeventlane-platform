@@ -6,6 +6,8 @@ namespace Drupal\myeventlane_checkout_flow\Service;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\commerce_payment\Entity\PaymentInterface;
+use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
@@ -219,6 +221,7 @@ final class MyTicketsOrderViewModelBuilder {
       $ctaLabels,
       $bookingConfirmed,
     );
+    $refundSummary = $this->buildRefundSummary($order);
 
     return [
       'order' => $order,
@@ -237,6 +240,89 @@ final class MyTicketsOrderViewModelBuilder {
       'help' => $help,
       'pass_labels' => $ctaLabels,
       'readiness' => $orderReadiness,
+      'refund_summary' => $refundSummary['summary'],
+      'cache_tags' => $refundSummary['cache_tags'],
+    ];
+  }
+
+  /**
+   * Builds the customer-facing refund outcome from Commerce payments.
+   *
+   * Commerce payments are the canonical financial record. The refund module's
+   * operational ledger may enrich internal audit data, but the booking page
+   * must remain accurate even when that optional module is unavailable.
+   *
+   * @return array{
+   *   summary: array<string, mixed>|null,
+   *   cache_tags: list<string>
+   *   }
+   */
+  public function buildRefundSummary(OrderInterface $order): array {
+    if (
+      $order->id() === NULL
+      || !$this->entityTypeManager->hasDefinition('commerce_payment')
+    ) {
+      return ['summary' => NULL, 'cache_tags' => []];
+    }
+
+    $storage = $this->entityTypeManager->getStorage('commerce_payment');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_id', (int) $order->id())
+      ->condition('state', ['completed', 'partially_refunded', 'refunded'], 'IN')
+      ->execute();
+    if ($ids === []) {
+      return ['summary' => NULL, 'cache_tags' => []];
+    }
+
+    $paidTotal = NULL;
+    $refundedTotal = NULL;
+    $cacheTags = [];
+    foreach ($storage->loadMultiple($ids) as $payment) {
+      if (!$payment instanceof PaymentInterface) {
+        continue;
+      }
+      $cacheTags = array_merge($cacheTags, $payment->getCacheTags());
+      $amount = $payment->getAmount();
+      $refunded = $payment->getRefundedAmount();
+      if (!$amount instanceof Price || !$refunded instanceof Price) {
+        continue;
+      }
+      if (
+        $amount->getCurrencyCode() !== $refunded->getCurrencyCode()
+        || ($paidTotal instanceof Price && $paidTotal->getCurrencyCode() !== $amount->getCurrencyCode())
+      ) {
+        continue;
+      }
+      $paidTotal = $paidTotal instanceof Price ? $paidTotal->add($amount) : $amount;
+      if ($refunded->isZero()) {
+        continue;
+      }
+      $refundedTotal = $refundedTotal instanceof Price ? $refundedTotal->add($refunded) : $refunded;
+    }
+
+    $cacheTags = array_values(array_unique($cacheTags));
+    if (!$paidTotal instanceof Price || !$refundedTotal instanceof Price) {
+      return ['summary' => NULL, 'cache_tags' => $cacheTags];
+    }
+
+    $isFull = $refundedTotal->greaterThanOrEqual($paidTotal);
+    $remaining = $isFull
+      ? new Price('0', $paidTotal->getCurrencyCode())
+      : $paidTotal->subtract($refundedTotal);
+
+    return [
+      'summary' => [
+        'status' => $isFull ? 'full' : 'partial',
+        'heading' => $isFull
+          ? (string) $this->t('Refund processed')
+          : (string) $this->t('Partial refund processed'),
+        'refunded_amount' => $refundedTotal,
+        'original_paid_amount' => $paidTotal,
+        'remaining_amount' => $remaining,
+        'message' => (string) $this->t('The refund has been approved and recorded. Your bank may take several business days to show it.'),
+      ],
+      'cache_tags' => $cacheTags,
     ];
   }
 
