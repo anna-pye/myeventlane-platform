@@ -71,7 +71,7 @@ final class VendorBillingPreferencesService {
    * Saves payment method from completed SetupIntent to vendor.
    */
   public function savePaymentMethodFromSetupIntent(Vendor $vendor, string $setupIntentId): void {
-    $client = $this->stripeService->getPlatformClient();
+    $client = $this->stripeService->getPlatformPaymentsClient();
     $si = $client->setupIntents->retrieve($setupIntentId);
 
     if ($si->status !== 'succeeded' || empty($si->payment_method)) {

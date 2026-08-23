@@ -102,6 +102,40 @@ final class DirectChargeGatewayContractTest extends TestCase {
     self::assertStringContainsString('webhook_signing_secret:', $config);
     self::assertStringContainsString('if ($gatewayId === self::DIRECT_CHARGE_GATEWAY_ID)', $subscriber);
     self::assertStringContainsString('MEL_STRIPE_CONNECT_WEBHOOK_SECRET', $settings);
+    self::assertStringContainsString('MEL_CONNECT_STRIPE_SECRET_KEY', $settings);
+    self::assertStringContainsString('MEL_PLATFORM_STRIPE_SECRET_KEY', $settings);
+    self::assertStringContainsString('MEL_PRO_STRIPE_SECRET_KEY', $settings);
+  }
+
+  public function testPurposeSpecificStripeClientsAreUsed(): void {
+    $core = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Service/StripeService.php');
+    $portal = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_pro/src/Service/ProBillingPortalService.php');
+    self::assertIsString($core);
+    self::assertIsString($portal);
+    self::assertStringContainsString('function getConnectClient', $core);
+    self::assertStringContainsString('function getPlatformPaymentsClient', $core);
+    self::assertStringContainsString('function getProBillingClient', $core);
+    self::assertStringContainsString('getProBillingClient()', $portal);
+  }
+
+  /**
+   * Missing Connect credentials surface the actionable organiser message.
+   */
+  public function testConnectCredentialErrorMessageRemainsInSync(): void {
+    $service = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_core/src/Service/StripeService.php');
+    $controller = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Controller/StripeConnectController.php');
+
+    self::assertIsString($service);
+    self::assertIsString($controller);
+    self::assertStringContainsString(
+      "throw new \\RuntimeException('Stripe Connect server key is not configured.')",
+      $service,
+    );
+    self::assertStringContainsString(
+      "str_contains(\$msg, 'Stripe Connect server key is not configured')",
+      $controller,
+    );
+    self::assertStringContainsString('MEL_CONNECT_STRIPE_SECRET_KEY', $controller);
   }
 
   public function testCoreTicketIntentHelperAlsoUsesDirectChargeContext(): void {

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_pro\Unit;
 
+require_once dirname(__DIR__, 3) . '/src/Service/ProBillingSchedule.php';
+require_once dirname(__DIR__, 3) . '/src/Service/ProProductResolver.php';
+require_once dirname(__DIR__, 3) . '/src/Service/ProActivationReadinessChecker.php';
+
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
@@ -97,12 +101,36 @@ final class ProActivationReadinessCheckerTest extends UnitTestCase {
   }
 
   /**
+   * @covers ::check
+   */
+  public function testEnabledConnectGatewayRequiresThirdSeparatedKey(): void {
+    $checker = $this->checker(
+      'live',
+      'rk_live_platform',
+      'rk_live_pro',
+      'rk_live_platform',
+      TRUE,
+    );
+
+    $report = $checker->check('production');
+    $failed = array_column(array_filter(
+      $report['checks'],
+      static fn (array $check): bool => $check['status'] === 'fail',
+    ), 'id');
+
+    self::assertFalse($report['ready']);
+    self::assertContains('gateway.key_separation', $failed);
+  }
+
+  /**
    * Builds a readiness checker with controlled configuration and entities.
    */
   private function checker(
     string $mode,
     string $standardKey,
     string $recurringKey,
+    string $connectKey = 'rk_test_connect',
+    bool $directChargeEnabled = FALSE,
   ): ProActivationReadinessChecker {
     $configs = [
       'commerce_payment.commerce_payment_gateway.stripe' => [
@@ -125,6 +153,20 @@ final class ProActivationReadinessCheckerTest extends UnitTestCase {
           'secret_key' => $recurringKey,
           'webhook_signing_secret' => 'whsec_recurring',
         ],
+      ],
+      'commerce_payment.commerce_payment_gateway.stripe_connect' => [
+        'status' => $directChargeEnabled,
+        'plugin' => 'stripe_connect',
+        'configuration' => [
+          'mode' => $mode,
+          'payment_method_usage' => 'on_session',
+          'publishable_key' => 'pk_' . $mode . '_connect',
+          'secret_key' => $connectKey,
+          'webhook_signing_secret' => 'whsec_connect',
+        ],
+      ],
+      'myeventlane_core.settings' => [
+        'direct_charge_enabled' => $directChargeEnabled,
       ],
       'myeventlane_pro.settings' => [
         'pro_price' => 49,

@@ -113,12 +113,73 @@ final class StripeService {
    *   If platform Stripe keys are not configured.
    */
   public function getPlatformClient(): StripeClient {
-    $secretKey = $this->getPlatformSecretKey();
+    return $this->getConnectClient();
+  }
+
+  /**
+   * Gets the Stripe client for organiser Connect commerce and payouts.
+   *
+   * @return \Stripe\StripeClient
+   *   The Connect-scoped Stripe client.
+   */
+  public function getConnectClient(): StripeClient {
+    $secretKey = $this->getGatewaySecretKey('stripe_connect');
     if (empty($secretKey)) {
-      throw new \RuntimeException('Platform Stripe secret key is not configured.');
+      throw new \RuntimeException('Stripe Connect server key is not configured.');
     }
 
     return new StripeClient($secretKey);
+  }
+
+  /**
+   * Gets the Stripe client for MEL-owned one-off payments.
+   *
+   * @return \Stripe\StripeClient
+   *   The MEL platform-payments Stripe client.
+   */
+  public function getPlatformPaymentsClient(): StripeClient {
+    return $this->getClientForGateway('stripe', 'MEL platform payments');
+  }
+
+  /**
+   * Gets the Stripe client for MEL Pro Billing and subscriptions.
+   *
+   * @return \Stripe\StripeClient
+   *   The MEL Pro Billing Stripe client.
+   */
+  public function getProBillingClient(): StripeClient {
+    return $this->getClientForGateway('stripe_pe_recurring', 'MEL Pro Billing');
+  }
+
+  /**
+   * Builds a Stripe client from one explicit Commerce gateway boundary.
+   *
+   * @return \Stripe\StripeClient
+   *   The purpose-scoped Stripe client.
+   */
+  private function getClientForGateway(string $gatewayId, string $purpose): StripeClient {
+    $secretKey = $this->getGatewaySecretKey($gatewayId);
+    if ($secretKey === '') {
+      throw new \RuntimeException(sprintf('%s server key is not configured.', $purpose));
+    }
+    return new StripeClient($secretKey);
+  }
+
+  /**
+   * Reads one gateway's effective runtime server key.
+   *
+   * @return string
+   *   The runtime server key, or an empty string.
+   */
+  private function getGatewaySecretKey(string $gatewayId): string {
+    $gateway = $this->entityTypeManager
+      ->getStorage('commerce_payment_gateway')
+      ->load($gatewayId);
+    if (!$gateway instanceof PaymentGatewayInterface) {
+      return '';
+    }
+    $configuration = $gateway->getPluginConfiguration();
+    return trim((string) ($configuration['secret_key'] ?? ''));
   }
 
   /**
@@ -244,67 +305,19 @@ final class StripeService {
   }
 
   /**
-   * @return list<string>
-   */
-  private function getStripeGatewayLookupIds(): array {
-    // vendor_payments and stripe_for_events are staging/live gateway IDs; legacy/local IDs remain for DDEV and older environments.
-    return [
-      'vendor_payments',
-      'stripe_for_events',
-      'mel_stripe',
-      'stripe',
-      'stripe_connect',
-      'stripe_myeventlane_v2',
-      'stripe_pe_recurring',
-    ];
-  }
-
-  /**
-   * Gets the platform Stripe secret key from payment gateway config.
-   *
-   * @return string
-   *   The secret key, or empty string if not found.
-   */
-  private function getPlatformSecretKey(): string {
-    foreach ($this->getStripeGatewayLookupIds() as $gatewayId) {
-      $gateway = $this->entityTypeManager
-        ->getStorage('commerce_payment_gateway')
-        ->load($gatewayId);
-
-      if ($gateway instanceof PaymentGatewayInterface) {
-        $config = $gateway->getPluginConfiguration();
-        if (!empty($config['secret_key'])) {
-          return (string) $config['secret_key'];
-        }
-      }
-    }
-
-    $config = $this->configFactory->get('myeventlane_core.stripe_settings');
-    $secretKey = $config->get('platform_secret_key');
-    if (!empty($secretKey)) {
-      return (string) $secretKey;
-    }
-
-    return self::melGetEnv('MEL_STRIPE_SECRET_KEY');
-  }
-
-  /**
    * Gets the platform Stripe publishable key.
    *
    * @return string
    *   The publishable key, or empty string if not found.
    */
   public function getPlatformPublishableKey(): string {
-    foreach ($this->getStripeGatewayLookupIds() as $gatewayId) {
-      $gateway = $this->entityTypeManager
-        ->getStorage('commerce_payment_gateway')
-        ->load($gatewayId);
-
-      if ($gateway instanceof PaymentGatewayInterface) {
-        $config = $gateway->getPluginConfiguration();
-        if (!empty($config['publishable_key'])) {
-          return (string) $config['publishable_key'];
-        }
+    $gateway = $this->entityTypeManager
+      ->getStorage('commerce_payment_gateway')
+      ->load('stripe');
+    if ($gateway instanceof PaymentGatewayInterface) {
+      $configuration = $gateway->getPluginConfiguration();
+      if (!empty($configuration['publishable_key'])) {
+        return (string) $configuration['publishable_key'];
       }
     }
 
@@ -1120,7 +1133,7 @@ final class StripeService {
     string $currency,
     array $metadata = [],
   ): PaymentIntent {
-    $client = $this->getPlatformClient();
+    $client = $this->getPlatformPaymentsClient();
 
     try {
       $params = [
@@ -1182,7 +1195,7 @@ final class StripeService {
    * @throws \Stripe\Exception\ApiErrorException
    */
   public function createCustomer(string $email, ?string $name = NULL): Customer {
-    $client = $this->getPlatformClient();
+    $client = $this->getPlatformPaymentsClient();
 
     try {
       $params = ['email' => $email];
@@ -1224,7 +1237,7 @@ final class StripeService {
    * @throws \Stripe\Exception\ApiErrorException
    */
   public function createSetupIntent(string $customerId, array $metadata = []): SetupIntent {
-    $client = $this->getPlatformClient();
+    $client = $this->getPlatformPaymentsClient();
 
     try {
       $params = [
@@ -1279,7 +1292,7 @@ final class StripeService {
     string $paymentMethodId,
     array $metadata = [],
   ): PaymentIntent {
-    $client = $this->getPlatformClient();
+    $client = $this->getPlatformPaymentsClient();
 
     try {
       $params = [
@@ -1322,7 +1335,7 @@ final class StripeService {
    *   Last 4 digits (e.g. '4242') or NULL if not retrievable.
    */
   public function getPaymentMethodLast4(string $paymentMethodId): ?string {
-    $client = $this->getPlatformClient();
+    $client = $this->getPlatformPaymentsClient();
 
     try {
       $pm = $client->paymentMethods->retrieve($paymentMethodId);

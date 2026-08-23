@@ -7,9 +7,13 @@ configuration changes, database writes, webhook creation, or secret rotation.
 
 - Drupal Commerce Recurring is authoritative for MEL Pro subscription and
   entitlement state.
-- `stripe_pe_recurring` owns MEL Pro card setup and off-session renewals.
-- `stripe` owns ordinary checkout payment methods.
-- Stripe Connect and payout webhooks remain separate from MEL Pro.
+- `stripe_pe_recurring` owns MEL Pro card setup, Billing Portal access and
+  off-session renewals.
+- `stripe` owns MEL one-off payments such as paid Boost and contributions made
+  directly to MyEventLane.
+- `stripe_connect` owns organiser ticket sales, organiser-directed donations
+  and their application-fee/refund context once direct charging is enabled.
+- Stripe Connect and payout webhooks remain separate from MEL Pro Billing.
 - Stripe is authoritative for payment-method processing. Signed webhooks are
   the provider outcome path; checkout completion pages are not.
 
@@ -28,8 +32,11 @@ must be evidenced by the operator before go-live.
 The production gate expects:
 
 - `stripe` and `stripe_pe_recurring` enabled in live mode;
-- `pk_live_...` publishable keys and separate `rk_live_...` restricted keys
-  for ordinary and recurring payments;
+- `stripe_connect` enabled only when the separately approved direct-charge
+  migration is activated;
+- matching `pk_live_...` publishable keys and three separate `rk_live_...`
+  restricted keys for MEL one-off payments, MEL Pro Billing and organiser
+  Connect commerce;
 - signing secrets supplied at runtime, never in active or exported config;
 - the 30-day trial and no-trial restart schedules;
 - published A$49 trial and restart variations;
@@ -59,6 +66,21 @@ In the live Stripe account, record evidence for all of the following:
    open it and return to `/vendor/pro/manage`.
 
 Do not paste secret values into tickets, pull requests, logs, or this runbook.
+
+## Runtime credential names
+
+Store these in the hosting secret store for PHP-FPM and CLI. Never commit them:
+
+| Purpose | Server key | Publishable key |
+|---|---|---|
+| MEL one-off payments | `MEL_PLATFORM_STRIPE_SECRET_KEY` | `MEL_PLATFORM_STRIPE_PUBLISHABLE_KEY` |
+| Organiser Connect commerce | `MEL_CONNECT_STRIPE_SECRET_KEY` | `MEL_CONNECT_STRIPE_PUBLISHABLE_KEY` |
+| MEL Pro Billing | `MEL_PRO_STRIPE_SECRET_KEY` | `MEL_PRO_STRIPE_PUBLISHABLE_KEY` |
+
+`MEL_STRIPE_SECRET_KEY` and `MEL_STRIPE_PUBLISHABLE_KEY` are compatibility
+fallbacks only. Their continued use cannot satisfy the production separation
+gate. Create each restricted key from observed Workbench request logs and grant
+only the resources and write operations required by that purpose.
 
 ## Hosting checks
 

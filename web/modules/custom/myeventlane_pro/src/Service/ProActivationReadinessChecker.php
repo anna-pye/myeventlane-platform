@@ -44,7 +44,11 @@ final class ProActivationReadinessChecker {
     $expectedMode = $environment === 'production' ? 'live' : 'test';
 
     $standard = $this->gatewaySnapshot('stripe');
+    $connect = $this->gatewaySnapshot('stripe_connect');
     $recurring = $this->gatewaySnapshot('stripe_pe_recurring');
+    $directChargeEnabled = (bool) $this->configFactory
+      ->get('myeventlane_core.settings')
+      ->get('direct_charge_enabled');
 
     $this->add($checks, 'gateway.standard', $standard['enabled'] && $standard['plugin'] === 'stripe' ? 'pass' : 'fail',
       'Ordinary checkout gateway must be enabled with the stripe plugin.');
@@ -71,11 +75,37 @@ final class ProActivationReadinessChecker {
         sprintf('%s server and webhook secrets must not be stored in active or exported configuration.', $id));
     }
 
-    $sameServerKey = $standard['secret_key_present']
-      && $recurring['secret_key_present']
-      && hash_equals($standard['secret_key'], $recurring['secret_key']);
-    $this->add($checks, 'gateway.key_separation', !$sameServerKey ? 'pass' : ($environment === 'production' ? 'fail' : 'warn'),
-      'Ordinary checkout and MEL Pro should use separate restricted keys, even when they share one Stripe platform account.');
+    if ($directChargeEnabled) {
+      $this->add($checks, 'gateway.connect', $connect['enabled'] && $connect['plugin'] === 'stripe_connect' ? 'pass' : 'fail',
+        'Organiser-owned ticket and donation revenue must use the dedicated Stripe Connect gateway.');
+      $this->add($checks, 'gateway.stripe_connect.credentials', $connect['publishable_key_present'] && $connect['secret_key_present'] ? 'pass' : 'fail',
+        'stripe_connect must have a publishable key and server key.');
+      $connectKeysMatchEnvironment = $connect['publishable_key_environment'] === $expectedMode
+        && $connect['server_key_environment'] === $expectedMode;
+      $this->add($checks, 'gateway.stripe_connect.key_environment', $connectKeysMatchEnvironment ? 'pass' : 'fail',
+        sprintf('stripe_connect publishable and server keys must both be %s-mode credentials.', $expectedMode));
+      $connectKeyStatus = $connect['key_type'] === 'restricted' && $connect['server_key_environment'] === $expectedMode
+        ? 'pass'
+        : ($environment === 'production' ? 'fail' : 'warn');
+      $this->add($checks, 'gateway.stripe_connect.least_privilege', $connectKeyStatus,
+        'stripe_connect should use a dedicated restricted Stripe key.');
+      $this->add($checks, 'gateway.stripe_connect.secret_storage', $this->gatewaySecretsAreRuntimeOnly('stripe_connect') ? 'pass' : 'fail',
+        'stripe_connect server and webhook secrets must not be stored in active or exported configuration.');
+      $this->add($checks, 'gateway.stripe_connect.webhook_secret', $connect['webhook_secret_present'] ? 'pass' : 'fail',
+        'The Connect gateway must have its own webhook signing secret.');
+    }
+
+    $serverKeys = [
+      'MEL one-off payments' => $standard['secret_key'],
+      'MEL Pro Billing' => $recurring['secret_key'],
+    ];
+    if ($directChargeEnabled) {
+      $serverKeys['organiser Connect commerce'] = $connect['secret_key'];
+    }
+    $presentKeys = array_values(array_filter($serverKeys, static fn (string $key): bool => $key !== ''));
+    $keysAreSeparated = count($presentKeys) === count(array_unique($presentKeys));
+    $this->add($checks, 'gateway.key_separation', $keysAreSeparated ? 'pass' : ($environment === 'production' ? 'fail' : 'warn'),
+      'MEL one-off payments, MEL Pro Billing and organiser Connect commerce must use separate restricted server keys.');
     $this->add($checks, 'gateway.recurring_webhook_secret', $recurring['webhook_secret_present'] ? 'pass' : 'fail',
       'The recurring gateway must have a signing secret.');
 
