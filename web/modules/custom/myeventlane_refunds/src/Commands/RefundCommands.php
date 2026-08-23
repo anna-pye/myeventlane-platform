@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\myeventlane_refunds\Service\RefundProcessorInterface;
 use Drush\Commands\DrushCommands;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -25,11 +26,14 @@ final class RefundCommands extends DrushCommands {
    *   The entity type manager.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   The logger channel factory (for myeventlane_refunds audit channel).
+   * @param \Drupal\myeventlane_refunds\Service\RefundProcessorInterface $refundProcessor
+   *   The refund processor used for bounded entitlement reconciliation.
    */
   public function __construct(
     private readonly Connection $database,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
+    private readonly RefundProcessorInterface $refundProcessor,
   ) {
     parent::__construct();
   }
@@ -42,7 +46,28 @@ final class RefundCommands extends DrushCommands {
       $container->get('database'),
       $container->get('entity_type.manager'),
       $container->get('logger.factory'),
+      $container->get('myeventlane_refunds.processor'),
     );
+  }
+
+  /**
+   * Reconciles ticket access for one completed refund without moving money.
+   *
+   * @param int $logId
+   *   Completed myeventlane_refund_log ID.
+   *
+   * @command mel:refund-reconcile-entitlements
+   * @aliases mel-refund-reconcile-entitlements
+   * @usage drush mel:refund-reconcile-entitlements 30
+   *   Revoke admissions covered by completed refund log 30.
+   */
+  public function reconcileEntitlements(int $logId): void {
+    $count = $this->refundProcessor->reconcileCompletedRefundEntitlements($logId);
+    $this->output()->writeln(sprintf(
+      '<info>Reconciled %d refunded ticket entitlement(s) for refund log %d.</info>',
+      $count,
+      $logId,
+    ));
   }
 
   /**
@@ -64,10 +89,12 @@ final class RefundCommands extends DrushCommands {
    * @usage drush mel:refund-status --log=5
    *   Show refund log 5 and its order's payment IDs.
    */
-  public function status(array $options = [
-    'order' => NULL,
-    'log' => NULL,
-  ]): void {
+  public function status(
+    array $options = [
+      'order' => NULL,
+      'log' => NULL,
+    ],
+  ): void {
     $orderId = $options['order'] ?? NULL;
     $logId = $options['log'] ?? NULL;
 

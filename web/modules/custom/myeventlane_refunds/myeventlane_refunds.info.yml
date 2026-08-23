@@ -13,5 +13,5 @@ dependencies:
   - myeventlane_messaging:myeventlane_messaging
   - myeventlane_vendor_comms:myeventlane_vendor_comms
   - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_tickets:myeventlane_tickets
   - node
-

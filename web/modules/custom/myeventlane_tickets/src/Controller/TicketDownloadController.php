@@ -235,6 +235,10 @@ final class TicketDownloadController extends ControllerBase {
    * Returns a PDF for an issued ticket entity after access and expiry checks.
    */
   private function respondWithIssuedTicket($ticket) {
+    $status = (string) $ticket->get('status')->value;
+    if (in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)) {
+      throw new AccessDeniedHttpException('This ticket is no longer valid.');
+    }
     if (!$this->canAccessTicket($ticket)) {
       throw new AccessDeniedHttpException();
     }

@@ -48,4 +48,9 @@ interface RefundProcessorInterface {
     AccountInterface $account,
   ): int;
 
+  /**
+   * Reconciles admission entitlements for a completed refund audit log.
+   */
+  public function reconcileCompletedRefundEntitlements(int $logId): int;
+
 }

@@ -110,7 +110,7 @@ final class UniversalTicketViewModelBuilder {
       'badges' => $this->buildBadges($entitlement_type, $status, $fulfilment_status, $is_expired),
       'actions' => [
         'wallet' => $this->buildWalletActions($ticket),
-        'pdf' => $this->buildPdfActions($ticket_code),
+        'pdf' => $this->buildPdfActions($ticket_code, $status),
       ],
       'scanner' => [
         'can_scan' => $can_scan,
@@ -369,7 +369,17 @@ final class UniversalTicketViewModelBuilder {
    * @return array<string, mixed>
    *   PDF action metadata.
    */
-  private function buildPdfActions(string $ticket_code): array {
+  private function buildPdfActions(string $ticket_code, string $status): array {
+    if (in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)) {
+      return [
+        'download' => [
+          'label' => 'Download PDF',
+          'route' => '',
+          'url' => '',
+        ],
+      ];
+    }
+
     return [
       'download' => [
         'label' => 'Download PDF',

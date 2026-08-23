@@ -243,6 +243,23 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
   }
 
   /**
+   * Refunded tickets do not expose a downloadable admission document.
+   */
+  public function testRefundedTicketDoesNotExposePdfDownload(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-REFUNDED-0001',
+      'status' => Ticket::STATUS_REFUNDED,
+      'fulfilment_status' => Ticket::FULFILMENT_CANCELLED,
+      'order_item_id' => 123,
+    ]);
+
+    $model = $this->builder()->build($ticket, FALSE, TRUE);
+
+    $this->assertSame('', $model['actions']['pdf']['download']['route']);
+    $this->assertSame('', $model['actions']['pdf']['download']['url']);
+  }
+
+  /**
    * Non-admission entitlements preserve structured QR compatibility.
    */
   public function testBuildsStructuredQrEntitlementModel(): void {

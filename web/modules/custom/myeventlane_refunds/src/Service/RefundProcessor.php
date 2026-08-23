@@ -52,6 +52,10 @@ final class RefundProcessor implements RefundProcessorInterface {
    *   The refund request storage.
    * @param \Drupal\myeventlane_messaging\Service\MessagingManager $messagingManager
    *   The messaging manager.
+   * @param \Drupal\myeventlane_core\Service\StripeService $stripeService
+   *   The platform Stripe client service.
+   * @param \Drupal\Core\Config\ConfigFactoryInterface $configFactory
+   *   The configuration factory.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $loggerFactory
    *   The logger factory.
    * @param \Drupal\Core\Queue\QueueFactory $queueFactory
@@ -72,6 +76,8 @@ final class RefundProcessor implements RefundProcessorInterface {
    *   Records immutable tax adjustment snapshots after confirmed refunds.
    * @param \Drupal\myeventlane_notifications\Service\RefundNotificationTriggerService|null $refundNotificationTrigger
    *   Optional in-app refund notifications (when myeventlane_notifications is enabled).
+   * @param \Drupal\myeventlane_refunds\Service\RefundTicketEntitlementReconciler|null $ticketEntitlementReconciler
+   *   Optional completed-refund ticket entitlement reconciler.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -92,6 +98,7 @@ final class RefundProcessor implements RefundProcessorInterface {
     private readonly DomainDetector $domainDetector,
     private readonly RefundAdjustmentNoteService $adjustmentNoteService,
     private readonly ?RefundNotificationTriggerService $refundNotificationTrigger = NULL,
+    private readonly ?RefundTicketEntitlementReconciler $ticketEntitlementReconciler = NULL,
   ) {}
 
   /**
@@ -116,6 +123,8 @@ final class RefundProcessor implements RefundProcessorInterface {
    *   The event node.
    * @param \Drupal\Core\Session\AccountInterface $buyer
    *   The buyer (order owner).
+   * @param array<string, mixed> $options
+   *   Optional selected attendee IDs and refund context.
    *
    * @return int
    *   The refund request ID.
@@ -1084,9 +1093,35 @@ final class RefundProcessor implements RefundProcessorInterface {
       $log,
     ]);
 
-    $ticketsCancelled = $this->cancelRefundedTicketAttendees($order, $event, $log);
+    $ticketsCancelled = $this->ticketEntitlementReconciler !== NULL
+      ? $this->ticketEntitlementReconciler->reconcile($order, $event, $log)
+      : $this->cancelRefundedTicketAttendees($order, $event, $log);
     $customerEmail = $order->getEmail() ?: '';
     $this->queueRefundCompletionEmails($order, $event, $log, $customerEmail, $ticketsCancelled);
+  }
+
+  /**
+   * Reconciles entitlements for an already-completed refund log.
+   *
+   * This is an idempotent operational repair path. It does not contact Stripe,
+   * change refund money, or resend completion notifications.
+   */
+  public function reconcileCompletedRefundEntitlements(int $logId): int {
+    $log = $this->loadRefundLog($logId);
+    if ($log === NULL || (string) ($log['status'] ?? '') !== self::STATUS_COMPLETED) {
+      throw new \RuntimeException('Only completed refund logs can be reconciled.');
+    }
+    if ($this->ticketEntitlementReconciler === NULL) {
+      throw new \RuntimeException('Ticket entitlement reconciler is unavailable.');
+    }
+
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) ($log['order_id'] ?? 0));
+    $event = $this->entityTypeManager->getStorage('node')->load((int) ($log['event_id'] ?? 0));
+    if (!$order instanceof OrderInterface || !$event instanceof NodeInterface) {
+      throw new \RuntimeException('Refund order or event not found.');
+    }
+
+    return $this->ticketEntitlementReconciler->reconcile($order, $event, $log);
   }
 
   /**
@@ -1533,7 +1568,7 @@ final class RefundProcessor implements RefundProcessorInterface {
     NodeInterface $event,
     int $amountCents,
     string $currency,
-    bool $donationRefunded = FALSE
+    bool $donationRefunded = FALSE,
   ): array {
     $amount = number_format($amountCents / 100, 2);
     $currencyUpper = strtoupper($currency);
