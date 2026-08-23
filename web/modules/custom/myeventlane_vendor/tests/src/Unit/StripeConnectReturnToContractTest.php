@@ -21,6 +21,8 @@ final class StripeConnectReturnToContractTest extends TestCase {
     self::assertStringContainsString("\$request->query->remove('destination')", $controller);
     self::assertStringContainsString("str_starts_with(\$value, '/vendor/')", $controller);
     self::assertStringContainsString('public function manage(Request $request)', $controller);
+    self::assertStringContainsString('redirectToReturnToOrDashboard($destStr)', $controller);
+    self::assertStringContainsString('new RedirectResponse($returnTo)', $controller);
     self::assertStringNotContainsString("\$query['destination'] = \$destination", $controller);
   }
 

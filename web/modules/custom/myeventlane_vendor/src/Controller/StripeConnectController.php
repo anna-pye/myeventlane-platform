@@ -183,6 +183,12 @@ final class StripeConnectController extends ControllerBase {
     return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.dashboard')->toString());
   }
 
+  private function redirectToReturnToOrDashboard(string $returnTo): RedirectResponse {
+    return $returnTo !== ''
+      ? new RedirectResponse($returnTo)
+      : $this->redirectToDashboard();
+  }
+
   private function redirectToVendorSettings(): RedirectResponse {
     return new RedirectResponse(Url::fromRoute('myeventlane_vendor.console.settings')->toString());
   }
@@ -291,7 +297,7 @@ final class StripeConnectController extends ControllerBase {
 
         if (!empty($status['charges_enabled'])) {
           $this->messenger()->addStatus($this->t('Stripe is already connected and ready to accept card payments.'));
-          return $this->redirectToDashboard();
+          return $this->redirectToReturnToOrDashboard($destStr);
         }
       }
       catch (\Exception $e) {
