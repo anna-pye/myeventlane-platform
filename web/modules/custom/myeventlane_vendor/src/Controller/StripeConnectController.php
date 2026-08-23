@@ -129,10 +129,10 @@ final class StripeConnectController extends ControllerBase {
    * callback resolves the account from the store so the ID is not placed in
    * query strings (logs, referrers, history).
    */
-  private function buildAccountLinkUrls(string $destination = ''): array {
+  private function buildAccountLinkUrls(string $returnTo = ''): array {
     $query = [];
-    if ($destination !== '') {
-      $query['destination'] = $destination;
+    if ($returnTo !== '') {
+      $query['return_to'] = $returnTo;
     }
     $returnUrl = Url::fromRoute('myeventlane_vendor.stripe_callback', [], [
       'absolute' => TRUE,
@@ -144,6 +144,33 @@ final class StripeConnectController extends ControllerBase {
     ])->toString();
 
     return [$returnUrl, $refreshUrl];
+  }
+
+  /**
+   * Returns a safe organiser-console path for post-Stripe navigation.
+   */
+  private function normaliseReturnTo(mixed $value): string {
+    if (!is_string($value)) {
+      return '';
+    }
+    $value = trim($value);
+    return $value === '/vendor' || str_starts_with($value, '/vendor/')
+      ? $value
+      : '';
+  }
+
+  /**
+   * Reads the return path and removes Drupal's reserved destination key.
+   */
+  private function returnToFromRequest(Request $request): string {
+    $value = $request->query->get('return_to');
+    if (!is_string($value) || $value === '') {
+      // Compatibility for links generated before return_to was introduced.
+      $value = $request->query->get('destination');
+    }
+    // Prevent RedirectResponseSubscriber from replacing our Stripe redirect.
+    $request->query->remove('destination');
+    return $this->normaliseReturnTo($value);
   }
 
   private function applyOffsiteStripeRedirectHeaders(TrustedRedirectResponse $response): TrustedRedirectResponse {
@@ -231,8 +258,7 @@ final class StripeConnectController extends ControllerBase {
     }
     $this->syncVendorStoreReference($vendor, $store);
 
-    $destination = $request->query->get('destination');
-    $destStr = is_string($destination) ? $destination : '';
+    $destStr = $this->returnToFromRequest($request);
     $queryAccount = $request->query->get('account_id');
     $queryAccountStr = is_string($queryAccount) ? $queryAccount : '';
 
@@ -376,15 +402,7 @@ final class StripeConnectController extends ControllerBase {
       throw new AccessDeniedHttpException('You must be logged in.');
     }
 
-    $destination = $request->query->get('return_to');
-    if (!is_string($destination) || $destination === '') {
-      // Backwards compatibility for Account Links created before this fix.
-      $destination = $request->query->get('destination');
-    }
-    $dest = is_string($destination) ? $destination : '';
-    if ($dest !== '' && (!str_starts_with($dest, '/') || str_starts_with($dest, '//'))) {
-      $dest = '';
-    }
+    $dest = $this->returnToFromRequest($request);
 
     $vendor = $this->getCurrentUserVendor();
     if (!$vendor) {
@@ -522,9 +540,10 @@ final class StripeConnectController extends ControllerBase {
    * accounts enter the protected replacement flow, and incomplete compatible
    * accounts resume Connect onboarding.
    */
-  public function manage(): RedirectResponse|TrustedRedirectResponse {
+  public function manage(Request $request): RedirectResponse|TrustedRedirectResponse {
     $logger = $this->loggerChannelFactory->get('myeventlane_vendor');
     $currentUser = $this->currentUser();
+    $returnTo = $this->returnToFromRequest($request);
 
     if ($currentUser->isAnonymous()) {
       throw new AccessDeniedHttpException('You must be logged in to manage Stripe.');
@@ -549,7 +568,9 @@ final class StripeConnectController extends ControllerBase {
 
     if ($accountId === '' || !str_starts_with($accountId, 'acct_')) {
       $this->messenger()->addWarning($this->t('Stripe is not connected. Please connect your Stripe account first.'));
-      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
+      return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+        'query' => $returnTo !== '' ? ['return_to' => $returnTo] : [],
+      ])->toString());
     }
 
     try {
@@ -580,7 +601,9 @@ final class StripeConnectController extends ControllerBase {
           '@reason' => $reason !== '' ? $reason : 'incomplete',
         ]);
         $this->messenger()->addWarning($this->t('Stripe onboarding is not complete enough to open the dashboard yet. Continue setup in Connect.'));
-        return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect')->toString());
+        return new RedirectResponse(Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
+          'query' => $returnTo !== '' ? ['return_to' => $returnTo] : [],
+        ])->toString());
       }
 
       if ($destination === StripeService::MANAGE_DEST_UNSUPPORTED) {

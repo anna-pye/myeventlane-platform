@@ -38,7 +38,7 @@ final class VendorPaymentsHealthService {
   public function buildForCurrentUser(?Vendor $vendor = NULL): array {
     $vendor = $vendor ?? $this->vendorResolver->resolveFromCurrentUser();
     $connectUrl = $this->safeRouteUrl('myeventlane_vendor.stripe_connect', [], [
-      'query' => ['destination' => '/vendor/payments'],
+      'query' => ['return_to' => '/vendor/payments'],
     ]);
     $manageUrl = $this->safeRouteUrl('myeventlane_vendor.stripe_manage');
     $previousManageUrl = $this->safeRouteUrl('myeventlane_vendor.stripe_manage_previous');

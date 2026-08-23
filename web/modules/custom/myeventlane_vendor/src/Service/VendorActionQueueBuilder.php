@@ -348,7 +348,7 @@ final class VendorActionQueueBuilder {
   }
 
   private function stripeDashboardUrl(AccountInterface $account): ?Url {
-    $connectOptions = ['query' => ['destination' => '/vendor/dashboard']];
+    $connectOptions = ['query' => ['return_to' => '/vendor/dashboard']];
     $url = $this->routeUrlIfAccessible('myeventlane_vendor.stripe_connect', [], $account, $connectOptions);
     if ($url instanceof Url) {
       return $url;
