@@ -19,6 +19,10 @@ services:
     class: Drupal\myeventlane_refunds\Service\RefundAdjustmentNoteService
     arguments: ['@database', '@datetime.time']
 
+  myeventlane_refunds.ticket_entitlement_reconciler:
+    class: Drupal\myeventlane_refunds\Service\RefundTicketEntitlementReconciler
+    arguments: ['@entity_type.manager', '@logger.channel.myeventlane_refunds']
+
   myeventlane_refunds.buyer_refund_access_check:
     class: Drupal\myeventlane_refunds\Access\BuyerRefundAccessCheck
     arguments:
@@ -72,3 +76,4 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@myeventlane_refunds.adjustment_note'
       - '@?myeventlane_notifications.refund_trigger'
+      - '@myeventlane_refunds.ticket_entitlement_reconciler'

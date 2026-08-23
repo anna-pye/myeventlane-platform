@@ -8,11 +8,11 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_price\Price;
-use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\Query\QueryInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
@@ -24,13 +24,18 @@ use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
 use Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService;
 use Drupal\myeventlane_refunds\Service\RefundAccessResolver;
-use Drupal\myeventlane_refunds\Service\RefundOrderInspector;
+use Drupal\myeventlane_refunds\Service\RefundOrderInspectorInterface;
+use Drupal\myeventlane_refunds\Service\RefundOrderItemsInterface;
 use Drupal\myeventlane_core\Service\StripeService;
 use Drupal\myeventlane_refunds\Service\RefundProcessor;
 use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
+use Drupal\myeventlane_refunds\Service\RefundAdjustmentNoteService;
+use Drupal\myeventlane_refunds\Service\StoreEventOwnershipInterface;
+use Drupal\myeventlane_vendor\Service\EventVendorAccessCheckerInterface;
 use Drupal\node\NodeInterface;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Kernel tests for refund processing lock behavior.
@@ -190,41 +195,69 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       'updated' => 123456,
     ])->execute();
 
-    $orderState = new class {
+    $orderState = new class() {
+
+      /** Returns the workflow state ID. */
       public function getId(): string {
         return 'completed';
       }
+
     };
-    $paymentState = new class {
+    $paymentState = new class() {
+
+      /** Returns the workflow state ID. */
       public function getId(): string {
-        return 'completed';
+        return 'partially_refunded';
       }
+
     };
 
     $order = $this->createMock(OrderInterface::class);
     $order->method('id')->willReturn(111);
     $order->method('getEmail')->willReturn(NULL);
     $order->method('getState')->willReturn($orderState);
+    $order->method('getAdjustments')->willReturn([]);
+    $order->method('getItems')->willReturn([]);
 
     $event = $this->createMock(NodeInterface::class);
     $vendor = $this->createMock(AccountInterface::class);
 
-    $refundPlugin = new class {
+    $refundPlugin = new class() {
+      /** Number of refund calls. */
       public int $calls = 0;
+
+      /** Records a refund call. */
       public function refundPayment(PaymentInterface $payment, Price $amount): void {
         $this->calls++;
       }
+
     };
 
     $gateway = $this->createMock(PaymentGatewayInterface::class);
     $gateway->method('getPlugin')->willReturn($refundPlugin);
 
     $payment = $this->createMock(PaymentInterface::class);
+    $payment->method('id')->willReturn(1);
     $payment->method('getState')->willReturn($paymentState);
     $payment->method('getAmount')->willReturn(new Price('50.00', 'AUD'));
     $payment->method('getRefundedAmount')->willReturn(new Price('0.00', 'AUD'));
     $payment->method('getPaymentGateway')->willReturn($gateway);
     $payment->method('hasField')->with('remote_id')->willReturn(FALSE);
+
+    $refundedState = new class() {
+
+      /** Returns the workflow state ID. */
+      public function getId(): string {
+        return 'partially_refunded';
+      }
+
+    };
+    $reloadedPayment = $this->createMock(PaymentInterface::class);
+    $reloadedPayment->method('id')->willReturn(1);
+    $reloadedPayment->method('getState')->willReturn($refundedState);
+    $reloadedPayment->method('getAmount')->willReturn(new Price('50.00', 'AUD'));
+    $reloadedPayment->method('getRefundedAmount')->willReturn(new Price('10.00', 'AUD'));
+    $reloadedPayment->method('getRemoteId')->willReturn(NULL);
 
     $paymentQuery = $this->createMock(QueryInterface::class);
     $paymentQuery->method('accessCheck')->with(FALSE)->willReturnSelf();
@@ -235,6 +268,7 @@ final class RefundProcessorLockingTest extends KernelTestBase {
     $paymentStorage = $this->createMock(EntityStorageInterface::class);
     $paymentStorage->method('getQuery')->willReturn($paymentQuery);
     $paymentStorage->method('loadMultiple')->willReturn([1 => $payment]);
+    $paymentStorage->method('load')->with(1)->willReturn($reloadedPayment);
 
     $orderStorage = $this->createMock(EntityStorageInterface::class);
     $orderStorage->method('load')->with(111)->willReturn($order);
@@ -253,8 +287,7 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       ['commerce_payment', $paymentStorage],
     ]);
 
-    $accessResolver = $this->createMock(RefundAccessResolver::class);
-    $accessResolver->method('vendorCanRefundOrderForEvent')->willReturn(TRUE);
+    $accessResolver = $this->createPermissiveAccessResolver($vendor);
 
     $logger = $this->createMock(LoggerInterface::class);
     $loggerFactory = $this->createMock(LoggerChannelFactoryInterface::class);
@@ -264,15 +297,22 @@ final class RefundProcessorLockingTest extends KernelTestBase {
     $lock->method('acquire')->willReturnOnConsecutiveCalls(TRUE, FALSE);
     $lock->method('release')->willReturn(TRUE);
 
+    $siteConfig = $this->createMock(ImmutableConfig::class);
+    $siteConfig->method('get')->willReturnCallback(
+      static fn(string $key): ?string => $key === 'public_domain' ? 'https://example.com' : NULL,
+    );
+    $configFactory = $this->createMock(ConfigFactoryInterface::class);
+    $configFactory->method('get')->willReturn($siteConfig);
+
     $processor = new RefundProcessor(
       $entityTypeManager,
-      $this->createMock(RefundOrderInspector::class),
+      $this->createMock(RefundOrderInspectorInterface::class),
       $accessResolver,
-      $this->createMock(BuyerRefundEligibilityService::class),
-      $this->createMock(RefundRequestStorage::class),
-      $this->createMock(MessagingManager::class),
-      $this->createMock(StripeService::class),
-      $this->createMock(ConfigFactoryInterface::class),
+      $this->uninitialized(BuyerRefundEligibilityService::class),
+      $this->uninitialized(RefundRequestStorage::class),
+      $this->uninitialized(MessagingManager::class),
+      $this->uninitialized(StripeService::class),
+      $configFactory,
       $loggerFactory,
       $this->createMock(QueueFactory::class),
       $this->createMock(AccountProxyInterface::class),
@@ -280,19 +320,20 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       $this->container->get('datetime.time'),
       $lock,
       $this->createMock(ModuleHandlerInterface::class),
-      $this->createMock(DomainDetector::class),
+      new DomainDetector(new RequestStack(), $configFactory),
+      new RefundAdjustmentNoteService($database, $this->container->get('datetime.time')),
     );
 
     $processor->processRefund($logId);
     $processor->processRefund($logId);
 
     $row = $database->select('myeventlane_refund_log', 'r')
-      ->fields('r', ['status'])
+      ->fields('r', ['status', 'error_message'])
       ->condition('id', $logId)
       ->execute()
       ->fetchAssoc();
 
-    $this->assertSame('completed', $row['status']);
+    $this->assertSame('completed', $row['status'], (string) ($row['error_message'] ?? ''));
     $this->assertSame(1, $refundPlugin->calls);
   }
 
@@ -346,33 +387,47 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       'updated' => 123456,
     ])->execute();
 
-    $orderState = new class {
+    $orderState = new class() {
+
+      /** Returns the workflow state ID. */
       public function getId(): string {
         return 'completed';
       }
+
     };
-    $paymentState = new class {
+    $paymentState = new class() {
+
+      /** Returns the workflow state ID. */
       public function getId(): string {
-        return 'completed';
+        return 'partially_refunded';
       }
+
     };
 
     $order = $this->createMock(OrderInterface::class);
     $order->method('id')->willReturn(2001);
     $order->method('getEmail')->willReturn(NULL);
     $order->method('getState')->willReturn($orderState);
+    $order->method('getAdjustments')->willReturn([]);
+    $order->method('getItems')->willReturn([]);
 
     $event = $this->createMock(NodeInterface::class);
     $vendor = $this->createMock(AccountInterface::class);
 
-    $refundPlugin = new class {
+    $refundPlugin = new class() {
+      /** Refunded decimal amounts. */
       public array $amounts = [];
+
+      /** Records a refund amount. */
       public function refundPayment(PaymentInterface $payment, Price $amount): void {
         $this->amounts[] = $amount->getNumber();
       }
+
+      /** Returns the test plugin ID. */
       public function getPluginId(): string {
         return 'test_refund_plugin';
       }
+
     };
 
     $gateway = $this->createMock(PaymentGatewayInterface::class);
@@ -394,6 +449,28 @@ final class RefundProcessorLockingTest extends KernelTestBase {
     $paymentB->method('getPaymentGateway')->willReturn($gateway);
     $paymentB->method('hasField')->with('remote_id')->willReturn(FALSE);
 
+    $refundedState = new class() {
+
+      /** Returns the workflow state ID. */
+      public function getId(): string {
+        return 'partially_refunded';
+      }
+
+    };
+    $reloadedPaymentA = $this->createMock(PaymentInterface::class);
+    $reloadedPaymentA->method('id')->willReturn(11);
+    $reloadedPaymentA->method('getState')->willReturn($refundedState);
+    $reloadedPaymentA->method('getAmount')->willReturn(new Price('5.00', 'AUD'));
+    $reloadedPaymentA->method('getRefundedAmount')->willReturn(new Price('5.00', 'AUD'));
+    $reloadedPaymentA->method('getRemoteId')->willReturn(NULL);
+
+    $reloadedPaymentB = $this->createMock(PaymentInterface::class);
+    $reloadedPaymentB->method('id')->willReturn(12);
+    $reloadedPaymentB->method('getState')->willReturn($refundedState);
+    $reloadedPaymentB->method('getAmount')->willReturn(new Price('7.00', 'AUD'));
+    $reloadedPaymentB->method('getRefundedAmount')->willReturn(new Price('5.00', 'AUD'));
+    $reloadedPaymentB->method('getRemoteId')->willReturn(NULL);
+
     $paymentQuery = $this->createMock(QueryInterface::class);
     $paymentQuery->method('accessCheck')->with(FALSE)->willReturnSelf();
     $paymentQuery->method('condition')->willReturnSelf();
@@ -403,6 +480,10 @@ final class RefundProcessorLockingTest extends KernelTestBase {
     $paymentStorage = $this->createMock(EntityStorageInterface::class);
     $paymentStorage->method('getQuery')->willReturn($paymentQuery);
     $paymentStorage->method('loadMultiple')->willReturn([11 => $paymentA, 12 => $paymentB]);
+    $paymentStorage->method('load')->willReturnMap([
+      [11, $reloadedPaymentA],
+      [12, $reloadedPaymentB],
+    ]);
 
     $orderStorage = $this->createMock(EntityStorageInterface::class);
     $orderStorage->method('load')->with(2001)->willReturn($order);
@@ -421,8 +502,7 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       ['commerce_payment', $paymentStorage],
     ]);
 
-    $accessResolver = $this->createMock(RefundAccessResolver::class);
-    $accessResolver->method('vendorCanRefundOrderForEvent')->willReturn(TRUE);
+    $accessResolver = $this->createPermissiveAccessResolver($vendor);
 
     $logger = $this->createMock(LoggerInterface::class);
     $loggerFactory = $this->createMock(LoggerChannelFactoryInterface::class);
@@ -432,15 +512,22 @@ final class RefundProcessorLockingTest extends KernelTestBase {
     $lock->method('acquire')->willReturn(TRUE);
     $lock->method('release')->willReturn(TRUE);
 
+    $siteConfig = $this->createMock(ImmutableConfig::class);
+    $siteConfig->method('get')->willReturnCallback(
+      static fn(string $key): ?string => $key === 'public_domain' ? 'https://example.com' : NULL,
+    );
+    $configFactory = $this->createMock(ConfigFactoryInterface::class);
+    $configFactory->method('get')->willReturn($siteConfig);
+
     $processor = new RefundProcessor(
       $entityTypeManager,
-      $this->createMock(RefundOrderInspector::class),
+      $this->createMock(RefundOrderInspectorInterface::class),
       $accessResolver,
-      $this->createMock(BuyerRefundEligibilityService::class),
-      $this->createMock(RefundRequestStorage::class),
-      $this->createMock(MessagingManager::class),
-      $this->createMock(StripeService::class),
-      $this->createMock(ConfigFactoryInterface::class),
+      $this->uninitialized(BuyerRefundEligibilityService::class),
+      $this->uninitialized(RefundRequestStorage::class),
+      $this->uninitialized(MessagingManager::class),
+      $this->uninitialized(StripeService::class),
+      $configFactory,
       $loggerFactory,
       $this->createMock(QueueFactory::class),
       $this->createMock(AccountProxyInterface::class),
@@ -448,7 +535,8 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       $this->container->get('datetime.time'),
       $lock,
       $this->createMock(ModuleHandlerInterface::class),
-      $this->createMock(DomainDetector::class),
+      new DomainDetector(new RequestStack(), $configFactory),
+      new RefundAdjustmentNoteService($database, $this->container->get('datetime.time')),
     );
 
     $processor->processRefund($logId);
@@ -459,10 +547,33 @@ final class RefundProcessorLockingTest extends KernelTestBase {
       ->execute()
       ->fetchAssoc();
 
-    $this->assertSame('completed', $row['status']);
+    $this->assertSame('completed', $row['status'], (string) ($row['error_message'] ?? ''));
     $this->assertCount(2, $refundPlugin->amounts);
     $this->assertSame('5.00', $refundPlugin->amounts[0]);
     $this->assertSame('5.00', $refundPlugin->amounts[1]);
+  }
+
+  /**
+   * Builds a real final access resolver with bounded permissive collaborators.
+   */
+  private function createPermissiveAccessResolver(AccountInterface $vendor): RefundAccessResolver {
+    $vendor->method('hasPermission')->willReturn(TRUE);
+
+    $orderItems = $this->createMock(RefundOrderItemsInterface::class);
+    $orderItems->method('extractItemsForEvent')->willReturn([new \stdClass()]);
+
+    return new RefundAccessResolver(
+      $this->createMock(StoreEventOwnershipInterface::class),
+      $orderItems,
+      $this->createMock(EventVendorAccessCheckerInterface::class),
+    );
+  }
+
+  /**
+   * Instantiates an unused final collaborator without invoking its constructor.
+   */
+  private function uninitialized(string $class): object {
+    return (new \ReflectionClass($class))->newInstanceWithoutConstructor();
   }
 
 }
