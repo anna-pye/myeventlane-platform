@@ -2006,10 +2006,10 @@ final class VendorDashboardController extends VendorConsoleBaseController {
 
     try {
       $qDash = [
-        'destination' => '/vendor/dashboard',
+        'return_to' => '/vendor/dashboard',
       ];
       $qOnboard = [
-        'destination' => '/vendor/onboard/stripe',
+        'return_to' => '/vendor/onboard/stripe',
       ];
       $status['connect_url'] = Url::fromRoute('myeventlane_vendor.stripe_connect', [], [
         'query' => $qDash,

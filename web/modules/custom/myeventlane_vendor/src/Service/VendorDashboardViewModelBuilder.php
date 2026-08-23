@@ -483,7 +483,7 @@ final class VendorDashboardViewModelBuilder {
       'severity' => $stripeSeverity,
       'url' => $this->routeExists('myeventlane_vendor.stripe_connect')
         ? $this->safeUrlFromRoute('myeventlane_vendor.stripe_connect', [], [
-          'query' => ['destination' => '/vendor/dashboard'],
+          'query' => ['return_to' => '/vendor/dashboard'],
         ])
         : NULL,
     ];
