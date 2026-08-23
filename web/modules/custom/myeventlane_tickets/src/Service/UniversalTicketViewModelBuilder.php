@@ -57,7 +57,8 @@ final class UniversalTicketViewModelBuilder {
     $capabilities = $this->entitlementCapabilityRegistry->getCapabilityMap($entitlement_type);
     $status = $this->readString($ticket, 'status', Ticket::STATUS_ISSUED_UNASSIGNED);
     $fulfilment_status = $ticket->getFulfilmentStatus();
-    $qr = $this->buildQrSection($ticket, $include_qr, $allow_qr_unavailable);
+    $is_revoked = $this->isRevokedTicket($status, $fulfilment_status);
+    $qr = $this->buildQrSection($ticket, $include_qr && !$is_revoked, $allow_qr_unavailable);
     $redemption_limit = $ticket->getRedemptionLimit();
     $redemption_count = $ticket->getRedemptionCount();
     $remaining_redemptions = $this->capabilityManager->getRemainingRedemptions($ticket);
@@ -109,8 +110,8 @@ final class UniversalTicketViewModelBuilder {
       'vendor' => $this->buildVendor($ticket),
       'badges' => $this->buildBadges($entitlement_type, $status, $fulfilment_status, $is_expired),
       'actions' => [
-        'wallet' => $this->buildWalletActions($ticket),
-        'pdf' => $this->buildPdfActions($ticket_code, $status),
+        'wallet' => $this->buildWalletActions($ticket, $is_revoked),
+        'pdf' => $this->buildPdfActions($ticket_code, $is_revoked),
       ],
       'scanner' => [
         'can_scan' => $can_scan,
@@ -369,8 +370,8 @@ final class UniversalTicketViewModelBuilder {
    * @return array<string, mixed>
    *   PDF action metadata.
    */
-  private function buildPdfActions(string $ticket_code, string $status): array {
-    if (in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)) {
+  private function buildPdfActions(string $ticket_code, bool $is_revoked): array {
+    if ($is_revoked) {
       return [
         'download' => [
           'label' => 'Download PDF',
@@ -399,12 +400,12 @@ final class UniversalTicketViewModelBuilder {
    * @return array<string, mixed>
    *   Wallet action metadata.
    */
-  private function buildWalletActions(Ticket $ticket): array {
+  private function buildWalletActions(Ticket $ticket, bool $is_revoked): array {
     $empty = [
       'apple' => NULL,
       'google' => NULL,
     ];
-    if (!$this->walletActionBuilder instanceof WalletActionBuilder) {
+    if ($is_revoked || !$this->walletActionBuilder instanceof WalletActionBuilder) {
       return $empty;
     }
 
@@ -417,6 +418,14 @@ final class UniversalTicketViewModelBuilder {
       $order_item_id,
       WalletActionBuilder::SURFACE_ACTIONS,
     );
+  }
+
+  /**
+   * Whether customer admission artifacts must be suppressed.
+   */
+  private function isRevokedTicket(string $status, string $fulfilment_status): bool {
+    return in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)
+      || $fulfilment_status === Ticket::FULFILMENT_CANCELLED;
   }
 
   /**

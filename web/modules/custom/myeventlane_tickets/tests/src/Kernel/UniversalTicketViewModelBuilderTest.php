@@ -253,9 +253,34 @@ final class UniversalTicketViewModelBuilderTest extends KernelTestBase {
       'order_item_id' => 123,
     ]);
 
-    $model = $this->builder()->build($ticket, FALSE, TRUE);
+    $model = $this->builder()->build($ticket, TRUE, TRUE);
 
+    $this->assertFalse($model['qr']['included']);
+    $this->assertSame('', $model['qr']['payload']);
+    $this->assertSame('', $model['qr']['data_uri']);
+    $this->assertNull($model['actions']['wallet']['apple']);
+    $this->assertNull($model['actions']['wallet']['google']);
     $this->assertSame('', $model['actions']['pdf']['download']['route']);
+    $this->assertSame('', $model['actions']['pdf']['download']['url']);
+  }
+
+  /**
+   * Fulfilment cancellation also suppresses every admission artifact.
+   */
+  public function testCancelledFulfilmentDoesNotExposeAdmissionArtifacts(): void {
+    $ticket = $this->createTicket([
+      'ticket_code' => 'MEL-CANCELLED-0001',
+      'status' => Ticket::STATUS_ASSIGNED,
+      'fulfilment_status' => Ticket::FULFILMENT_CANCELLED,
+      'order_item_id' => 123,
+    ]);
+
+    $model = $this->builder()->build($ticket, TRUE, TRUE);
+
+    $this->assertFalse($model['qr']['included']);
+    $this->assertSame('', $model['qr']['data_uri']);
+    $this->assertNull($model['actions']['wallet']['apple']);
+    $this->assertNull($model['actions']['wallet']['google']);
     $this->assertSame('', $model['actions']['pdf']['download']['url']);
   }
 
