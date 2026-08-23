@@ -59,25 +59,65 @@ final class MyTicketsRefundSummaryTest extends TestCase {
   }
 
   /**
+   * An unrefunded payment remains part of the original paid total.
+   */
+  public function testPartialRefundAcrossMultiplePayments(): void {
+    $builder = $this->builderForPayments([
+      ['id' => 411, 'amount' => '50.00', 'refunded' => '50.00'],
+      ['id' => 412, 'amount' => '50.00', 'refunded' => '0.00'],
+    ]);
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('id')->willReturn(524);
+
+    $result = $builder->buildRefundSummary($order);
+    $summary = $result['summary'];
+
+    $this->assertSame('partial', $summary['status']);
+    $this->assertSame('50.00', $summary['refunded_amount']->getNumber());
+    $this->assertSame('100', $summary['original_paid_amount']->getNumber());
+    $this->assertSame('50', $summary['remaining_amount']->getNumber());
+    $this->assertSame(
+      ['commerce_payment:411', 'commerce_payment:412'],
+      $result['cache_tags'],
+    );
+  }
+
+  /**
    * Builds the subject with one canonical Commerce payment.
    */
   private function builderForPayment(
     string $amount,
     string $refunded,
   ): MyTicketsOrderViewModelBuilder {
-    $payment = $this->createMock(PaymentInterface::class);
-    $payment->method('getAmount')->willReturn(new Price($amount, 'AUD'));
-    $payment->method('getRefundedAmount')->willReturn(new Price($refunded, 'AUD'));
-    $payment->method('getCacheTags')->willReturn(['commerce_payment:411']);
+    return $this->builderForPayments([
+      ['id' => 411, 'amount' => $amount, 'refunded' => $refunded],
+    ]);
+  }
+
+  /**
+   * Builds the subject with canonical Commerce payments.
+   *
+   * @param list<array{id: int, amount: string, refunded: string}> $paymentData
+   *   Payment fixtures.
+   */
+  private function builderForPayments(array $paymentData): MyTicketsOrderViewModelBuilder {
+    $payments = [];
+    foreach ($paymentData as $data) {
+      $payment = $this->createMock(PaymentInterface::class);
+      $payment->method('getAmount')->willReturn(new Price($data['amount'], 'AUD'));
+      $payment->method('getRefundedAmount')->willReturn(new Price($data['refunded'], 'AUD'));
+      $payment->method('getCacheTags')->willReturn(['commerce_payment:' . $data['id']]);
+      $payments[$data['id']] = $payment;
+    }
 
     $query = $this->createMock(QueryInterface::class);
     $query->method('accessCheck')->with(FALSE)->willReturnSelf();
-    $query->method('condition')->with('order_id', $this->anything())->willReturnSelf();
-    $query->method('execute')->willReturn([411 => 411]);
+    $query->method('condition')->willReturnSelf();
+    $query->method('execute')->willReturn(array_combine(array_keys($payments), array_keys($payments)));
 
     $storage = $this->createMock(EntityStorageInterface::class);
     $storage->method('getQuery')->willReturn($query);
-    $storage->method('loadMultiple')->willReturn([411 => $payment]);
+    $storage->method('loadMultiple')->willReturn($payments);
 
     $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
     $entityTypeManager->method('hasDefinition')->with('commerce_payment')->willReturn(TRUE);

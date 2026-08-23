@@ -269,6 +269,7 @@ final class MyTicketsOrderViewModelBuilder {
     $ids = $storage->getQuery()
       ->accessCheck(FALSE)
       ->condition('order_id', (int) $order->id())
+      ->condition('state', ['completed', 'partially_refunded', 'refunded'], 'IN')
       ->execute();
     if ($ids === []) {
       return ['summary' => NULL, 'cache_tags' => []];
@@ -284,13 +285,19 @@ final class MyTicketsOrderViewModelBuilder {
       $cacheTags = array_merge($cacheTags, $payment->getCacheTags());
       $amount = $payment->getAmount();
       $refunded = $payment->getRefundedAmount();
-      if (!$amount instanceof Price || !$refunded instanceof Price || $refunded->isZero()) {
+      if (!$amount instanceof Price || !$refunded instanceof Price) {
         continue;
       }
-      if ($paidTotal instanceof Price && $paidTotal->getCurrencyCode() !== $amount->getCurrencyCode()) {
+      if (
+        $amount->getCurrencyCode() !== $refunded->getCurrencyCode()
+        || ($paidTotal instanceof Price && $paidTotal->getCurrencyCode() !== $amount->getCurrencyCode())
+      ) {
         continue;
       }
       $paidTotal = $paidTotal instanceof Price ? $paidTotal->add($amount) : $amount;
+      if ($refunded->isZero()) {
+        continue;
+      }
       $refundedTotal = $refundedTotal instanceof Price ? $refundedTotal->add($refunded) : $refunded;
     }
 
