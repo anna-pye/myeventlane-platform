@@ -56,7 +56,11 @@ final class GoogleWalletEventHero {
 
     try {
       $derivative_uri = $style->buildUri($uri);
-      if (!is_file($derivative_uri) && !$style->createDerivative($uri, $derivative_uri)) {
+      if (
+        !is_file($derivative_uri)
+        && !$style->createDerivative($uri, $derivative_uri)
+        && !is_file($derivative_uri)
+      ) {
         $this->logger->warning('Google Wallet hero derivative failed for event @event.', [
           '@event' => (string) $event->id(),
         ]);
