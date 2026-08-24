@@ -54,6 +54,30 @@ final class GoogleWalletEventHero {
       return NULL;
     }
 
+    try {
+      $derivative_uri = $style->buildUri($uri);
+      if (!is_file($derivative_uri) && !$style->createDerivative($uri, $derivative_uri)) {
+        $this->logger->warning('Google Wallet hero derivative failed for event @event.', [
+          '@event' => (string) $event->id(),
+        ]);
+        return NULL;
+      }
+      $dimensions = @getimagesize($derivative_uri);
+    }
+    catch (\Throwable $exception) {
+      $this->logger->warning('Google Wallet hero derivative failed for event @event: @message', [
+        '@event' => (string) $event->id(),
+        '@message' => $exception->getMessage(),
+      ]);
+      return NULL;
+    }
+    if (!is_array($dimensions) || $dimensions[0] !== 1280 || $dimensions[1] !== 400) {
+      $this->logger->warning('Google Wallet hero derivative is invalid for event @event.', [
+        '@event' => (string) $event->id(),
+      ]);
+      return NULL;
+    }
+
     $url = $style->buildUrl($uri);
     if (!str_starts_with($url, 'https://')) {
       $this->logger->warning('Google Wallet hero for event @event does not have a public HTTPS URL.', [

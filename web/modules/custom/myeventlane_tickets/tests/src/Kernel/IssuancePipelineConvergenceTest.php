@@ -602,20 +602,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     global $base_url;
     $base_url = 'https://myeventlane.example.test';
 
-    $style = ImageStyle::create([
-      'name' => 'mel_google_wallet_hero',
-      'label' => 'MEL Google Wallet hero',
-    ]);
-    $style->addImageEffect([
-      'id' => 'image_scale_and_crop',
-      'weight' => 0,
-      'data' => [
-        'width' => 1280,
-        'height' => 400,
-        'anchor' => 'center-center',
-      ],
-    ]);
-    $style->save();
+    $style = ImageStyle::load('mel_google_wallet_hero');
+    $this->assertNotNull($style);
 
     $source = 'public://google-wallet-event-hero.jpg';
     $fixture = imagecreatetruecolor(1600, 900);
@@ -649,6 +637,49 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $hero_url = $object['heroImage']['sourceUri']['uri'];
     $this->assertStringStartsWith('https://', $hero_url);
     $this->assertStringContainsString('/styles/mel_google_wallet_hero/public/google-wallet-event-hero.jpg', $hero_url);
+    $derivative = $style->buildUri($source);
+    $this->assertFileExists($derivative);
+    $dimensions = getimagesize($derivative);
+    $this->assertNotFalse($dimensions);
+    $this->assertSame([1280, 400], [$dimensions[0], $dimensions[1]]);
+  }
+
+  /**
+   * An unreadable hero is omitted instead of breaking the Google save JWT.
+   */
+  public function testGoogleWalletJwtOmitsUnrenderableEventHero(): void {
+    global $base_url;
+    $base_url = 'https://myeventlane.example.test';
+
+    $this->assertNotNull(ImageStyle::load('mel_google_wallet_hero'));
+
+    $file = File::create([
+      'uri' => 'public://missing-google-wallet-hero.jpg',
+      'status' => 1,
+    ]);
+    $file->save();
+    $this->event->set('field_event_image', [
+      'target_id' => $file->id(),
+      'alt' => 'Missing event hero',
+    ])->save();
+
+    $this->enableEphemeralGoogleWalletSigning();
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\GoogleWalletBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.google_wallet_builder');
+    $url = $builder->generateSaveLink($item, $ticket);
+    $jwt = substr($url, strlen('https://pay.google.com/gp/v/save/'));
+    $parts = explode('.', $jwt);
+    $payload_json = base64_decode(strtr($parts[1], '-_', '+/'), TRUE);
+    $this->assertNotFalse($payload_json);
+    $payload = json_decode($payload_json, TRUE, 512, JSON_THROW_ON_ERROR);
+    $object = $payload['payload']['genericObjects'][0];
+
+    $this->assertArrayNotHasKey('heroImage', $object);
+    $this->assertSame('#FFF0F5', $object['hexBackgroundColor']);
   }
 
   /**
