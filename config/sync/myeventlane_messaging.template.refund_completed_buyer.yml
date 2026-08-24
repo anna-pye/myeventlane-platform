@@ -1,29 +1,38 @@
 enabled: true
 subject: 'Refund completed – {{ event_title }}'
+preheader: 'Your {{ refunded_amount }} refund for {{ event_title }} is complete.'
 body_html: |-
-  Hi there,
-
-  Your refund for <strong>{{ event_title }}</strong> (Booking {{ order_number }}) has been completed.
-
-  Amount refunded: {{ refunded_amount }}
-
-  {% if adjustment_note_number %}
-  <strong>Adjustment note {{ adjustment_note_number }}</strong><br>
-  Date: {{ adjustment_note_date }}<br>
-  Supplier: {{ supplier_name }}<br>
-  {% if supplier_abn %}ABN: {{ supplier_abn }}<br>{% endif %}
-  Original invoice: {{ order_number }}<br>
-  Reason: {{ adjustment_reason }}<br>
-  GST adjustment: {{ gst_adjustment }}
-  {% endif %}
-
-  Stripe has sent the refund to the original payment method. The time it takes to appear depends on the payment method and financial institution.
-
-  <a href="{{ my_tickets_url }}">View Digital Pass</a>
-
-  {% if tickets_cancelled and tickets_cancelled > 0 %}
-  Ticket access has been cancelled for {{ tickets_cancelled }} attendee(s).
-  {% endif %}
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="padding:0 0 20px 0;">
+        <h1 style="margin:0 0 8px 0;font-size:24px;line-height:1.25;font-weight:800;color:#293241;">Your refund is complete</h1>
+        <p style="margin:0;font-size:16px;line-height:1.55;color:#5c6370;">Stripe has sent the refund to your original payment method. Your bank or financial institution controls when it appears.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 0 20px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background:#fef5ec;border-radius:12px;">
+          <tr><td style="padding:16px 18px 6px;font-size:13px;line-height:1.4;color:#5c6370;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">Refund summary</td></tr>
+          <tr><td style="padding:0 18px 8px;font-size:18px;line-height:1.35;color:#293241;font-weight:700;">{{ event_title }}</td></tr>
+          <tr><td style="padding:0 18px 16px;font-size:15px;line-height:1.55;color:#293241;"><strong>Booking:</strong> {{ order_number }}<br><strong>Amount refunded:</strong> {{ refunded_amount }}{% if tickets_cancelled and tickets_cancelled > 0 %}<br><strong>Ticket access:</strong> Cancelled for {{ tickets_cancelled }} attendee(s){% endif %}</td></tr>
+        </table>
+      </td>
+    </tr>
+    {% if adjustment_note_number %}
+    <tr>
+      <td style="padding:0 0 20px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background:#f7f7f8;border-left:4px solid #6e7ef2;border-radius:8px;">
+          <tr><td style="padding:14px 16px;font-size:14px;line-height:1.55;color:#293241;"><strong style="font-size:16px;">Adjustment note {{ adjustment_note_number }}</strong><br>Date: {{ adjustment_note_date }}<br>Supplier: {{ supplier_name }}{% if supplier_abn %}<br>ABN: {{ supplier_abn }}{% endif %}<br>Original invoice: {{ order_number }}<br>Reason: {{ adjustment_reason }}<br>GST adjustment: {{ gst_adjustment }}</td></tr>
+        </table>
+      </td>
+    </tr>
+    {% endif %}
+    <tr>
+      <td align="center" style="padding:0 0 24px 0;">
+        <a href="{{ my_tickets_url }}" style="display:inline-block;background:#c24737;color:#ffffff !important;text-decoration:none;padding:13px 24px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;">View refund details</a>
+      </td>
+    </tr>
+  </table>
 utm:
   enable: true
   params:

@@ -1587,6 +1587,7 @@ final class RefundProcessor implements RefundProcessorInterface {
       'refunded_amount' => $currencyUpper . ' ' . $amount,
       'donation_refunded' => $donationRefunded,
       'my_tickets_url' => $this->buildPublicMyTicketsUrl($order->id()),
+      'vendor_refund_requests_url' => $this->buildVendorRefundRequestsUrl((int) $event->id()),
     ];
   }
 
@@ -1604,6 +1605,21 @@ final class RefundProcessor implements RefundProcessorInterface {
     catch (\Exception $e) {
       return Url::fromRoute('myeventlane_checkout_flow.order_detail', [
         'commerce_order' => $orderId,
+      ], ['absolute' => TRUE])->toString();
+    }
+  }
+
+  /**
+   * Builds the organiser refund-request queue URL for an event.
+   */
+  private function buildVendorRefundRequestsUrl(int $eventId): string {
+    $path = '/vendor/events/' . $eventId . '/refund-requests';
+    try {
+      return $this->domainDetector->buildDomainUrl($path, 'vendor');
+    }
+    catch (\Exception) {
+      return Url::fromRoute('myeventlane_refunds.vendor_refund_requests', [
+        'node' => $eventId,
       ], ['absolute' => TRUE])->toString();
     }
   }
