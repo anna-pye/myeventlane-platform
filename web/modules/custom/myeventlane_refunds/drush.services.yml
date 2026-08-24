@@ -6,5 +6,6 @@ services:
       - '@entity_type.manager'
       - '@logger.factory'
       - '@myeventlane_refunds.processor'
+      - '@myeventlane_refunds.legacy_entitlement_repairer'
     tags:
       - { name: drush.command }

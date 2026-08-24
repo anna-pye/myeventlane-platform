@@ -23,6 +23,14 @@ services:
     class: Drupal\myeventlane_refunds\Service\RefundTicketEntitlementReconciler
     arguments: ['@entity_type.manager', '@logger.channel.myeventlane_refunds']
 
+  myeventlane_refunds.legacy_entitlement_repairer:
+    class: Drupal\myeventlane_refunds\Service\LegacyRefundEntitlementRepairer
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.ticket_code_generator'
+      - '@logger.channel.myeventlane_refunds'
+      - '@database'
+
   myeventlane_refunds.buyer_refund_access_check:
     class: Drupal\myeventlane_refunds\Access\BuyerRefundAccessCheck
     arguments:

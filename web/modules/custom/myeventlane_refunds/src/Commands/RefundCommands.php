@@ -9,7 +9,9 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\myeventlane_refunds\Service\RefundProcessorInterface;
+use Drupal\myeventlane_refunds\Service\LegacyRefundEntitlementRepairer;
 use Drush\Commands\DrushCommands;
+use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -28,12 +30,15 @@ final class RefundCommands extends DrushCommands {
    *   The logger channel factory (for myeventlane_refunds audit channel).
    * @param \Drupal\myeventlane_refunds\Service\RefundProcessorInterface $refundProcessor
    *   The refund processor used for bounded entitlement reconciliation.
+   * @param \Drupal\myeventlane_refunds\Service\LegacyRefundEntitlementRepairer $legacyEntitlementRepairer
+   *   Safe repair service for pre-canonical completed refunds.
    */
   public function __construct(
     private readonly Connection $database,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly RefundProcessorInterface $refundProcessor,
+    private readonly LegacyRefundEntitlementRepairer $legacyEntitlementRepairer,
   ) {
     parent::__construct();
   }
@@ -47,6 +52,7 @@ final class RefundCommands extends DrushCommands {
       $container->get('entity_type.manager'),
       $container->get('logger.factory'),
       $container->get('myeventlane_refunds.processor'),
+      $container->get('myeventlane_refunds.legacy_entitlement_repairer'),
     );
   }
 
@@ -68,6 +74,54 @@ final class RefundCommands extends DrushCommands {
       $count,
       $logId,
     ));
+  }
+
+  /**
+   * Plans or applies a safe legacy refund entitlement repair.
+   *
+   * @param int $logId
+   *   Completed refund log ID.
+   * @param array $options
+   *   Command options.
+   *
+   * @command mel:refund-repair-legacy-entitlements
+   * @option apply Create revoked canonical ticket rows. Omit for dry run.
+   * @usage drush mel:refund-repair-legacy-entitlements 14
+   *   Report what can be repaired without changing data.
+   * @usage drush mel:refund-repair-legacy-entitlements 14 --apply
+   *   Create only safely attributable refunded/cancelled ticket rows.
+   */
+  public function repairLegacyEntitlements(int $logId, array $options = ['apply' => FALSE]): void {
+    $log = $this->database->select('myeventlane_refund_log', 'r')
+      ->fields('r')
+      ->condition('id', $logId)
+      ->condition('status', 'completed')
+      ->execute()
+      ->fetchAssoc();
+    if (!is_array($log)) {
+      throw new \RuntimeException('Completed refund log not found.');
+    }
+
+    $order = $this->entityTypeManager->getStorage('commerce_order')->load((int) $log['order_id']);
+    $event = $this->entityTypeManager->getStorage('node')->load((int) $log['event_id']);
+    if (!$order instanceof OrderInterface || !$event instanceof NodeInterface) {
+      throw new \RuntimeException('Refund order or event not found.');
+    }
+
+    $apply = (bool) ($options['apply'] ?? FALSE);
+    $result = $this->legacyEntitlementRepairer->repair($order, $event, $log, $apply);
+    $this->io()->table(['Metric', 'Count'], [
+      ['Targets', $result['targets']],
+      [$apply ? 'Created' : 'Creatable', $result['created']],
+      ['Already repaired', $result['existing']],
+      ['Blocked', count($result['blocked'])],
+    ]);
+    foreach ($result['blocked'] as $reason) {
+      $this->io()->warning($reason);
+    }
+    if (!$apply) {
+      $this->io()->note('Dry run only. Add --apply after reviewing this result.');
+    }
   }
 
   /**
