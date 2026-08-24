@@ -32,6 +32,7 @@ final class GoogleWalletBuilder {
     private readonly ConfigFactoryInterface $configFactory,
     private readonly UniversalTicketViewModelBuilder $ticketViewModelBuilder,
     private readonly LoggerInterface $logger,
+    private readonly GoogleWalletEventHero $eventHero,
   ) {}
 
   /**
@@ -104,6 +105,52 @@ final class GoogleWalletBuilder {
     $object_suffix = preg_replace('/[^A-Za-z0-9_.-]+/', '_', $ticket_uuid !== '' ? $ticket_uuid : $ticket_code) ?? $ticket_code;
     $object_id = $issuer_id . '.' . $object_suffix;
     $issuer_name = trim((string) ($this->configFactory->get('myeventlane_wallet.settings')->get('apple_organisation_name') ?: '')) ?: 'MyEventLane';
+    $hero_image = $this->eventHero->build($ticket, $event_label);
+
+    $generic_object = [
+      'id' => $object_id,
+      'classId' => $class_id,
+      'state' => 'ACTIVE',
+      'cardTitle' => [
+        'defaultValue' => [
+          'language' => 'en-AU',
+          'value' => $issuer_name,
+        ],
+      ],
+      'header' => [
+        'defaultValue' => [
+          'language' => 'en-AU',
+          'value' => $event_label,
+        ],
+      ],
+      'subheader' => [
+        'defaultValue' => [
+          'language' => 'en-AU',
+          'value' => $entitlement,
+        ],
+      ],
+      'hexBackgroundColor' => $hero_image !== NULL ? '#1A2238' : '#FFF0F5',
+      'barcode' => [
+        'type' => 'QR_CODE',
+        'value' => $qr_payload,
+        'alternateText' => $ticket_code,
+      ],
+      'textModulesData' => array_values(array_filter([
+        $holder !== '' ? [
+          'id' => 'holder',
+          'header' => 'Name',
+          'body' => $holder,
+        ] : NULL,
+        [
+          'id' => 'ticket_code',
+          'header' => 'Ticket code',
+          'body' => $ticket_code,
+        ],
+      ])),
+    ];
+    if ($hero_image !== NULL) {
+      $generic_object['heroImage'] = $hero_image;
+    }
 
     $now = time();
     $claims = [
@@ -118,49 +165,7 @@ final class GoogleWalletBuilder {
             'id' => $class_id,
           ],
         ],
-        'genericObjects' => [
-          [
-            'id' => $object_id,
-            'classId' => $class_id,
-            'state' => 'ACTIVE',
-            'cardTitle' => [
-              'defaultValue' => [
-                'language' => 'en-AU',
-                'value' => $issuer_name,
-              ],
-            ],
-            'header' => [
-              'defaultValue' => [
-                'language' => 'en-AU',
-                'value' => $event_label,
-              ],
-            ],
-            'subheader' => [
-              'defaultValue' => [
-                'language' => 'en-AU',
-                'value' => $entitlement,
-              ],
-            ],
-            'hexBackgroundColor' => '#FFF0F5',
-            'barcode' => [
-              'type' => 'QR_CODE',
-              'value' => $qr_payload,
-              'alternateText' => $ticket_code,
-            ],
-            'textModulesData' => array_values(array_filter([
-              $holder !== '' ? [
-                'id' => 'holder',
-                'header' => 'Name',
-                'body' => $holder,
-              ] : NULL,
-              [
-                'id' => 'ticket_code',
-                'header' => 'Ticket code',
-                'body' => $ticket_code,
-              ],
-            ])),
-          ],
-        ],
+        'genericObjects' => [$generic_object],
       ],
     ];
 
