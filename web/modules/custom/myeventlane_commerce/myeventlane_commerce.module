@@ -658,6 +658,14 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
   // Cart Views form: clearer primary action label (conversion layer).
   if (isset($form['actions']['checkout']['#order_id'])) {
     $form['actions']['checkout']['#value'] = t('Continue to checkout');
+    $form['actions']['checkout']['#weight'] = 0;
+    $form['actions']['checkout']['#attributes']['class'][] = 'mel-cart-action';
+    $form['actions']['checkout']['#attributes']['class'][] = 'mel-cart-action--checkout';
+  }
+  if (isset($form['actions']['submit']) && is_array($form['actions']['submit'])) {
+    $form['actions']['submit']['#weight'] = 10;
+    $form['actions']['submit']['#attributes']['class'][] = 'mel-cart-action';
+    $form['actions']['submit']['#attributes']['class'][] = 'mel-cart-action--update';
   }
 
   // Apply only on Commerce checkout forms.

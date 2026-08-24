@@ -6,8 +6,9 @@
 #}
 
 {% block footer %}
-<footer class="mel-footer" role="contentinfo">
+<footer class="mel-footer{{ mel_footer_compact|default(false) ? ' mel-footer--transactional' : '' }}" role="contentinfo">
 
+  {% if not mel_footer_compact|default(false) %}
   <div class="mel-footer__container">
 
     {% if mel_footer_show_cta_band|default(false) %}
@@ -58,6 +59,7 @@
     </nav>
 
   </div>
+  {% endif %}
 
   <div class="mel-footer__base">
     <div class="mel-footer__base-inner">

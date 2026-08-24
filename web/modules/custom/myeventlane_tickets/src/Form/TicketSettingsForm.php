@@ -136,7 +136,7 @@ final class TicketSettingsForm extends ConfigFormBase {
     $form['branding']['brand_accent_color'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Brand accent color'),
-      '#default_value' => $config->get('brand_accent_color') ?? '#f26d5b',
+      '#default_value' => $config->get('brand_accent_color') ?? '#6b46ff',
       '#description' => $this->t('Hex color used for key accents (example: #f26d5b).'),
       '#maxlength' => 16,
     ];

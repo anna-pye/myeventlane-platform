@@ -40,7 +40,7 @@ final class TicketPdfTemplateBuilder {
     $brand_footer_text = (string) ($config->get('brand_footer_text') ?? '');
 
     $variables['brand_logo_url'] = $brand_logo_url !== '' ? $brand_logo_url : NULL;
-    $variables['brand_accent_color'] = $brand_accent_color !== '' ? $brand_accent_color : '#f26d5b';
+    $variables['brand_accent_color'] = $brand_accent_color !== '' ? $brand_accent_color : '#6b46ff';
     $variables['brand_footer_text'] = $this->replaceFooterTokens($brand_footer_text, $variables);
     $variables['show_ticket_code'] = (bool) ($config->get('show_ticket_code') ?? TRUE);
     $variables['include_qr_code'] = (bool) ($config->get('include_qr_code') ?? TRUE);

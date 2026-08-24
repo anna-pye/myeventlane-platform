@@ -12,11 +12,14 @@ type: list_string
 settings:
   allowed_values:
     -
+      value: '#6b46ff'
+      label: 'MEL Purple (recommended)'
+    -
       value: '#f26d5b'
-      label: 'Coral (MEL Primary)'
+      label: 'Coral'
     -
       value: '#6e7ef2'
-      label: Lavender
+      label: 'Legacy periwinkle'
     -
       value: '#4f9da6'
       label: Teal

@@ -49,6 +49,17 @@ final class MobileBottomNavigationBuilder {
     'user.pass',
   ];
 
+  /**
+   * Focused routes where persistent marketplace navigation is distracting.
+   *
+   * @var list<string>
+   */
+  private const CHROME_FREE_ROUTE_NAMES = [
+    'entity.commerce_order.user_view',
+    'myeventlane_core.error_403',
+    'myeventlane_core.error_404',
+  ];
+
   public function __construct(
     private readonly RouteMatchInterface $routeMatch,
     private readonly PathMatcherInterface $pathMatcher,
@@ -69,7 +80,9 @@ final class MobileBottomNavigationBuilder {
       return FALSE;
     }
 
-    return !str_starts_with($route, 'commerce_checkout.');
+    return !str_starts_with($route, 'commerce_checkout.')
+      && !str_starts_with($route, 'commerce_cart.')
+      && !in_array($route, self::CHROME_FREE_ROUTE_NAMES, TRUE);
   }
 
   /**

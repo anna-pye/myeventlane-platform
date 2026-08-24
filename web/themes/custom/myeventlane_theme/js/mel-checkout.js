@@ -7,6 +7,7 @@
     attach(context) {
       attachIdentityMemory(context);
       attachContactCollapse(context);
+      attachSummaryDisclosure(context);
       attachGuidedCheckout(context);
       attachAttendeeCards(context);
 
@@ -40,6 +41,33 @@
       });
     },
   };
+
+  function attachSummaryDisclosure(context) {
+    const summaries = once(
+      'mel-checkout-summary-disclosure',
+      '[data-mel-checkout-summary]',
+      context
+    );
+
+    summaries.forEach((summary) => {
+      const mobile = window.matchMedia('(max-width: 768px)');
+      const sync = () => {
+        if (!mobile.matches) {
+          summary.open = true;
+          return;
+        }
+
+        if (!hasErrors(summary)) {
+          summary.open = false;
+        }
+      };
+
+      if (typeof mobile.addEventListener === 'function') {
+        mobile.addEventListener('change', sync);
+      }
+      sync();
+    });
+  }
 
   function attachGuidedCheckout(context) {
     const checkouts = once(

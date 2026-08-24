@@ -161,13 +161,13 @@ body_html: |
         {% set pass_url = digital_pass_url|default(order_url) %}
         {% if not (is_guest ?? false) and pass_url %}
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ pass_url }}" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ pass_url }}" style="height:48px;v-text-anchor:middle;width:260px;" arcsize="12%" stroke="f" fillcolor="#6b46ff">
             <w:anchorlock/>
             <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">View Digital Pass</center>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-- -->
-          <a href="{{ pass_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Digital Pass</a>
+          <a href="{{ pass_url }}" style="display:inline-block;background-color:#6b46ff;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Digital Pass</a>
           <!--<![endif]-->
           {% if apple_wallet_url or google_wallet_url or pdf_url %}
             <div style="margin-top:20px;" role="group" aria-label="Pass actions">
@@ -188,22 +188,22 @@ body_html: |
           {% endif %}
           <div style="margin-top:16px;font-size:15px;line-height:1.7;">
             {% if event_url %}
-              <a href="{{ event_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">View Event</a>
+              <a href="{{ event_url }}" style="color:#5935e8;font-weight:600;text-decoration:underline;">View Event</a>
               {% if manage_booking_url %}<span style="color:#c5c7ce;"> · </span>{% endif %}
             {% endif %}
             {% if manage_booking_url %}
-              <a href="{{ manage_booking_url }}" style="color:#6e7ef2;font-weight:600;text-decoration:underline;">Manage Booking</a>
+              <a href="{{ manage_booking_url }}" style="color:#5935e8;font-weight:600;text-decoration:underline;">Manage Booking</a>
             {% endif %}
           </div>
         {% elseif event_url %}
           <!--[if mso]>
-          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ event_url }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" stroke="f" fillcolor="#f26d5b">
+          <v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="{{ event_url }}" style="height:48px;v-text-anchor:middle;width:240px;" arcsize="12%" stroke="f" fillcolor="#6b46ff">
             <w:anchorlock/>
             <center style="color:#ffffff;font-family:Arial,sans-serif;font-size:16px;font-weight:bold;">View Event</center>
           </v:roundrect>
           <![endif]-->
           <!--[if !mso]><!-- -->
-          <a href="{{ event_url }}" style="display:inline-block;background-color:#f26d5b;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Event</a>
+          <a href="{{ event_url }}" style="display:inline-block;background-color:#6b46ff;color:#ffffff !important;text-decoration:none;padding:14px 28px;border-radius:12px;font-weight:700;font-size:16px;line-height:1.25;mso-hide:all;">View Event</a>
           <!--<![endif]-->
         {% endif %}
         {% if (is_guest ?? false) %}
@@ -238,20 +238,20 @@ body_html: |
         <h2 style="margin:20px 0 10px 0;font-size:18px;line-height:1.35;font-weight:700;color:#293241;">Need help?</h2>
         <p style="margin:0;font-size:15px;line-height:1.7;color:#5c6370;">
           {% if refund_policy_url %}
-            <a href="{{ refund_policy_url }}" style="color:#6e7ef2;text-decoration:underline;">Refund policy</a><br>
+            <a href="{{ refund_policy_url }}" style="color:#5935e8;text-decoration:underline;">Refund policy</a><br>
           {% endif %}
           {% if help_centre_url %}
-            <a href="{{ help_centre_url }}" style="color:#6e7ef2;text-decoration:underline;">Help Centre</a><br>
+            <a href="{{ help_centre_url }}" style="color:#5935e8;text-decoration:underline;">Help Centre</a><br>
           {% endif %}
           {% set contact_url = organiser_url|default('') %}
           {% if not contact_url and events|length > 0 and events[0].organiser_url|default('') %}
             {% set contact_url = events[0].organiser_url %}
           {% endif %}
           {% if contact_url %}
-            <a href="{{ contact_url }}" style="color:#6e7ef2;text-decoration:underline;">Contact organiser</a><br>
+            <a href="{{ contact_url }}" style="color:#5935e8;text-decoration:underline;">Contact organiser</a><br>
           {% endif %}
           {% if support_url %}
-            <a href="{{ support_url }}" style="color:#6e7ef2;text-decoration:underline;">Support</a>
+            <a href="{{ support_url }}" style="color:#5935e8;text-decoration:underline;">Support</a>
           {% endif %}
         </p>
       </td>

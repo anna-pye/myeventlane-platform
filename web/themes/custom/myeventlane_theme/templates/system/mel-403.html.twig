@@ -1,68 +1,27 @@
 {#
 /**
  * @file
- * Branded 403 content for custom error route /mel/403.
- *
- * system.site page.403 is set to /mel/403; body renders inside the normal page.
- *
- * @see \Drupal\myeventlane_core\Controller\ErrorController::accessDenied()
+ * Calm, branded 403 recovery content.
  */
 #}
 {{ attach_library('myeventlane_theme/mel-error-pages') }}
-{% set mel_brand = 'MyEventLane'|t %}
 
-<div class="mel-err mel-err--403 mel-err--in-page" data-mel-error-inline>
-  <div class="mel-err__bg" aria-hidden="true">
-    <span class="mel-err__orb mel-err__orb--1"></span>
-    <span class="mel-err__orb mel-err__orb--2"></span>
-    <span class="mel-err__orb mel-err__orb--3"></span>
-  </div>
-
-  <a href="#main-content" class="mel-err__skip-link">
-    {{ 'Skip to main content'|t }}
-  </a>
-
-  <div class="mel-err__main" role="presentation">
-    <div class="mel-err__hero">
-      <div class="mel-err__badge" aria-hidden="true">403</div>
-
-      <div class="mel-err__mascot-wrap">
-        <div class="mel-err__mascot" role="img" aria-label="{{ 'MyEventLane mascot looking unsure'|t }}">
-          <div class="mel-err__mascot-glow" aria-hidden="true"></div>
-          <div class="mel-err__mascot-body" aria-hidden="true">
-            <div class="mel-err__mascot-lanyard"></div>
-            <div class="mel-err__mascot-head">
-              <span class="mel-err__mascot-question" aria-hidden="true"></span>
-              <div class="mel-err__mascot-hair"></div>
-              <div class="mel-err__mascot-face">
-                <span class="mel-err__mascot-eye mel-err__mascot-eye--l"></span>
-                <span class="mel-err__mascot-eye mel-err__mascot-eye--r"></span>
-                <span class="mel-err__mascot-smile"></span>
-              </div>
-            </div>
-            <div class="mel-err__mascot-torso">
-              <span class="mel-err__mascot-badge mel-err__mascot-badge--a"></span>
-              <span class="mel-err__mascot-badge mel-err__mascot-badge--b"></span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <section class="mel-err__intro mel-err__panel" aria-labelledby="mel-mel403-title">
-        <p class="mel-err__eyebrow">{{ mel_brand }}</p>
-        <h1 id="mel-mel403-title" class="mel-err__title">{{ 'This area is invite-only.'|t }}</h1>
-        <p class="mel-err__lede">
-          {{ "You don't currently have permission to access this page."|t }}
-        </p>
-        <ul class="mel-err__actions">
-          <li>
-            <a class="mel-err__btn mel-err__btn--primary" href="{{ path('user.login') }}">{{ 'Log in'|t }}</a>
-          </li>
-          <li>
-            <a class="mel-err__btn mel-err__btn--secondary" href="{{ path('<front>') }}">{{ 'Return home'|t }}</a>
-          </li>
-        </ul>
-      </section>
+<main class="mel-err mel-err--403 mel-err--in-page" data-mel-error-inline>
+  <div class="mel-err__decoration" aria-hidden="true"></div>
+  <section class="mel-err__panel" aria-labelledby="mel-403-title">
+    <p class="mel-err__code" aria-hidden="true">403</p>
+    <p class="mel-err__eyebrow">{{ 'MyEventLane'|t }}</p>
+    <h1 id="mel-403-title" class="mel-err__title">{{ "You can't access this page"|t }}</h1>
+    <p class="mel-err__lede">
+      {{ 'You may need to sign in with the account that owns this booking or organiser workspace.'|t }}
+    </p>
+    <div class="mel-err__actions">
+      <a class="mel-err__btn mel-err__btn--primary" href="{{ path('user.login') }}">{{ 'Sign in'|t }}</a>
+      <a class="mel-err__btn mel-err__btn--secondary" href="{{ path('<front>') }}">{{ 'Go to homepage'|t }}</a>
     </div>
-  </div>
-</div>
+    <p class="mel-err__support">
+      {{ 'Still stuck?'|t }}
+      <a href="{{ path('myeventlane_support.page') }}">{{ 'Contact support'|t }}</a>
+    </p>
+  </section>
+</main>

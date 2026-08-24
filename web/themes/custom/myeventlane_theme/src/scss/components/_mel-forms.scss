@@ -44,6 +44,63 @@
   .mel-form-actions {
     gap: var(--mel-form-actions-gap, #{spacing.mel-space(3)});
   }
+
+  details.form-wrapper {
+    overflow: clip;
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-lg;
+    background: colors.$mel-color-surface;
+  }
+
+  details.form-wrapper > summary {
+    min-height: 2.75rem;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    color: colors.$mel-color-text;
+    font-weight: typography.$mel-font-semibold;
+    cursor: pointer;
+  }
+
+  details.form-wrapper > summary:hover {
+    background: rgba(colors.$mel-color-primary, 0.05);
+  }
+
+  details.form-wrapper > summary:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  details.form-wrapper > .details-wrapper {
+    padding: spacing.mel-space(4);
+    border-top: 1px solid colors.$mel-color-border;
+  }
+
+  input[type='file'] {
+    max-width: 100%;
+    padding: spacing.mel-space(2);
+    border: 1px dashed colors.$mel-color-border-strong;
+    border-radius: radii.$mel-radius-md;
+    background: colors.$mel-color-bg;
+  }
+
+  input[type='file']::file-selector-button {
+    min-height: 2.5rem;
+    margin-inline-end: spacing.mel-space(3);
+    padding-inline: spacing.mel-space(4);
+    border: 1px solid colors.$mel-color-primary;
+    border-radius: radii.$mel-radius-sm;
+    background: colors.$mel-color-surface;
+    color: colors.$mel-color-primary;
+    font: inherit;
+    font-weight: typography.$mel-font-semibold;
+    cursor: pointer;
+  }
+
+  .password-strength__meter,
+  progress {
+    overflow: hidden;
+    border: 0;
+    border-radius: radii.$mel-radius-full;
+    accent-color: colors.$mel-color-primary;
+  }
 }
 
 // Checkout / trust surfaces — sticky CTA safe region (compose with layout).

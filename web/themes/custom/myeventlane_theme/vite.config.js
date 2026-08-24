@@ -52,6 +52,7 @@ export default defineConfig({
         main: path.resolve(__dirname, 'src/js/main.js'),
         'account-dropdown': path.resolve(__dirname, 'src/js/account-dropdown.js'),
         front: path.resolve(__dirname, 'src/scss/front.scss'),
+        commerce: path.resolve(__dirname, 'src/scss/commerce.scss'),
       },
       output: {
         // Cache-busting filenames. Drupal libraries are rewritten at runtime

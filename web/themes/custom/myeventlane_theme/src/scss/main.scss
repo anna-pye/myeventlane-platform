@@ -166,7 +166,8 @@
 @use 'components/event-type-pill';
 @use 'components/rsvp';
 @use 'components/toasts';
-@use 'commerce/commerce';
+// Header mini-cart only; cart/checkout/order pages load commerce.scss.
+@use 'commerce/commerce' as commerce with ($include-transactional: false);
 @use 'components/search-form';
 @use 'components/footer';
 @use 'components/vendor-detail';
@@ -175,7 +176,6 @@
 @use 'components/wizard';
 @use 'components/wizard-review';
 @use 'components/wizard-step-card';
-@use 'components/checkout';
 @use 'components/support-panel';
 @use 'components/boost';
 @use 'components/confirmation';

@@ -131,6 +131,8 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 // Checkout errors (noticeable, not alarming)
 // ---------------------------------------------------------------------------
 
+// Error-state layer is separate from the structural checkout declaration.
+/* stylelint-disable-next-line no-duplicate-selectors */
 .mel-checkout {
   .messages {
     margin-bottom: 12px;
@@ -316,7 +318,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   font-size: 14px;
   font-weight: 600;
   color: colors.$mel-color-text;
-  margin: 0 0 8px 0;
+  margin: 0 0 8px;
   padding-bottom: 6px;
   border-bottom: 1px solid colors.$mel-color-border;
   display: flex;
@@ -726,9 +728,9 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 }
 
 // Specific mount points for Stripe Elements
-#card-number-element,
-#expiration-element,
-#security-code-element {
+[id='card-number-element'],
+[id='expiration-element'],
+[id='security-code-element'] {
   display: block;
   width: 100%;
   min-height: 44px;
@@ -771,9 +773,9 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   
   // Ensure input fields are visible and above error messages
   .form-text,
-  #card-number-element,
-  #expiration-element,
-  #security-code-element,
+  [id='card-number-element'],
+  [id='expiration-element'],
+  [id='security-code-element'],
   [id*="stripe-payment-element"],
   [id*="card-number"],
   [id*="card-expiry"],
@@ -1117,7 +1119,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 }
 
 /* INPUTS — Base sizing */
-.mel-checkout input:not([type="radio"]):not([type="checkbox"]),
+.mel-checkout input:not([type="radio"], [type="checkbox"]),
 .mel-checkout select {
   min-height: 44px;
   height: auto;
@@ -1180,6 +1182,8 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
+// Field rhythm extends the card declaration above without changing its shell.
+/* stylelint-disable-next-line no-duplicate-selectors */
 .mel-checkout-section {
   .form-item,
   .field--type-string,
@@ -1249,8 +1253,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 .mel-summary-event {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  column-gap: spacing.mel-space(3);
-  row-gap: spacing.mel-space(3);
+  gap: spacing.mel-space(3) spacing.mel-space(3);
   align-items: start;
   margin: 0 0 spacing.mel-space(4);
   padding: 0;
@@ -1656,6 +1659,50 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   color: colors.$mel-color-text;
 }
 
+.mel-checkout-summary__disclosure {
+  margin: 0;
+}
+
+.mel-checkout-summary__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: spacing.mel-space(3);
+  min-height: 44px;
+  cursor: pointer;
+  list-style: none;
+
+  &::-webkit-details-marker {
+    display: none;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+    border-radius: radii.$mel-radius-sm;
+  }
+
+  .mel-checkout__summary-title {
+    margin: 0;
+  }
+}
+
+.mel-checkout-summary__toggle-hint::before {
+  content: '+';
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-full;
+  color: colors.$mel-color-primary;
+  font-size: typography.mel-font-size(lg);
+  line-height: 1;
+}
+
+.mel-checkout-summary__disclosure[open] .mel-checkout-summary__toggle-hint::before {
+  content: '−';
+}
+
 .mel-checkout__cta-note {
   font-size: 13px;
   color: var(--mel-text-muted);
@@ -1713,7 +1760,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     color: colors.$mel-color-text;
   }
 
-  @media (max-width: breakpoints.$breakpoint-sm) {
+  @include breakpoints.mel-break(sm, max) {
     padding: spacing.mel-space(4);
 
     &__row {
@@ -1800,7 +1847,11 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     padding: spacing.mel-space(4);
   }
 
-  .mel-checkout input:not([type="radio"]):not([type="checkbox"]),
+  .mel-checkout-summary__disclosure:not([open]) .mel-checkout-summary__toggle {
+    margin-bottom: 0;
+  }
+
+  .mel-checkout input:not([type="radio"], [type="checkbox"]),
   .mel-checkout select,
   .mel-checkout .form-text,
   .mel-checkout .form-email,
@@ -2492,12 +2543,12 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
     border-top: 1px dashed rgba(colors.$mel-color-border, 0.55);
 
     label {
-      color: colors.$mel-color-text-muted !important;
-      font-weight: typography.$mel-font-medium !important;
+      color: colors.$mel-color-text-muted;
+      font-weight: typography.$mel-font-medium;
     }
 
     input {
-      background: rgba(colors.$mel-color-bg, 0.65) !important;
+      background: rgba(colors.$mel-color-bg, 0.65);
     }
   }
 
@@ -2587,7 +2638,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 }
 
 .mel-checkout-section.has-errors {
-  border-color: rgba(colors.$mel-color-error, 0.42) !important;
+  border-color: rgba(colors.$mel-color-error, 0.42);
   box-shadow: 0 0 0 4px rgba(colors.$mel-color-error, 0.1), $mel-checkout-shadow;
 }
 
@@ -2955,8 +3006,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   .mel-summary-grouped .mel-summary-event,
   .mel-summary-event {
     margin-bottom: spacing.mel-space(3);
-    row-gap: spacing.mel-space(2);
-    column-gap: spacing.mel-space(2);
+    gap: spacing.mel-space(2) spacing.mel-space(2);
   }
 
   .mel-checkout__summary-region--trust .mel-checkout-confidence {
@@ -3091,12 +3141,12 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   box-shadow: shadows.$mel-shadow-1;
   background: linear-gradient(
     132deg,
-    color.mix(#ffffff, colors.$mel-color-pastel-peach, 40%) 0%,
-    #ffffff 70%
+    color.mix(#fff, colors.$mel-color-pastel-peach, 40%) 0%,
+    #fff 70%
   );
 
   @media (prefers-reduced-motion: reduce) {
-    background: #ffffff;
+    background: #fff;
   }
 }
 
@@ -3400,7 +3450,7 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 .mel-checkout-success-surface.mel-checkout-success-surface {
   background:
     radial-gradient(circle at 10% -10%, rgba(242, 109, 91, 0.15), transparent 52%),
-    linear-gradient(#ffffff 0%, #fcf8ff 100%);
+    linear-gradient(#fff 0%, #fcf8ff 100%);
   padding: spacing.mel-space(3);
 }
 
@@ -3417,9 +3467,9 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   padding: spacing.mel-space(4);
   background: linear-gradient(
     160deg,
-    color.mix(#ffffff, colors.$mel-color-pastel-peach, 55%) 0%,
+    color.mix(#fff, colors.$mel-color-pastel-peach, 55%) 0%,
     rgba(255, 255, 255, 0.96) 55%,
-    #ffffff 100%
+    #fff 100%
   );
   border: 1px solid rgba(colors.$mel-color-primary, 0.08);
   box-shadow: 0 14px 40px rgba(44, 62, 80, 0.08);
@@ -3474,7 +3524,6 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
 
   .mel-checkout-summary--v2 .mel-checkout-order-summary__table td {
     overflow-wrap: anywhere;
-    word-break: break-word;
   }
 
   .mel-checkout-summary--v2 .mel-checkout-order-summary__table td[class*='views-field-total-price'] {
@@ -3499,10 +3548,18 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 
   .mel-checkout-sticky--v2 {
-    margin-top: spacing.mel-space(2);
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 40;
+    margin: 0;
+    padding: 0;
   }
 
   .mel-checkout-cta--compact {
+    border-right: 0;
+    border-left: 0;
+    border-radius: radii.$mel-radius-md radii.$mel-radius-md 0 0;
+
     .form-actions > a {
       font-size: typography.mel-font-size(xs);
     }

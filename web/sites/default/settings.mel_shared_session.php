@@ -21,6 +21,11 @@ declare(strict_types=1);
 
 use Symfony\Component\HttpFoundation\Request;
 
+// Maintenance mode must use the release-owned, dependency-light MEL theme.
+// This fragment is copied into shared/ before deploy maintenance is enabled,
+// so both the previous and incoming release render the same branded shell.
+$settings['maintenance_theme'] = 'mel_maintenance';
+
 $mel_forwarded_raw = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? '';
 if ($mel_forwarded_raw !== '') {
   $mel_http_host = trim(explode(',', $mel_forwarded_raw)[0]);
