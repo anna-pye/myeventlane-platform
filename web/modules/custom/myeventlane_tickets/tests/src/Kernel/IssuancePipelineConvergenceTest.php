@@ -15,6 +15,7 @@ use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\file\Entity\File;
 use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver;
@@ -49,6 +50,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     'user',
     'field',
     'filter',
+    'file',
+    'image',
     'text',
     'link',
     'path',
@@ -116,7 +119,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     }
 
     $this->installEntitySchema('user');
+    $this->installEntitySchema('file');
+    $this->installSchema('file', ['file_usage']);
     $this->installEntitySchema('node');
+    $this->installSchema('node', ['node_access']);
     $this->installEntitySchema('commerce_currency');
     $this->installEntitySchema('profile');
     $this->installEntitySchema('commerce_store');
@@ -125,7 +131,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order');
     $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('myeventlane_ticket');
-    $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order', 'myeventlane_wallet']);
+    $this->installConfig(['system', 'image', 'commerce_store', 'commerce_product', 'commerce_order', 'myeventlane_wallet']);
 
     NodeType::create([
       'type' => 'event',
@@ -391,6 +397,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertSame('Hall A', $pass['semantics']['venueName']);
     $this->assertSame('MyEventLane', $pass['organizationName']);
     $this->assertSame('MyEventLane', $pass['logoText']);
+    $this->assertSame('rgb(41, 50, 65)', $pass['foregroundColor']);
     $this->assertArrayHasKey('relevantDate', $pass);
     $this->assertArrayHasKey('expirationDate', $pass);
 
@@ -402,6 +409,62 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertFalse($zip->locateName('strip.png') !== FALSE, 'Event Ticket passes must omit strip.png.');
     $this->assertFalse($zip->locateName('background.png') !== FALSE);
     $this->assertFalse($zip->locateName('thumbnail.png') !== FALSE);
+    $zip->close();
+  }
+
+  /**
+   * Apple Wallet uses an event hero as responsive full-pass background art.
+   */
+  public function testPkpassIncludesEventHeroBackgroundArtwork(): void {
+    $source = 'public://wallet-event-hero.jpg';
+    $fixture = imagecreatetruecolor(800, 600);
+    $white = imagecolorallocate($fixture, 255, 255, 255);
+    imagefilledrectangle($fixture, 0, 0, 799, 599, $white);
+    $this->assertTrue(imagejpeg($fixture, $source));
+    $file = File::create(['uri' => $source, 'status' => 1]);
+    $file->save();
+    $this->event->set('field_event_image', [
+      'target_id' => $file->id(),
+      'alt' => 'Event hero',
+    ])->save();
+
+    $this->enableEphemeralAppleWalletSigning();
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, $ticket);
+    $pass = $this->readPkPassJson($path);
+    $this->assertSame('rgb(255, 255, 255)', $pass['foregroundColor']);
+    $this->assertSame('rgb(214, 194, 255)', $pass['labelColor']);
+
+    $zip = new ZipArchive();
+    $this->assertTrue($zip->open($path) === TRUE);
+    foreach ([
+      'background.png' => [180, 220],
+      'background@2x.png' => [360, 440],
+      'background@3x.png' => [540, 660],
+    ] as $asset => $expected_dimensions) {
+      $this->assertNotFalse(
+        $zip->locateName($asset),
+        $asset . ' must be bundled when the event has a hero image.',
+      );
+      $image_data = $zip->getFromName($asset);
+      $this->assertNotFalse($image_data);
+      $dimensions = getimagesizefromstring($image_data);
+      $this->assertNotFalse($dimensions);
+      $this->assertSame($expected_dimensions, [$dimensions[0], $dimensions[1]]);
+      $this->assertSame('image/png', $dimensions['mime']);
+      $rendered = imagecreatefromstring($image_data);
+      $this->assertInstanceOf(\GdImage::class, $rendered);
+      $pixel = imagecolorsforindex(
+        $rendered,
+        imagecolorat($rendered, intdiv($dimensions[0], 2), intdiv($dimensions[1], 2)),
+      );
+      $this->assertLessThan(120, max($pixel['red'], $pixel['green'], $pixel['blue']));
+    }
     $zip->close();
   }
 
@@ -636,6 +699,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
       'field_event_vendor' => [
         'type' => 'entity_reference',
         'settings' => ['target_type' => 'user'],
+      ],
+      'field_event_image' => [
+        'type' => 'image',
+        'settings' => [],
       ],
     ];
   }
