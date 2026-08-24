@@ -25,6 +25,13 @@ services:
       - '@extension.list.module'
       - '@logger.channel.myeventlane_wallet'
       - '@myeventlane_wallet.event_presentation'
+      - '@myeventlane_wallet.event_background'
+
+  myeventlane_wallet.event_background:
+    class: Drupal\myeventlane_wallet\Service\WalletEventBackground
+    arguments:
+      - '@image.factory'
+      - '@logger.channel.myeventlane_wallet'
 
   myeventlane_wallet.event_presentation:
     class: Drupal\myeventlane_wallet\Service\WalletEventPresentation

@@ -37,6 +37,7 @@ final class PkPassBuilder {
     private readonly ModuleExtensionList $moduleExtensionList,
     private readonly LoggerInterface $logger,
     private readonly WalletEventPresentation $walletEventPresentation,
+    private readonly WalletEventBackground $walletEventBackground,
   ) {}
 
   /**
@@ -62,7 +63,6 @@ final class PkPassBuilder {
     }
 
     $model = $this->ticketViewModelBuilder->build($ticket);
-    $passJson = $this->buildPassJson($orderItem, $ticket, $model);
 
     $workDir = $tempDir . '/pkpass_' . $orderItem->id() . '_' . uniqid('', TRUE);
     if (!$this->fileSystem->mkdir($workDir)) {
@@ -70,6 +70,8 @@ final class PkPassBuilder {
     }
 
     try {
+      $has_event_background = $this->walletEventBackground->write($ticket, $workDir);
+      $passJson = $this->buildPassJson($orderItem, $ticket, $model, $has_event_background);
       $this->writePassBundle($workDir, $passJson);
       $this->writeManifest($workDir);
       $signature = $this->walletSigner->sign($workDir . '/manifest.json');
@@ -101,7 +103,7 @@ final class PkPassBuilder {
    * @return string
    *   JSON document.
    */
-  private function buildPassJson(OrderItemInterface $orderItem, Ticket $ticket, array $model): string {
+  private function buildPassJson(OrderItemInterface $orderItem, Ticket $ticket, array $model, bool $has_event_background): string {
     $config = $this->configFactory->get('myeventlane_wallet.settings');
     $team_id = trim((string) $config->get('apple_team_id'));
     $pass_type_id = trim((string) $config->get('apple_pass_type_id'));
@@ -130,9 +132,9 @@ final class PkPassBuilder {
       'organizationName' => $org,
       'description' => $event_label,
       'logoText' => $org,
-      'foregroundColor' => 'rgb(41, 50, 65)',
-      'backgroundColor' => 'rgb(255, 247, 238)',
-      'labelColor' => 'rgb(107, 70, 255)',
+      'foregroundColor' => $has_event_background ? 'rgb(255, 255, 255)' : 'rgb(41, 50, 65)',
+      'backgroundColor' => $has_event_background ? 'rgb(20, 28, 48)' : 'rgb(255, 247, 238)',
+      'labelColor' => $has_event_background ? 'rgb(214, 194, 255)' : 'rgb(107, 70, 255)',
       'barcode' => [
         'format' => 'PKBarcodeFormatQR',
         'message' => $qr_payload,
@@ -222,8 +224,8 @@ final class PkPassBuilder {
       }
     }
 
-    // Apple’s current Event Ticket image guidance does not support strip images.
-    // Do not package strip.png or substitute platform artwork.
+    // Optional event background artwork is written before pass.json so its
+    // success can select an accessible foreground colour scheme.
   }
 
   private function writeManifest(string $workDir): void {
