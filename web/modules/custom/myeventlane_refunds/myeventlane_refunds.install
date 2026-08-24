@@ -429,7 +429,7 @@ function myeventlane_refunds_install_messaging_templates(): void {
   </tr>
   <tr>
     <td align="center" style="padding:0 0 20px 0;">
-      <a href="{{ my_tickets_url }}" style="display:inline-block;background:#c24737;color:#ffffff !important;text-decoration:none;padding:13px 24px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;">View refund request</a>
+      <a href="{{ my_tickets_url }}" style="display:inline-block;background:#c24737;color:#ffffff !important;text-decoration:none;padding:13px 24px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;">View booking details</a>
     </td>
   </tr>
 </table>

@@ -128,5 +128,6 @@ This branch changes only:
 - `refund_completed_buyer`
 
 It adds preheaders, headings, summary cards, accessible action buttons and
-purpose-specific routes. It removes the misleading Digital Pass action from the
-completed-refund email. It deliberately does not add event recommendations.
+accurately labelled next-action links. It removes the misleading Digital Pass
+action from the completed-refund email. It deliberately does not add event
+recommendations.

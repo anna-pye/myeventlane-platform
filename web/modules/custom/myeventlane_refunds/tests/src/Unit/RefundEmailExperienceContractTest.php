@@ -45,7 +45,8 @@ final class RefundEmailExperienceContractTest extends TestCase {
     $buyer = (string) $this->syncTemplate('refund_requested_buyer')['body_html'];
     $organiser = (string) $this->syncTemplate('refund_requested_vendor')['body_html'];
 
-    self::assertStringContainsString('View refund request', $buyer);
+    self::assertStringContainsString('View booking details', $buyer);
+    self::assertStringNotContainsString('View refund request', $buyer);
     self::assertStringContainsString('{{ my_tickets_url }}', $buyer);
     self::assertStringContainsString('Review refund request', $organiser);
     self::assertStringContainsString('{{ vendor_refund_requests_url }}', $organiser);
