@@ -205,7 +205,7 @@ function _myeventlane_messaging_preprocess_mel_email_layout(array &$variables): 
     $variables['preheader'] = '';
   }
 
-  $variables['accent_color'] = (string) ($context['accent_color'] ?? $variables['accent_color'] ?? '#f26d5b');
+  $variables['accent_color'] = (string) ($context['accent_color'] ?? $variables['accent_color'] ?? '#6b46ff');
   $context['accent_color'] = $variables['accent_color'];
 
   $from = trim((string) ($context['from_name'] ?? ''));
@@ -368,7 +368,7 @@ function myeventlane_messaging_mail_alter(array &$message): void {
         'from_email' => '',
         'reply_to' => '',
         'footer_text' => "You're receiving this because you interacted with MyEventLane.",
-        'accent_color' => '#f26d5b',
+        'accent_color' => '#6b46ff',
         'logo_url' => '',
       ];
     }
@@ -395,7 +395,7 @@ function myeventlane_messaging_mail_alter(array &$message): void {
     // Inject brand variables into params for template use.
     $message['params']['mel_brand'] = [
       'from_name' => $brandArray['from_name'] ?? 'MyEventLane',
-      'accent_color' => $brandArray['accent_color'] ?? '#f26d5b',
+      'accent_color' => $brandArray['accent_color'] ?? '#6b46ff',
       'logo_url' => $brandArray['logo_url'] ?? '',
       'footer_text' => $brandArray['footer_text'] ?? '',
       'vendor_id' => $brandArray['vendor_id'] ?? NULL,

@@ -263,6 +263,24 @@ final class MessagingGuardrailTest extends KernelTestBase {
   }
 
   /**
+   * SMS rendering strips markup and collapses layout whitespace.
+   */
+  public function testSmsRenderingProducesSingleLinePlainText(): void {
+    $conf = $this->configFromInlineBodyHtml('<p>Unused</p>');
+    $sms = $this->renderer->renderSmsText(
+      $conf,
+      ['name' => 'Anna'],
+      "MyEventLane: <strong>Hello {{ name }}</strong>.\n  Details: https://example.test/event/1",
+    );
+
+    $this->assertSame(
+      'MyEventLane: Hello Anna. Details: https://example.test/event/1',
+      $sms,
+    );
+    $this->assertStringNotContainsString("\n", $sms);
+  }
+
+  /**
    * Attendee-facing messaging template keys (exclude vendor/admin).
    *
    * @return string[]

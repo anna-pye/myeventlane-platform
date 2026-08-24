@@ -42,9 +42,9 @@
           {% endif %}
           {% if event.rsvps is defined or event.waitlist is defined or event.sales is defined %}
             <div style="font-size: 14px; opacity: 0.85; margin: 0;">
-              {% if event.rsvps is defined %}<span style="background:#f26d5b; color:white; padding:2px 8px; border-radius:6px; font-size:12px; margin-right:4px;">{{ event.rsvps }} RSVPs</span>{% endif %}
-              {% if event.waitlist is defined %}<span style="background:#f26d5b; color:white; padding:2px 8px; border-radius:6px; font-size:12px; margin-right:4px;">{{ event.waitlist }} Waitlist</span>{% endif %}
-              {% if event.sales is defined %}<span style="background:#f26d5b; color:white; padding:2px 8px; border-radius:6px; font-size:12px;">{{ event.sales }} Tickets Sold</span>{% endif %}
+              {% if event.rsvps is defined %}<span style="background:#cdbdff; color:#24303a; padding:2px 8px; border-radius:6px; font-size:12px; margin-right:4px;">{{ event.rsvps }} RSVPs</span>{% endif %}
+              {% if event.waitlist is defined %}<span style="background:#cdbdff; color:#24303a; padding:2px 8px; border-radius:6px; font-size:12px; margin-right:4px;">{{ event.waitlist }} Waitlist</span>{% endif %}
+              {% if event.sales is defined %}<span style="background:#cdbdff; color:#24303a; padding:2px 8px; border-radius:6px; font-size:12px;">{{ event.sales }} Tickets Sold</span>{% endif %}
             </div>
           {% endif %}
         </td>

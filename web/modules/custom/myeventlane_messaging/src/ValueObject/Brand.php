@@ -30,7 +30,7 @@ final class Brand {
   /**
    * Default MEL accent color (coral).
    */
-  public const DEFAULT_ACCENT_COLOR = '#f26d5b';
+  public const DEFAULT_ACCENT_COLOR = '#6b46ff';
 
   /**
    * Default footer text.

@@ -13,9 +13,23 @@
 .mel-footer {
   padding: spacing.mel-space(5) 0 0;
   background:
-    radial-gradient(circle at 12% 0%, rgba(242, 109, 91, 0.08), transparent 26rem),
+    radial-gradient(circle at 12% 0%, rgba(colors.$mel-color-primary, 0.08), transparent 26rem),
     colors.$mel-color-bg;
-  border-top: 1px solid rgba(242, 109, 91, 0.14);
+  border-top: 1px solid rgba(colors.$mel-color-primary, 0.14);
+}
+
+.mel-footer--transactional {
+  padding-top: 0;
+  background: colors.$mel-color-surface;
+  border-top-color: colors.$mel-color-border;
+
+  .mel-footer__base {
+    border-top: 0;
+  }
+
+  .mel-footer__meta {
+    justify-content: center;
+  }
 }
 
 .mel-footer__container {
@@ -60,7 +74,7 @@
 
 .mel-footer-cta {
   padding: spacing.mel-space(4);
-  border: 1px solid rgba(242, 109, 91, 0.14);
+  border: 1px solid rgba(colors.$mel-color-primary, 0.14);
   border-radius: radii.$mel-radius-lg;
   background: linear-gradient(
     135deg,
@@ -326,7 +340,7 @@
 }
 
 .mel-footer__meta a:hover {
-  color: #ffffff;
+  color: #fff;
 }
 
 .mel-footer__create-link {
@@ -340,7 +354,7 @@
   background: rgba(255, 255, 255, 0.08);
   font-size: typography.mel-font-size(sm);
   font-weight: typography.$mel-font-semibold;
-  color: #ffffff;
+  color: #fff;
   text-decoration: none;
   transition:
     background 0.15s ease,
@@ -349,7 +363,7 @@
 
 .mel-footer__create-link:hover {
   background: rgba(255, 255, 255, 0.14);
-  color: #ffffff;
+  color: #fff;
 }
 
 .mel-footer .menu,
@@ -585,18 +599,6 @@
   display: flex;
   gap: spacing.mel-space(4);
   align-items: center;
-}
-
-// Accordion: hidden toggle on desktop, collapsible on mobile.
-.mel-footer__accordion-toggle {
-  display: none;
-  background: none;
-  border: none;
-  font-weight: typography.$mel-font-semibold;
-  font-size: typography.mel-font-size(base);
-  color: colors.$mel-color-navy;
-  cursor: pointer;
-  text-align: left;
 }
 
 .mel-footer__accordion-panel {

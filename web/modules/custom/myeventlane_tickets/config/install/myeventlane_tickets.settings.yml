@@ -4,6 +4,6 @@ include_qr_code: true
 show_ticket_code: true
 ticket_code_format: ''
 brand_logo_url: ''
-brand_accent_color: '#f26d5b'
+brand_accent_color: '#6b46ff'
 brand_footer_text: ''
 qr_payload_mode: 'signed'

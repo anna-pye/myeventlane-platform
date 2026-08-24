@@ -545,7 +545,7 @@ final class MessagingManager {
       'from_email' => '',
       'reply_to' => '',
       'footer_text' => "You're receiving this because you interacted with MyEventLane.",
-      'accent_color' => '#f26d5b',
+      'accent_color' => '#6b46ff',
       'logo_url' => '',
       'marketing' => [],
     ];

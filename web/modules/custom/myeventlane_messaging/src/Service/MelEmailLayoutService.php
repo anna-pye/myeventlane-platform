@@ -139,7 +139,7 @@ final class MelEmailLayoutService {
         : "You're receiving this because you interacted with MyEventLane.";
     }
     if (!isset($out['accent_color']) || (string) $out['accent_color'] === '') {
-      $out['accent_color'] = (string) ($brand['accent_color'] ?? '#f26d5b');
+      $out['accent_color'] = (string) ($brand['accent_color'] ?? '#6b46ff');
     }
     if (!empty($out['unsubscribe_url'])) {
       $out['unsubscribe_url'] = (string) $out['unsubscribe_url'];
@@ -231,7 +231,7 @@ final class MelEmailLayoutService {
         $candidate = (string) ($matches[0] ?? '');
         $url = rtrim($candidate, '.,;:!?)');
         $suffix = substr($candidate, strlen($url));
-        return '<a href="' . $url . '" style="color:#5360bf;text-decoration:underline;word-break:break-all;">'
+        return '<a href="' . $url . '" style="color:#5935e8;text-decoration:underline;overflow-wrap:anywhere;">'
           . $url . '</a>' . $suffix;
       },
       $escaped,

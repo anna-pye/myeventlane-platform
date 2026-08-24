@@ -161,7 +161,7 @@ final class EventBrandOverrideForm extends FormBase {
     $form['visual']['accent_color'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Accent colour'),
-      '#default_value' => (string) ($config->get('accent_color') ?? '#6e7ef2'),
+      '#default_value' => (string) ($config->get('accent_color') ?? '#6b46ff'),
       '#maxlength' => 7,
     ];
 
@@ -256,7 +256,7 @@ final class EventBrandOverrideForm extends FormBase {
       }
     }
     $config->set('logo_url', $logoUrl);
-    $config->set('accent_color', trim((string) $form_state->getValue('accent_color')) ?: '#6e7ef2');
+    $config->set('accent_color', trim((string) $form_state->getValue('accent_color')) ?: '#6b46ff');
     $config->set('footer_text', trim((string) $form_state->getValue('footer_text')));
     $config->set('marketing', [
       'promo_title' => trim((string) $form_state->getValue(['marketing', 'promo_title'])),

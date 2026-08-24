@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "start": "vite preview",
-    "lint:css": "stylelint \"src/scss/{base/_tokens.scss,base/_forms.scss,layout/_container.scss,layout/_grid.scss,components/_buttons.scss,components/_cards.scss,components/_account-settings.scss,components/_event-hero.scss,components/_event-card.scss,components/_event-full.scss,components/_event-book.scss,utilities/_motion.scss}\"",
+    "lint:css": "stylelint \"src/scss/{base/_tokens.scss,base/_base.scss,base/_forms.scss,tokens/_colors.scss,layout/_container.scss,layout/_grid.scss,commerce/_commerce.scss,components/_buttons.scss,components/_cards.scss,components/_account-settings.scss,components/_event-hero.scss,components/_event-card.scss,components/_event-full.scss,components/_event-book.scss,components/_checkout.scss,components/_footer.scss,components/_mel-forms.scss,components/_mel-modals.scss,components/_toasts.scss,components/_wizard.scss,utilities/_motion.scss,commerce.scss}\"",
+    "check:bundle-size": "node ../../../../scripts/check-theme-bundle-size.mjs",
     "check:hero": "node ../../../../scripts/check-mel-hero-variants.mjs"
   },
   "devDependencies": {

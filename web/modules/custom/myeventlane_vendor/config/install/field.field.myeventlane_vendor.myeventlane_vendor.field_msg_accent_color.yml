@@ -12,7 +12,7 @@ description: 'Accent colour for buttons and links in outgoing emails.'
 required: false
 translatable: false
 default_value:
-  - value: '#f26d5b'
+  - value: '#6b46ff'
 default_value_callback: ''
 settings: {  }
 field_type: list_string

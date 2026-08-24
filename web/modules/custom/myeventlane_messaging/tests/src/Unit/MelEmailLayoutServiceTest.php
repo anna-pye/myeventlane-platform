@@ -24,7 +24,6 @@ final class MelEmailLayoutServiceTest extends TestCase {
     $reflection = new ReflectionClass(MelEmailLayoutService::class);
     $service = $reflection->newInstanceWithoutConstructor();
     $method = new ReflectionMethod($service, 'htmlOrPlainToInnerHtml');
-    $method->setAccessible(TRUE);
 
     $html = (string) $method->invoke(
       $service,

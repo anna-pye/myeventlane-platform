@@ -20,7 +20,7 @@ html {
 }
 
 :root {
-  --mel-coral: #{colors.$mel-color-secondary};
+  --mel-coral: #{colors.$mel-brand-coral};
   --mel-navy: #{colors.$mel-color-navy};
   --mel-blue: #{colors.$mel-color-blue};
   --mel-orange: #{colors.$mel-color-orange};
@@ -30,7 +30,7 @@ html {
 
 html,
 body {
-  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: var(--mel-navy);
   // Stripe.js injects a hidden anti-fraud iframe (~432px wide) as a direct child of
   // body; clip prevents that third-party element from widening the page on mobile.
@@ -41,10 +41,10 @@ body {
   margin: 0;
   padding: 0;
   background:
-    radial-gradient(circle at 12% 15%, rgba(242, 109, 91, 0.08), transparent 45%),
-    radial-gradient(circle at 88% 22%, rgba(110, 126, 242, 0.08), transparent 45%),
-    radial-gradient(circle at 30% 88%, rgba(255, 196, 77, 0.08), transparent 50%),
-    #fafafa;
+    radial-gradient(circle at 12% 15%, rgba(colors.$mel-brand-coral, 0.08), transparent 45%),
+    radial-gradient(circle at 88% 22%, rgba(colors.$mel-brand-purple, 0.08), transparent 45%),
+    radial-gradient(circle at 30% 88%, rgba(colors.$mel-brand-discovery-gold, 0.08), transparent 50%),
+    colors.$mel-color-bg;
   color: colors.$mel-color-text;
   font-weight: typography.$mel-font-regular;
   font-size: typography.mel-font-size(base);

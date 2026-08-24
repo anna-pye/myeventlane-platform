@@ -1,657 +1,193 @@
-// -----------------------------------------------------------------------------
-// MEL Maintenance theme — MyEventLane v2
-// Mobile-first, WCAG-conscious, no framework dependencies.
-// -----------------------------------------------------------------------------
-@use 'sass:color';
-
-// --- Design tokens ------------------------------------------------------------
-$mel-ink: #1b1528;
-$mel-ink-muted: #3d3550;
-$mel-surface: #fffdf9;
-$mel-line: rgba(27, 21, 40, 0.12);
-
-$mel-coral: #ff8a6b;
-$mel-rose: #ff7ab8;
-$mel-lilac: #c9a8ff;
-$mel-peach: #ffd8cc;
-$mel-mist: #e8f4ff;
-
-$mel-radius-lg: 22px;
-$mel-radius-md: 16px;
-$mel-radius-sm: 12px;
-
-$mel-shadow-soft: 0 18px 50px rgba(27, 21, 40, 0.08);
-$mel-shadow-glow: 0 0 0 1px rgba(255, 255, 255, 0.65) inset;
-
-$bp-sm: 30em; // ~480px
-$bp-md: 48em; // ~768px
-$bp-lg: 64em; // ~1024px
-
-// --- Root layout --------------------------------------------------------------
-.mel-mm {
-  --mel-ink: #{$mel-ink};
-  --mel-ink-muted: #{$mel-ink-muted};
-  --mel-surface: #{$mel-surface};
-  --mel-glass: rgba(255, 253, 249, 0.72);
-  --mel-glass-border: rgba(255, 255, 255, 0.55);
-  --mel-maxw: 40rem;
-
-  // Maintenance theme ships no global reset; width: 100% + padding must not
-  // overflow the column (horizontal scroll on small viewports).
-  box-sizing: border-box;
-
-  *,
-  *::before,
-  *::after {
-    box-sizing: inherit;
-  }
-
-  position: relative;
-  min-height: 100vh;
-  margin: 0;
-  padding: 1.25rem 1rem 2.5rem;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Noto Sans', sans-serif;
-  font-size: 1rem;
-  line-height: 1.55;
-  color: var(--mel-ink);
-  background: $mel-surface;
-  background-image:
-    radial-gradient(120% 80% at 10% 0%, rgba($mel-coral, 0.22) 0%, transparent 55%),
-    radial-gradient(90% 70% at 95% 10%, rgba($mel-lilac, 0.2) 0%, transparent 50%),
-    radial-gradient(100% 60% at 50% 100%, rgba($mel-rose, 0.12) 0%, transparent 45%),
-    linear-gradient(180deg, color.adjust($mel-surface, $lightness: 1%) 0%, $mel-surface 40%, color.adjust($mel-surface, $lightness: -2%) 100%);
-  -webkit-font-smoothing: antialiased;
-  isolation: isolate;
-}
-
-.mel-mm__bg {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.mel-mm__orb {
-  position: absolute;
-  border-radius: 50%;
-  filter: blur(0.5px);
-  opacity: 0.55;
-  animation: mel-mm-float 14s ease-in-out infinite;
-
-  &--1 {
-    width: min(42vw, 280px);
-    height: min(42vw, 280px);
-    top: -8%;
-    left: -6%;
-    background: radial-gradient(circle at 30% 30%, rgba($mel-coral, 0.95), rgba($mel-rose, 0.35) 60%, transparent 70%);
-    animation-delay: 0s;
-  }
-
-  &--2 {
-    width: min(55vw, 360px);
-    height: min(55vw, 360px);
-    bottom: -18%;
-    right: -12%;
-    background: radial-gradient(circle at 60% 40%, rgba($mel-lilac, 0.85), rgba($mel-mist, 0.4) 55%, transparent 72%);
-    animation-delay: -4s;
-  }
-
-  &--3 {
-    width: min(36vw, 220px);
-    height: min(36vw, 220px);
-    top: 38%;
-    right: 8%;
-    background: radial-gradient(circle at 50% 50%, rgba($mel-peach, 0.9), rgba($mel-rose, 0.25) 65%, transparent 75%);
-    animation-delay: -7s;
-  }
-}
-
-@keyframes mel-mm-float {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(0, -12px, 0) scale(1.03);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mel-mm__orb {
-    animation: none;
-  }
-}
-
-// --- Skip link ----------------------------------------------------------------
-.mel-mm__skip-link {
-  position: absolute;
-  left: 0.75rem;
-  top: 0.75rem;
-  z-index: 10;
-  padding: 0.65rem 1rem;
-  border-radius: $mel-radius-sm;
-  background: var(--mel-ink);
-  color: #fff;
-  font-weight: 600;
-  font-size: 0.875rem;
-  text-decoration: none;
-  transform: translateY(-120%);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-
-  &:focus {
-    outline: 3px solid $mel-coral;
-    outline-offset: 2px;
-    transform: translateY(0);
-    box-shadow: 0 8px 24px rgba(27, 21, 40, 0.25);
-  }
-}
-
-// --- Glass panel utility ------------------------------------------------------
-.glass-panel {
-  background: var(--mel-glass);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-  border: 1px solid var(--mel-glass-border);
-  border-radius: $mel-radius-lg;
-  box-shadow: $mel-shadow-soft, $mel-shadow-glow;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .glass-panel {
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    background: rgba(255, 253, 249, 0.94);
-  }
-}
-
-// --- Visually hidden (accessible) ---------------------------------------------
-.visually-hidden {
-  position: absolute !important;
-  width: 1px !important;
-  height: 1px !important;
-  padding: 0 !important;
-  margin: -1px !important;
-  overflow: hidden !important;
-  clip: rect(0, 0, 0, 0) !important;
-  white-space: nowrap !important;
-  border: 0 !important;
-}
-
-// --- Header / brand -----------------------------------------------------------
-.mel-mm__header {
-  position: relative;
-  z-index: 1;
-  max-width: calc(var(--mel-maxw) + 4rem);
-  margin: 0 auto 1.5rem;
-}
-
-.mel-mm__brand {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.85rem 1.1rem;
-}
-
-.mel-mm__logo-img {
-  flex-shrink: 0;
-  width: 56px;
-  height: 56px;
-  border-radius: 14px;
-  object-fit: contain;
-  box-shadow: 0 6px 20px rgba(27, 21, 40, 0.12);
-}
-
-.mel-mm__brand-name {
-  margin: 0;
-  font-size: 1.125rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--mel-ink);
-}
-
-.mel-mm__brand-tag {
-  margin: 0.15rem 0 0;
-  font-size: 0.875rem;
-  color: var(--mel-ink-muted);
-}
-
-// --- Main column --------------------------------------------------------------
-.mel-mm__main {
-  position: relative;
-  z-index: 1;
-  max-width: calc(var(--mel-maxw) + 4rem);
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 1.25rem;
-}
-
-.mel-mm__main:focus {
-  outline: none;
-}
-
-.mel-mm__hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.25rem;
-  width: 100%;
-  min-width: 0;
-
-  @media (min-width: $bp-md) {
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 2rem;
-  }
-}
-
-// --- Mascot (pure CSS) --------------------------------------------------------
-.mel-mm__mascot-wrap {
-  flex-shrink: 0;
-}
-
-.mel-mm__mascot {
-  position: relative;
-  width: 180px;
-  height: 200px;
-  margin: 0 auto;
-
-  @media (min-width: $bp-md) {
-    margin: 0;
-  }
-}
-
-.mel-mm__mascot-glow {
-  position: absolute;
-  inset: 10% 5% 15%;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba($mel-rose, 0.45) 0%, rgba($mel-coral, 0.15) 45%, transparent 70%);
-  animation: mel-mm-glow 4s ease-in-out infinite;
-  z-index: 0;
-}
-
-@keyframes mel-mm-glow {
-  0%,
-  100% {
-    opacity: 0.85;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: scale(1.06);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mel-mm__mascot-glow {
-    animation: none;
-  }
-}
-
-.mel-mm__mascot-body {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  height: 100%;
-}
-
-.mel-mm__mascot-lanyard {
-  position: absolute;
-  top: 52px;
-  left: 50%;
-  width: 10px;
-  height: 48px;
-  margin-left: -5px;
-  border-radius: 5px;
-  background: linear-gradient(180deg, rgba($mel-lilac, 0.95), rgba($mel-rose, 0.75));
-  box-shadow: 0 2px 6px rgba(27, 21, 40, 0.15);
-}
-
-.mel-mm__mascot-head {
-  position: absolute;
-  top: 18px;
-  left: 50%;
-  width: 88px;
-  height: 88px;
-  margin-left: -44px;
-  border-radius: 50%;
-  background: linear-gradient(145deg, color.adjust($mel-peach, $lightness: 6%) 0%, $mel-peach 45%, rgba($mel-coral, 0.35) 100%);
-  box-shadow:
-    0 12px 28px rgba(27, 21, 40, 0.12),
-    inset 0 -6px 14px rgba($mel-coral, 0.15);
-}
-
-.mel-mm__mascot-hair {
-  position: absolute;
-  top: -10px;
-  left: 8px;
-  right: 8px;
-  height: 36px;
-  border-radius: 50% 50% 40% 40%;
-  background: linear-gradient(180deg, rgba($mel-ink, 0.88), rgba($mel-ink-muted, 0.75));
-  z-index: 0;
-}
-
-.mel-mm__mascot-face {
-  position: absolute;
-  inset: 18px 14px 16px;
-  z-index: 1;
-}
-
-.mel-mm__mascot-eye {
-  position: absolute;
-  top: 18px;
-  width: 10px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--mel-ink);
-  animation: mel-mm-blink 5s step-end infinite;
-
-  &--l {
-    left: 16px;
-  }
-
-  &--r {
-    right: 16px;
-  }
-}
-
-@keyframes mel-mm-blink {
-  0%,
-  94%,
-  100% {
-    transform: scaleY(1);
-  }
-  96% {
-    transform: scaleY(0.1);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mel-mm__mascot-eye {
-    animation: none;
-  }
-}
-
-.mel-mm__mascot-smile {
-  position: absolute;
-  bottom: 10px;
-  left: 50%;
-  width: 28px;
-  height: 14px;
-  margin-left: -14px;
-  border: solid 3px rgba($mel-ink, 0.85);
-  border-top: 0;
-  border-radius: 0 0 40px 40px;
-  background: transparent;
-}
-
-.mel-mm__mascot-torso {
-  position: absolute;
-  top: 100px;
-  left: 50%;
-  width: 100px;
-  height: 86px;
-  margin-left: -50px;
-  border-radius: 36px 36px 28px 28px;
-  background: linear-gradient(165deg, #fff 0%, rgba($mel-mist, 0.85) 55%, rgba($mel-lilac, 0.25) 100%);
-  box-shadow:
-    0 14px 32px rgba(27, 21, 40, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(255, 255, 255, 0.65);
-}
-
-.mel-mm__mascot-badge {
-  position: absolute;
-  width: 22px;
-  height: 22px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(27, 21, 40, 0.12);
-
-  &--a {
-    top: 14px;
-    right: 8px;
-    background: linear-gradient(135deg, $mel-coral, $mel-rose);
-    animation: mel-mm-badge 3.2s ease-in-out infinite;
-  }
-
-  &--b {
-    bottom: 18px;
-    left: 10px;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, $mel-lilac, $mel-mist);
-    animation: mel-mm-badge 3.2s ease-in-out infinite 0.8s;
-  }
-}
-
-@keyframes mel-mm-badge {
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-5px) rotate(-4deg);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mel-mm__mascot-badge {
-    animation: none;
-  }
-}
-
-// --- Intro panel --------------------------------------------------------------
-.mel-mm__intro {
-  flex: 1;
-  max-width: var(--mel-maxw);
-  padding: 1.35rem 1.35rem 1.5rem;
-  width: 100%;
-  // Explicit box-sizing: panels must not exceed column width when width:100% + padding.
-  box-sizing: border-box;
-  // Flex row: default min-width:auto can force horizontal overflow from intrinsic width.
-  min-width: 0;
-}
-
-.mel-mm__title {
-  margin: 0 0 0.65rem;
-  font-size: clamp(1.55rem, 4vw, 2.05rem);
-  font-weight: 800;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-  color: var(--mel-ink);
-}
-
-.mel-mm__lede {
-  margin: 0;
-  font-size: 1.05rem;
-  color: var(--mel-ink-muted);
-}
-
-// --- Message body -------------------------------------------------------------
-.mel-mm__message {
-  padding: 1.25rem 1.35rem 1.4rem;
-  width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-.mel-mm__h2 {
-  margin: 0 0 0.75rem;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--mel-ink-muted);
-}
-
-.mel-mm__message-body {
-  font-size: 1.05rem;
-  color: var(--mel-ink);
-  overflow-wrap: break-word;
-
-  // Drupal-rendered content inside maintenance message.
-  :where(p, ul, ol) {
-    margin: 0 0 0.75rem;
-
-    &:last-child {
-      margin-bottom: 0;
-    }
-  }
-
-  a {
-    color: color.adjust($mel-coral, $lightness: -12%);
-    font-weight: 600;
-    text-underline-offset: 3px;
-
-    &:hover {
-      color: color.adjust($mel-rose, $lightness: -8%);
-    }
-
-    &:focus-visible {
-      outline: 3px solid $mel-coral;
-      outline-offset: 2px;
-      border-radius: 2px;
-    }
-  }
-}
-
-// --- Status cards -------------------------------------------------------------
-.mel-mm__cards {
-  width: 100%;
-}
-
-.mel-mm__card-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 1rem;
-
-  @media (min-width: $bp-sm) {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  @media (min-width: $bp-lg) {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-.mel-mm__card {
-  padding: 1.15rem 1.2rem 1.25rem;
+// Dependency-light maintenance mode. Keep this asset release-owned.
+$purple: #6b46ff;
+$purple-hover: #5935e8;
+$lavender: #cdbdff;
+$coral: #ff6b4a;
+$cream: #fff7ee;
+$surface: #fff;
+$ink: #24303a;
+$muted: #5b6670;
+$border: #e9e3de;
+
+html,
+body {
   min-height: 100%;
-}
-
-.mel-mm__card-title {
-  margin: 0 0 0.45rem;
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: var(--mel-ink);
-}
-
-.mel-mm__card-text {
   margin: 0;
-  font-size: 0.9375rem;
-  color: var(--mel-ink-muted);
+}
+
+.mel-mm {
+  position: relative;
+  display: grid;
+  min-height: 100vh;
+  padding: clamp(1.25rem, 5vw, 4rem) 1rem 1.5rem;
+  grid-template-rows: 1fr auto;
+  color: $ink;
+  background:
+    radial-gradient(circle at 8% 8%, rgba($lavender, 0.44), transparent 20rem),
+    radial-gradient(circle at 92% 88%, rgba($coral, 0.13), transparent 18rem),
+    $cream;
+  font-family: Nunito, Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 1rem;
   line-height: 1.5;
 }
 
-.mel-mm__card-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: $mel-radius-sm;
-  margin-bottom: 0.75rem;
-  background: linear-gradient(135deg, rgba($mel-coral, 0.25), rgba($mel-lilac, 0.35));
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  position: relative;
-
-  &--pulse::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 12px;
-    height: 12px;
-    margin: -6px 0 0 -6px;
-    border-radius: 50%;
-    background: color.adjust($mel-coral, $lightness: -8%);
-    box-shadow: 0 0 0 0 rgba($mel-coral, 0.55);
-    animation: mel-mm-pulse 2s ease-out infinite;
-  }
-
-  &--clock::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 14px;
-    height: 14px;
-    margin: -7px 0 0 -7px;
-    border-radius: 50%;
-    border: 2px solid var(--mel-ink);
-    border-top-color: transparent;
-    opacity: 0.75;
-  }
-
-  &--heart::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 12px;
-    height: 12px;
-    margin: -8px 0 0 -6px;
-    background: color.adjust($mel-rose, $lightness: -6%);
-    transform: rotate(45deg);
-    border-radius: 2px;
-    box-shadow: -8px 0 0 -1px color.adjust($mel-rose, $lightness: -10%), 0 -8px 0 -1px color.adjust($mel-rose, $lightness: -10%);
-    opacity: 0.92;
-  }
+.mel-mm,
+.mel-mm *,
+.mel-mm *::before,
+.mel-mm *::after {
+  box-sizing: border-box;
 }
 
-@keyframes mel-mm-pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba($mel-coral, 0.55);
-  }
-  70% {
-    box-shadow: 0 0 0 14px rgba($mel-coral, 0);
-  }
-  100% {
-    box-shadow: 0 0 0 0 rgba($mel-coral, 0);
+.mel-mm__skip-link {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+  padding: 0.65rem 1rem;
+  border-radius: 0.75rem;
+  background: $ink;
+  color: $surface;
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(-150%);
+}
+
+.mel-mm__skip-link:focus {
+  outline: 3px solid $coral;
+  outline-offset: 2px;
+  transform: translateY(0);
+}
+
+.mel-mm__main {
+  width: min(100%, 42rem);
+  margin: auto;
+}
+
+.mel-mm__brand {
+  margin-bottom: 1.25rem;
+}
+
+.mel-mm__logo {
+  display: block;
+  width: min(11rem, 60vw);
+  height: auto;
+}
+
+.mel-mm__tagline {
+  margin: 0.35rem 0 0;
+  color: $muted;
+  font-size: 0.875rem;
+}
+
+.mel-mm__panel {
+  padding: clamp(1.5rem, 5vw, 3rem);
+  border: 1px solid rgba($purple, 0.12);
+  border-radius: 1.5rem;
+  background: rgba($surface, 0.97);
+  box-shadow: 0 18px 50px rgba($ink, 0.1);
+}
+
+.mel-mm__panel:focus {
+  outline: none;
+}
+
+.mel-mm__eyebrow {
+  margin: 0 0 0.5rem;
+  color: $purple;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-mm__title {
+  margin: 0 0 0.75rem;
+  color: $ink;
+  font-size: clamp(1.8rem, 7vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.04em;
+}
+
+.mel-mm__lede {
+  margin: 0 0 1rem;
+  color: $muted;
+  font-size: 1.05rem;
+}
+
+.mel-mm__message {
+  margin-bottom: 1.5rem;
+  color: $ink;
+}
+
+.mel-mm__message:empty {
+  display: none;
+}
+
+.mel-mm__message :where(p, ul, ol) {
+  margin: 0 0 0.75rem;
+}
+
+.mel-mm__message :where(p, ul, ol):last-child {
+  margin-bottom: 0;
+}
+
+.mel-mm__message a,
+.mel-mm__help a {
+  color: $purple;
+  font-weight: 700;
+}
+
+.mel-mm__button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  padding: 0.7rem 1.15rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid $purple;
+  border-radius: 0.75rem;
+  background: $purple;
+  color: $surface;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.mel-mm__button:hover {
+  border-color: $purple-hover;
+  background: $purple-hover;
+  color: $surface;
+}
+
+.mel-mm__button:focus-visible,
+.mel-mm__message a:focus-visible {
+  outline: 3px solid $coral;
+  outline-offset: 3px;
+}
+
+.mel-mm__help {
+  margin: 1rem 0 0;
+  color: $muted;
+  font-size: 0.875rem;
+}
+
+.mel-mm__footer {
+  width: min(100%, 42rem);
+  margin: 2rem auto 0;
+  color: $muted;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+@media (max-width: 30rem) {
+  .mel-mm__button {
+    width: 100%;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .mel-mm__card-icon--pulse::after {
-    animation: none;
-    box-shadow: none;
+  .mel-mm *,
+  .mel-mm *::before,
+  .mel-mm *::after {
+    scroll-behavior: auto;
+    transition: none;
   }
-}
-
-// --- Footer -------------------------------------------------------------------
-.mel-mm__footer {
-  position: relative;
-  z-index: 1;
-  max-width: calc(var(--mel-maxw) + 4rem);
-  margin: 2rem auto 0;
-}
-
-.mel-mm__footer-inner {
-  padding: 1rem 1.25rem 1.15rem;
-  text-align: center;
-}
-
-.mel-mm__footer-line {
-  margin: 0 0 0.35rem;
-  font-size: 0.9375rem;
-  color: var(--mel-ink-muted);
-}
-
-.mel-mm__footer-copy {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: rgba($mel-ink-muted, 0.85);
 }

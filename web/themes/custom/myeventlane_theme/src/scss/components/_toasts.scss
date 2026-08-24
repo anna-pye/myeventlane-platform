@@ -42,17 +42,11 @@
 
 .mel-toast--cart {
   position: relative;
-  display: grid;
-  grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
-  grid-template-areas:
-    'mascot body'
-    'mascot body';
-  align-items: start;
-  gap: 0 space.mel-space(3);
+  display: block;
   width: 100%;
-  padding: space.mel-space(3) space.mel-space(3) space.mel-space(3) space.mel-space(2);
-  border-radius: radii.$mel-radius-xl;
+  padding: space.mel-space(4);
+  border-radius: radii.$mel-radius-lg;
+
   @include mixins.glass-panel(colors.$mel-glass-bg-strong, 18px, radii.$mel-radius-xl);
   border: 1px solid color.mix(colors.$mel-color-accent, #fff, 22%);
   box-shadow:
@@ -133,13 +127,12 @@
 
 .mel-toast__body {
   position: relative;
-  grid-area: body;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: space.mel-space(2);
   min-width: 0;
-  padding-right: space.mel-space(6);
+  padding-right: space.mel-space(7);
 }
 
 .mel-toast__badge {
@@ -186,8 +179,8 @@
 
 .mel-toast__cart-link {
   min-height: 2.5rem;
-  border-radius: radii.$mel-radius-pill;
-  box-shadow: 0 6px 16px rgba(242, 109, 91, 0.28);
+  border-radius: radii.$mel-radius-sm;
+  box-shadow: 0 6px 16px rgba(colors.$mel-color-primary, 0.24);
 }
 
 .mel-toast__close {

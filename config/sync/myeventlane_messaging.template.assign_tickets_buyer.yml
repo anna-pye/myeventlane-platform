@@ -14,7 +14,7 @@ body_html: |
       </p>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ assign_url }}" style="display: inline-block; background-color: #ff6b9d; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px;">
+        <a href="{{ assign_url }}" style="display: inline-block; background-color: #6b46ff; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; font-size: 16px;">
           Assign ticket
         </a>
       </div>

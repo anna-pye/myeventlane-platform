@@ -10,8 +10,9 @@ entity_type: myeventlane_vendor
 type: list_string
 settings:
   allowed_values:
-    '#f26d5b': 'Coral (MEL Primary)'
-    '#6e7ef2': 'Lavender'
+    '#6b46ff': 'MEL Purple (recommended)'
+    '#f26d5b': 'Coral'
+    '#6e7ef2': 'Legacy periwinkle'
     '#4f9da6': 'Teal'
     '#5b8c5a': 'Forest'
     '#e8a838': 'Amber'
