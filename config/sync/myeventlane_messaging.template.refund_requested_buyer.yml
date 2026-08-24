@@ -1,13 +1,29 @@
 enabled: true
 subject: 'Refund request received – {{ event_title }}'
+preheader: 'We received your refund request for {{ event_title }}.'
 body_html: |-
-  Hi there,
-
-  Your refund request for <strong>{{ event_title }}</strong> (Order {{ order_number }}) has been received.
-
-  We'll notify you once the event organiser has reviewed your request.
-
-  <a href="{{ my_tickets_url }}">View your tickets</a>
+  <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;">
+    <tr>
+      <td style="padding:0 0 20px 0;">
+        <h1 style="margin:0 0 8px 0;font-size:24px;line-height:1.25;font-weight:800;color:#293241;">We received your refund request</h1>
+        <p style="margin:0;font-size:16px;line-height:1.55;color:#5c6370;">The organiser will review it and we’ll email you when the status changes.</p>
+      </td>
+    </tr>
+    <tr>
+      <td style="padding:0 0 20px 0;">
+        <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="width:100%;border-collapse:collapse;background:#fef5ec;border-radius:12px;">
+          <tr><td style="padding:16px 18px 6px;font-size:13px;line-height:1.4;color:#5c6370;text-transform:uppercase;letter-spacing:.08em;font-weight:700;">Event</td></tr>
+          <tr><td style="padding:0 18px 12px;font-size:18px;line-height:1.35;color:#293241;font-weight:700;">{{ event_title }}</td></tr>
+          <tr><td style="padding:0 18px 16px;font-size:15px;line-height:1.5;color:#293241;"><strong>Booking:</strong> {{ order_number }}<br><strong>Requested amount:</strong> {{ refunded_amount }}</td></tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding:0 0 20px 0;">
+        <a href="{{ my_tickets_url }}" style="display:inline-block;background:#c24737;color:#ffffff !important;text-decoration:none;padding:13px 24px;border-radius:8px;font-weight:700;font-size:16px;line-height:1.25;">View booking details</a>
+      </td>
+    </tr>
+  </table>
 utm:
   enable: true
   params:
