@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_core\Unit;
 
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Guards the customer-facing styling and messaging architecture.
@@ -103,6 +104,23 @@ final class PublicStylingContractTest extends TestCase {
         $path,
       );
     }
+  }
+
+  /**
+   * Sales-open active config must converge with its owning module default.
+   */
+  public function testSalesOpenMessagingConfigConverges(): void {
+    $relativePath = 'myeventlane_messaging.template.sales_open.yml';
+    $sync = Yaml::parse($this->source('config/sync/' . $relativePath));
+    $install = Yaml::parse($this->source(
+      'web/modules/custom/myeventlane_automation/config/install/' . $relativePath,
+    ));
+
+    self::assertIsArray($sync);
+    self::assertIsArray($install);
+    self::assertIsBool($sync['enabled'] ?? NULL);
+    self::assertTrue($sync['enabled']);
+    self::assertSame($sync, $install);
   }
 
   /**
