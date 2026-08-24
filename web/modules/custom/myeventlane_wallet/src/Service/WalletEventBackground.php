@@ -50,7 +50,7 @@ final class WalletEventBackground {
       $width = self::WIDTH * $scale;
       $height = self::HEIGHT * $scale;
 
-      if (!$image->isValid() || !$image->scaleAndCrop($width, $height) || !$image->convert('png') || !$image->save($destination)) {
+      if (!$image->isValid() || !$image->scaleAndCrop($width, $height) || !$image->convert('png') || !$image->save($destination) || !$this->applyContrastOverlay($destination)) {
         // Artwork is optional. Keep the ticket usable if a source image or the
         // active image toolkit cannot produce a valid Wallet PNG derivative.
         foreach (glob($workDir . '/background*.png') ?: [] as $partial) {
@@ -64,6 +64,34 @@ final class WalletEventBackground {
       }
     }
     return TRUE;
+  }
+
+  /**
+   * Applies a deterministic dark wash so Wallet's light text stays legible.
+   */
+  private function applyContrastOverlay(string $path): bool {
+    if (!function_exists('imagecreatefrompng')) {
+      return FALSE;
+    }
+    $image = @imagecreatefrompng($path);
+    if (!$image instanceof \GdImage) {
+      return FALSE;
+    }
+
+    imagealphablending($image, TRUE);
+    // GD alpha is inverse: 0 is opaque and 127 is transparent. Alpha 45 gives
+    // the hero a roughly 65% dark wash while leaving it recognisable.
+    $overlay = imagecolorallocatealpha($image, 10, 18, 35, 45);
+    $applied = $overlay !== FALSE && imagefilledrectangle(
+      $image,
+      0,
+      0,
+      imagesx($image) - 1,
+      imagesy($image) - 1,
+      $overlay,
+    );
+    $saved = $applied && imagepng($image, $path, 7);
+    return $saved;
   }
 
 }

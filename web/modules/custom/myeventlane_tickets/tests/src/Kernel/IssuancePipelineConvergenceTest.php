@@ -417,11 +417,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
    */
   public function testPkpassIncludesEventHeroBackgroundArtwork(): void {
     $source = 'public://wallet-event-hero.jpg';
-    $fixture = DRUPAL_ROOT
-      . '/core/profiles/demo_umami/modules/demo_umami_content/default_content/images/victoria-sponge-umami.jpg';
-    $this->assertNotFalse(
-      file_put_contents($source, file_get_contents($fixture)),
-    );
+    $fixture = imagecreatetruecolor(800, 600);
+    $white = imagecolorallocate($fixture, 255, 255, 255);
+    imagefilledrectangle($fixture, 0, 0, 799, 599, $white);
+    $this->assertTrue(imagejpeg($fixture, $source));
     $file = File::create(['uri' => $source, 'status' => 1]);
     $file->save();
     $this->event->set('field_event_image', [
@@ -458,6 +457,13 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
       $this->assertNotFalse($dimensions);
       $this->assertSame($expected_dimensions, [$dimensions[0], $dimensions[1]]);
       $this->assertSame('image/png', $dimensions['mime']);
+      $rendered = imagecreatefromstring($image_data);
+      $this->assertInstanceOf(\GdImage::class, $rendered);
+      $pixel = imagecolorsforindex(
+        $rendered,
+        imagecolorat($rendered, intdiv($dimensions[0], 2), intdiv($dimensions[1], 2)),
+      );
+      $this->assertLessThan(120, max($pixel['red'], $pixel['green'], $pixel['blue']));
     }
     $zip->close();
   }
