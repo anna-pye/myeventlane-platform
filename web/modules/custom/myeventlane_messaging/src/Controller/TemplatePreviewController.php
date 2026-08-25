@@ -211,6 +211,12 @@ final class TemplatePreviewController extends ControllerBase {
           ],
         ],
         'invoice_fee_lines' => [],
+        'platform_name' => 'MyEventLane Inc',
+        'platform_abn' => '11 304 813 593',
+        'platform_fee_lines' => [
+          ['label' => 'Platform fee (1.5%)', 'amount' => '$1.50', 'gst' => '$0.14'],
+        ],
+        'platform_total_gst' => '$0.14',
         'invoice_tax_lines' => [
           ['label' => 'GST', 'amount' => '$9.00'],
         ],
@@ -253,6 +259,12 @@ final class TemplatePreviewController extends ControllerBase {
         'invoice_fee_lines' => [
           ['label' => 'Processing fee', 'amount' => '$2.00'],
         ],
+        'platform_name' => 'MyEventLane Inc',
+        'platform_abn' => '11 304 813 593',
+        'platform_fee_lines' => [
+          ['label' => 'Platform fee (1.5%)', 'amount' => '$0.75', 'gst' => '$0.07'],
+        ],
+        'platform_total_gst' => '$0.07',
         'tax_lines' => [
           ['label' => 'GST', 'amount' => '$5.00'],
         ],

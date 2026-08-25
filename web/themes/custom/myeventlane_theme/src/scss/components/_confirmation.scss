@@ -916,6 +916,14 @@
   margin-bottom: 16px;
 }
 
+.mel-invoice .mel-invoice__supplier-title {
+  margin: spacing.mel-space(5) 0 spacing.mel-space(2);
+  padding-top: spacing.mel-space(3);
+  border-top: 2px solid colors.$mel-color-bg;
+  font-size: typography.mel-font-size(base);
+  font-weight: typography.$mel-font-bold;
+}
+
 .mel-invoice__meta {
   margin: 0;
   line-height: 1.5;
@@ -941,10 +949,8 @@
     width: 3rem;
   }
 
-  th:nth-child(3),
-  th:nth-child(4),
-  td:nth-child(3),
-  td:nth-child(4) {
+  th:nth-child(n + 3),
+  td:nth-child(n + 3) {
     text-align: right;
   }
 }

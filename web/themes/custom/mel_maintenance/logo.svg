@@ -1,12 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56" role="img" aria-labelledby="melLogoTitle">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 80" fill="none" role="img" aria-labelledby="melLogoTitle">
   <title id="melLogoTitle">MyEventLane</title>
-  <defs>
-    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FF8A6B"/>
-      <stop offset="50%" stop-color="#FF7AB8"/>
-      <stop offset="100%" stop-color="#C9A8FF"/>
-    </linearGradient>
-  </defs>
-  <rect width="56" height="56" rx="14" fill="url(#g)"/>
-  <path fill="#1B1528" fill-opacity="0.9" d="M16 18h5v20h-5zm9 0h5l5 10 5-10h5v20h-5V26l-4 8h-2l-4-8v12h-5z"/>
+  <g>
+    <rect x="4" y="8" width="64" height="64" rx="12" fill="#ff6f61"/>
+    <path d="M20 72 C20 72 20 50 28 42 C32 38 38 40 42 38 C48 35 46 28 42 24 C38 20 32 22 28 28 C24 34 24 42 24 42" fill="#faf7fb"/>
+    <line x1="44" y1="20" x2="52" y2="12" stroke="#ffd46f" stroke-width="4" stroke-linecap="round"/>
+    <line x1="50" y1="26" x2="60" y2="22" stroke="#ffd46f" stroke-width="4" stroke-linecap="round"/>
+    <line x1="52" y1="34" x2="62" y2="34" stroke="#ffd46f" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <g fill="#ff6f61" font-family="Nunito, sans-serif">
+    <text x="80" y="35" font-size="24" font-weight="700">My</text>
+    <text x="80" y="62" font-size="24" font-weight="800">EventLane</text>
+  </g>
 </svg>

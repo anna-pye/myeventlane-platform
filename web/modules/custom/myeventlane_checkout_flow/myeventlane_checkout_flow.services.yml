@@ -66,6 +66,13 @@ services:
       - '@date.formatter'
       - '@myeventlane_checkout_flow.order_pricing_breakdown'
       - '@myeventlane_checkout_flow.seller_identity'
+      - '@myeventlane_checkout_flow.platform_fee_tax_snapshot'
+
+  myeventlane_checkout_flow.platform_fee_tax_snapshot:
+    class: Drupal\myeventlane_checkout_flow\Service\PlatformFeeTaxSnapshotResolver
+    arguments:
+      - '@config.factory'
+      - '@commerce_price.rounder'
 
   myeventlane_checkout_flow.seller_identity:
     class: Drupal\myeventlane_checkout_flow\Service\SellerIdentityResolver
@@ -76,6 +83,7 @@ services:
     class: Drupal\myeventlane_checkout_flow\EventSubscriber\SellerIdentitySnapshotSubscriber
     arguments:
       - '@myeventlane_checkout_flow.seller_identity'
+      - '@myeventlane_checkout_flow.platform_fee_tax_snapshot'
     tags:
       - { name: event_subscriber }
 

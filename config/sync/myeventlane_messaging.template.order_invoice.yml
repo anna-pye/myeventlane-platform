@@ -16,10 +16,6 @@ body_html: |
       </p>
 
       <div style="margin: 16px 0; padding: 12px 16px; background-color: #f9f9f9; border-radius: 6px; font-size: 14px; color: #34495e;">
-        <p style="margin: 0 0 8px; line-height: 1.5;">
-          {% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}
-          {% if vendor_abn %}<strong>ABN:</strong> {{ vendor_abn }}<br>{% endif %}
-        </p>
         <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
           <span><strong>Invoice date:</strong> {{ invoice_date }}</span>
           <span><strong>Invoice #:</strong> #{{ order_number }}</span>
@@ -34,6 +30,11 @@ body_html: |
           {% endfor %}
         </div>
       {% endif %}
+
+      <div style="margin:16px 0; padding:14px 16px; background:#fff; border:1px solid #e0e0e0; border-radius:8px;">
+        <h2 style="color:#2c3e50; font-size:18px; margin:0 0 8px;">Tickets and organiser charges</h2>
+        <p style="color:#34495e; font-size:14px; line-height:1.6; margin:0;">{% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}<strong>ABN:</strong> {{ vendor_abn ?: 'ABN not provided' }}</p>
+      </div>
 
       {% if line_items|length > 0 or invoice_lines|length > 0 %}
         <div style="margin: 24px 0;">
@@ -92,7 +93,18 @@ body_html: |
       {% endif %}
 
       {% if order_total_gst and tax_lines|length == 0 and invoice_tax_lines|length == 0 %}
-        <p style="margin: 12px 0; font-size: 14px; color: #34495e;"><strong>Total GST:</strong> {{ order_total_gst }}</p>
+        <p style="margin: 12px 0; font-size: 14px; color: #34495e;"><strong>Organiser GST recorded:</strong> {{ order_total_gst }}</p>
+      {% endif %}
+
+      {% if platform_fee_lines|default([])|length > 0 %}
+        <div style="margin:16px 0; padding:14px 16px; background:#fff; border:1px solid #e0e0e0; border-radius:8px;">
+          <h2 style="color:#2c3e50; font-size:18px; margin:0 0 8px;">MyEventLane platform charges</h2>
+          <p style="color:#34495e; font-size:14px; line-height:1.6; margin:0 0 8px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'MyEventLane Inc' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
+          {% for fee in platform_fee_lines|default([]) %}
+            <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;"><span>{{ fee.label }}</span><span style="font-weight:600;">{{ fee.amount }}</span></div>
+            <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;"><span>GST included in this fee</span><span style="font-weight:600;">{{ fee.gst }}</span></div>
+          {% endfor %}
+        </div>
       {% endif %}
 
       <div style="margin: 28px 0; padding: 18px 20px; background-color: #fef5ec; border-radius: 8px;">
@@ -103,9 +115,9 @@ body_html: |
       </div>
 
       {% if is_tax_invoice %}
-        <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">This document is a tax invoice for GST purposes.</p>
+        <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">This document is a tax invoice for the GST-bearing supplier charges identified above. Organiser GST reflects tax recorded when the order was placed.</p>
       {% else %}
-        <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">The supplier is not registered for GST. No GST has been charged.</p>
+        <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">No GST was recorded on this order.</p>
       {% endif %}
 
       <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">

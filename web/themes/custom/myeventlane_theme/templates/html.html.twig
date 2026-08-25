@@ -1,6 +1,9 @@
 {#
   Keep this minimal and do not break admin.
 #}
+{% if mel_attach_commerce_styling|default(false) %}
+  {{ attach_library('myeventlane_theme/commerce-styling') }}
+{% endif %}
 <!DOCTYPE html>
 <html{{ html_attributes }}>
   <head>
