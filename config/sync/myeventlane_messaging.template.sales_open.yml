@@ -1,4 +1,4 @@
-enabled: '1'
+enabled: true
 subject: 'Sales are now open: {{ event_title }}'
 body_html: |
   <p>Great news! Ticket sales for <strong>{{ event_title }}</strong> are now open.</p>
