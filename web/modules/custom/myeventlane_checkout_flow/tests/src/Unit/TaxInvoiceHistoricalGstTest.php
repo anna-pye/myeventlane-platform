@@ -25,6 +25,14 @@ final class TaxInvoiceHistoricalGstTest extends TestCase {
     self::assertIsString($platform);
     self::assertIsString($subscriber);
     self::assertStringContainsString("\$isTaxInvoice = \$aggregated['tax_rows'] !== []", $source);
+    self::assertStringContainsString(
+      "\$order_total_gst = \$aggregated['total_formatted'];",
+      $source,
+    );
+    self::assertStringNotContainsString(
+      "\$this->formatPrice(new Price('0', \$orderCurrency))",
+      $source,
+    );
     self::assertStringNotContainsString("get('tax_registrations')", $source);
     self::assertStringContainsString("\$seller = \$this->sellerIdentity->resolve(\$order);", $source);
     self::assertStringContainsString("\$vendor_name = \$seller['seller_name'];", $source);

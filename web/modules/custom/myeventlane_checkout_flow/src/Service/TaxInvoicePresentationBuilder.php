@@ -107,9 +107,10 @@ final class TaxInvoicePresentationBuilder {
         'amount' => $row['amount_formatted'],
       ];
     }
-    $order_total_gst = $aggregated['total_formatted'] !== ''
-      ? $aggregated['total_formatted']
-      : $this->formatPrice(new Price('0', $orderCurrency));
+    // Keep this empty when the order has no organiser tax adjustment. A
+    // formatted zero is truthy in Twig and would falsely imply that organiser
+    // GST was recorded on otherwise untaxed organiser charges.
+    $order_total_gst = $aggregated['total_formatted'];
 
     $platform = $this->platformFeeTax->resolve($order);
     $platform_fee_lines = [];
