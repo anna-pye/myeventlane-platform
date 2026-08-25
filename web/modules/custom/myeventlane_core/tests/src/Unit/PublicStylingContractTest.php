@@ -51,6 +51,24 @@ final class PublicStylingContractTest extends TestCase {
   }
 
   /**
+   * Account card fields must override Commerce Stripe's fixed em widths.
+   */
+  public function testAccountStripeFieldsUseResponsiveWidths(): void {
+    $checkout = $this->source('web/themes/custom/myeventlane_theme/src/scss/components/_checkout.scss');
+
+    self::assertStringContainsString('.mel-account-payment-methods .stripe-form', $checkout);
+    self::assertMatchesRegularExpression(
+      '/#card-number-element\s*\{\s*width:\s*min\(100%,\s*32rem\);/s',
+      $checkout,
+    );
+    self::assertMatchesRegularExpression(
+      '/#expiration-element,\s*#security-code-element\s*\{\s*width:\s*min\(100%,\s*12rem\);/s',
+      $checkout,
+    );
+    self::assertStringNotContainsString('!important', $checkout);
+  }
+
+  /**
    * Feature components must not replace the global brand token cascade.
    */
   public function testWizardDoesNotLeakGlobalBrandTokens(): void {
