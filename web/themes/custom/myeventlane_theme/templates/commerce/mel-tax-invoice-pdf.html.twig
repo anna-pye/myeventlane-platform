@@ -40,6 +40,16 @@
       line-height: 1.55;
       font-size: 12px;
     }
+    .mel-pdf-supplier {
+      margin-top: 18px;
+      padding-top: 14px;
+      border-top: 2px solid #f1e9e2;
+    }
+    .mel-pdf-supplier h2 {
+      margin: 0 0 8px;
+      color: #2c3e50;
+      font-size: 14px;
+    }
     .mel-pdf-invoice-table {
       width: 100%;
       border-collapse: collapse;
@@ -58,11 +68,18 @@
     .mel-pdf-col-money { text-align: right; white-space: nowrap; }
     thead tr { border-bottom: 1px solid #e0e0e0; }
     .mel-pdf-adjust {
-      display: flex;
-      justify-content: space-between;
+      display: table;
+      width: 100%;
       padding: 6px 0;
       font-size: 12px;
       color: #34495e;
+    }
+    .mel-pdf-adjust span {
+      display: table-cell;
+    }
+    .mel-pdf-adjust span:last-child {
+      text-align: right;
+      white-space: nowrap;
     }
     .mel-pdf-total-wrap {
       margin-top: 16px;
@@ -71,12 +88,18 @@
       border-radius: 8px;
     }
     .mel-pdf-total {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+      display: table;
+      width: 100%;
       font-size: 14px;
       font-weight: 700;
       color: #2c3e50;
+    }
+    .mel-pdf-total span {
+      display: table-cell;
+    }
+    .mel-pdf-total span:last-child {
+      text-align: right;
+      white-space: nowrap;
     }
     .mel-pdf-gst-fallback {
       margin-top: 10px;
@@ -95,8 +118,6 @@
   <div class="mel-pdf-shell">
     <h1>{{ inv.document_title|default('Receipt')|t }}</h1>
     <div class="mel-pdf-meta">
-      {% if inv.vendor_name is defined and inv.vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ inv.vendor_name }}<br />{% endif %}
-      {% if inv.vendor_abn is defined and inv.vendor_abn %}<strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn }}<br />{% endif %}
       {% if order %}<strong>{{ 'Invoice #:'|t }}</strong> {{ order.getOrderNumber }}<br />{% endif %}
       {% if order and order.getPlacedTime %}
         <strong>{{ 'Date:'|t }}</strong> {{ order.getPlacedTime|date('d M Y') }}
@@ -104,6 +125,12 @@
         <strong>{{ 'Date:'|t }}</strong> {{ inv.invoice_date_display }}
       {% endif %}
     </div>
+    <div class="mel-pdf-supplier">
+      <h2>{{ 'Tickets and organiser charges'|t }}</h2>
+      <div class="mel-pdf-meta">
+        {% if inv.vendor_name is defined and inv.vendor_name %}<strong>{{ 'Supplier:'|t }}</strong> {{ inv.vendor_name }}<br />{% endif %}
+        <strong>{{ 'ABN:'|t }}</strong> {{ inv.vendor_abn ?: 'ABN not provided'|t }}
+      </div>
     {% if inv.invoice_lines is defined and inv.invoice_lines|length > 0 %}
       <table class="mel-pdf-invoice-table">
         <thead>
@@ -143,7 +170,21 @@
       {% endfor %}
     {% endif %}
     {% if inv.order_total_gst is defined and inv.order_total_gst and (inv.tax_lines is not defined or inv.tax_lines|length == 0) %}
-      <p class="mel-pdf-gst-fallback"><strong>{{ 'Total GST'|t }}</strong> {{ inv.order_total_gst }}</p>
+      <div class="mel-pdf-adjust mel-pdf-gst-fallback"><span><strong>{{ 'Organiser GST recorded'|t }}</strong></span><span>{{ inv.order_total_gst }}</span></div>
+    {% endif %}
+    </div>
+    {% if inv.platform_fee_lines is defined and inv.platform_fee_lines|length > 0 %}
+      <div class="mel-pdf-supplier">
+        <h2>{{ 'MyEventLane platform charges'|t }}</h2>
+        <div class="mel-pdf-meta">
+          <strong>{{ 'Supplier:'|t }}</strong> {{ inv.platform_name ?: 'MyEventLane Inc'|t }}<br />
+          <strong>{{ 'ABN:'|t }}</strong> {{ inv.platform_abn ?: 'ABN not provided'|t }}
+        </div>
+        {% for fee in inv.platform_fee_lines %}
+          <div class="mel-pdf-adjust"><span>{{ fee.label }}</span><span>{{ fee.amount }}</span></div>
+          <div class="mel-pdf-adjust"><span>{{ 'GST included in this fee'|t }}</span><span>{{ fee.gst }}</span></div>
+        {% endfor %}
+      </div>
     {% endif %}
     {% if inv.order_total is defined and inv.order_total %}
       <div class="mel-pdf-total-wrap">
@@ -154,9 +195,9 @@
       </div>
     {% endif %}
     {% if inv.is_tax_invoice|default(false) %}
-      <p class="mel-invoice__legal">{{ 'This document is a tax invoice for GST purposes.'|t }}</p>
+      <p class="mel-invoice__legal">{{ 'This document is a tax invoice for the GST-bearing supplier charges identified above. Organiser GST reflects tax recorded when the order was placed.'|t }}</p>
     {% else %}
-      <p class="mel-invoice__legal">{{ 'The supplier is not registered for GST. No GST has been charged.'|t }}</p>
+      <p class="mel-invoice__legal">{{ 'No GST was recorded on this order.'|t }}</p>
     {% endif %}
   </div>
 </body>

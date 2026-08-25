@@ -57,6 +57,24 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#default_value' => $config->get('support_email') ?? '',
     ];
 
+    $form['platform']['platform_legal_name'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('MEL legal supplier name'),
+      '#description' => $this->t('Legal name shown for MEL-owned fees on buyer tax invoices and receipts.'),
+      '#default_value' => $config->get('platform_legal_name') ?? 'MyEventLane Inc',
+      '#maxlength' => 128,
+      '#required' => TRUE,
+    ];
+
+    $form['platform']['platform_abn'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('MEL ABN'),
+      '#description' => $this->t('ABN shown for MEL-owned fees on buyer tax invoices and receipts.'),
+      '#default_value' => $config->get('platform_abn') ?? '',
+      '#maxlength' => 20,
+      '#required' => TRUE,
+    ];
+
     $form['defaults'] = [
       '#type' => 'details',
       '#title' => $this->t('Default settings'),
@@ -161,6 +179,8 @@ final class GeneralSettingsForm extends ConfigFormBase {
     $this->config('myeventlane_core.settings')
       ->set('site_name', $form_state->getValue(['platform', 'site_name']))
       ->set('support_email', $form_state->getValue(['platform', 'support_email']))
+      ->set('platform_legal_name', trim((string) $form_state->getValue(['platform', 'platform_legal_name'])))
+      ->set('platform_abn', trim((string) $form_state->getValue(['platform', 'platform_abn'])))
       ->set('default_timezone', $form_state->getValue(['defaults', 'default_timezone']))
       ->set('default_currency', $form_state->getValue(['defaults', 'default_currency']))
       ->set('platform_fee_percent', $platform_fee_percent)

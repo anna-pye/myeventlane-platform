@@ -35,6 +35,7 @@ final class PublicStylingContractTest extends TestCase {
     $commerce = $this->source('web/themes/custom/myeventlane_theme/src/scss/commerce.scss');
     $libraries = $this->source('web/themes/custom/myeventlane_theme/myeventlane_theme.libraries.yml');
     $theme = $this->source('web/themes/custom/myeventlane_theme/myeventlane_theme.theme');
+    $html = $this->source('web/themes/custom/myeventlane_theme/templates/html.html.twig');
 
     self::assertStringContainsString("@use 'commerce/commerce' as commerce with (\$include-transactional: false)", $main);
     self::assertStringNotContainsString("@use 'components/checkout'", $main);
@@ -42,6 +43,11 @@ final class PublicStylingContractTest extends TestCase {
     self::assertStringContainsString("@use 'components/checkout'", $commerce);
     self::assertStringContainsString('commerce-styling:', $libraries);
     self::assertStringContainsString("\$manifest['scss/commerce.scss']", $theme);
+    self::assertStringContainsString('_myeventlane_theme_is_commerce_styled_route', $theme);
+    self::assertStringContainsString("'entity.commerce_payment_method.add_form'", $theme);
+    self::assertStringContainsString("\$variables['#attached']['library'][] = 'myeventlane_theme/commerce-styling';", $theme);
+    self::assertStringContainsString("\$variables['mel_attach_commerce_styling'] = TRUE;", $theme);
+    self::assertStringContainsString("attach_library('myeventlane_theme/commerce-styling')", $html);
   }
 
   /**
@@ -62,6 +68,13 @@ final class PublicStylingContractTest extends TestCase {
   public function testRecoveryPagesRemainCalmAndDependencyLight(): void {
     $maintenanceSettings = $this->source('web/sites/default/settings.mel_shared_session.php');
     self::assertStringContainsString("\$settings['maintenance_theme'] = 'mel_maintenance';", $maintenanceSettings);
+
+    $maintenancePage = $this->source('web/themes/custom/mel_maintenance/templates/system/maintenance-page.html.twig');
+    $maintenanceLogo = $this->source('web/themes/custom/mel_maintenance/logo.svg');
+    self::assertStringContainsString("path('user.login')", $maintenancePage);
+    self::assertStringContainsString('{{ directory }}/logo.svg', $maintenancePage);
+    self::assertStringContainsString('MyEventLane', $maintenanceLogo);
+    self::assertStringNotContainsString('linearGradient id="a"', $maintenanceLogo);
 
     foreach ([
       'web/themes/custom/mel_maintenance/templates/system/page--403.html.twig',

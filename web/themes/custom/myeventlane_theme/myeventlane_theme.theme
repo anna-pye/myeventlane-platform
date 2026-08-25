@@ -845,11 +845,17 @@ function _myeventlane_theme_attach_tax_invoice_variables(OrderInterface $order, 
   $data = $builder->build($order);
   $variables['vendor_name'] = $data['vendor_name'];
   $variables['vendor_abn'] = $data['vendor_abn'];
+  $variables['document_title'] = $data['document_title'];
+  $variables['is_tax_invoice'] = $data['is_tax_invoice'];
   $variables['order_total_gst'] = $data['order_total_gst'];
   $variables['order_total'] = $data['order_total'];
   $variables['mel_invoice_lines'] = $data['invoice_lines'];
   $variables['invoice_date_display'] = $data['invoice_date_display'];
   $variables['mel_invoice_fee_lines'] = $data['fee_lines'];
+  $variables['platform_name'] = $data['platform_name'];
+  $variables['platform_abn'] = $data['platform_abn'];
+  $variables['mel_platform_fee_lines'] = $data['platform_fee_lines'];
+  $variables['platform_total_gst'] = $data['platform_total_gst'];
   $variables['mel_invoice_tax_lines'] = $data['tax_lines'];
   $variables['invoice_lines_include_gst_column'] = $data['invoice_lines_include_gst_column'] ?? FALSE;
 }
@@ -1926,6 +1932,21 @@ function _myeventlane_theme_build_mobile_bottom_nav(bool $auth_minimal = FALSE):
 }
 
 /**
+ * Whether the current route needs the transactional Commerce stylesheet.
+ */
+function _myeventlane_theme_is_commerce_styled_route(string $route_name): bool {
+  return str_starts_with($route_name, 'commerce_cart.')
+    || str_starts_with($route_name, 'commerce_checkout.')
+    || $route_name === 'entity.commerce_order.user_view'
+    || in_array($route_name, [
+      'entity.commerce_payment_method.collection',
+      'entity.commerce_payment_method.add_form',
+      'entity.commerce_payment_method.edit_form',
+      'entity.commerce_payment_method.delete_form',
+    ], TRUE);
+}
+
+/**
  * Implements hook_preprocess_html().
  */
 function myeventlane_theme_preprocess_html(array &$variables): void {
@@ -1933,8 +1954,15 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
   $route_name = $route_match ? $route_match->getRouteName() : '';
 
   if (is_string($route_name) && $route_name !== '') {
+    // Attach from HTML preprocess as the reliable, route-aware path. The
+    // page-attachments hook remains a harmless fallback for normal pages.
+    if (_myeventlane_theme_is_commerce_styled_route($route_name)) {
+      $variables['mel_attach_commerce_styling'] = TRUE;
+      $variables['#attached']['library'][] = 'myeventlane_theme/commerce-styling';
+    }
+
     // Scope all Commerce cart/checkout/order-detail styling.
-    if (str_starts_with($route_name, 'commerce_cart.') || str_starts_with($route_name, 'commerce_checkout.') || $route_name === 'entity.commerce_order.user_view') {
+    if (_myeventlane_theme_is_commerce_styled_route($route_name)) {
       $variables['attributes']['class'][] = 'mel-commerce';
     }
 
@@ -6001,9 +6029,7 @@ function _myeventlane_theme_status_messages_use_toasts(): bool {
  */
 function myeventlane_theme_page_attachments(array &$attachments): void {
   $route = (string) (\Drupal::routeMatch()->getRouteName() ?? '');
-  if (str_starts_with($route, 'commerce_cart.')
-    || str_starts_with($route, 'commerce_checkout.')
-    || $route === 'entity.commerce_order.user_view') {
+  if (_myeventlane_theme_is_commerce_styled_route($route)) {
     $attachments['#attached']['library'][] = 'myeventlane_theme/commerce-styling';
   }
 

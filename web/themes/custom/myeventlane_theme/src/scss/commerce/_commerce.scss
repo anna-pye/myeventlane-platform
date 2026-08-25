@@ -746,10 +746,10 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   .mel-cart-empty {
-    max-width: 40rem;
+    max-width: 72rem;
     margin: space-tokens.mel-space(8) auto;
-    text-align: center;
-    padding: space-tokens.mel-space(7) space-tokens.mel-space(6) space-tokens.mel-space(6);
+    text-align: left;
+    padding: space-tokens.mel-space(5);
   }
 
   .mel-cart-empty.mel-panel--lavender {
@@ -757,10 +757,22 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     box-shadow: shadows.$mel-shadow-glass;
   }
 
+  .mel-cart-empty__card {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    border: 1px solid colors.$mel-color-border;
+    border-radius: var(--mel-radius-panel, 24px);
+    background: colors.$mel-color-surface;
+    box-shadow: shadows.$mel-shadow-glass;
+  }
+
   .mel-cart-empty__hero {
     position: relative;
     width: min(22rem, 78vw);
-    margin: 0 auto space-tokens.mel-space(5);
+    margin: 0 auto;
     aspect-ratio: 3 / 2;
     display: grid;
     place-items: end center;
@@ -814,7 +826,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   .mel-cart-empty__state {
-    margin-bottom: space-tokens.mel-space(2);
+    min-width: 0;
   }
 
   .mel-cart-empty--governed .mel-empty-state--governed {
@@ -835,14 +847,14 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   .mel-cart-empty--governed .mel-empty-state__what,
   .mel-cart-empty--governed .mel-empty-state__why,
   .mel-cart-empty--governed .mel-empty-state__next {
-    margin-left: auto;
-    margin-right: auto;
+    margin-left: 0;
+    margin-right: 0;
     max-width: 32rem;
     color: colors.$mel-color-text-muted;
   }
 
   .mel-cart-empty--governed .mel-empty-state__cta {
-    justify-content: center;
+    justify-content: flex-start;
     margin-top: space-tokens.mel-space(5);
   }
 
@@ -850,6 +862,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     min-height: 3rem;
     padding-inline: space-tokens.mel-space(7);
     border-radius: radii.$mel-radius-pill;
+    color: colors.$mel-color-text-inverse;
     box-shadow: 0 10px 24px rgba(242, 109, 91, 0.24);
   }
 
@@ -912,7 +925,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   .mel-cart-empty__support {
-    margin-top: space-tokens.mel-space(5);
+    margin-top: space-tokens.mel-space(4);
     justify-content: center;
   }
 
@@ -927,7 +940,24 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   @include breakpoints.mel-break(md, max) {
     .mel-cart-empty {
       margin: space-tokens.mel-space(6) space-tokens.mel-space(4);
-      padding: space-tokens.mel-space(6) space-tokens.mel-space(5);
+      padding: space-tokens.mel-space(4);
+      text-align: center;
+    }
+
+    .mel-cart-empty__card {
+      grid-template-columns: 1fr;
+      gap: space-tokens.mel-space(5);
+    }
+
+    .mel-cart-empty--governed .mel-empty-state__what,
+    .mel-cart-empty--governed .mel-empty-state__why,
+    .mel-cart-empty--governed .mel-empty-state__next {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mel-cart-empty--governed .mel-empty-state__cta {
+      justify-content: center;
     }
   }
 

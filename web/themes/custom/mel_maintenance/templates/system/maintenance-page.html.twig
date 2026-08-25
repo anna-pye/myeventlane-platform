@@ -13,7 +13,7 @@
   <main class="mel-mm__main">
     <header class="mel-mm__brand">
       {# Release-owned logo avoids stale managed-file references in maintenance. #}
-      <img class="mel-mm__logo" src="{{ base_path }}{{ directory }}/logo.svg" width="176" height="48" alt="{{ mel_brand }}">
+      <img class="mel-mm__logo" src="{{ base_path }}{{ directory }}/logo.svg" width="200" height="80" alt="{{ mel_brand }}">
       {% if site_slogan %}
         <p class="mel-mm__tagline">{{ site_slogan }}</p>
       {% endif %}
@@ -31,6 +31,8 @@
       </div>
       <a class="mel-mm__button" href="{{ path('<front>') }}">{{ 'Try again'|t }}</a>
     </section>
+
+    <a class="mel-mm__staff-sign-in" href="{{ path('user.login') }}">{{ 'Staff sign in'|t }}</a>
 
     <p class="mel-mm__help">
       {{ 'If you need your ticket now, use the link in your confirmation email.'|t }}

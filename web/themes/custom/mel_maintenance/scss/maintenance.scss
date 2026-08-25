@@ -69,7 +69,7 @@ body {
 
 .mel-mm__logo {
   display: block;
-  width: min(11rem, 60vw);
+  width: min(12.5rem, 68vw);
   height: auto;
 }
 
@@ -158,9 +158,27 @@ body {
 }
 
 .mel-mm__button:focus-visible,
-.mel-mm__message a:focus-visible {
+.mel-mm__message a:focus-visible,
+.mel-mm__staff-sign-in:focus-visible {
   outline: 3px solid $coral;
   outline-offset: 3px;
+}
+
+.mel-mm__staff-sign-in {
+  display: flex;
+  width: fit-content;
+  min-height: 2.75rem;
+  margin: 0.5rem auto 0;
+  padding: 0.65rem 0.75rem;
+  align-items: center;
+  justify-content: center;
+  color: $muted;
+  font-size: 0.8125rem;
+  text-underline-offset: 0.18em;
+}
+
+.mel-mm__staff-sign-in:hover {
+  color: $purple-hover;
 }
 
 .mel-mm__help {
