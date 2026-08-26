@@ -120,6 +120,13 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_commerce.cart_ticket_tier_hold_store:
+    class: Drupal\myeventlane_commerce\Service\CartTicketTierHoldStore
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@myeventlane_capacity.service'
+
   myeventlane_commerce.ticket_capacity:
     class: Drupal\myeventlane_commerce\Service\TicketCapacityService
     arguments:
@@ -127,6 +134,7 @@ services:
       - '@database'
       - '@myeventlane_commerce.ticket_variation_sold'
       - '@datetime.time'
+      - '@myeventlane_commerce.cart_ticket_tier_hold_store'
 
   myeventlane_commerce.ticket_tier_waitlist:
     class: Drupal\myeventlane_commerce\Service\TicketTierWaitlistService
@@ -183,6 +191,8 @@ services:
       - '@entity_type.manager'
       - '@datetime.time'
       - '@database'
+      - '@myeventlane_commerce.cart_ticket_tier_hold_store'
+      - '@lock'
 
   myeventlane_commerce.event_default_ticket_resolver:
     alias: myeventlane_event.ticket_type_manager

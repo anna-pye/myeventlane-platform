@@ -1126,4 +1126,7 @@ function myeventlane_commerce_cron(): void {
   if (\Drupal::hasService('myeventlane_commerce.ticket_tier_waitlist')) {
     \Drupal::service('myeventlane_commerce.ticket_tier_waitlist')->runCronMaintenance();
   }
+  if (\Drupal::hasService('myeventlane_commerce.cart_ticket_tier_hold_store')) {
+    \Drupal::service('myeventlane_commerce.cart_ticket_tier_hold_store')->purgeExpired();
+  }
 }

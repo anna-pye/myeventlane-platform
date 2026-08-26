@@ -17,7 +17,9 @@ global-styling:
 
 # Route-only cart, checkout and customer order CSS. The current hashed asset is
 # injected from the Vite manifest by hook_library_info_alter().
-commerce-styling: {}
+commerce-styling:
+  dependencies:
+    - core/drupal
 
 # Real-time presentation of the server-side limited-ticket reservation.
 cart_ticket_hold:

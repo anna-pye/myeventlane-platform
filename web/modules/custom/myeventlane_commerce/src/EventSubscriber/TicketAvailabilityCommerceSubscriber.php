@@ -66,6 +66,11 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
    * Releases placement lock after successful order transition.
    */
   public function onOrderPlacePostTransition(WorkflowTransitionEvent $event): void {
+    $order = $event->getEntity();
+    if ($order instanceof OrderInterface) {
+      $this->cartTicketHold->releaseItems($order, $order->getItems());
+    }
+
     $request = $this->requestStack->getCurrentRequest();
     if (!$request) {
       return;

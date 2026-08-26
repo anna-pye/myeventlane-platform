@@ -5,17 +5,30 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_commerce\Unit;
 
 use Drupal\commerce_cart\Event\CartEvents;
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
+use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
+use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber;
+use Drupal\myeventlane_commerce\Service\CartTicketAvailabilityInterface;
+use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
+use Drupal\myeventlane_commerce\Service\CartTicketTierHoldStoreInterface;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\Tests\UnitTestCase;
+use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\MockObject\MockObject;
+use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Tests ticket availability subscriber routing.
@@ -63,6 +76,48 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
     $this->assertArrayHasKey(CartEvents::CART_ORDER_ITEM_UPDATE, $events);
     $this->assertArrayHasKey(CartEvents::CART_ORDER_ITEM_REMOVE, $events);
     $this->assertArrayHasKey(CartEvents::CART_EMPTY, $events);
+  }
+
+  /**
+   * Successful placement releases both global and ticket-tier cart holds.
+   */
+  public function testPostPlacementReleasesCartHolds(): void {
+    $variation = $this->variation('default');
+    $item = $this->orderItemWithTargetEventAndVariation($variation);
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('id')->willReturn('27');
+    $order->method('getItems')->willReturn([$item]);
+
+    $capacity = $this->createMock(EventCapacityServiceInterface::class);
+    $capacity->expects($this->once())
+      ->method('releaseReservation')
+      ->with('cart:27:event:1584');
+    $tierHolds = $this->createMock(CartTicketTierHoldStoreInterface::class);
+    $tierHolds->expects($this->once())
+      ->method('releaseEvent')
+      ->with(27, 1584);
+    $manager = new CartTicketHoldManager(
+      $capacity,
+      new CapacityOrderInspector(),
+      $this->createMock(CartTicketAvailabilityInterface::class),
+      $this->createMock(EntityTypeManagerInterface::class),
+      $this->createMock(TimeInterface::class),
+      $this->createMock(Connection::class),
+      $tierHolds,
+      $this->createMock(LockBackendInterface::class),
+    );
+    $subscriber = new TicketAvailabilityCommerceSubscriber(
+      $manager,
+      new CapacityOrderInspector(),
+      $this->createMock(LockBackendInterface::class),
+      new RequestStack(),
+      $this->createMock(TranslationInterface::class),
+      $this->createMock(LoggerInterface::class),
+    );
+    $event = $this->createMock(WorkflowTransitionEvent::class);
+    $event->method('getEntity')->willReturn($order);
+
+    $subscriber->onOrderPlacePostTransition($event);
   }
 
   private function orderItemWithTargetEventAndVariation(

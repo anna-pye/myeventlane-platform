@@ -12,11 +12,15 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Field\FieldItemListInterface;
+use Drupal\Core\Lock\LockBackendInterface;
+use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_commerce\Service\CartTicketAvailabilityInterface;
 use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
+use Drupal\myeventlane_commerce\Service\CartTicketTierHoldStoreInterface;
 use Drupal\node\NodeInterface;
 use Drupal\Tests\UnitTestCase;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -71,6 +75,63 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
   }
 
   /**
+   * A finite ticket tier produces a timer even when the event is unlimited.
+   */
+  public function testSummaryUsesFiniteTierHoldForUnlimitedEvent(): void {
+    $event = $this->createMock(NodeInterface::class);
+    $event->method('bundle')->willReturn('event');
+    $product = $this->createMock(ProductInterface::class);
+    $product->method('bundle')->willReturn('ticket');
+    $variation = $this->variation(101, $product);
+    $cart = $this->refreshCart($variation);
+    $tier = $this->tier(501, 50);
+
+    $eventStorage = $this->createMock(EntityStorageInterface::class);
+    $eventStorage->method('loadMultiple')->with([44])->willReturn([44 => $event]);
+    $variationStorage = $this->createMock(EntityStorageInterface::class);
+    $variationStorage->method('loadMultiple')->with([101])->willReturn([101 => $variation]);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->method('getStorage')->willReturnMap([
+      ['node', $eventStorage],
+      ['commerce_product_variation', $variationStorage],
+    ]);
+
+    $capacity = $this->createMock(EventCapacityServiceInterface::class);
+    $capacity->method('getReservationTtl')->willReturn(900);
+    $capacity->method('getCapacityTotal')->with($event)->willReturn(NULL);
+    $availability = $this->createMock(CartTicketAvailabilityInterface::class);
+    $availability->method('resolveTierForVariation')->with($event, $variation)->willReturn($tier);
+    $tierHolds = $this->createMock(CartTicketTierHoldStoreInterface::class);
+    $tierHolds->method('getActive')->with(27, 44, 501)->willReturn([
+      'event_id' => 44,
+      'tier_id' => 501,
+      'variation_id' => 101,
+      'quantity' => 1,
+      'created' => 1_000,
+      'expires' => 1_900,
+    ]);
+    $time = $this->createMock(TimeInterface::class);
+    $time->method('getRequestTime')->willReturn(1_300);
+
+    $manager = new CartTicketHoldManager(
+      $capacity,
+      new CapacityOrderInspector(),
+      $availability,
+      $entityTypeManager,
+      $time,
+      $this->createMock(Connection::class),
+      $tierHolds,
+      $this->createMock(LockBackendInterface::class),
+    );
+
+    $summary = $manager->summary($cart);
+    $this->assertSame('active', $summary['state']);
+    $this->assertTrue($summary['has_hold']);
+    $this->assertSame(1_900, $summary['expires_at']);
+    $this->assertSame(600, $summary['seconds_remaining']);
+  }
+
+  /**
    * A later invalid tier must fail before any event reservation is written.
    */
   public function testRefreshValidatesEveryTierBeforeWritingReservation(): void {
@@ -98,6 +159,8 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
     ]);
 
     $availability = $this->createMock(CartTicketAvailabilityInterface::class);
+    $tier = $this->tier(501, NULL);
+    $availability->method('resolveTierForVariation')->willReturn($tier);
     $availability->expects($this->exactly(2))
       ->method('assertPaidVariationLineConstraints')
       ->willReturnCallback(static function (
@@ -114,6 +177,9 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
 
     $database = $this->createMock(Connection::class);
     $database->expects($this->never())->method('startTransaction');
+    $lock = $this->createMock(LockBackendInterface::class);
+    $lock->expects($this->once())->method('acquire')->willReturn(TRUE);
+    $lock->expects($this->once())->method('release');
 
     $manager = new CartTicketHoldManager(
       $this->createMock(EventCapacityServiceInterface::class),
@@ -122,6 +188,8 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
       $entityTypeManager,
       $this->createMock(TimeInterface::class),
       $database,
+      $this->createMock(CartTicketTierHoldStoreInterface::class),
+      $lock,
     );
 
     $this->expectException(CapacityExceededException::class);
@@ -143,7 +211,12 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
     $storage->method('loadMultiple')->with([44])->willReturn([44 => $event]);
 
     $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
-    $entityTypeManager->method('getStorage')->with('node')->willReturn($storage);
+    $variationStorage = $this->createMock(EntityStorageInterface::class);
+    $variationStorage->method('loadMultiple')->with([])->willReturn([]);
+    $entityTypeManager->method('getStorage')->willReturnMap([
+      ['node', $storage],
+      ['commerce_product_variation', $variationStorage],
+    ]);
 
     $capacity = $this->createMock(EventCapacityServiceInterface::class);
     $capacity->method('getReservationTtl')->willReturn(900);
@@ -164,7 +237,25 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
       $entityTypeManager,
       $time,
       $this->createMock(Connection::class),
+      $this->createMock(CartTicketTierHoldStoreInterface::class),
+      $this->createMock(LockBackendInterface::class),
     );
+  }
+
+  /**
+   * Builds a ticket tier with optional finite capacity.
+   */
+  private function tier(int $tierId, ?int $capacity): TicketTypeInterface {
+    $capacityField = $this->createMock(FieldItemListInterface::class);
+    $capacityField->method('isEmpty')->willReturn($capacity === NULL);
+    $capacityField->method('getValue')->willReturn(
+      $capacity === NULL ? [] : [['value' => $capacity]],
+    );
+
+    $tier = $this->createMock(TicketTypeInterface::class);
+    $tier->method('id')->willReturn($tierId);
+    $tier->method('get')->with('capacity')->willReturn($capacityField);
+    return $tier;
   }
 
   /**
@@ -182,12 +273,12 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
    */
   private function refreshCart(
     ProductVariationInterface $firstVariation,
-    ProductVariationInterface $secondVariation,
+    ?ProductVariationInterface $secondVariation = NULL,
   ): OrderInterface {
-    $items = [
-      $this->refreshItem($firstVariation),
-      $this->refreshItem($secondVariation),
-    ];
+    $items = [$this->refreshItem($firstVariation)];
+    if ($secondVariation !== NULL) {
+      $items[] = $this->refreshItem($secondVariation);
+    }
     $cart = $this->createMock(OrderInterface::class);
     $cart->method('id')->willReturn('27');
     $cart->method('getItems')->willReturn($items);
@@ -271,7 +362,10 @@ final class CartTicketHoldManagerTest extends UnitTestCase {
     $item = $this->createMock(OrderItemInterface::class);
     $item->method('bundle')->willReturn('default');
     $item->method('getPurchasedEntity')->willReturn(NULL);
-    $item->method('hasField')->with('field_target_event')->willReturn(TRUE);
+    $item->method('hasField')->willReturnMap([
+      ['field_target_event', TRUE],
+      ['purchased_entity', FALSE],
+    ]);
     $item->method('get')->with('field_target_event')->willReturn($target);
     $item->method('getQuantity')->willReturn('2');
 
