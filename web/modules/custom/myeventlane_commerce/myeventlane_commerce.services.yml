@@ -182,6 +182,7 @@ services:
       - '@myeventlane_commerce.ticket_availability'
       - '@entity_type.manager'
       - '@datetime.time'
+      - '@database'
 
   myeventlane_commerce.event_default_ticket_resolver:
     alias: myeventlane_event.ticket_type_manager

@@ -682,7 +682,10 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
           '#weight' => 40,
         ];
         $form['#attached']['library'][] = 'myeventlane_theme/cart_ticket_hold';
-        $form['actions']['checkout']['#validate'][] = 'myeventlane_commerce_cart_ticket_hold_validate';
+        $form['#validate'] = array_merge(
+          $form['#validate'] ?? [],
+          ['myeventlane_commerce_cart_ticket_hold_validate'],
+        );
         if ($hold['state'] === 'expired') {
           $form['actions']['checkout']['#disabled'] = TRUE;
         }
@@ -726,7 +729,10 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
       if ($hold['has_hold']) {
         $form['#attached']['library'][] = 'myeventlane_theme/cart_ticket_hold';
         $form['actions']['next']['#attributes']['class'][] = 'mel-ticket-hold-protected-action';
-        $form['actions']['next']['#validate'][] = 'myeventlane_commerce_checkout_ticket_hold_validate';
+        $form['#validate'] = array_merge(
+          $form['#validate'] ?? [],
+          ['myeventlane_commerce_checkout_ticket_hold_validate'],
+        );
         if ($hold['state'] === 'expired') {
           $form['actions']['next']['#disabled'] = TRUE;
         }
@@ -802,7 +808,13 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
  * Prevents checkout entry when the server-side ticket hold has expired.
  */
 function myeventlane_commerce_cart_ticket_hold_validate(array &$form, FormStateInterface $form_state): void {
-  $order_id = (int) ($form_state->getTriggeringElement()['#order_id'] ?? 0);
+  $trigger = $form_state->getTriggeringElement();
+  $classes = $trigger['#attributes']['class'] ?? [];
+  if (!is_array($classes) || !in_array('mel-ticket-hold-protected-action', $classes, TRUE)) {
+    return;
+  }
+
+  $order_id = (int) ($trigger['#order_id'] ?? 0);
   $cart = $order_id > 0
     ? \Drupal::entityTypeManager()->getStorage('commerce_order')->load($order_id)
     : NULL;
@@ -852,6 +864,11 @@ function myeventlane_commerce_cart_ticket_hold_renew_submit(array &$form, FormSt
  * Blocks final checkout actions after the authoritative hold expires.
  */
 function myeventlane_commerce_checkout_ticket_hold_validate(array &$form, FormStateInterface $form_state): void {
+  $classes = $form_state->getTriggeringElement()['#attributes']['class'] ?? [];
+  if (!is_array($classes) || !in_array('mel-ticket-hold-protected-action', $classes, TRUE)) {
+    return;
+  }
+
   $order = \Drupal::routeMatch()->getParameter('commerce_order');
   if (is_numeric($order)) {
     $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);

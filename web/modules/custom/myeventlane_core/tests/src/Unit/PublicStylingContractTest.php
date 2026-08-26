@@ -82,6 +82,10 @@ final class PublicStylingContractTest extends TestCase {
 
     self::assertStringContainsString("'#theme' => 'mel_ticket_hold'", $commerceModule);
     self::assertStringContainsString("'#surface' => 'cart'", $commerceModule);
+    self::assertStringContainsString("\$form['#validate'] = array_merge(", $commerceModule);
+    self::assertStringNotContainsString("['checkout']['#validate'][] = 'myeventlane_commerce_cart_ticket_hold_validate'", $commerceModule);
+    self::assertStringNotContainsString("['next']['#validate'][] = 'myeventlane_commerce_checkout_ticket_hold_validate'", $commerceModule);
+    self::assertStringContainsString("in_array('mel-ticket-hold-protected-action', \$classes, TRUE)", $commerceModule);
     self::assertStringContainsString("'mel_ticket_hold' => [", $theme);
     self::assertStringContainsString("surface: 'checkout'", $checkout);
     self::assertStringContainsString('data-server-now', $timer);

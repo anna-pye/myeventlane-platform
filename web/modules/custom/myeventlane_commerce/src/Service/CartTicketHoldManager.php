@@ -8,6 +8,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
@@ -22,9 +23,10 @@ final class CartTicketHoldManager {
   public function __construct(
     private readonly EventCapacityServiceInterface $capacity,
     private readonly CapacityOrderInspector $orderInspector,
-    private readonly TicketAvailabilityService $ticketAvailability,
+    private readonly CartTicketAvailabilityInterface $ticketAvailability,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
+    private readonly Connection $database,
   ) {}
 
   /**
@@ -62,6 +64,8 @@ final class CartTicketHoldManager {
     }
     $variations = $variationStorage->loadMultiple(array_unique($variationIds));
 
+    ksort($byVariation, SORT_NUMERIC);
+    $validatedEvents = [];
     foreach ($byVariation as $eventId => $eventVariations) {
       $event = $events[$eventId] ?? NULL;
       if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
@@ -69,21 +73,43 @@ final class CartTicketHoldManager {
       }
 
       $requestedTotal = (int) ($eventTotals[$eventId] ?? 0);
+      ksort($eventVariations, SORT_NUMERIC);
       foreach ($eventVariations as $variationId => $quantity) {
         $variation = $variations[$variationId] ?? NULL;
         if (!$variation instanceof ProductVariationInterface || $variation->getProduct() === NULL) {
           throw new CapacityExceededException('This ticket is no longer available.');
         }
 
-        $this->ticketAvailability->assertPaidLineAndEventTotal(
+        $this->ticketAvailability->assertPaidVariationLineConstraints(
           $event,
           $variation->getProduct(),
           $variation,
           (int) $quantity,
-          $requestedTotal,
-          self::reservationKey($orderId, (int) $eventId),
         );
       }
+      $validatedEvents[(int) $eventId] = [
+        'event' => $event,
+        'quantity' => $requestedTotal,
+      ];
+    }
+
+    // Only write reservations after every tier has passed validation. The
+    // outer transaction also prevents a later event failure from leaving an
+    // earlier event's hold refreshed.
+    ksort($validatedEvents, SORT_NUMERIC);
+    $transaction = $this->database->startTransaction();
+    try {
+      foreach ($validatedEvents as $eventId => $validatedEvent) {
+        $this->ticketAvailability->assertEventTotalBookable(
+          $validatedEvent['event'],
+          $validatedEvent['quantity'],
+          self::reservationKey($orderId, $eventId),
+        );
+      }
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
     }
   }
 
