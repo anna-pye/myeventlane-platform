@@ -37,8 +37,8 @@
       <span class="mel-vendor-events-v2__summary-label">{{ 'Draft'|t }}</span>
     </article>
     <article class="mel-vendor-events-v2__summary-card">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.published|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'Published'|t }}</span>
+      <span class="mel-vendor-events-v2__summary-value">{{ summary.current|default(0) }}</span>
+      <span class="mel-vendor-events-v2__summary-label">{{ 'Current'|t }}</span>
     </article>
     <article class="mel-vendor-events-v2__summary-card mel-vendor-events-v2__summary-card--attention">
       <span class="mel-vendor-events-v2__summary-value">{{ summary.needs_attention|default(0) }}</span>
@@ -101,7 +101,7 @@
         {% set boost = ev.boost|default({}) %}
         {% set boost_extension_recommendation = ev.boost_extension_recommendation|default(null) %}
         {% set sev = ev.status_severity|default('neutral') %}
-        <article class="mel-vendor-events-v2__card{% if ev.status|default('') == 'past' %} mel-vendor-events-v2__card--quiet{% endif %}{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}">
+        <article class="mel-vendor-events-v2__card{% if ev.status|default('') in ['ended', 'cancelled', 'archived'] %} mel-vendor-events-v2__card--quiet{% endif %}{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}">
           <div class="mel-vendor-events-v2__card-top">
             {% set img = ev.image|default({}) %}
             {% set img_url = img.url|default('') %}

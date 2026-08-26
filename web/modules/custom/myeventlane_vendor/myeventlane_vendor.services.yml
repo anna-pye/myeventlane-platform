@@ -269,10 +269,10 @@ services:
       - '@myeventlane_vendor.service.ticket_sales'
       - '@myeventlane_vendor.service.rsvp_stats'
       - '@myeventlane_core.event_state_resolver'
+      - '@myeventlane_event_state.resolver'
       - '@myeventlane_vendor.event_presentation_alerts'
       - '@router.route_provider'
       - '@access_manager'
-      - '@datetime.time'
       - '@date.formatter'
       - '@entity_field.manager'
       - '@string_translation'
@@ -400,8 +400,6 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@current_user'
       - '@messenger'
-      - '@entity_type.manager'
-      - '@form_builder'
       - '@myeventlane_vendor.event_index_view_model_builder'
     tags:
       - { name: controller.service_arguments }

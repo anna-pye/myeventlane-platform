@@ -17,7 +17,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_boost\Service\BoostExtensionRecommendationService;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_core\MelReadinessHelper;
-use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_event_state\Service\EventStateResolverInterface as LifecycleStateResolverInterface;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -38,10 +38,10 @@ final class VendorEventIndexViewModelBuilder {
     private readonly TicketSalesService $ticketSalesService,
     private readonly RsvpStatsService $rsvpStatsService,
     private readonly EventStateResolver $eventStateResolver,
+    private readonly LifecycleStateResolverInterface $lifecycleStateResolver,
     private readonly VendorEventPresentationAlertsBuilder $presentationAlerts,
     private readonly RouteProviderInterface $routeProvider,
     private readonly AccessManagerInterface $accessManager,
-    private readonly TimeInterface $time,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly EntityFieldManagerInterface $entityFieldManager,
     TranslationInterface $string_translation,
@@ -133,7 +133,7 @@ final class VendorEventIndexViewModelBuilder {
       'summary' => [
         'total' => 0,
         'draft' => 0,
-        'published' => 0,
+        'current' => 0,
         'needs_attention' => 0,
         'paid' => 0,
         'rsvp' => 0,
@@ -183,11 +183,10 @@ final class VendorEventIndexViewModelBuilder {
    */
   private function buildEventRow(NodeInterface $node, AccountInterface $account): array {
     $nid = (int) $node->id();
-    $now = (int) $this->time->getRequestTime();
     $startTs = $this->getDateFieldTimestamp($node, 'field_event_start');
     $endTs = $this->getDateFieldTimestamp($node, 'field_event_end');
 
-    $statusParts = $this->resolvePublicationStatus($node, $endTs, $now);
+    $statusParts = $this->lifecyclePresentation($this->lifecycleStateResolver->resolveState($node));
     $status = $statusParts['status'];
     $statusLabel = $statusParts['label'];
     $statusSeverity = $statusParts['severity'];
@@ -262,16 +261,23 @@ final class VendorEventIndexViewModelBuilder {
     }
     $metricLabel = $metricParts !== [] ? implode(' · ', $metricParts) : NULL;
 
+    $isTerminal = in_array($status, ['ended', 'cancelled', 'archived'], TRUE);
+    $inReview = $this->isInReview($node);
     $missingDate = $startTs <= 0 && $endTs <= 0;
-    $presentation = $this->presentationAlerts->buildChipSummary($node, $hasProduct, $eventType);
+    $presentation = $isTerminal
+      ? ['items' => []]
+      : $this->presentationAlerts->buildChipSummary($node, $hasProduct, $eventType);
     $presentationItems = $presentation['items'] ?? [];
-    $needsAttention = $status === 'draft'
+    $needsAttention = !$isTerminal && (
+      $status === 'draft'
+      || $inReview
       || $eventType === 'unknown'
       || $titleEmpty
       || $missingDate
-      || $presentationItems !== [];
+      || $presentationItems !== []
+    );
 
-    $attentionLabel = $this->buildAttentionLabel($status, $eventType, $titleEmpty, $missingDate, $presentationItems);
+    $attentionLabel = $this->buildAttentionLabel($status, $eventType, $titleEmpty, $missingDate, $inReview, $presentationItems);
 
     $boost = $this->boostStatusService->getVisibilityPayload($node);
     $boostExtensionRecommendation = $this->boostExtensionRecommendation?->getRecommendation($node);
@@ -311,53 +317,62 @@ final class VendorEventIndexViewModelBuilder {
   }
 
   /**
+   * Maps a lifecycle state to its organiser-facing presentation.
+   *
    * @return array{status: string, label: string, severity: string}
+   *   The status key, translated label, and visual severity.
    */
-  private function resolvePublicationStatus(NodeInterface $node, int $endTs, int $now): array {
-    if (!$node->isPublished()) {
-      return [
-        'status' => 'draft',
-        'label' => (string) $this->t('Draft'),
-        'severity' => 'warning',
-      ];
-    }
-
-    $inReview = $node->hasField('moderation_state')
-      && !$node->get('moderation_state')->isEmpty()
-      && (string) $node->get('moderation_state')->value === 'review';
-    if ($inReview) {
-      return [
-        'status' => 'unknown',
-        'label' => (string) $this->t('Needs review'),
-        'severity' => 'warning',
-      ];
-    }
-
-    if ($endTs > 0 && $endTs < $now) {
-      return [
-        'status' => 'past',
-        'label' => (string) $this->t('Past'),
-        'severity' => 'neutral',
-      ];
-    }
-
-    return [
-      'status' => 'published',
-      'label' => (string) $this->t('Published'),
-      'severity' => 'success',
-    ];
+  private function lifecyclePresentation(string $state): array {
+    return match ($state) {
+      'draft' => ['status' => 'draft', 'label' => (string) $this->t('Draft'), 'severity' => 'warning'],
+      'scheduled' => ['status' => 'scheduled', 'label' => (string) $this->t('Upcoming'), 'severity' => 'neutral'],
+      'live' => ['status' => 'live', 'label' => (string) $this->t('Live'), 'severity' => 'success'],
+      'sold_out' => ['status' => 'sold_out', 'label' => (string) $this->t('Sold out'), 'severity' => 'warning'],
+      'ended' => ['status' => 'ended', 'label' => (string) $this->t('Completed'), 'severity' => 'neutral'],
+      'cancelled' => ['status' => 'cancelled', 'label' => (string) $this->t('Cancelled'), 'severity' => 'error'],
+      'archived' => ['status' => 'archived', 'label' => (string) $this->t('Archived'), 'severity' => 'neutral'],
+      default => ['status' => 'unknown', 'label' => (string) $this->t('Event'), 'severity' => 'neutral'],
+    };
   }
 
   /**
-   * @param list<array<string, mixed>> $presentationItems
+   * Determines whether the event is waiting for moderation review.
    */
-  private function buildAttentionLabel(string $status, string $eventType, bool $titleEmpty, bool $missingDate, array $presentationItems = []): ?string {
+  private function isInReview(NodeInterface $node): bool {
+    return $node->hasField('moderation_state')
+      && !$node->get('moderation_state')->isEmpty()
+      && (string) $node->get('moderation_state')->value === 'review';
+  }
+
+  /**
+   * Builds the first useful setup instruction for an event card.
+   *
+   * @param string $status
+   *   The canonical lifecycle state.
+   * @param string $eventType
+   *   The booking method derived from saved event information.
+   * @param bool $titleEmpty
+   *   Whether the event title is empty.
+   * @param bool $missingDate
+   *   Whether the event has no start or end date.
+   * @param bool $inReview
+   *   Whether the event is waiting for moderation review.
+   * @param list<array<string, mixed>> $presentationItems
+   *   Additional setup issues.
+   *
+   * @return string|null
+   *   The organiser-facing instruction, or NULL when none is needed.
+   */
+  private function buildAttentionLabel(string $status, string $eventType, bool $titleEmpty, bool $missingDate, bool $inReview, array $presentationItems = []): ?string {
     $base = NULL;
     if ($titleEmpty) {
       $base = (string) $this->t('Add a title');
     }
     elseif ($missingDate) {
       $base = (string) $this->t('Add date & time');
+    }
+    elseif ($inReview) {
+      $base = (string) $this->t('Needs review');
     }
     elseif ($status === 'draft') {
       $base = (string) $this->t('Draft — finish setup');
@@ -388,7 +403,7 @@ final class VendorEventIndexViewModelBuilder {
     $summary = [
       'total' => count($rows),
       'draft' => 0,
-      'published' => 0,
+      'current' => 0,
       'needs_attention' => 0,
       'paid' => 0,
       'rsvp' => 0,
@@ -399,8 +414,8 @@ final class VendorEventIndexViewModelBuilder {
       if ($st === 'draft') {
         $summary['draft']++;
       }
-      elseif ($st === 'published') {
-        $summary['published']++;
+      elseif (in_array($st, ['scheduled', 'live', 'sold_out'], TRUE)) {
+        $summary['current']++;
       }
 
       if (!empty($row['needs_attention'])) {
@@ -427,10 +442,12 @@ final class VendorEventIndexViewModelBuilder {
   private function buildFilterItems(AccountInterface $account, string $activeStatus, string $sort, array $rows, bool $boostFieldExists): array {
     $definitions = [
       'all' => (string) $this->t('All'),
-      'draft' => (string) $this->t('Draft'),
-      'published' => (string) $this->t('Published'),
       'needs_attention' => (string) $this->t('Needs attention'),
-      'past' => (string) $this->t('Past'),
+      'draft' => (string) $this->t('Draft'),
+      'current' => (string) $this->t('Current'),
+      'ended' => (string) $this->t('Completed'),
+      'cancelled' => (string) $this->t('Cancelled'),
+      'archived' => (string) $this->t('Archived'),
       'rsvp' => (string) $this->t('RSVP'),
       'paid' => (string) $this->t('Paid'),
     ];
@@ -481,8 +498,10 @@ final class VendorEventIndexViewModelBuilder {
   private function rowMatchesFilter(array $row, string $key, bool $boostFieldExists): bool {
     return match ($key) {
       'draft' => ($row['status'] ?? '') === 'draft',
-      'published' => ($row['status'] ?? '') === 'published',
-      'past' => ($row['status'] ?? '') === 'past',
+      'current' => in_array(($row['status'] ?? ''), ['scheduled', 'live', 'sold_out'], TRUE),
+      'ended' => ($row['status'] ?? '') === 'ended',
+      'cancelled' => ($row['status'] ?? '') === 'cancelled',
+      'archived' => ($row['status'] ?? '') === 'archived',
       'needs_attention' => !empty($row['needs_attention']),
       'rsvp' => in_array(($row['event_type'] ?? ''), ['rsvp', 'both'], TRUE),
       'paid' => in_array(($row['event_type'] ?? ''), ['paid', 'both'], TRUE),
@@ -624,8 +643,24 @@ final class VendorEventIndexViewModelBuilder {
   }
 
   private function normalizeStatus(string $raw): string {
-    $allowed = ['all', 'draft', 'published', 'needs_attention', 'past', 'rsvp', 'paid', 'boosted'];
     $v = strtolower(trim($raw));
+    $v = match ($v) {
+      'published' => 'current',
+      'past' => 'ended',
+      default => $v,
+    };
+    $allowed = [
+      'all',
+      'needs_attention',
+      'draft',
+      'current',
+      'ended',
+      'cancelled',
+      'archived',
+      'rsvp',
+      'paid',
+      'boosted',
+    ];
     return in_array($v, $allowed, TRUE) ? $v : 'all';
   }
 
