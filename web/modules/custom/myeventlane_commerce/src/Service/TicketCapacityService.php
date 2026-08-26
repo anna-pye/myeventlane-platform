@@ -21,6 +21,7 @@ final class TicketCapacityService {
     private readonly Connection $database,
     private readonly TicketVariationSoldService $variationSold,
     private readonly TimeInterface $time,
+    private readonly CartTicketTierHoldStoreInterface $cartTierHolds,
   ) {}
 
   public function getSold(int $eventId, int $variationId): int {
@@ -35,18 +36,48 @@ final class TicketCapacityService {
     return $this->variationSold->countCompletedSoldForVariations($eventId, $variationIds);
   }
 
-  public function getHeld(int $eventId, int $tierId): int {
-    return $this->sumActiveOfferReserved($eventId, [$tierId])[$tierId] ?? 0;
+  /**
+   * Counts active waitlist and cart holds for one ticket tier.
+   *
+   * @param int $eventId
+   *   Event node ID.
+   * @param int $tierId
+   *   Ticket tier ID.
+   * @param string|null $excludedCartReservationKey
+   *   Current cart hold key to exclude from competing inventory.
+   */
+  public function getHeld(
+    int $eventId,
+    int $tierId,
+    ?string $excludedCartReservationKey = NULL,
+  ): int {
+    $waitlistHeld = $this->sumActiveOfferReserved($eventId, [$tierId])[$tierId] ?? 0;
+    return $waitlistHeld + $this->cartTierHolds->getHeldQuantity(
+      $eventId,
+      $tierId,
+      $excludedCartReservationKey,
+    );
   }
 
   /**
+   * Counts active waitlist and cart holds for multiple ticket tiers.
+   *
+   * @param int $eventId
+   *   Event node ID.
    * @param list<int> $tierIds
+   *   Ticket tier IDs.
    *
    * @return array<int, int>
-   *   Tier ID => held quantity from active waitlist offers.
+   *   Tier ID => held quantity from active waitlist and cart holds.
    */
   public function getHeldBatch(int $eventId, array $tierIds): array {
-    return $this->sumActiveOfferReserved($eventId, $tierIds);
+    $held = $this->sumActiveOfferReserved($eventId, $tierIds);
+    foreach ($tierIds as $tierId) {
+      $tierId = (int) $tierId;
+      $held[$tierId] = ($held[$tierId] ?? 0)
+        + $this->cartTierHolds->getHeldQuantity($eventId, $tierId);
+    }
+    return $held;
   }
 
   public function getRemaining(

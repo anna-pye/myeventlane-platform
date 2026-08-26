@@ -142,6 +142,33 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getActiveWaitlistOfferExpiry(
+    NodeInterface $event,
+    ProductVariationInterface $variation,
+  ): ?int {
+    $tier = $this->resolveTierForVariation($event, $variation);
+    if (!$tier instanceof TicketTypeInterface) {
+      return NULL;
+    }
+
+    $context = $this->buildPublicAccessContext($event);
+    $account = $context->account;
+    $offer = $this->tierWaitlist->findActiveOfferForBuyer(
+      (int) $event->id(),
+      (int) $tier->id(),
+      $account instanceof AccountInterface ? $account : NULL,
+      $context->waitlistClaimEntryId,
+    );
+    if (!$offer instanceof TicketWaitlistEntry || $offer->get('offer_expires')->isEmpty()) {
+      return NULL;
+    }
+    $expires = (int) $offer->get('offer_expires')->value;
+    return $expires > $this->time->getRequestTime() ? $expires : NULL;
+  }
+
+  /**
    * Variations that may appear on the ticket selection form for this product.
    *
    * @return \Drupal\commerce_product\Entity\ProductVariationInterface[]
@@ -311,16 +338,37 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
     int $lineQuantityForThisVariation,
     int $totalTicketQuantityForThisEvent,
     ?string $reservationKey = NULL,
+    ?string $excludedTierReservationKey = NULL,
   ): void {
-    $this->assertPaidVariationLineConstraints($event, $product, $variation, $lineQuantityForThisVariation);
+    $this->assertPaidVariationLineConstraints(
+      $event,
+      $product,
+      $variation,
+      $lineQuantityForThisVariation,
+      NULL,
+      NULL,
+      $excludedTierReservationKey,
+    );
     $this->assertEventTotalBookable($event, $totalTicketQuantityForThisEvent, $reservationKey);
   }
 
   /**
-   * Validates variation publish state, mapping, tier publish, sale window, price, tier cap.
+   * Validates variation state, mapping, tier status, sale window, price and cap.
    *
+   * @param \Drupal\node\NodeInterface $event
+   *   Event being booked.
+   * @param \Drupal\commerce_product\Entity\ProductInterface $product
+   *   Ticket product.
+   * @param \Drupal\commerce_product\Entity\ProductVariationInterface $variation
+   *   Ticket variation.
+   * @param int $lineQuantity
+   *   Requested line quantity including the buyer's existing cart quantity.
+   * @param \Drupal\myeventlane_commerce\Service\TicketAccessContext|null $context
+   *   Optional prebuilt access context.
    * @param array{sold?: array<int, int>, held?: array<int, int>}|null $capacityMaps
    *   Optional preloaded sold (by variation id) and held (by tier id) counts.
+   * @param string|null $excludedTierReservationKey
+   *   Current cart-tier hold key to exclude from competing inventory.
    */
   public function assertPaidVariationLineConstraints(
     NodeInterface $event,
@@ -329,6 +377,7 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
     int $lineQuantity,
     ?TicketAccessContext $context = NULL,
     ?array $capacityMaps = NULL,
+    ?string $excludedTierReservationKey = NULL,
   ): void {
     if ($lineQuantity <= 0) {
       return;
@@ -392,7 +441,15 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
     $this->assertPurchasableTicketStatus($tier, $event, $context);
     $this->assertGroupSaleQuantity($tier, $lineQuantity);
     $this->assertPriceMatchesTier($tier, $variation);
-    $this->assertTierCapacity($event, $tier, $variation, $lineQuantity, $context, $capacityMaps);
+    $this->assertTierCapacity(
+      $event,
+      $tier,
+      $variation,
+      $lineQuantity,
+      $context,
+      $capacityMaps,
+      $excludedTierReservationKey,
+    );
   }
 
   /**
@@ -488,7 +545,22 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
   }
 
   /**
+   * Validates the requested quantity against the finite ticket-tier pool.
+   *
+   * @param \Drupal\node\NodeInterface $event
+   *   Event being booked.
+   * @param \Drupal\mel_ticket\Entity\TicketTypeInterface $tier
+   *   Canonical ticket tier.
+   * @param \Drupal\commerce_product\Entity\ProductVariationInterface $variation
+   *   Ticket variation.
+   * @param int $requestedTotal
+   *   Requested quantity including the buyer's existing cart quantity.
+   * @param \Drupal\myeventlane_commerce\Service\TicketAccessContext $context
+   *   Buyer access and waitlist context.
    * @param array{sold?: array<int, int>, held?: array<int, int>}|null $capacityMaps
+   *   Optional preloaded sold and held maps.
+   * @param string|null $excludedTierReservationKey
+   *   Current cart-tier hold key to exclude from competing inventory.
    */
   private function assertTierCapacity(
     NodeInterface $event,
@@ -497,6 +569,7 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
     int $requestedTotal,
     TicketAccessContext $context,
     ?array $capacityMaps = NULL,
+    ?string $excludedTierReservationKey = NULL,
   ): void {
     if ($tier->get('capacity')->isEmpty()) {
       return;
@@ -514,7 +587,11 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
     $heldMap = is_array($capacityMaps['held'] ?? NULL) ? $capacityMaps['held'] : [];
 
     $sold = $soldMap[$vid] ?? $this->capacitySoldCount($eid, $vid);
-    $held = $heldMap[$tid] ?? $this->capacityHeldCount($eid, $tid);
+    $held = $heldMap[$tid] ?? $this->capacityHeldCount(
+      $eid,
+      $tid,
+      $excludedTierReservationKey,
+    );
 
     $pool = $cap - $sold - $held;
     if ($pool < 0) {
@@ -563,6 +640,38 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
    */
   public function countCompletedSoldForVariation(int $eventId, int $variationId): int {
     return $this->variationSold->countCompletedSoldForVariation($eventId, $variationId);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getPublicPoolRemaining(
+    NodeInterface $event,
+    ?TicketTypeInterface $tier,
+    int $variationId,
+  ): ?int {
+    if (!$tier instanceof TicketTypeInterface || $tier->get('capacity')->isEmpty()) {
+      return NULL;
+    }
+    $capacity = (int) $tier->get('capacity')->value;
+    if ($capacity < 1) {
+      return NULL;
+    }
+
+    $eventId = (int) $event->id();
+    $tierId = (int) $tier->id();
+    if ($this->capacity !== NULL) {
+      return $this->capacity->getRemaining(
+        $eventId,
+        $tierId,
+        $variationId,
+        $tier,
+      );
+    }
+
+    $sold = $this->variationSold->countCompletedSoldForVariation($eventId, $variationId);
+    $held = $this->tierWaitlist->sumActiveOfferReserved($eventId, $tierId);
+    return max(0, $capacity - $sold - $held);
   }
 
   /**
@@ -660,9 +769,13 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
     return $this->variationSold->countCompletedSoldForVariation($eventId, $variationId);
   }
 
-  private function capacityHeldCount(int $eventId, int $tierId): int {
+  private function capacityHeldCount(
+    int $eventId,
+    int $tierId,
+    ?string $excludedTierReservationKey = NULL,
+  ): int {
     if ($this->capacity !== NULL) {
-      return $this->capacity->getHeld($eventId, $tierId);
+      return $this->capacity->getHeld($eventId, $tierId, $excludedTierReservationKey);
     }
     return $this->tierWaitlist->sumActiveOfferReserved($eventId, $tierId);
   }

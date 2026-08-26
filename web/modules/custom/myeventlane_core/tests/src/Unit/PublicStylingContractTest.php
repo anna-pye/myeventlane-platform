@@ -41,7 +41,11 @@ final class PublicStylingContractTest extends TestCase {
     self::assertStringNotContainsString("@use 'components/checkout'", $main);
     self::assertStringContainsString("@use 'commerce/commerce'", $commerce);
     self::assertStringContainsString("@use 'components/checkout'", $commerce);
-    self::assertStringContainsString('commerce-styling:', $libraries);
+    self::assertMatchesRegularExpression(
+      '/commerce-styling:\R  dependencies:\R    - core\/drupal/',
+      $libraries,
+      'The dynamically populated commerce library must remain valid before hook_library_info_alter() runs.',
+    );
     self::assertStringContainsString("\$manifest['scss/commerce.scss']", $theme);
     self::assertStringContainsString('_myeventlane_theme_is_commerce_styled_route', $theme);
     self::assertStringContainsString("'entity.commerce_payment_method.add_form'", $theme);
