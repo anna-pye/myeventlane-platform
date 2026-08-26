@@ -30,8 +30,6 @@ final class CustomerTicketTierDisplayBuilder {
    *   Ordered mel_ticket_type rows for an event.
    * @param \Drupal\commerce_price\CurrencyFormatter $currencyFormatter
    *   Formats variation prices for display.
-   * @param \Drupal\myeventlane_commerce\Service\TicketTierWaitlistService $tierWaitlist
-   *   Waitlist hold counts for availability copy.
    * @param \Drupal\myeventlane_commerce\Service\EventDefaultTicketResolverInterface $defaultTicketResolver
    *   Resolves default ticket ordering aligned with TicketSelectionForm.
    */
@@ -39,7 +37,6 @@ final class CustomerTicketTierDisplayBuilder {
     private readonly TicketCustomerDisplayGatewayInterface $ticketAvailability,
     private readonly EventPaidTicketLoaderInterface $ticketTierLifecycle,
     private readonly CurrencyFormatter $currencyFormatter,
-    private readonly TicketTierWaitlistHoldCounterInterface $tierWaitlist,
     private readonly EventDefaultTicketResolverInterface $defaultTicketResolver,
     TranslationInterface $string_translation,
   ) {
@@ -162,20 +159,14 @@ final class CustomerTicketTierDisplayBuilder {
     ?TicketTypeInterface $tier,
     int $variationId,
   ): string {
-    if (!$tier instanceof TicketTypeInterface) {
+    $pool = $this->ticketAvailability->getPublicPoolRemaining(
+      $event,
+      $tier,
+      $variationId,
+    );
+    if ($pool === NULL) {
       return (string) $this->t('Available');
     }
-    if ($tier->get('capacity')->isEmpty()) {
-      return (string) $this->t('Available');
-    }
-    $cap = (int) $tier->get('capacity')->value;
-    if ($cap < 1) {
-      return (string) $this->t('Available');
-    }
-    $eid = (int) $event->id();
-    $sold = $this->ticketAvailability->countCompletedSoldForVariation($eid, $variationId);
-    $held = $this->tierWaitlist->sumActiveOfferReserved($eid, (int) $tier->id());
-    $pool = max(0, $cap - $sold - $held);
     if ($pool < 1) {
       return (string) $this->t('Limited availability');
     }

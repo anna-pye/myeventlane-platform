@@ -203,7 +203,6 @@ services:
       - '@myeventlane_commerce.ticket_availability'
       - '@myeventlane_event.ticket_tier_lifecycle'
       - '@commerce_price.currency_formatter'
-      - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@myeventlane_commerce.event_default_ticket_resolver'
       - '@string_translation'
 

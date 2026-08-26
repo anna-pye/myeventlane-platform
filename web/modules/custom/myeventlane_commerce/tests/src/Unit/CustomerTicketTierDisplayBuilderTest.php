@@ -14,7 +14,6 @@ use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder;
 use Drupal\myeventlane_commerce\Service\TicketAccessContext;
 use Drupal\myeventlane_commerce\Service\TicketCustomerDisplayGatewayInterface;
-use Drupal\myeventlane_commerce\Service\TicketTierWaitlistHoldCounterInterface;
 use Drupal\myeventlane_event\Service\EventPaidTicketLoaderInterface;
 use Drupal\myeventlane_commerce\Service\EventDefaultTicketResolverInterface;
 use Drupal\node\NodeInterface;
@@ -27,6 +26,23 @@ use PHPUnit\Framework\MockObject\MockObject;
  * @group myeventlane_commerce
  */
 final class CustomerTicketTierDisplayBuilderTest extends UnitTestCase {
+
+  /**
+   * @covers ::buyerFacingAvailabilityMessage
+   */
+  public function testAvailabilityUsesPublicPoolIncludingActiveCartHolds(): void {
+    $event = $this->eventNode(42, FALSE);
+    $tier = $this->tier(5, 'General admission', TRUE, 'public', 10, TRUE, 11);
+    $availability = $this->availabilityMock();
+    $availability->method('getPublicPoolRemaining')->willReturn(3);
+
+    $builder = $this->builder($availability);
+
+    $this->assertSame(
+      'Only 3 left',
+      $builder->buyerFacingAvailabilityMessage($event, $tier, 11),
+    );
+  }
 
   /**
    * @covers ::buildForEvent
@@ -97,7 +113,7 @@ final class CustomerTicketTierDisplayBuilderTest extends UnitTestCase {
 
     $default_resolver = new EventDefaultTicketResolverStub($tier);
 
-    $builder = $this->builder($availability, $lifecycle, NULL, $default_resolver);
+    $builder = $this->builder($availability, $lifecycle, $default_resolver);
     $result = $builder->buildForEvent($event);
 
     $this->assertTrue($result['visible_rows'][0]['is_best_value']);
@@ -134,7 +150,7 @@ final class CustomerTicketTierDisplayBuilderTest extends UnitTestCase {
 
     $default_resolver = new EventDefaultTicketResolverStub($concession_tier);
 
-    $builder = $this->builder($availability, $lifecycle, NULL, $default_resolver);
+    $builder = $this->builder($availability, $lifecycle, $default_resolver);
     $result = $builder->buildForEvent($event);
 
     $this->assertCount(2, $result['visible_rows']);
@@ -202,7 +218,6 @@ final class CustomerTicketTierDisplayBuilderTest extends UnitTestCase {
   private function builder(
     TicketCustomerDisplayGatewayInterface&MockObject $availability,
     ?EventPaidTicketLoaderInterface $lifecycle = NULL,
-    ?TicketTierWaitlistHoldCounterInterface $waitlist = NULL,
     ?EventDefaultTicketResolverInterface $default_resolver = NULL,
   ): CustomerTicketTierDisplayBuilder {
     $lifecycle ??= $this->createMock(EventPaidTicketLoaderInterface::class);
@@ -213,16 +228,12 @@ final class CustomerTicketTierDisplayBuilderTest extends UnitTestCase {
       static fn (string $number, string $currency) => '$' . $number
     );
 
-    $waitlist ??= $this->createMock(TicketTierWaitlistHoldCounterInterface::class);
-    $waitlist->method('sumActiveOfferReserved')->willReturn(0);
-
     $default_resolver ??= new EventDefaultTicketResolverStub(NULL);
 
     return new CustomerTicketTierDisplayBuilder(
       $availability,
       $lifecycle,
       $formatter,
-      $waitlist,
       $default_resolver,
       new TranslationManager(new LanguageDefault([])),
     );

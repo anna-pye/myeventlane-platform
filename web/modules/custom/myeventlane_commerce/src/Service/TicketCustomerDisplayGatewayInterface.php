@@ -37,6 +37,17 @@ interface TicketCustomerDisplayGatewayInterface extends TicketTierForVariationRe
   public function countCompletedSoldForVariation(int $eventId, int $variationId): int;
 
   /**
+   * Remaining public inventory after completed sales and active holds.
+   *
+   * Returns NULL when the tier has no finite capacity.
+   */
+  public function getPublicPoolRemaining(
+    NodeInterface $event,
+    ?TicketTypeInterface $tier,
+    int $variationId,
+  ): ?int;
+
+  /**
    * Vendor-only reason a saved tier is not on the public book matrix.
    */
   public function explainVendorPreviewExclusion(

@@ -643,6 +643,38 @@ final class TicketAvailabilityService implements CartTicketAvailabilityInterface
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getPublicPoolRemaining(
+    NodeInterface $event,
+    ?TicketTypeInterface $tier,
+    int $variationId,
+  ): ?int {
+    if (!$tier instanceof TicketTypeInterface || $tier->get('capacity')->isEmpty()) {
+      return NULL;
+    }
+    $capacity = (int) $tier->get('capacity')->value;
+    if ($capacity < 1) {
+      return NULL;
+    }
+
+    $eventId = (int) $event->id();
+    $tierId = (int) $tier->id();
+    if ($this->capacity !== NULL) {
+      return $this->capacity->getRemaining(
+        $eventId,
+        $tierId,
+        $variationId,
+        $tier,
+      );
+    }
+
+    $sold = $this->variationSold->countCompletedSoldForVariation($eventId, $variationId);
+    $held = $this->tierWaitlist->sumActiveOfferReserved($eventId, $tierId);
+    return max(0, $capacity - $sold - $held);
+  }
+
+  /**
    * Vendor-only reason a saved tier is not on the public book matrix.
    */
   public function explainVendorPreviewExclusion(

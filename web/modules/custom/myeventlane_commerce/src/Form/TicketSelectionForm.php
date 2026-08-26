@@ -1023,20 +1023,14 @@ final class TicketSelectionForm extends FormBase {
     if ($this->customerTicketTierDisplay instanceof CustomerTicketTierDisplayBuilder) {
       return $this->customerTicketTierDisplay->buyerFacingAvailabilityMessage($event, $tier, $variationId);
     }
-    if (!$tier instanceof TicketTypeInterface) {
+    $pool = $this->ticketAvailability->getPublicPoolRemaining(
+      $event,
+      $tier,
+      $variationId,
+    );
+    if ($pool === NULL) {
       return (string) $this->t('Available');
     }
-    if ($tier->get('capacity')->isEmpty()) {
-      return (string) $this->t('Available');
-    }
-    $cap = (int) $tier->get('capacity')->value;
-    if ($cap < 1) {
-      return (string) $this->t('Available');
-    }
-    $eid = (int) $event->id();
-    $sold = $this->ticketAvailability->countCompletedSoldForVariation($eid, $variationId);
-    $held = $this->tierWaitlist->sumActiveOfferReserved($eid, (int) $tier->id());
-    $pool = max(0, $cap - $sold - $held);
     if ($pool < 1) {
       return (string) $this->t('Limited availability');
     }
