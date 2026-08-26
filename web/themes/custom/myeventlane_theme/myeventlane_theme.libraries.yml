@@ -19,6 +19,14 @@ global-styling:
 # injected from the Vite manifest by hook_library_info_alter().
 commerce-styling: {}
 
+# Real-time presentation of the server-side limited-ticket reservation.
+cart_ticket_hold:
+  js:
+    js/cart-ticket-hold.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+
 account-settings-hub:
   js:
     js/account-settings-hub.js: { attributes: { defer: true } }

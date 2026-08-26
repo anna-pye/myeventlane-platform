@@ -83,4 +83,20 @@ interface EventCapacityServiceInterface {
    */
   public function releaseReservation(string $reservationKey): void;
 
+  /**
+   * Gets an active provisional reservation by its stable key.
+   *
+   * @param string $reservationKey
+   *   The reservation key passed to assertCanBook().
+   *
+   * @return array{event_id: int, quantity: int, created: int, expires: int}|null
+   *   The active reservation, or NULL when the key is absent or expired.
+   */
+  public function getActiveReservation(string $reservationKey): ?array;
+
+  /**
+   * Gets the authoritative provisional reservation lifetime.
+   */
+  public function getReservationTtl(): int;
+
 }

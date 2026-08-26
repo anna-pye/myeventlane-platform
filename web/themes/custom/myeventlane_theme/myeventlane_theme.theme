@@ -484,6 +484,13 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'commerce/mel-checkout-order-summary-grouped',
     ],
+    'mel_ticket_hold' => [
+      'variables' => [
+        'mel_ticket_hold' => [],
+        'surface' => 'cart',
+      ],
+      'template' => 'commerce/mel-ticket-hold',
+    ],
     'mel_tax_invoice_pdf' => [
       'variables' => [
         'invoice' => [],
@@ -1089,6 +1096,9 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   if (($step_id ?? '') !== 'complete') {
     $order_param = _myeventlane_theme_commerce_order_from_route();
     if ($order_param instanceof OrderInterface) {
+      if (\Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+        $variables['mel_ticket_hold'] = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($order_param);
+      }
       $event = _myeventlane_theme_get_first_event_from_order($order_param);
       $variables['mel_checkout_refunds_available'] = _myeventlane_theme_event_has_refunds_available($event);
       if ($event instanceof NodeInterface) {
@@ -5328,6 +5338,9 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $variables['item_event_map'] = $item_event_map;
 
   $order = $form['#order'] ?? NULL;
+  if (isset($form['#mel_ticket_hold']) && is_array($form['#mel_ticket_hold'])) {
+    $variables['mel_ticket_hold'] = $form['#mel_ticket_hold'];
+  }
   if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_checkout_flow.checkout_summary_presenter')) {
     /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $cart_presenter */
     $cart_presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');

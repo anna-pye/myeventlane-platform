@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_commerce\Unit;
 
+use Drupal\commerce_cart\Event\CartEvents;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
@@ -11,17 +12,20 @@ use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\Tests\UnitTestCase;
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\MockObject\MockObject;
 
 /**
- * @coversDefaultClass \Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber
- *
- * @group myeventlane_commerce
+ * Tests ticket availability subscriber routing.
  */
+#[CoversClass(TicketAvailabilityCommerceSubscriber::class)]
+#[Group('myeventlane_commerce')]
 final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
 
   /**
-   * @return array<string, bool>
+   * @return array<string, array{string, bool}>
    */
   public static function operationalBundleProvider(): array {
     $cases = [];
@@ -32,10 +36,7 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
     return $cases;
   }
 
-  /**
-   * @covers ::shouldValidateAsTicket
-   * @dataProvider operationalBundleProvider
-   */
+  #[DataProvider('operationalBundleProvider')]
   public function testShouldValidateAsTicketSkipsOperationalMerchandise(string $bundle, bool $skip_ticket_rules): void {
     $subscriber = $this->subscriber();
     $variation = $this->variation($bundle);
@@ -50,6 +51,18 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
     $order_item = $this->orderItemWithTargetEventAndVariation($this->variation('default'));
 
     $this->assertTrue($this->invokeShouldValidateAsTicket($subscriber, $order_item));
+  }
+
+  /**
+   * The subscriber follows updates, removals, and an emptied cart.
+   */
+  public function testSubscriberTracksTheWholeCartHoldLifecycle(): void {
+    $events = TicketAvailabilityCommerceSubscriber::getSubscribedEvents();
+
+    $this->assertArrayHasKey(CartEvents::CART_ENTITY_ADD, $events);
+    $this->assertArrayHasKey(CartEvents::CART_ORDER_ITEM_UPDATE, $events);
+    $this->assertArrayHasKey(CartEvents::CART_ORDER_ITEM_REMOVE, $events);
+    $this->assertArrayHasKey(CartEvents::CART_EMPTY, $events);
   }
 
   private function orderItemWithTargetEventAndVariation(
@@ -101,7 +114,6 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
     $subscriber = $ref->newInstanceWithoutConstructor();
     $order_inspector = new CapacityOrderInspector();
     $prop = $ref->getProperty('orderInspector');
-    $prop->setAccessible(TRUE);
     $prop->setValue($subscriber, $order_inspector);
     return $subscriber;
   }
@@ -120,7 +132,6 @@ final class TicketAvailabilityCommerceSubscriberTest extends UnitTestCase {
     OrderItemInterface $order_item,
   ): bool {
     $method = new \ReflectionMethod($subscriber, 'shouldValidateAsTicket');
-    $method->setAccessible(TRUE);
     return (bool) $method->invoke($subscriber, $order_item);
   }
 

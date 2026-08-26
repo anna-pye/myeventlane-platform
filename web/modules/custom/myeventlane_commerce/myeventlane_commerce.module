@@ -15,6 +15,7 @@ use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
@@ -661,11 +662,76 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
     $form['actions']['checkout']['#weight'] = 0;
     $form['actions']['checkout']['#attributes']['class'][] = 'mel-cart-action';
     $form['actions']['checkout']['#attributes']['class'][] = 'mel-cart-action--checkout';
+    $form['actions']['checkout']['#attributes']['class'][] = 'mel-ticket-hold-protected-action';
+
+    $order_id = (int) $form['actions']['checkout']['#order_id'];
+    $cart = $order_id > 0
+      ? \Drupal::entityTypeManager()->getStorage('commerce_order')->load($order_id)
+      : NULL;
+    if ($cart instanceof OrderInterface && \Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+      $hold = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($cart);
+      $form['#mel_ticket_hold'] = $hold;
+      if ($hold['has_hold']) {
+        // Commerce renders the cart as a Views form (views_form_views_form),
+        // not through a commerce_cart_form theme hook. Add a real render
+        // element so the hold appears before the View output on the live cart.
+        $form['mel_ticket_hold'] = [
+          '#theme' => 'mel_ticket_hold',
+          '#mel_ticket_hold' => $hold,
+          '#surface' => 'cart',
+          '#weight' => 40,
+        ];
+        $form['#attached']['library'][] = 'myeventlane_theme/cart_ticket_hold';
+        $form['actions']['checkout']['#validate'][] = 'myeventlane_commerce_cart_ticket_hold_validate';
+        if ($hold['state'] === 'expired') {
+          $form['actions']['checkout']['#disabled'] = TRUE;
+        }
+
+        $renew_attributes = [
+          'class' => [
+            'mel-cart-action',
+            'mel-cart-action--renew-hold',
+          ],
+          'data-mel-ticket-hold-renew' => 'true',
+        ];
+        if ($hold['state'] === 'active') {
+          $renew_attributes['hidden'] = 'hidden';
+        }
+        $form['actions']['renew_ticket_hold'] = [
+          '#type' => 'submit',
+          '#value' => t('Check ticket availability'),
+          '#weight' => -5,
+          '#order_id' => $order_id,
+          '#limit_validation_errors' => [],
+          '#submit' => ['myeventlane_commerce_cart_ticket_hold_renew_submit'],
+          '#attributes' => $renew_attributes,
+        ];
+      }
+    }
   }
   if (isset($form['actions']['submit']) && is_array($form['actions']['submit'])) {
     $form['actions']['submit']['#weight'] = 10;
     $form['actions']['submit']['#attributes']['class'][] = 'mel-cart-action';
     $form['actions']['submit']['#attributes']['class'][] = 'mel-cart-action--update';
+  }
+
+  if ($is_commerce_checkout_form && isset($form['actions']['next']) && is_array($form['actions']['next'])) {
+    $order = \Drupal::routeMatch()->getParameter('commerce_order');
+    if (is_numeric($order)) {
+      $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);
+    }
+    if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+      $hold = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($order);
+      $form['#mel_ticket_hold'] = $hold;
+      if ($hold['has_hold']) {
+        $form['#attached']['library'][] = 'myeventlane_theme/cart_ticket_hold';
+        $form['actions']['next']['#attributes']['class'][] = 'mel-ticket-hold-protected-action';
+        $form['actions']['next']['#validate'][] = 'myeventlane_commerce_checkout_ticket_hold_validate';
+        if ($hold['state'] === 'expired') {
+          $form['actions']['next']['#disabled'] = TRUE;
+        }
+      }
+    }
   }
 
   // Apply only on Commerce checkout forms.
@@ -729,6 +795,77 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
       $form['#submit'] = [];
     }
     array_unshift($form['#submit'], 'myeventlane_commerce_checkout_form_submit_safety_check');
+  }
+}
+
+/**
+ * Prevents checkout entry when the server-side ticket hold has expired.
+ */
+function myeventlane_commerce_cart_ticket_hold_validate(array &$form, FormStateInterface $form_state): void {
+  $order_id = (int) ($form_state->getTriggeringElement()['#order_id'] ?? 0);
+  $cart = $order_id > 0
+    ? \Drupal::entityTypeManager()->getStorage('commerce_order')->load($order_id)
+    : NULL;
+  if (!$cart instanceof OrderInterface || !\Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+    return;
+  }
+
+  $hold = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($cart);
+  if ($hold['has_hold'] && $hold['state'] !== 'active') {
+    $form_state->setError(
+      $form,
+      t('Your ticket hold has ended. Check availability before continuing to checkout.'),
+    );
+  }
+}
+
+/**
+ * Rechecks capacity and starts a fresh hold after explicit customer action.
+ */
+function myeventlane_commerce_cart_ticket_hold_renew_submit(array &$form, FormStateInterface $form_state): void {
+  $order_id = (int) ($form_state->getTriggeringElement()['#order_id'] ?? 0);
+  $cart = $order_id > 0
+    ? \Drupal::entityTypeManager()->getStorage('commerce_order')->load($order_id)
+    : NULL;
+  if (!$cart instanceof OrderInterface || !\Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+    $form_state->setError($form, t('We could not check these tickets. Please add them again.'));
+    return;
+  }
+
+  try {
+    \Drupal::service('myeventlane_commerce.cart_ticket_hold')->refresh($cart);
+    \Drupal::messenger()->addStatus(t('Your tickets are held for another 15 minutes.'));
+    $form_state->setRedirect('commerce_cart.page');
+  }
+  catch (CapacityExceededException $e) {
+    $form_state->setError(
+      $form,
+      t('@message Please adjust your cart or choose another ticket.', [
+        '@message' => $e->getMessage(),
+      ]),
+    );
+    $form_state->setRebuild(TRUE);
+  }
+}
+
+/**
+ * Blocks final checkout actions after the authoritative hold expires.
+ */
+function myeventlane_commerce_checkout_ticket_hold_validate(array &$form, FormStateInterface $form_state): void {
+  $order = \Drupal::routeMatch()->getParameter('commerce_order');
+  if (is_numeric($order)) {
+    $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);
+  }
+  if (!$order instanceof OrderInterface || !\Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+    return;
+  }
+
+  $hold = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($order);
+  if ($hold['has_hold'] && $hold['state'] !== 'active') {
+    $form_state->setError(
+      $form,
+      t('Your ticket hold has ended. Return to your cart to check availability before paying.'),
+    );
   }
 }
 

@@ -95,6 +95,13 @@
 
     <p class="mel-checkout__helper mel-checkout__helper--governed">{{ mcp_hero.flow_helper|default('') }}</p>
 
+    {% if mel_ticket_hold is defined and mel_ticket_hold.has_hold|default(false) %}
+      {% include '@myeventlane_theme/commerce/mel-ticket-hold.html.twig' with {
+        mel_ticket_hold: mel_ticket_hold,
+        surface: 'checkout',
+      } only %}
+    {% endif %}
+
     {% if mel_organiser_checkout.purchase_details is defined %}
       {% set purchase = mel_organiser_checkout.purchase_details %}
       <section class="mel-checkout-purchase-context mel-card-surface" aria-labelledby="mel-checkout-purchase-context-heading">

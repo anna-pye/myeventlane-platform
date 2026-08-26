@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_core\Unit;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
 /**
  * Guards the customer-facing styling and messaging architecture.
- *
- * @group myeventlane_core
  */
+#[Group('myeventlane_core')]
 final class PublicStylingContractTest extends TestCase {
 
   /**
@@ -66,6 +66,36 @@ final class PublicStylingContractTest extends TestCase {
       $checkout,
     );
     self::assertStringNotContainsString('!important', $checkout);
+  }
+
+  /**
+   * Ticket urgency must be backed by the server hold and remain accessible.
+   */
+  public function testTicketHoldTimerUsesServerExpiryAndAccessibleThresholds(): void {
+    $commerceModule = $this->source('web/modules/custom/myeventlane_commerce/myeventlane_commerce.module');
+    $checkout = $this->source('web/themes/custom/myeventlane_theme/templates/commerce/commerce-checkout-form.html.twig');
+    $timer = $this->source('web/themes/custom/myeventlane_theme/templates/commerce/mel-ticket-hold.html.twig');
+    $javascript = $this->source('web/themes/custom/myeventlane_theme/js/cart-ticket-hold.js');
+    $styles = $this->source('web/themes/custom/myeventlane_theme/src/scss/commerce/_commerce.scss');
+    $libraries = $this->source('web/themes/custom/myeventlane_theme/myeventlane_theme.libraries.yml');
+    $theme = $this->source('web/themes/custom/myeventlane_theme/myeventlane_theme.theme');
+
+    self::assertStringContainsString("'#theme' => 'mel_ticket_hold'", $commerceModule);
+    self::assertStringContainsString("'#surface' => 'cart'", $commerceModule);
+    self::assertStringContainsString("'mel_ticket_hold' => [", $theme);
+    self::assertStringContainsString("surface: 'checkout'", $checkout);
+    self::assertStringContainsString('data-server-now', $timer);
+    self::assertStringContainsString('data-expires-at', $timer);
+    self::assertStringContainsString('role="progressbar"', $timer);
+    self::assertStringContainsString('aria-live="polite"', $timer);
+    self::assertStringContainsString('WARNING_SECONDS = 5 * 60', $javascript);
+    self::assertStringContainsString('URGENT_SECONDS = 2 * 60', $javascript);
+    self::assertStringContainsString('window.performance.now()', $javascript);
+    self::assertStringNotContainsString('Date.now()', $javascript);
+    self::assertStringContainsString('.mel-ticket-hold', $styles);
+    self::assertStringContainsString('.mel-cart-action--renew-hold[hidden]', $styles);
+    self::assertStringContainsString('@media (prefers-reduced-motion: reduce)', $styles);
+    self::assertStringContainsString('cart_ticket_hold:', $libraries);
   }
 
   /**

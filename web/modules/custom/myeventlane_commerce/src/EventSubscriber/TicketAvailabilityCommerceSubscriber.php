@@ -5,20 +5,21 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_commerce\EventSubscriber;
 
 use Drupal\commerce\PurchasableEntityInterface;
+use Drupal\commerce_cart\Event\CartEmptyEvent;
 use Drupal\commerce_cart\Event\CartEntityAddEvent;
 use Drupal\commerce_cart\Event\CartEvents;
+use Drupal\commerce_cart\Event\CartOrderItemRemoveEvent;
+use Drupal\commerce_cart\Event\CartOrderItemUpdateEvent;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
+use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
-use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
-use Drupal\node\NodeInterface;
 use Drupal\state_machine\Event\WorkflowTransitionEvent;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -37,9 +38,8 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
   private const LOCK_TIMEOUT = 30;
 
   public function __construct(
-    private readonly TicketAvailabilityService $ticketAvailability,
+    private readonly CartTicketHoldManager $cartTicketHold,
     private readonly CapacityOrderInspector $orderInspector,
-    private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly LockBackendInterface $lock,
     private readonly RequestStack $requestStack,
     TranslationInterface $stringTranslation,
@@ -54,6 +54,9 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
   public static function getSubscribedEvents(): array {
     return [
       CartEvents::CART_ENTITY_ADD => ['onCartEntityAdd', -20],
+      CartEvents::CART_ORDER_ITEM_UPDATE => ['onCartOrderItemUpdate', -20],
+      CartEvents::CART_ORDER_ITEM_REMOVE => ['onCartOrderItemRemove', -20],
+      CartEvents::CART_EMPTY => ['onCartEmpty', -20],
       'commerce_order.place.pre_transition' => ['onOrderPlacePreTransition', 0],
       'commerce_order.place.post_transition' => ['onOrderPlacePostTransition', 0],
     ];
@@ -74,6 +77,9 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
     }
   }
 
+  /**
+   * Starts or refreshes the reservation after a ticket is added.
+   */
   public function onCartEntityAdd(CartEntityAddEvent $event): void {
     $order_item = $event->getOrderItem();
     $cart = $event->getCart();
@@ -82,58 +88,74 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
       return;
     }
 
-    $purchased = $order_item->get('purchased_entity')->entity;
-    if (!$purchased instanceof ProductVariationInterface) {
+    $this->refreshCartOrThrow($cart, 'add');
+  }
+
+  /**
+   * Refreshes the hold after a ticket quantity changes.
+   */
+  public function onCartOrderItemUpdate(CartOrderItemUpdateEvent $event): void {
+    if (!$this->shouldValidateAsTicket($event->getOrderItem())) {
       return;
     }
-
-    $event_id = (int) $order_item->get('field_target_event')->target_id;
-    if ($event_id < 1) {
-      return;
-    }
-
-    $event_node = $this->entityTypeManager->getStorage('node')->load($event_id);
-    if (!$event_node instanceof NodeInterface || $event_node->bundle() !== 'event') {
-      return;
-    }
-
-    $product = $purchased->getProduct();
-    if (!$product) {
-      return;
-    }
-
-    $by_variation = $this->orderInspector->extractEventVariationQuantities($cart);
-    $line_qty = $by_variation[$event_id][$purchased->id()] ?? 0;
-    if ($line_qty <= 0) {
-      return;
-    }
-
-    $event_totals = $this->orderInspector->extractEventQuantities($cart);
-    $requested_total = $event_totals[$event_id] ?? 0;
-
     try {
-      $this->ticketAvailability->assertPaidLineAndEventTotal(
-        $event_node,
-        $product,
-        $purchased,
-        $line_qty,
-        $requested_total,
-        'cart:' . $cart->id() . ':event:' . $event_id,
-      );
+      $this->refreshCartOrThrow($event->getCart(), 'update');
     }
-    catch (CapacityExceededException $e) {
-      $this->logger->warning(
-        'Ticket availability blocked cart add: event @eid variation @vid — @msg',
-        [
-          '@eid' => (string) $event_id,
-          '@vid' => (string) $purchased->id(),
-          '@msg' => $e->getMessage(),
-        ]
-      );
-      throw new UnprocessableEntityHttpException($e->getMessage(), $e);
+    catch (UnprocessableEntityHttpException $e) {
+      // Commerce saves the order item before dispatching this event. Restore
+      // the last valid quantity so a rejected increase cannot persist.
+      $event->getOrderItem()
+        ->setQuantity($event->getOriginalOrderItem()->getQuantity())
+        ->save();
+      throw $e;
     }
   }
 
+  /**
+   * Shrinks or releases the event hold after a ticket line is removed.
+   */
+  public function onCartOrderItemRemove(CartOrderItemRemoveEvent $event): void {
+    $removed = $event->getOrderItem();
+    if (!$this->shouldValidateAsTicket($removed)) {
+      return;
+    }
+
+    $cart = $event->getCart();
+    $eventId = (int) $removed->get('field_target_event')->target_id;
+    $remaining = $this->orderInspector->extractEventQuantities($cart);
+    if (!isset($remaining[$eventId])) {
+      $this->cartTicketHold->releaseEvent($cart, $eventId);
+      return;
+    }
+
+    try {
+      $this->cartTicketHold->refresh($cart);
+    }
+    catch (CapacityExceededException $e) {
+      // A removal must remain possible. Release the stale hold and require an
+      // explicit availability check before checkout instead of blocking it.
+      $this->cartTicketHold->releaseEvent($cart, $eventId);
+      $this->logger->warning(
+        'Ticket hold expired while cart @cart was reduced for event @event: @message',
+        [
+          '@cart' => (string) $cart->id(),
+          '@event' => (string) $eventId,
+          '@message' => $e->getMessage(),
+        ],
+      );
+    }
+  }
+
+  /**
+   * Releases all holds when Commerce empties the cart.
+   */
+  public function onCartEmpty(CartEmptyEvent $event): void {
+    $this->cartTicketHold->releaseItems($event->getCart(), $event->getOrderItems());
+  }
+
+  /**
+   * Acquires the order placement lock before Commerce changes state.
+   */
   public function onOrderPlacePreTransition(WorkflowTransitionEvent $event): void {
     $order = $event->getEntity();
     if (!$order instanceof OrderInterface) {
@@ -178,6 +200,26 @@ final class TicketAvailabilityCommerceSubscriber implements EventSubscriberInter
       return FALSE;
     }
     return !$this->isOperationalAddonVariation($purchased);
+  }
+
+  /**
+   * Refreshes all cart ticket holds and presents a safe Commerce exception.
+   */
+  private function refreshCartOrThrow(OrderInterface $cart, string $operation): void {
+    try {
+      $this->cartTicketHold->refresh($cart);
+    }
+    catch (CapacityExceededException $e) {
+      $this->logger->warning(
+        'Ticket availability blocked cart @operation for cart @cart: @message',
+        [
+          '@operation' => $operation,
+          '@cart' => (string) $cart->id(),
+          '@message' => $e->getMessage(),
+        ],
+      );
+      throw new UnprocessableEntityHttpException($e->getMessage(), $e);
+    }
   }
 
   /**

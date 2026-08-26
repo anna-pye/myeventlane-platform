@@ -10,12 +10,14 @@ use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
+use PHPUnit\Framework\Attributes\Group;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
  * Kernel tests for atomic capacity reservation concurrency.
- *
- * @group myeventlane_capacity
  */
+#[Group('myeventlane_capacity')]
+#[RunTestsInSeparateProcesses]
 final class CapacityConcurrencyTest extends KernelTestBase {
 
   /**
@@ -157,6 +159,35 @@ final class CapacityConcurrencyTest extends KernelTestBase {
     $this->capacityService->assertCanBook($event, 1, $firstKey);
     $this->capacityService->releaseReservation($firstKey);
     $this->capacityService->assertCanBook($event, 1, $secondKey);
+  }
+
+  /**
+   * Active reservation metadata is available to customer-facing timers.
+   */
+  public function testActiveReservationMetadataUsesAuthoritativeTtl(): void {
+    $event = Node::create([
+      'type' => 'event',
+      'title' => 'Timed Hold Event',
+      'status' => 1,
+      'field_event_capacity_total' => 4,
+      'field_event_type' => 'paid',
+    ]);
+    $event->save();
+
+    $key = 'test:timer:event:' . $event->id();
+    $this->capacityService->assertCanBook($event, 2, $key);
+    $reservation = $this->capacityService->getActiveReservation($key);
+
+    $this->assertIsArray($reservation);
+    $this->assertSame((int) $event->id(), $reservation['event_id']);
+    $this->assertSame(2, $reservation['quantity']);
+    $this->assertSame(
+      $this->capacityService->getReservationTtl(),
+      $reservation['expires'] - $reservation['created'],
+    );
+
+    $this->capacityService->releaseReservation($key);
+    $this->assertNull($this->capacityService->getActiveReservation($key));
   }
 
 }
