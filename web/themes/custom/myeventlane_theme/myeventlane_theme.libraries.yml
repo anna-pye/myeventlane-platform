@@ -20,6 +20,14 @@ global-styling:
 commerce-styling:
   dependencies:
     - core/drupal
+    - myeventlane_theme/stripe-card-presentation
+
+stripe-card-presentation:
+  js:
+    js/stripe-card-presentation.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
 
 # Real-time presentation of the server-side limited-ticket reservation.
 cart_ticket_hold:
