@@ -10,6 +10,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
+use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\node\NodeInterface;
@@ -135,7 +136,7 @@ final class TicketCapacityOrderSubscriber implements EventSubscriberInterface {
               $variation,
               (int) $qty,
               $requested_total,
-              'order:' . $order->id() . ':event:' . $event_id,
+              CartTicketHoldManager::reservationKey((int) $order->id(), (int) $event_id),
             );
           }
           catch (CapacityExceededException $e) {

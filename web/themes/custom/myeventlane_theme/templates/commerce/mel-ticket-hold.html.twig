@@ -1,0 +1,83 @@
+{#
+/**
+ * Accessible countdown for a real server-side limited-ticket reservation.
+ *
+ * The ticking value is visual only. A separate polite live region announces
+ * meaningful thresholds so screen readers are not interrupted every second.
+ */
+#}
+{% set hold = mel_ticket_hold|default({}) %}
+{% set hold_state = hold.state|default('none') %}
+{% set hold_surface = surface|default('cart') %}
+{% if hold.has_hold|default(false) %}
+  {% set seconds_remaining = hold.seconds_remaining|default(0) %}
+  {% set minutes = (seconds_remaining / 60)|round(0, 'floor') %}
+  {% set seconds = seconds_remaining - (minutes * 60) %}
+  {% set duration = hold.duration|default(900) %}
+  {% set progress = duration > 0 ? ((seconds_remaining / duration) * 100) : 0 %}
+  <section
+    class="mel-ticket-hold mel-ticket-hold--{{ hold_surface }} is-{{ hold_state }}"
+    data-mel-ticket-hold
+    data-hold-state="{{ hold_state }}"
+    data-hold-surface="{{ hold_surface }}"
+    data-server-now="{{ hold.server_now|default(0) }}"
+    data-expires-at="{{ hold.expires_at|default(0) }}"
+    data-hold-duration="{{ duration }}"
+    style="--mel-ticket-hold-progress: {{ progress }}%"
+    aria-labelledby="mel-ticket-hold-heading-{{ hold_surface }}"
+  >
+    <div class="mel-ticket-hold__icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" focusable="false">
+        <circle cx="12" cy="13" r="8"></circle>
+        <path d="M9 2h6M12 5v3M17.7 7.3l1.4-1.4M12 13l3-2"></path>
+      </svg>
+    </div>
+
+    <div class="mel-ticket-hold__body">
+      <div class="mel-ticket-hold__heading-row">
+        <h2 class="mel-ticket-hold__heading" id="mel-ticket-hold-heading-{{ hold_surface }}" data-mel-hold-heading>
+          {{ hold_state == 'active' ? 'We’re holding your tickets'|t : 'Your ticket hold has ended'|t }}
+        </h2>
+        <span class="mel-ticket-hold__time" data-mel-ticket-hold-time aria-hidden="true">
+          {{ '%02d:%02d'|format(minutes, seconds) }}
+        </span>
+      </div>
+
+      <div data-mel-hold-active-copy{% if hold_state != 'active' %} hidden{% endif %}>
+        <p class="mel-ticket-hold__message">
+          {{ 'Complete checkout before the timer ends. After that, these tickets return to sale.'|t }}
+        </p>
+      </div>
+      <div data-mel-hold-expired-copy{% if hold_state == 'active' %} hidden{% endif %}>
+        <p class="mel-ticket-hold__message">
+          {% if hold_surface == 'checkout' %}
+            {{ 'Return to your cart and check availability before paying.'|t }}
+            <a href="{{ path('commerce_cart.page') }}">{{ 'Return to cart'|t }}</a>
+          {% else %}
+            {{ 'Check availability to hold these tickets again before continuing.'|t }}
+            <a href="#mel-cart-actions">{{ 'Check availability below'|t }}</a>
+          {% endif %}
+        </p>
+      </div>
+
+      <div
+        class="mel-ticket-hold__progress"
+        data-mel-ticket-hold-progress
+        role="progressbar"
+        aria-label="{{ 'Ticket hold time remaining'|t }}"
+        aria-valuemin="0"
+        aria-valuemax="{{ duration }}"
+        aria-valuenow="{{ seconds_remaining }}"
+      >
+        <span class="mel-ticket-hold__progress-value"></span>
+      </div>
+      <p class="visually-hidden" data-mel-ticket-hold-live aria-live="polite" aria-atomic="true">
+        {% if hold_state == 'active' %}
+          {{ 'Your tickets are held for @minutes minutes.'|t({'@minutes': minutes}) }}
+        {% else %}
+          {{ 'Your ticket hold has ended.'|t }}
+        {% endif %}
+      </p>
+    </div>
+  </section>
+{% endif %}

@@ -25,7 +25,7 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Enforces mel_ticket_type rules, event capacity, and Commerce alignment at purchase.
  */
-final class TicketAvailabilityService implements TicketCustomerDisplayGatewayInterface {
+final class TicketAvailabilityService implements CartTicketAvailabilityInterface, TicketCustomerDisplayGatewayInterface {
 
   use StringTranslationTrait;
 
