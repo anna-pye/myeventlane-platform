@@ -57,9 +57,12 @@ final class PublicStylingContractTest extends TestCase {
   /**
    * Account card fields must override Commerce Stripe's fixed em widths.
    */
-  public function testAccountStripeFieldsUseResponsiveWidths(): void {
+  public function testStripeCardFieldsUseReadableResponsivePresentation(): void {
     $checkout = $this->source('web/themes/custom/myeventlane_theme/src/scss/components/_checkout.scss');
+    $javascript = $this->source('web/themes/custom/myeventlane_theme/js/stripe-card-presentation.js');
+    $libraries = $this->source('web/themes/custom/myeventlane_theme/myeventlane_theme.libraries.yml');
 
+    self::assertStringContainsString('.mel-commerce-checkout .stripe-form', $checkout);
     self::assertStringContainsString('.mel-account-payment-methods .stripe-form', $checkout);
     self::assertMatchesRegularExpression(
       '/#card-number-element\s*\{\s*width:\s*min\(100%,\s*32rem\);/s',
@@ -69,7 +72,14 @@ final class PublicStylingContractTest extends TestCase {
       '/#expiration-element,\s*#security-code-element\s*\{\s*width:\s*min\(100%,\s*12rem\);/s',
       $checkout,
     );
+    self::assertStringContainsString('align-items: center', $checkout);
+    self::assertStringContainsString('min-height: 56px', $checkout);
     self::assertStringNotContainsString('!important', $checkout);
+    self::assertStringContainsString('melStripeCardPresentation', $javascript);
+    self::assertStringContainsString("fontSize: '18px'", $javascript);
+    self::assertStringContainsString("lineHeight: '24px'", $javascript);
+    self::assertStringContainsString('cardElement.update({ style: STRIPE_CARD_STYLE })', $javascript);
+    self::assertStringContainsString('myeventlane_theme/stripe-card-presentation', $libraries);
   }
 
   /**

@@ -758,10 +758,12 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   }
 }
 
-// Commerce Stripe ships fixed em widths for these mount points. Keep the
-// account payment-method form readable without changing the contributed
-// gateway stylesheet or making checkout fields globally oversized.
+// Commerce Stripe ships fixed em widths for these mount points. Its card text
+// is provider-hosted, so stripe-card-presentation.js applies the matching
+// internal type scale through Stripe Element.update(). These rules govern the
+// outer controls.
 /* stylelint-disable selector-max-id -- Stripe provides only ID mount points. */
+.mel-commerce-checkout .stripe-form,
 .mel-account-payment-methods .stripe-form {
   #card-number-element {
     width: min(100%, 32rem);
@@ -770,6 +772,20 @@ $mel-checkout-border: 1px solid rgba(41, 50, 65, 0.06);
   #expiration-element,
   #security-code-element {
     width: min(100%, 12rem);
+  }
+
+  #card-number-element,
+  #expiration-element,
+  #security-code-element {
+    display: flex;
+    align-items: center;
+    min-height: 56px;
+    padding: 0 spacing.mel-space(4);
+
+    > div {
+      flex: 1 1 auto;
+      width: 100%;
+    }
   }
 }
 /* stylelint-enable selector-max-id */
