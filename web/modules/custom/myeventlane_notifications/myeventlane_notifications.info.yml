@@ -12,3 +12,5 @@ dependencies:
   - drupal:options
   - drupal:serialization
   - commerce_order:commerce_order
+  - myeventlane_vendor:myeventlane_vendor
+  - myeventlane_event_studio:myeventlane_event_studio

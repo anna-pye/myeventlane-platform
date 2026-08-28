@@ -58,7 +58,8 @@ final class UserInboxController extends ControllerBase {
     $page = max(0, (int) $request->query->get('page', 0));
     $ids = $this->userInbox->getInboxDeliveryIds($uid, $tab, $filter, $page);
     $rows = $this->viewBuilder->buildRowsForDeliveries($ids, $uid);
-    $rows = $this->viewBuilder->applyGroupSummaries($rows);
+    // Keep each delivery visible. The former synthetic summaries hid later
+    // actions and could only mark the first delivery as read.
     $groups = $this->viewBuilder->groupRowsByDate($rows);
 
     $groups_out = [];

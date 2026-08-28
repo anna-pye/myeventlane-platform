@@ -1,0 +1,90 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Drupal\Tests\myeventlane_notifications\Unit;
+
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Routing\RouteProviderInterface;
+use Drupal\Core\Routing\UrlGeneratorInterface;
+use Drupal\myeventlane_notifications\Service\NotificationViewBuilder;
+use PHPUnit\Framework\TestCase;
+
+require_once dirname(__DIR__, 3) . '/src/Service/NotificationViewBuilder.php';
+
+/**
+ * Protects the organiser route, access and interaction contracts.
+ */
+final class OrganiserActionCentreContractTest extends TestCase {
+
+  /**
+   * Ensures organiser routes retain their access and theme boundaries.
+   */
+  public function testRoutesUseOrganiserAccessAndVendorTheme(): void {
+    $routing = (string) file_get_contents(dirname(__DIR__, 3) . '/myeventlane_notifications.routing.yml');
+
+    self::assertStringContainsString("myeventlane_notifications.organiser_action_centre:\n  path: '/vendor/updates'", $routing);
+    self::assertStringContainsString("_custom_access: 'myeventlane_vendor.access.vendor_console:access'", $routing);
+    self::assertStringContainsString("_custom_access: '\\Drupal\\myeventlane_event_studio\\Access\\EventStudioAccess::access'", $routing);
+    self::assertSame(3, substr_count($routing, '_theme: myeventlane_vendor_theme'));
+  }
+
+  /**
+   * Ensures navigation waits for the mark-read request and toasts can close.
+   */
+  public function testClickNavigationWaitsForReadRequest(): void {
+    $javascript = (string) file_get_contents(dirname(__DIR__, 3) . '/js/mel-notifications-ui.js');
+
+    self::assertStringContainsString(".finally(function () {\n          remove();\n          refreshAllBells();\n          if (item.action && item.action.url)", $javascript);
+    self::assertStringContainsString("close.setAttribute('aria-label', Drupal.t('Dismiss notification'))", $javascript);
+  }
+
+  /**
+   * Ensures reading an update cannot silently complete an organiser task.
+   */
+  public function testActionCentreKeepsSeenAndHandledSeparate(): void {
+    $controller = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Controller/OrganiserActionCentreController.php');
+    $actionController = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Controller/NotificationController.php');
+    $inboxService = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Service/NotificationUserInboxService.php');
+
+    self::assertStringContainsString("'requires_action'", $controller);
+    self::assertStringContainsString("'is_handled'", $controller);
+    self::assertStringContainsString('MarkDeliveryHandledForm::class', $controller);
+    self::assertStringContainsString('collapseActionCentreRows', $controller);
+    self::assertStringContainsString('markHandledOne', $inboxService);
+    self::assertStringContainsString('deliveryIdsForGroup', $inboxService);
+    self::assertStringContainsString('markReadOne($uid, $delivery)', $actionController);
+    self::assertStringNotContainsString('markHandledOne($uid, $delivery)', $actionController);
+  }
+
+  /**
+   * Ensures repeated semantic alerts collapse without merging separate work.
+   */
+  public function testRepeatedSemanticAlertsCollapseBySection(): void {
+    $builder = new NotificationViewBuilder(
+      $this->createMock(EntityTypeManagerInterface::class),
+      $this->createMock(UrlGeneratorInterface::class),
+      $this->createMock(RouteProviderInterface::class),
+    );
+    $base = [
+      'context' => 'business',
+      'group_key' => 'boost_expiring:42',
+      'requires_action' => TRUE,
+      'is_handled' => FALSE,
+    ];
+    $rows = $builder->collapseActionCentreRows([
+      ['delivery_id' => 3] + $base,
+      ['delivery_id' => 2] + $base,
+      ['delivery_id' => 1] + $base,
+      array_replace($base, ['delivery_id' => 4, 'is_handled' => TRUE]),
+      array_replace($base, ['delivery_id' => 5, 'group_key' => 'refund_request:9']),
+    ]);
+
+    self::assertCount(3, $rows);
+    self::assertSame(3, $rows[0]['delivery_id']);
+    self::assertSame(3, $rows[0]['group_count']);
+    self::assertSame(1, $rows[1]['group_count']);
+    self::assertSame(1, $rows[2]['group_count']);
+  }
+
+}

@@ -102,16 +102,16 @@ final class VendorSettingsHubBuilder {
         ),
         $this->section(
           'notifications',
-          (string) $this->t('Notifications'),
-          (string) $this->t('Booking emails, RSVP alerts, and digests. Message delivery lives in Messages.'),
-          (string) $this->t('Edit notifications'),
-          $this->safeRouteUrl('myeventlane_vendor.console.settings_profile', [], ['fragment' => 'notifications'])
-            ?? '/vendor/settings/profile#notifications',
+          (string) $this->t('Alerts and updates'),
+          (string) $this->t('Choose how in-app organiser alerts appear. Email alert controls are not available yet. Message delivery lives in Messages.'),
+          (string) $this->t('Edit alert preferences'),
+          $this->safeRouteUrl('myeventlane_notifications.organiser_preferences')
+            ?? '/vendor/updates/settings',
           [
             [
-              'label' => (string) $this->t('Inbox & alerts'),
+              'label' => (string) $this->t('Action Centre'),
               'url' => $this->moduleHandler->moduleExists('myeventlane_notifications')
-                ? $this->safeRouteUrl('myeventlane_notifications.preferences')
+                ? $this->safeRouteUrl('myeventlane_notifications.organiser_action_centre')
                 : NULL,
             ],
             [
@@ -121,6 +121,7 @@ final class VendorSettingsHubBuilder {
           ],
           [
             'missing' => [
+              (string) $this->t('Email alert preferences and digests'),
               (string) $this->t('Per-channel refund notification toggles'),
               (string) $this->t('Quiet hours / digest quiet mode'),
               (string) $this->t('SMS preferences'),

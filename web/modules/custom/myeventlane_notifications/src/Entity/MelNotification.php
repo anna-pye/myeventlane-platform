@@ -245,6 +245,20 @@ final class MelNotification extends ContentEntityBase {
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
 
+    $fields['event_id'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Event'))
+      ->setDescription(new TranslatableMarkup('Optional event used to scope organiser updates.'))
+      ->setSetting('target_type', 'node')
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['requires_action'] = BaseFieldDefinition::create('boolean')
+      ->setLabel(new TranslatableMarkup('Requires organiser action'))
+      ->setDescription(new TranslatableMarkup('True when an organiser must make a decision or complete a task.'))
+      ->setDefaultValue(FALSE)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
     return $fields;
   }
 

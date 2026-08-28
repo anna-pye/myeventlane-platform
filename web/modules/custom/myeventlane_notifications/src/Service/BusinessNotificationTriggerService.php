@@ -411,6 +411,7 @@ final class BusinessNotificationTriggerService {
         'priority' => $priority,
         'priority_score' => $priorityScore,
         'suppression_key' => $suppressionKey,
+        'group_key' => $suppressionKey,
         'context' => $context,
         'domain' => $domain,
         'action_label' => $actionLabel,

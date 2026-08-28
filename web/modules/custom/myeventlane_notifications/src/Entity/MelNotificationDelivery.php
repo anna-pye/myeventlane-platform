@@ -87,6 +87,12 @@ final class MelNotificationDelivery extends ContentEntityBase {
       ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', FALSE);
 
+    $fields['resolved_at'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(new TranslatableMarkup('Handled at'))
+      ->setDescription(new TranslatableMarkup('Set when the recipient explicitly marks an action as handled.'))
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
     $fields['clicked_at'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(new TranslatableMarkup('Action clicked at'))
       ->setDescription(new TranslatableMarkup('Set when the user follows the notification action link.'))

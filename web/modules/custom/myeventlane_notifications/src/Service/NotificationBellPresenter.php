@@ -41,8 +41,16 @@ final class NotificationBellPresenter {
     return [
       '#theme' => 'mel_notification_bell',
       '#bell_context' => $bellContext,
-      '#inbox_url' => $this->urlGenerator->generateFromRoute('myeventlane_notifications.inbox'),
-      '#settings_url' => $this->urlGenerator->generateFromRoute('myeventlane_notifications.preferences'),
+      '#inbox_url' => $this->urlGenerator->generateFromRoute(
+        $bellContext === NotificationContext::BUSINESS
+          ? 'myeventlane_notifications.organiser_action_centre'
+          : 'myeventlane_notifications.inbox'
+      ),
+      '#settings_url' => $this->urlGenerator->generateFromRoute(
+        $bellContext === NotificationContext::BUSINESS
+          ? 'myeventlane_notifications.organiser_preferences'
+          : 'myeventlane_notifications.preferences'
+      ),
       '#attached' => [
         'library' => ['myeventlane_notifications/user_experience'],
       ],

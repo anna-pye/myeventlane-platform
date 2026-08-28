@@ -195,6 +195,14 @@ final class NotificationViewBuilder {
     $groupKey = trim((string) $notification->get('group_key')->value);
     $domain = (string) $notification->get('domain')->value;
     $context = (string) $notification->get('context')->value;
+    $actionContext = trim((string) $notification->get('action_context')->value);
+    $eventId = (int) ($notification->get('event_id')->target_id ?? 0);
+    $eventLabel = '';
+    if ($eventId > 0) {
+      $event = $this->entityTypeManager->getStorage('node')->load($eventId);
+      $eventLabel = $event ? (string) $event->label() : '';
+    }
+    $resolvedAt = (int) ($delivery->get('resolved_at')->value ?? 0);
 
     return [
       'delivery_id' => (int) $delivery->id(),
@@ -204,6 +212,7 @@ final class NotificationViewBuilder {
       'message_preview' => $this->messagePreview($message),
       'type' => (string) $notification->get('type')->value,
       'context' => $context,
+      'action_context' => $actionContext,
       'domain' => $domain,
       'icon' => $this->iconForDomain($domain, (string) $notification->get('type')->value),
       'badge' => $this->badgeForDomain($domain),
@@ -216,7 +225,55 @@ final class NotificationViewBuilder {
       'surface' => (string) $delivery->get('surface')->value,
       'action' => $action,
       'group_key' => $groupKey,
+      'event_id' => $eventId,
+      'event_label' => $eventLabel,
+      'requires_action' => !empty($notification->get('requires_action')->value),
+      'resolved_at' => $resolvedAt,
+      'is_handled' => $resolvedAt > 0,
     ];
+  }
+
+  /**
+   * Collapses repeated semantic updates while retaining the newest row.
+   *
+   * Rows in different Action Centre sections are never combined. The
+   * underlying deliveries remain stored, and grouped read/handled operations
+   * are applied by NotificationUserInboxService.
+   *
+   * @param list<array<string, mixed>> $rows
+   *   Rows ordered newest first.
+   *
+   * @return list<array<string, mixed>>
+   *   Rows with semantic duplicates represented by the newest delivery.
+   */
+  public function collapseActionCentreRows(array $rows): array {
+    $out = [];
+    $positions = [];
+
+    foreach ($rows as $row) {
+      $groupKey = trim((string) ($row['group_key'] ?? ''));
+      if ($groupKey === '') {
+        $row['group_count'] = 1;
+        $out[] = $row;
+        continue;
+      }
+
+      $section = !empty($row['requires_action']) && empty($row['is_handled'])
+        ? 'attention'
+        : (!empty($row['is_handled']) ? 'handled' : 'information');
+      $key = (string) ($row['context'] ?? '') . '|' . $section . '|' . $groupKey;
+      if (!isset($positions[$key])) {
+        $row['group_count'] = 1;
+        $positions[$key] = count($out);
+        $out[] = $row;
+        continue;
+      }
+
+      $position = $positions[$key];
+      $out[$position]['group_count'] = (int) ($out[$position]['group_count'] ?? 1) + 1;
+    }
+
+    return $out;
   }
 
   /**
