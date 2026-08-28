@@ -42,3 +42,17 @@ myeventlane_commerce.attendee:
     _controller: '\Drupal\myeventlane_commerce\Controller\AttendeeInfoController::build'
   requirements:
     _permission: 'access content'
+
+myeventlane_commerce.ticket_bundle_remove:
+  path: '/cart/{commerce_order}/ticket-bundle/{bundle_instance}/remove'
+  defaults:
+    _form: '\Drupal\myeventlane_commerce\Form\RemoveTicketBundleForm'
+    _title: 'Remove ticket bundle'
+  requirements:
+    _permission: 'access checkout'
+    commerce_order: '\d+'
+    bundle_instance: '[A-Za-z0-9-]+'
+  options:
+    parameters:
+      commerce_order:
+        type: entity:commerce_order
