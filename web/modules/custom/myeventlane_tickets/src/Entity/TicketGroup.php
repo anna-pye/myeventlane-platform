@@ -15,8 +15,7 @@ use Drupal\node\NodeInterface;
 /**
  * Defines the Ticket Group entity.
  *
- * Ticket Groups allow vendors to organize ticket products into logical groups
- * with ordering and presentation control.
+ * Ticket groups provide either booking-page sections or purchasable bundles.
  *
  * @ContentEntityType(
  *   id = "mel_ticket_group",
@@ -148,10 +147,55 @@ final class TicketGroup extends ContentEntityBase implements EntityChangedInterf
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
-    // Ticket product references (multiple).
+    // Ticket type references used by the public booking page.
+    $fields['ticket_types'] = BaseFieldDefinition::create('entity_reference')
+      ->setLabel(new TranslatableMarkup('Ticket types'))
+      ->setDescription(new TranslatableMarkup('The event ticket types shown in this booking section.'))
+      ->setRequired(FALSE)
+      ->setCardinality(-1)
+      ->setSetting('target_type', 'mel_ticket_type')
+      ->setSetting('handler', 'default:mel_ticket_type')
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    $fields['group_mode'] = BaseFieldDefinition::create('list_string')
+      ->setLabel(new TranslatableMarkup('Group type'))
+      ->setDescription(new TranslatableMarkup('Choose a booking-page section or a purchasable bundle.'))
+      ->setRequired(TRUE)
+      ->setDefaultValue('section')
+      ->setSetting('allowed_values', [
+        'section' => 'Booking-page section',
+        'bundle' => 'Purchasable ticket bundle',
+      ])
+      ->setDisplayOptions('form', [
+        'type' => 'options_select',
+        'weight' => -8,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['bundle_price'] = BaseFieldDefinition::create('commerce_price')
+      ->setLabel(new TranslatableMarkup('Bundle price'))
+      ->setDescription(new TranslatableMarkup('The total price for one complete bundle.'))
+      ->setRequired(FALSE)
+      ->setDisplayOptions('form', [
+        'type' => 'commerce_price_default',
+        'weight' => 7,
+      ])
+      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('view', TRUE);
+
+    $fields['bundle_components'] = BaseFieldDefinition::create('map')
+      ->setLabel(new TranslatableMarkup('Bundle components'))
+      ->setDescription(new TranslatableMarkup('Ticket type quantities included in one bundle.'))
+      ->setRequired(FALSE)
+      ->setDisplayConfigurable('form', FALSE)
+      ->setDisplayConfigurable('view', FALSE);
+
+    // Legacy ticket product references retained for migration compatibility.
     $fields['ticket_products'] = BaseFieldDefinition::create('entity_reference')
-      ->setLabel(new TranslatableMarkup('Tickets'))
-      ->setDescription(new TranslatableMarkup('The ticket products in this group.'))
+      ->setLabel(new TranslatableMarkup('Legacy ticket products'))
+      ->setDescription(new TranslatableMarkup('Legacy product links retained for migration.'))
       ->setRequired(FALSE)
       ->setCardinality(-1)
       ->setSetting('target_type', 'commerce_product')
@@ -159,21 +203,12 @@ final class TicketGroup extends ContentEntityBase implements EntityChangedInterf
       ->setSetting('handler_settings', [
         'target_bundles' => ['ticket' => 'ticket'],
       ])
-      ->setDisplayOptions('form', [
-        'type' => 'entity_reference_autocomplete_tags',
-        'weight' => 5,
-        'settings' => [
-          'match_operator' => 'CONTAINS',
-          'size' => 60,
-          'placeholder' => '',
-        ],
-      ])
       ->setDisplayOptions('view', [
         'label' => 'inline',
         'type' => 'entity_reference_label',
         'weight' => 5,
       ])
-      ->setDisplayConfigurable('form', TRUE)
+      ->setDisplayConfigurable('form', FALSE)
       ->setDisplayConfigurable('view', TRUE);
 
     // Enabled status.

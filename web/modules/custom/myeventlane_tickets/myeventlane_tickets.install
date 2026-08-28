@@ -12,6 +12,7 @@ declare(strict_types=1);
  */
 
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_tickets\Entity\TicketGroup;
 use Drupal\Core\Entity\Sql\SqlContentEntityStorage;
 
 /**
@@ -540,4 +541,125 @@ function myeventlane_tickets_update_8011(): string {
     $transferred === [] ? 'none' : implode(', ', $transferred),
     $already_owned === [] ? 'none' : implode(', ', $already_owned),
   );
+}
+
+/**
+ * Adds event ticket-type selection to booking-page ticket groups.
+ */
+function myeventlane_tickets_update_8012(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+
+  if (!$update_manager->getFieldStorageDefinition('ticket_types', 'mel_ticket_group')) {
+    $entity_type = $entity_type_manager->getDefinition('mel_ticket_group');
+    $definitions = TicketGroup::baseFieldDefinitions($entity_type);
+    $update_manager->installFieldStorageDefinition(
+      'ticket_types',
+      'mel_ticket_group',
+      'myeventlane_tickets',
+      $definitions['ticket_types'],
+    );
+  }
+
+  $migrated = 0;
+  $group_storage = $entity_type_manager->getStorage('mel_ticket_group');
+  foreach ($group_storage->loadMultiple() as $group) {
+    if (!$group->get('ticket_types')->isEmpty() || $group->get('ticket_products')->isEmpty()) {
+      continue;
+    }
+    $event = $group->get('event')->entity;
+    if (!$event || !$event->hasField('field_ticket_types') || $event->get('field_ticket_types')->isEmpty()) {
+      continue;
+    }
+
+    $variation_ids = [];
+    foreach ($group->get('ticket_products')->referencedEntities() as $product) {
+      if (!method_exists($product, 'getVariations')) {
+        continue;
+      }
+      foreach ($product->getVariations() as $variation) {
+        $variation_ids[(int) $variation->id()] = TRUE;
+      }
+    }
+    if ($variation_ids === []) {
+      continue;
+    }
+
+    $ticket_ids = [];
+    foreach ($event->get('field_ticket_types')->referencedEntities() as $ticket) {
+      if (!$ticket->hasField('commerce_variation') || $ticket->get('commerce_variation')->isEmpty()) {
+        continue;
+      }
+      if (isset($variation_ids[(int) $ticket->get('commerce_variation')->target_id])) {
+        $ticket_ids[] = ['target_id' => (int) $ticket->id()];
+      }
+    }
+    if ($ticket_ids !== []) {
+      $group->set('ticket_types', $ticket_ids);
+      $group->save();
+      $migrated++;
+    }
+  }
+
+  return sprintf('Installed ticket-group ticket type references and migrated %d existing group(s).', $migrated);
+}
+
+/**
+ * Adds purchasable ticket bundle fields to ticket groups.
+ */
+function myeventlane_tickets_update_8015(): string {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = $entity_type_manager->getDefinition('mel_ticket_group');
+  $definitions = TicketGroup::baseFieldDefinitions($entity_type);
+  $installed = [];
+
+  foreach (['group_mode', 'bundle_price', 'bundle_components'] as $field_name) {
+    if ($update_manager->getFieldStorageDefinition($field_name, 'mel_ticket_group')) {
+      continue;
+    }
+    $update_manager->installFieldStorageDefinition(
+      $field_name,
+      'mel_ticket_group',
+      'myeventlane_tickets',
+      $definitions[$field_name],
+    );
+    $installed[] = $field_name;
+  }
+
+  $backfilled = 0;
+  $entity_type_manager->clearCachedDefinitions();
+  foreach ($entity_type_manager->getStorage('mel_ticket_group')->loadMultiple() as $group) {
+    if (trim((string) $group->get('group_mode')->value) !== '') {
+      continue;
+    }
+    $group->set('group_mode', 'section');
+    $group->save();
+    $backfilled++;
+  }
+
+  $message = $installed === []
+    ? 'Purchasable ticket bundle fields were already installed.'
+    : 'Installed purchasable ticket bundle fields: ' . implode(', ', $installed) . '.';
+
+  return sprintf('%s Preserved %d existing group(s) as booking-page sections.', $message, $backfilled);
+}
+
+/**
+ * Repairs sites that ran the original ticket bundle field update.
+ */
+function myeventlane_tickets_update_8014(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('mel_ticket_group');
+  $backfilled = 0;
+
+  foreach ($storage->loadMultiple() as $group) {
+    if (!$group->hasField('group_mode') || trim((string) $group->get('group_mode')->value) !== '') {
+      continue;
+    }
+    $group->set('group_mode', 'section');
+    $group->save();
+    $backfilled++;
+  }
+
+  return sprintf('Preserved %d existing ticket group(s) as booking-page sections.', $backfilled);
 }

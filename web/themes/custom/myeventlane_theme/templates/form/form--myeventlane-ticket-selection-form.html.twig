@@ -21,6 +21,10 @@
       <p>{{ "Select how many tickets you'd like. You can review everything before checkout."|t }}</p>
     </div>
 
+    {% if form.bundles is defined %}
+      {{ form.bundles }}
+    {% endif %}
+
     <div class="mel-ticket-list">
       {{ form.tickets }}
     </div>

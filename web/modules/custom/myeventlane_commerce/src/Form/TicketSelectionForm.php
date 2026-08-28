@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_commerce\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Component\Utility\Html;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
@@ -22,6 +23,7 @@ use Drupal\commerce_cart\CartManagerInterface;
 use Drupal\commerce_cart\CartProviderInterface;
 use Drupal\commerce_order\Adjustment;
 use Drupal\commerce_order\Entity\OrderInterface;
+use Drupal\commerce_price\Calculator;
 use Drupal\commerce_price\CurrencyFormatter;
 use Drupal\commerce_price\Price;
 use Drupal\commerce_product\Entity\ProductInterface;
@@ -32,6 +34,7 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\myeventlane_event\Service\TicketTypeManager;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -226,6 +229,8 @@ final class TicketSelectionForm extends FormBase {
       }
 
       $ticket_type_labels = [];
+      $ticket_types_by_variation_id = [];
+      $ticket_variation_ids = [];
       if ($node->hasField('field_ticket_types') && !$node->get('field_ticket_types')->isEmpty()) {
         foreach ($node->get('field_ticket_types')->referencedEntities() as $ticket) {
           if ($ticket instanceof TicketTypeInterface && $ticket->isArchived()) {
@@ -235,12 +240,35 @@ final class TicketSelectionForm extends FormBase {
             $variation_entity = $ticket->get('commerce_variation')->entity;
             if ($variation_entity) {
               $ticket_type_labels[$variation_entity->uuid()] = $ticket->label();
+              $ticket_types_by_variation_id[(int) $variation_entity->id()] = $ticket;
+              $ticket_variation_ids[(int) $ticket->id()] = (int) $variation_entity->id();
             }
           }
         }
       }
 
+      $ticket_group_display = $this->loadTicketGroupDisplay(
+        $node,
+        $product,
+        $ticket_variation_ids,
+        array_map(static fn (ProductVariationInterface $variation): int => (int) $variation->id(), $published_variations),
+      );
+      $ticket_group_display['cacheability']->applyTo($form);
+      if ($ticket_group_display['bundles'] !== []) {
+        $form['bundles'] = $this->buildTicketBundleOptions($ticket_group_display['bundles']);
+      }
+      if ($ticket_group_display['variation_groups'] !== []) {
+        $published_variations = $this->sortVariationsByTicketGroup(
+          $published_variations,
+          $ticket_group_display,
+          $default_variation_id,
+        );
+      }
+
       $estimated_total = 0.0;
+      $has_grouped_variations = $ticket_group_display['variation_groups'] !== [];
+      $open_group_key = NULL;
+      $previous_variation_id = NULL;
       foreach ($published_variations as $variation) {
         $variation_id = $variation->id();
         $variation_uuid = $variation->uuid();
@@ -253,7 +281,8 @@ final class TicketSelectionForm extends FormBase {
           $ticket_label = $parts[1] ?? $ticket_label;
         }
 
-        $tier = $this->ticketAvailability->resolveTierForVariation($node, $variation);
+        $tier = $ticket_types_by_variation_id[(int) $variation_id]
+          ?? $this->ticketAvailability->resolveTierForVariation($node, $variation);
         $buyer_desc = '';
         if ($tier instanceof TicketTypeInterface && $tier->hasField('short_description') && !$tier->get('short_description')->isEmpty()) {
           $buyer_desc = trim((string) $tier->get('short_description')->value);
@@ -278,7 +307,9 @@ final class TicketSelectionForm extends FormBase {
           $rules = $this->quantityWidgetRules($tier);
           $qty_el['#min'] = $rules['min'];
           $qty_el['#step'] = $rules['step'];
-          if ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) {
+          if ($ticket_group_display['bundles'] === []
+            && $default_variation_id !== NULL
+            && (int) $variation_id === $default_variation_id) {
             $qty_el['#default_value'] = $this->defaultSelectedQuantity($tier);
           }
         }
@@ -334,6 +365,22 @@ final class TicketSelectionForm extends FormBase {
           '#weight' => 10,
         ];
 
+        $group_id = $ticket_group_display['variation_groups'][(int) $variation_id] ?? NULL;
+        $group_key = $group_id !== NULL ? 'group_' . $group_id : ($has_grouped_variations ? 'ungrouped' : NULL);
+        if ($group_key !== NULL && $group_key !== $open_group_key) {
+          if ($previous_variation_id !== NULL && $open_group_key !== NULL) {
+            $form['tickets'][$previous_variation_id]['#suffix'] = '</section>';
+          }
+          $group = $group_id !== NULL
+            ? $ticket_group_display['groups'][$group_id]
+            : [
+              'name' => (string) $this->t('Other tickets'),
+              'description' => '',
+            ];
+          $form['tickets']['heading_' . $group_key] = $this->buildTicketGroupHeading($group_key, $group);
+          $open_group_key = $group_key;
+        }
+
         $form['tickets'][$variation_id] = [
           '#type' => 'container',
           '#attributes' => [
@@ -357,6 +404,11 @@ final class TicketSelectionForm extends FormBase {
           ] : ['#access' => FALSE],
           'quantity' => $qty_el,
         ];
+        $previous_variation_id = (int) $variation_id;
+      }
+
+      if ($previous_variation_id !== NULL && $open_group_key !== NULL) {
+        $form['tickets'][$previous_variation_id]['#suffix'] = '</section>';
       }
 
       $this->appendMelDonationField($form, $node, $estimated_total);
@@ -509,13 +561,29 @@ final class TicketSelectionForm extends FormBase {
         if ($quantity > 0) {
           $has_quantity = TRUE;
           $total_quantity += $quantity;
-          $per_variation[(int) $key] = $quantity;
+          $per_variation[(int) $key] = ($per_variation[(int) $key] ?? 0) + $quantity;
         }
       }
       elseif (is_numeric($value) && (int) $value > 0) {
         $has_quantity = TRUE;
         $total_quantity += (int) $value;
-        $per_variation[(int) $key] = (int) $value;
+        $per_variation[(int) $key] = ($per_variation[(int) $key] ?? 0) + (int) $value;
+      }
+    }
+
+    /** @var \Drupal\node\NodeInterface $node */
+    $node = $form['#node'];
+    /** @var \Drupal\commerce_product\Entity\ProductInterface $product */
+    $product = $form['#product'];
+    $selected_bundles = $this->selectedTicketBundles($form_state, $node, $product);
+    foreach ($selected_bundles as $selection) {
+      $bundle_quantity = $selection['quantity'];
+      $has_quantity = TRUE;
+      $total_quantity += $selection['bundle']['total_tickets'] * $bundle_quantity;
+      foreach ($selection['bundle']['components'] as $component) {
+        $variation_id = $component['variation_id'];
+        $component_total = $component['quantity'] * $bundle_quantity;
+        $per_variation[$variation_id] = ($per_variation[$variation_id] ?? 0) + $component_total;
       }
     }
 
@@ -523,9 +591,6 @@ final class TicketSelectionForm extends FormBase {
       $form_state->setError($form['actions']['submit'], $this->t('Please select at least one ticket.'));
       return;
     }
-
-    $node = $form['#node'];
-    $product = $form['#product'];
 
     $pending = $this->getPendingCartTicketTotals($node, $product);
     $combined_event_total = $pending['event_total'] + $total_quantity;
@@ -612,7 +677,18 @@ final class TicketSelectionForm extends FormBase {
       }
       if ($quantity > 0) {
         $total_quantity += $quantity;
-        $per_variation[(int) $key] = $quantity;
+        $per_variation[(int) $key] = ($per_variation[(int) $key] ?? 0) + $quantity;
+      }
+    }
+
+    $selected_bundles = $this->selectedTicketBundles($form_state, $node, $product);
+    foreach ($selected_bundles as $selection) {
+      $bundle_quantity = $selection['quantity'];
+      $total_quantity += $selection['bundle']['total_tickets'] * $bundle_quantity;
+      foreach ($selection['bundle']['components'] as $component) {
+        $variation_id = $component['variation_id'];
+        $component_total = $component['quantity'] * $bundle_quantity;
+        $per_variation[$variation_id] = ($per_variation[$variation_id] ?? 0) + $component_total;
       }
     }
 
@@ -700,11 +776,24 @@ final class TicketSelectionForm extends FormBase {
 
     $added = FALSE;
     $touchedItems = [];
+    $addedBundleItems = [];
+    $bundle_component_totals = [];
+    foreach ($selected_bundles as $selection) {
+      foreach ($selection['bundle']['components'] as $component) {
+        $variation_id = $component['variation_id'];
+        $bundle_component_totals[$variation_id] = ($bundle_component_totals[$variation_id] ?? 0)
+          + ($component['quantity'] * $selection['quantity']);
+      }
+    }
     foreach ($per_variation as $variation_id => $quantity) {
+      $standalone_quantity = $quantity - ($bundle_component_totals[$variation_id] ?? 0);
+      if ($standalone_quantity < 1) {
+        continue;
+      }
       /** @var \Drupal\commerce_product\Entity\ProductVariationInterface $variation */
       $variation = $variation_storage->load($variation_id);
       if ($variation && $variation->isPublished()) {
-        $order_item = $this->cartManager->addEntity($cart, $variation, $quantity, TRUE);
+        $order_item = $this->cartManager->addEntity($cart, $variation, $standalone_quantity, TRUE);
         if ($order_item && $order_item->hasField('field_target_event')) {
           $order_item->set('field_target_event', ['target_id' => $node->id()]);
           $order_item->save();
@@ -712,6 +801,21 @@ final class TicketSelectionForm extends FormBase {
         if ($order_item) {
           $touchedItems[(int) $variation_id] = $order_item;
         }
+        $added = TRUE;
+      }
+    }
+
+    foreach ($selected_bundles as $group_id => $selection) {
+      $bundleItems = $this->addTicketBundleToCart(
+        $cart,
+        $node,
+        (int) $group_id,
+        $selection['bundle'],
+        $selection['quantity'],
+        $variation_storage,
+      );
+      if ($bundleItems !== []) {
+        array_push($addedBundleItems, ...$bundleItems);
         $added = TRUE;
       }
     }
@@ -725,12 +829,14 @@ final class TicketSelectionForm extends FormBase {
       }
       catch (CapacityExceededException $e) {
         $this->restoreCartTicketQuantities($cart, $touchedItems, $pending['variation']);
+        $this->removeAddedBundleItems($cart, $addedBundleItems);
         $this->releaseProvisionalSelectionReservation($selectionReservationKey);
         $this->messenger()->addError($e->getMessage());
         return;
       }
       catch (\Throwable $e) {
         $this->restoreCartTicketQuantities($cart, $touchedItems, $pending['variation']);
+        $this->removeAddedBundleItems($cart, $addedBundleItems);
         $this->releaseProvisionalSelectionReservation($selectionReservationKey);
         $this->logger('myeventlane_commerce')->error(
           'Unable to create a ticket hold for cart @cart: @message',
@@ -753,9 +859,160 @@ final class TicketSelectionForm extends FormBase {
       if ($donation > 0 && $donation_currency !== NULL) {
         $this->applyMelDonationToOrder($cart, $donation, $donation_currency);
       }
-      $this->messenger()->addStatus($this->t('Tickets added to cart.'));
+      $this->getRequest()->getSession()->set('myeventlane_preferred_cart_id', (int) $cart->id());
+      // Commerce adds one status message per component line. Replace those
+      // implementation details with one message for the buyer's selection.
+      $this->messenger()->deleteByType(MessengerInterface::TYPE_STATUS);
+      $this->messenger()->addStatus($this->t('Your ticket selection was added to your cart.'));
       $form_state->setRedirect('commerce_cart.page');
     }
+  }
+
+  /**
+   * Resolves submitted bundle quantities against fresh, public bundle data.
+   *
+   * @return array<int, array{quantity: int, bundle: array{name: string, description: string, price: \Drupal\commerce_price\Price, components: array<int, array{ticket_id: int, variation_id: int, label: string, quantity: int}>, total_tickets: int}}>
+   */
+  private function selectedTicketBundles(FormStateInterface $form_state, NodeInterface $event, ProductInterface $product): array {
+    $submitted = (array) $form_state->getValue('bundles', []);
+    if ($submitted === []) {
+      return [];
+    }
+
+    $ticket_variation_ids = [];
+    if ($event->hasField('field_ticket_types') && !$event->get('field_ticket_types')->isEmpty()) {
+      foreach ($event->get('field_ticket_types')->referencedEntities() as $ticket) {
+        if (!$ticket instanceof TicketTypeInterface
+          || $ticket->isArchived()
+          || $ticket->getTicketKind() !== 'paid'
+          || $ticket->get('commerce_variation')->isEmpty()) {
+          continue;
+        }
+        $ticket_variation_ids[(int) $ticket->id()] = (int) $ticket->get('commerce_variation')->target_id;
+      }
+    }
+    $purchasable_variations = $this->ticketAvailability->filterPurchasableVariations($event, $product);
+    $display = $this->loadTicketGroupDisplay(
+      $event,
+      $product,
+      $ticket_variation_ids,
+      array_map(static fn (ProductVariationInterface $variation): int => (int) $variation->id(), $purchasable_variations),
+    );
+
+    $selected = [];
+    foreach ($submitted as $group_id => $value) {
+      if (!is_numeric($group_id) || !isset($display['bundles'][(int) $group_id])) {
+        continue;
+      }
+      $quantity = is_array($value)
+        ? (int) ($value['quantity'] ?? $value['purchase_column']['quantity'] ?? 0)
+        : (int) $value;
+      if ($quantity < 1) {
+        continue;
+      }
+      $selected[(int) $group_id] = [
+        'quantity' => min(20, $quantity),
+        'bundle' => $display['bundles'][(int) $group_id],
+      ];
+    }
+    return $selected;
+  }
+
+  /**
+   * Adds one bundle selection as locked component ticket lines.
+   *
+   * The underlying variations remain the source of truth for capacity,
+   * attendee capture, ticket issuance and sales reporting. The configured
+   * bundle total is allocated across those lines as overridden unit prices.
+   *
+   * @return \Drupal\commerce_order\Entity\OrderItemInterface[]
+   *   Newly added component lines, or an empty array when invalid.
+   */
+  private function addTicketBundleToCart(
+    OrderInterface $cart,
+    NodeInterface $event,
+    int $groupId,
+    array $bundle,
+    int $bundleQuantity,
+    EntityStorageInterface $variationStorage,
+  ): array {
+    if ($bundleQuantity < 1 || !$bundle['price'] instanceof Price || $bundle['components'] === []) {
+      return [];
+    }
+
+    $currency = strtoupper($bundle['price']->getCurrencyCode());
+    $bundle_total = Calculator::multiply($bundle['price']->getNumber(), (string) $bundleQuantity);
+    $lines = [];
+    $face_total = '0';
+    foreach ($bundle['components'] as $component) {
+      $variation = $variationStorage->load($component['variation_id']);
+      if (!$variation instanceof ProductVariationInterface || !$variation->isPublished() || !$variation->getPrice()) {
+        return [];
+      }
+      if (strtoupper($variation->getPrice()->getCurrencyCode()) !== $currency) {
+        return [];
+      }
+      $quantity = $component['quantity'] * $bundleQuantity;
+      $face_line_total = Calculator::multiply($variation->getPrice()->getNumber(), (string) $quantity);
+      $face_total = Calculator::add($face_total, $face_line_total);
+      $lines[] = [
+        'component' => $component,
+        'variation' => $variation,
+        'quantity' => $quantity,
+        'face_line_total' => $face_line_total,
+      ];
+    }
+    if ($lines === []) {
+      return [];
+    }
+
+    $instance_id = sprintf('%d-%s', $groupId, bin2hex(random_bytes(8)));
+    $added_items = [];
+    $allocated = '0';
+    $last_index = array_key_last($lines);
+    foreach ($lines as $index => $line) {
+      if ($index === $last_index) {
+        $line_total = Calculator::subtract($bundle_total, $allocated);
+      }
+      elseif (Calculator::compare($face_total, '0') > 0) {
+        $share = Calculator::divide($line['face_line_total'], $face_total, 6);
+        $line_total = Calculator::multiply($bundle_total, $share, 6);
+        $allocated = Calculator::add($allocated, $line_total, 6);
+      }
+      else {
+        $share = Calculator::divide((string) $line['quantity'], (string) array_sum(array_column($lines, 'quantity')), 6);
+        $line_total = Calculator::multiply($bundle_total, $share, 6);
+        $allocated = Calculator::add($allocated, $line_total, 6);
+      }
+      $unit_price = Calculator::divide($line_total, (string) $line['quantity'], 6);
+
+      $order_item = $this->cartManager->createOrderItem($line['variation'], (string) $line['quantity']);
+      $order_item->setTitle($this->t('@bundle — @ticket', [
+        '@bundle' => $bundle['name'],
+        '@ticket' => $line['component']['label'],
+      ]), TRUE);
+      $order_item->setUnitPrice(new Price($unit_price, $currency), TRUE);
+      if ($order_item->hasField('field_target_event')) {
+        $order_item->set('field_target_event', ['target_id' => $event->id()]);
+      }
+      $order_item->setData('mel_ticket_bundle_id', $groupId);
+      $order_item->setData('mel_ticket_bundle_name', $bundle['name']);
+      $order_item->setData('mel_ticket_bundle_instance', $instance_id);
+      $order_item->setData('mel_ticket_bundle_quantity', $bundleQuantity);
+      $order_item->setData('mel_ticket_bundle_component_quantity', $line['component']['quantity']);
+      $order_item->setData('mel_ticket_bundle_ticket_type_id', $line['component']['ticket_id']);
+      // Store the buyer-facing, tax-inclusive unit amount. MEL forces an order
+      // refresh on every draft save and Commerce Tax removes included tax on
+      // each refresh. The bundle preprocessor restores this gross amount first
+      // so an overridden bundle price cannot drift down across cart refreshes.
+      $order_item->setData('mel_ticket_bundle_gross_unit_price', $unit_price);
+      $order_item->setData('mel_ticket_bundle_currency', $currency);
+      $order_item->lock();
+      $this->cartManager->addOrderItem($cart, $order_item, FALSE, FALSE);
+      $added_items[] = $order_item;
+    }
+    $cart->save();
+    return $added_items;
   }
 
   /**
@@ -842,6 +1099,305 @@ final class TicketSelectionForm extends FormBase {
       return $a_default ? -1 : 1;
     });
     return $variations;
+  }
+
+  /**
+   * Loads enabled booking-page groups without applying organiser-only access.
+   *
+   * Group labels and descriptions are intentionally public presentation data.
+   * The query remains event-scoped and status-scoped; no order, customer or
+   * payment data is loaded.
+   *
+   * @param array<int, int> $ticketVariationIds
+   *   Ticket type ID => Commerce variation ID.
+   *
+   * @return array{
+   *   groups: array<int, array{name: string, description: string, rank: int}>,
+   *   bundles: array<int, array{name: string, description: string, price: \Drupal\commerce_price\Price, components: array<int, array{ticket_id: int, variation_id: int, label: string, quantity: int}>, total_tickets: int}>,
+   *   variation_groups: array<int, int>,
+   *   cacheability: \Drupal\Core\Cache\CacheableMetadata
+   * }
+   */
+  private function loadTicketGroupDisplay(NodeInterface $event, ProductInterface $product, array $ticketVariationIds, array $purchasableVariationIds = []): array {
+    $cacheability = new CacheableMetadata();
+    $result = [
+      'groups' => [],
+      'bundles' => [],
+      'variation_groups' => [],
+      'cacheability' => $cacheability,
+    ];
+    if (!$this->entityTypeManager->hasDefinition('mel_ticket_group')) {
+      return $result;
+    }
+
+    $definition = $this->entityTypeManager->getDefinition('mel_ticket_group');
+    $cacheability->setCacheTags($definition->getListCacheTags());
+    $storage = $this->entityTypeManager->getStorage('mel_ticket_group');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('event', $event->id())
+      ->condition('status', 1)
+      ->sort('weight', 'ASC')
+      ->sort('name', 'ASC')
+      ->execute();
+    if ($ids === []) {
+      return $result;
+    }
+
+    foreach (array_values($storage->loadMultiple($ids)) as $rank => $group) {
+      $group_id = (int) $group->id();
+      $cacheability->addCacheableDependency($group);
+      $group_mode = $group->hasField('group_mode')
+        ? (string) ($group->get('group_mode')->value ?? 'section')
+        : 'section';
+
+      $ticket_ids = $group->hasField('ticket_types')
+        ? array_map('intval', array_column($group->get('ticket_types')->getValue(), 'target_id'))
+        : [];
+
+      // Compatibility for an existing group that still points at the event's
+      // one Commerce ticket product. Update 8012 persists the equivalent tier
+      // references so this branch is not the long-term source of truth.
+      if ($ticket_ids === [] && $group->hasField('ticket_products') && !$group->get('ticket_products')->isEmpty()) {
+        $product_ids = array_map('intval', array_column($group->get('ticket_products')->getValue(), 'target_id'));
+        if (in_array((int) $product->id(), $product_ids, TRUE)) {
+          $ticket_ids = array_keys($ticketVariationIds);
+        }
+      }
+
+      if ($group_mode === 'bundle') {
+        $price_item = $group->hasField('bundle_price') ? $group->get('bundle_price')->first() : NULL;
+        $price = $price_item && method_exists($price_item, 'toPrice') ? $price_item->toPrice() : NULL;
+        $stored_bundle_map = $group->hasField('bundle_components') && !$group->get('bundle_components')->isEmpty()
+          ? ($group->get('bundle_components')->first()?->getValue() ?? [])
+          : [];
+        $component_values = is_array($stored_bundle_map['components'] ?? NULL)
+          ? $stored_bundle_map['components']
+          : [];
+        $components = [];
+        $complete = $price instanceof Price && (float) $price->getNumber() > 0;
+        foreach ($ticket_ids as $ticket_id) {
+          $quantity = max(0, (int) ($component_values[(string) $ticket_id] ?? $component_values[$ticket_id] ?? 0));
+          $variation_id = $ticketVariationIds[$ticket_id] ?? NULL;
+          $ticket = $this->entityTypeManager->getStorage('mel_ticket_type')->load($ticket_id);
+          if ($quantity < 1
+            || $variation_id === NULL
+            || ($purchasableVariationIds !== [] && !in_array($variation_id, $purchasableVariationIds, TRUE))
+            || !$ticket instanceof TicketTypeInterface) {
+            $complete = FALSE;
+            continue;
+          }
+          $components[$ticket_id] = [
+            'ticket_id' => $ticket_id,
+            'variation_id' => $variation_id,
+            'label' => trim((string) $ticket->label()),
+            'quantity' => $quantity,
+          ];
+        }
+        if ($complete && $components !== []) {
+          $result['bundles'][$group_id] = [
+            'name' => trim((string) $group->label()),
+            'description' => trim(strip_tags((string) ($group->get('description')->value ?? ''))),
+            'price' => $price,
+            'components' => $components,
+            'total_tickets' => array_sum(array_column($components, 'quantity')),
+          ];
+        }
+        continue;
+      }
+
+      $result['groups'][$group_id] = [
+        'name' => trim((string) $group->label()),
+        'description' => trim(strip_tags((string) ($group->get('description')->value ?? ''))),
+        'rank' => $rank,
+      ];
+
+      foreach ($ticket_ids as $ticket_id) {
+        $variation_id = $ticketVariationIds[$ticket_id] ?? NULL;
+        // First group wins if old data assigned a ticket more than once. The
+        // organiser form prevents new duplicate assignments.
+        if ($variation_id !== NULL && !isset($result['variation_groups'][$variation_id])) {
+          $result['variation_groups'][$variation_id] = $group_id;
+        }
+      }
+    }
+
+    return $result;
+  }
+
+  /**
+   * Builds buyer-facing bundle cards above standalone tickets.
+   *
+   * @param array<int, array{name: string, description: string, price: \Drupal\commerce_price\Price, components: array<int, array{ticket_id: int, variation_id: int, label: string, quantity: int}>, total_tickets: int}> $bundles
+   */
+  private function buildTicketBundleOptions(array $bundles): array {
+    $build = [
+      '#type' => 'container',
+      '#tree' => TRUE,
+      '#attributes' => ['class' => ['mel-ticket-bundles']],
+      'heading' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Ticket bundles'),
+        '#attributes' => ['class' => ['mel-ticket-bundles__heading']],
+      ],
+      'intro' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('One bundle includes the fixed mix of tickets listed below.'),
+        '#attributes' => ['class' => ['mel-ticket-bundles__intro', 'mel-text--muted']],
+      ],
+    ];
+
+    foreach ($bundles as $group_id => $bundle) {
+      $price = $bundle['price'];
+      $formatted_price = $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
+      $items = [];
+      foreach ($bundle['components'] as $component) {
+        $items[] = $this->formatPlural(
+          $component['quantity'],
+          '1 × @ticket',
+          '@count × @ticket',
+          ['@ticket' => $component['label']],
+        );
+      }
+      $list = '<ul class="mel-ticket-bundle__components">';
+      foreach ($items as $item) {
+        $list .= '<li>' . Html::escape((string) $item) . '</li>';
+      }
+      $list .= '</ul>';
+
+      $build[(string) $group_id] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-ticket-row', 'mel-card', 'mel-ticket-book-card', 'mel-ticket-bundle'],
+          'data-ticket-row' => '1',
+          'data-ticket-title' => $bundle['name'],
+          'data-ticket-price-number' => $price->getNumber(),
+          'data-ticket-bundle-id' => (string) $group_id,
+        ],
+        'label_cell' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-ticket-label-cell', 'mel-ticket-row__main']],
+          'title_row' => [
+            '#type' => 'container',
+            '#attributes' => ['class' => ['mel-ticket-row__top']],
+            'label' => [
+              '#type' => 'html_tag',
+              '#tag' => 'h4',
+              '#value' => $bundle['name'],
+              '#attributes' => ['class' => ['mel-ticket-label', 'mel-ticket-row__title']],
+            ],
+            'price' => [
+              '#type' => 'html_tag',
+              '#tag' => 'span',
+              '#value' => $formatted_price,
+              '#attributes' => ['class' => ['mel-ticket-row__top-price', 'mel-ticket-price']],
+            ],
+          ],
+          'badge' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $this->t('Complete bundle'),
+            '#attributes' => ['class' => ['mel-ticket-bundle__badge']],
+          ],
+          'description' => $bundle['description'] !== '' ? [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $bundle['description'],
+            '#attributes' => ['class' => ['mel-ticket-description', 'mel-ticket-row__description', 'mel-text--muted']],
+          ] : ['#access' => FALSE],
+          'components' => ['#markup' => $list],
+          'selection_badge' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $this->t('Selected'),
+            '#attributes' => [
+              'class' => ['mel-ticket-row__selection-badge'],
+              'data-mel-ticket-selection-badge' => '1',
+              'hidden' => 'hidden',
+            ],
+          ],
+        ],
+        'purchase_column' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-ticket-row__meta']],
+          'quantity' => [
+            '#type' => 'number',
+            '#title' => $this->t('Number of @bundle bundles', ['@bundle' => $bundle['name']]),
+            '#min' => 0,
+            '#max' => 20,
+            '#step' => 1,
+            '#default_value' => 0,
+            '#attributes' => [
+              'class' => ['mel-ticket-quantity', 'mel-ticket-bundle__quantity'],
+              'aria-label' => (string) $this->t('Number of @bundle bundles', ['@bundle' => $bundle['name']]),
+            ],
+          ],
+        ],
+      ];
+    }
+    return $build;
+  }
+
+  /**
+   * Keeps booking sections together while preserving ticket order within them.
+   *
+   * @param \Drupal\commerce_product\Entity\ProductVariationInterface[] $variations
+   * @param array{
+   *   groups: array<int, array{name: string, description: string, rank: int}>,
+   *   variation_groups: array<int, int>,
+   *   cacheability: \Drupal\Core\Cache\CacheableMetadata
+   * } $display
+   *
+   * @return \Drupal\commerce_product\Entity\ProductVariationInterface[]
+   */
+  private function sortVariationsByTicketGroup(array $variations, array $display, ?int $defaultVariationId): array {
+    usort($variations, static function (ProductVariationInterface $a, ProductVariationInterface $b) use ($display, $defaultVariationId): int {
+      $a_group = $display['variation_groups'][(int) $a->id()] ?? NULL;
+      $b_group = $display['variation_groups'][(int) $b->id()] ?? NULL;
+      $a_rank = $a_group !== NULL ? $display['groups'][$a_group]['rank'] : PHP_INT_MAX;
+      $b_rank = $b_group !== NULL ? $display['groups'][$b_group]['rank'] : PHP_INT_MAX;
+      if ($a_rank !== $b_rank) {
+        return $a_rank <=> $b_rank;
+      }
+      $a_default = $defaultVariationId !== NULL && (int) $a->id() === $defaultVariationId;
+      $b_default = $defaultVariationId !== NULL && (int) $b->id() === $defaultVariationId;
+      return $a_default === $b_default ? 0 : ($a_default ? -1 : 1);
+    });
+    return $variations;
+  }
+
+  /**
+   * Builds an accessible heading at the start of one booking section.
+   *
+   * @param array{name: string, description: string} $group
+   */
+  private function buildTicketGroupHeading(string $groupKey, array $group): array {
+    $heading_id = Html::getUniqueId('mel-ticket-group-' . $groupKey);
+    $build = [
+      '#type' => 'container',
+      '#prefix' => '<section class="mel-ticket-booking-group" aria-labelledby="' . $heading_id . '">',
+      '#attributes' => ['class' => ['mel-ticket-booking-group__header']],
+      'heading' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => Html::escape($group['name']),
+        '#attributes' => [
+          'class' => ['mel-ticket-booking-group__title'],
+          'id' => $heading_id,
+        ],
+      ],
+    ];
+    if ($group['description'] !== '') {
+      $build['description'] = [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => Html::escape($group['description']),
+        '#attributes' => ['class' => ['mel-ticket-booking-group__description', 'mel-text--muted']],
+      ];
+    }
+    return $build;
   }
 
   private function defaultSelectedQuantity(TicketTypeInterface $tier): int {
@@ -982,6 +1538,20 @@ final class TicketSelectionForm extends FormBase {
       }
       $item->setQuantity((string) $originalQuantity);
       $this->cartManager->updateOrderItem($cart, $item);
+    }
+  }
+
+  /**
+   * Removes newly added bundle components if the cart hold cannot be created.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $cart
+   *   Active Commerce cart.
+   * @param \Drupal\commerce_order\Entity\OrderItemInterface[] $items
+   *   Bundle component lines created during this submission.
+   */
+  private function removeAddedBundleItems(OrderInterface $cart, array $items): void {
+    foreach ($items as $item) {
+      $this->cartManager->removeOrderItem($cart, $item);
     }
   }
 

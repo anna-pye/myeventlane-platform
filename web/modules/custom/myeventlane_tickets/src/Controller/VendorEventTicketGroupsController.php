@@ -78,11 +78,25 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
       '#type' => 'container',
       '#attributes' => ['class' => ['mel-tickets-groups-list']],
     ];
+    $build['intro'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-alert', 'mel-alert--info']],
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'strong',
+        '#value' => $this->t('Create clear ticket sections or sell several tickets as one bundle.'),
+      ],
+      'detail' => [
+        '#type' => 'html_tag',
+        '#tag' => 'p',
+        '#value' => $this->t('For a bundle, choose the included event tickets, set the quantity of each, then enter one total price. Ticket and event capacity still apply.'),
+      ],
+    ];
 
     // Add header action button.
     $header_actions = [
       [
-        'label' => $this->t('Add ticket group'),
+        'label' => $this->t('Add section or bundle'),
         'url' => Url::fromRoute('myeventlane_tickets.event_tickets_groups_add', ['event' => $event->id()])->toString(),
         'style' => 'primary',
       ],
@@ -90,13 +104,15 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
 
     if (empty($groups)) {
       $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No ticket groups have been created for this event.') . '</p>',
+        '#markup' => '<p>' . $this->t('No groups yet. Your tickets will continue to appear as one list until you add a group.') . '</p>',
       ];
     }
     else {
       // Build table header.
       $header = [
-        ['data' => $this->t('Group name')],
+        ['data' => $this->t('Booking section')],
+        ['data' => $this->t('Tickets')],
+        ['data' => $this->t('Shown to buyers')],
         ['data' => $this->t('Operations')],
       ];
 
@@ -125,7 +141,26 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
 
         $rows[] = [
           'data' => [
-            $group->getName(),
+            [
+              'data' => [
+                '#type' => 'container',
+                'name' => [
+                  '#type' => 'html_tag',
+                  '#tag' => 'strong',
+                  '#value' => $group->getName(),
+                ],
+                'type' => [
+                  '#type' => 'html_tag',
+                  '#tag' => 'div',
+                  '#value' => ((string) ($group->get('group_mode')->value ?? 'section')) === 'bundle'
+                    ? $this->t('Purchasable bundle')
+                    : $this->t('Booking-page section'),
+                  '#attributes' => ['class' => ['mel-text--muted']],
+                ],
+              ],
+            ],
+            $group->hasField('ticket_types') ? count($group->get('ticket_types')) : 0,
+            $group->get('status')->value ? $this->t('Yes') : $this->t('No'),
             $operations,
           ],
         ];
