@@ -219,7 +219,10 @@
               {% if readiness_sum.all_ready|default(false) %}
                 <p class="mel-live-ops__panel-intro">{{ 'Everything looks ready for this event.'|t }}</p>
               {% else %}
-                <p class="mel-live-ops__panel-intro">{{ '@count areas need attention'|t({'@count': readiness_sum.issue_count|default(0)}) }}</p>
+                {% set readiness_issue_count = readiness_sum.issue_count|default(0) %}
+                <p class="mel-live-ops__panel-intro">
+                  {{ readiness_issue_count == 1 ? ('1 area needs attention'|t) : ('@count areas need attention'|t({'@count': readiness_issue_count})) }}
+                </p>
               {% endif %}
             </div>
             {% if readiness_sum.all_ready|default(false) %}
@@ -239,18 +242,23 @@
                 {% if group.items is iterable and group.items|length > 0 %}
                   <ul class="mel-event-mission-control__readiness-items">
                     {% for item in group.items %}
-                      {% set isev = item.severity|default('info') %}
-                      {% set chip_mod =
-                        isev == 'success' ? 'success' :
-                        (isev == 'warning' or isev == 'error') ? 'warn' :
-                        (isev == 'neutral' ? 'calm' : 'info')
-                      %}
+                      {% set item_state = item.state|default('info') %}
+                      {% set chip_mod = item_state == 'ready' ? 'success' : (item_state == 'attention' ? 'warn' : 'calm') %}
                       <li class="mel-event-mission-control__readiness-item">
-                        <span class="mel-event-mission-control__readiness-item-label">{{ item.label|default('') }}</span>
-                        {% if item.message|default('') is not empty %}
-                          <span class="mel-event-mission-control__readiness-item-message mel-live-ops__muted">{{ item.message }}</span>
-                        {% endif %}
-                        <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ item.complete|default(false) ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                        <div class="mel-event-mission-control__readiness-item-copy">
+                          <span class="mel-event-mission-control__readiness-item-label">{{ item.label|default('') }}</span>
+                          {% if item.message|default('') is not empty %}
+                            <span class="mel-event-mission-control__readiness-item-message mel-live-ops__muted">{{ item.message }}</span>
+                          {% endif %}
+                        </div>
+                        <div class="mel-event-mission-control__readiness-item-controls">
+                          <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">
+                            {{ item_state == 'ready' ? ('Ready'|t) : (item_state == 'attention' ? ('Needs attention'|t) : ('Information'|t)) }}
+                          </span>
+                          {% if item.url|default(null) %}
+                            <a class="mel-event-mission-control__readiness-action" href="{{ item.url }}">{{ item.action_label|default('Fix this'|t) }}</a>
+                          {% endif %}
+                        </div>
                       </li>
                     {% endfor %}
                   </ul>
@@ -258,31 +266,6 @@
               </details>
             {% endfor %}
           </div>
-
-          {% set detail_items = readiness_sum.detail_items|default([]) %}
-          {% if detail_items is iterable and detail_items|length > 0 %}
-            <details class="mel-event-mission-control__readiness-all">
-              <summary>{{ 'Show all readiness checks'|t }}</summary>
-              <ul class="mel-event-mission-control__readiness-items mel-event-mission-control__readiness-items--detail">
-                {% for item in detail_items %}
-                  {% set ic = item.complete|default(false) %}
-                  {% set isev = item.severity|default('neutral') %}
-                  {% set chip_mod = ic ? 'success' : ((isev == 'warning') ? 'warn' : 'info') %}
-                  <li class="mel-event-mission-control__readiness-item">
-                    {% if item.url is not null and not ic %}
-                      <a class="mel-event-mission-control__readiness-item-link" href="{{ item.url }}">
-                        <span>{{ item.label|default('') }}</span>
-                        <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ ic ? ('Complete'|t) : ('Action required'|t) }}</span>
-                      </a>
-                    {% else %}
-                      <span class="mel-event-mission-control__readiness-item-label">{{ item.label|default('') }}</span>
-                      <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ ic ? ('Complete'|t) : ('Action required'|t) }}</span>
-                    {% endif %}
-                  </li>
-                {% endfor %}
-              </ul>
-            </details>
-          {% endif %}
         </section>
       {% endif %}
 
@@ -290,24 +273,30 @@
         <details class="mel-event-mission-control__guidance mel-live-ops__panel">
           <summary class="mel-event-mission-control__guidance-summary">
             <span class="mel-event-mission-control__guidance-title">{{ 'Event guidance'|t }}</span>
-            <span class="mel-event-mission-control__guidance-copy mel-live-ops__muted">{{ 'Recommendations to help this event perform well.'|t }}</span>
+            {% set guidance_count = lifecycle_guidance.count|default(lifecycle_guidance_items|length) %}
+            <span class="mel-event-mission-control__guidance-copy mel-live-ops__muted">
+              {{ guidance_count == 1 ? ('1 recommended action'|t) : ('@count recommended actions'|t({'@count': guidance_count})) }}
+            </span>
           </summary>
           <div class="mel-event-mission-control__guidance-body" aria-labelledby="mel-ws-lifecycle-guidance-heading">
             <h2 id="mel-ws-lifecycle-guidance-heading" class="visually-hidden">{{ lifecycle_guidance.heading|default('Lifecycle guidance'|t) }}</h2>
             <ul class="mel-event-mission-control__guidance-list">
               {% for item in lifecycle_guidance_items %}
                 {% set sev = item.severity|default('info') %}
-                {% set chip_mod =
-                  sev == 'success' ? 'success' :
-                  (sev == 'warning' or sev == 'error') ? 'warn' :
-                  (sev == 'neutral' ? 'calm' : 'info')
-                %}
+                {% set chip_mod = (sev == 'warning' or sev == 'error') ? 'warn' : 'info' %}
                 <li class="mel-event-mission-control__guidance-item">
-                  <span class="mel-event-mission-control__guidance-stage">{{ item.stage|default('') }}</span>
-                  {% if item.message|default('') is not empty %}
-                    <p class="mel-live-ops__muted">{{ item.message }}</p>
-                  {% endif %}
-                  <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">{{ sev == 'success' ? ('Ready'|t) : ('Guidance'|t) }}</span>
+                  <div class="mel-event-mission-control__guidance-item-copy">
+                    <span class="mel-event-mission-control__guidance-stage">{{ item.stage|default('') }}</span>
+                    {% if item.message|default('') is not empty %}
+                      <p class="mel-live-ops__muted">{{ item.message }}</p>
+                    {% endif %}
+                  </div>
+                  <div class="mel-event-mission-control__guidance-item-controls">
+                    <span class="mel-live-ops__chip mel-live-ops__chip--{{ chip_mod }}">
+                      {{ (sev == 'warning' or sev == 'error') ? ('Needs attention'|t) : ('Recommendation'|t) }}
+                    </span>
+                    <a class="mel-event-mission-control__guidance-action" href="{{ item.url }}">{{ item.action_label }}</a>
+                  </div>
                 </li>
               {% endfor %}
             </ul>

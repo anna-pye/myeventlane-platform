@@ -23,12 +23,20 @@ final class VendorEventsPresentationContractTest extends TestCase {
     self::assertStringNotContainsString("{{ 'Manage'|t }}", $template);
     self::assertStringContainsString('<details class="mel-vendor-events-v2__more-actions">', $template);
     self::assertStringContainsString("{{ 'More actions'|t }}", $template);
-    self::assertStringContainsString("ev.status|default('') == 'past'", $template);
+    self::assertStringContainsString("ev.section_key|default('') == 'past'", $template);
 
     foreach (['links.edit', 'links.tickets', 'links.rsvps', 'links.orders', 'links.attendees', 'links.analytics'] as $link) {
       self::assertStringContainsString($link, $template);
     }
     self::assertStringContainsString('mel-event-card-removal-dialog.html.twig', $template);
+
+    $builder = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_vendor/src/Service/VendorEventIndexViewModelBuilder.php',
+    );
+    self::assertStringContainsString(
+      "'manage' => \$this->routeUrlIfAccessible('myeventlane_vendor.console.event_workspace', ['event' => \$nid]",
+      $builder,
+    );
   }
 
   public function testEventGridUsesTwoColumnsWithoutAThreeColumnOverride(): void {
@@ -43,7 +51,7 @@ final class VendorEventsPresentationContractTest extends TestCase {
     self::assertStringContainsString('grid-template-columns: minmax(0, 1fr);', $styles);
   }
 
-  public function testEventIndexDefaultsToNewestCreated(): void {
+  public function testEventIndexDefaultsToCurrentRecommendedWork(): void {
     $webRoot = dirname(__DIR__, 6);
     $controller = (string) file_get_contents(
       $webRoot . '/modules/custom/myeventlane_vendor/src/Controller/VendorEventsController.php',
@@ -52,10 +60,45 @@ final class VendorEventsPresentationContractTest extends TestCase {
       $webRoot . '/modules/custom/myeventlane_vendor/src/Service/VendorEventIndexViewModelBuilder.php',
     );
 
-    self::assertStringContainsString("\$request->query->get('sort') ?? 'created'", $controller);
-    self::assertStringContainsString("'_created' => \$node->getCreatedTime()", $builder);
-    self::assertStringContainsString("(int) (\$b['_created'] ?? 0) <=> (int) (\$a['_created'] ?? 0)", $builder);
-    self::assertStringContainsString("'Newest created'", $builder);
+    self::assertStringContainsString(
+      "\$request->query->get('status') ?? 'current'",
+      $controller,
+    );
+    self::assertStringContainsString(
+      "\$request->query->get('sort') ?? 'recommended'",
+      $controller,
+    );
+    self::assertStringContainsString("private const EVENTS_PER_PAGE = 12", $builder);
+    self::assertStringContainsString("'Recommended'", $builder);
+    self::assertStringContainsString("'Event date'", $builder);
+    self::assertStringContainsString("'Recently updated'", $builder);
+    self::assertStringContainsString("'Event name'", $builder);
+    self::assertStringNotContainsString("'Newest created'", $builder);
+    self::assertStringNotContainsString("'Soonest'", $builder);
+  }
+
+  public function testEventIndexRendersOneManagedListWithSafeSelectionMode(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $controller = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_vendor/src/Controller/VendorEventsController.php',
+    );
+    $form = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_vendor/src/Form/VendorEventsBulkActionsForm.php',
+    );
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/templates/myeventlane-vendor-events-grid.html.twig',
+    );
+
+    self::assertStringNotContainsString("\$body['bulk']", $controller);
+    self::assertSame(1, substr_count($controller, 'getForm('));
+    self::assertStringContainsString("\$form['#vendor_event_index_model'] = \$model", $form);
+    self::assertStringContainsString('UserVendorMembershipQuery', $form);
+    self::assertStringNotContainsString('ViewExecutable', $form);
+    self::assertStringNotContainsString('->delete()', $form);
+    self::assertStringContainsString("'publish' =>", $form);
+    self::assertStringContainsString("'unpublish' =>", $form);
+    self::assertStringContainsString('data-events-select-toggle', $template);
+    self::assertStringContainsString('data-events-search', $template);
   }
 
 }

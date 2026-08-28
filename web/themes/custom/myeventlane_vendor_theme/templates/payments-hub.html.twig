@@ -107,8 +107,8 @@
   <section class="mel-card mel-payments-hub__section" id="refunds" aria-labelledby="mel-payments-refunds-heading">
     <div class="mel-card__header mel-payments-hub__section-header">
       <h2 id="mel-payments-refunds-heading" class="mel-card__title">{{ 'Refunds'|t }}</h2>
-      {% if refunds.hub_url %}
-        <a class="mel-payments-hub__link" href="{{ refunds.hub_url }}">{{ refunds.cta_label }}</a>
+      {% if refunds.review_url %}
+        <a class="mel-payments-hub__link" href="{{ refunds.review_url }}">{{ refunds.cta_label }}</a>
       {% endif %}
     </div>
     {% if refunds.empty %}

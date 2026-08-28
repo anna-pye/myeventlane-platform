@@ -301,8 +301,11 @@
   }
 
   &__readiness-item {
-    display: grid;
-    gap: $spacing-1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2 $spacing-3;
+    align-items: center;
+    justify-content: space-between;
     padding: $spacing-2 0;
     border-top: 1px solid rgba($ml-vendor-navy, 0.06);
 
@@ -311,34 +314,37 @@
     }
   }
 
-  &__readiness-item-link {
+  &__readiness-item-copy {
+    display: grid;
+    flex: 1 1 20rem;
+    gap: $spacing-1;
+  }
+
+  &__readiness-item-controls {
     display: flex;
     flex-wrap: wrap;
     gap: $spacing-2;
     align-items: center;
-    justify-content: space-between;
-    color: inherit;
+  }
+
+  &__readiness-action {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding: $spacing-2 $spacing-3;
+    border: 1px solid rgba($info, 0.28);
+    border-radius: $radius-full;
+    color: $info;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      background: rgba($info, 0.08);
+    }
 
     &:focus-visible {
       outline: 2px solid $info;
       outline-offset: 2px;
-    }
-  }
-
-  &__readiness-all {
-    margin-top: $spacing-3;
-
-    summary {
-      min-height: 2.75rem;
-      padding: $spacing-2 0;
-      cursor: pointer;
-      font-weight: 600;
-      color: $info;
-
-      &:focus-visible {
-        outline: 2px solid $info;
-        outline-offset: 2px;
-      }
     }
   }
 
@@ -380,14 +386,55 @@
   }
 
   &__guidance-item {
-    display: grid;
-    gap: $spacing-1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2 $spacing-3;
+    align-items: center;
+    justify-content: space-between;
     padding: $spacing-3 0;
     border-top: 1px solid rgba($ml-vendor-navy, 0.06);
 
     &:first-child {
       border-top: 0;
       padding-top: 0;
+    }
+  }
+
+  &__guidance-item-copy {
+    display: grid;
+    flex: 1 1 20rem;
+    gap: $spacing-1;
+
+    p {
+      margin: 0;
+    }
+  }
+
+  &__guidance-item-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    align-items: center;
+  }
+
+  &__guidance-action {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    padding: $spacing-2 $spacing-3;
+    border: 1px solid rgba($info, 0.28);
+    border-radius: $radius-full;
+    color: $info;
+    font-weight: 600;
+    text-decoration: none;
+
+    &:hover {
+      background: rgba($info, 0.08);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $info;
+      outline-offset: 2px;
     }
   }
 

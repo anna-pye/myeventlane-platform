@@ -879,7 +879,7 @@ final class VendorDashboardViewModelBuilder {
       'is_promoted' => !empty($boost['active']),
       'removal' => $this->vendorEventRemovalService->buildRemovalUiPayload($node, $account),
       'links' => [
-        'manage' => $this->safeUrlFromRoute('myeventlane_event_studio.workspace', ['node' => $nid]),
+        'manage' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace', ['event' => $nid]),
         'edit' => $this->safeUrlFromRoute('myeventlane_event_studio.edit', ['node' => $nid]),
         'tickets' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_tickets', ['event' => $nid]),
         'rsvps' => $this->safeUrlFromRoute('myeventlane_vendor.console.event_rsvps', ['event' => $nid]),

@@ -44,6 +44,26 @@ final class VendorPaymentsHubPresentationContractTest extends TestCase {
     $this->assertStringContainsString("'Last Stripe payout'|t", $template);
   }
 
+  public function testRefundReviewActionTargetsAnAccessibleEventQueue(): void {
+    $builder = file_get_contents(
+      $this->repositoryRoot() . '/web/modules/custom/myeventlane_vendor/src/Service/VendorPaymentsHubBuilder.php',
+    );
+    $template = file_get_contents(
+      $this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/templates/payments-hub.html.twig',
+    );
+    $this->assertIsString($builder);
+    $this->assertIsString($template);
+    $this->assertStringContainsString(
+      "'myeventlane_refunds.vendor_refund_requests'",
+      $builder,
+    );
+    $this->assertStringContainsString('checkNamedRoute(', $builder);
+    $this->assertStringContainsString("(\$request['status'] ?? '') !== 'requested'", $builder);
+    $this->assertStringContainsString("'review_url' => \$reviewUrl", $builder);
+    $this->assertStringContainsString('refunds.review_url', $template);
+    $this->assertStringNotContainsString('refunds.hub_url', $template);
+  }
+
   public function testThemeSupportsWideDesktopAndMobileStacking(): void {
     $styles = file_get_contents($this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/src/scss/pages/_payments-hub.scss');
     $this->assertIsString($styles);

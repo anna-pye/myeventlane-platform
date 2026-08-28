@@ -4,57 +4,34 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Form;
 
-use Drupal\Core\Entity\EntityStorageException;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
-use Drupal\Core\Url;
 use Drupal\myeventlane_event_studio\Service\EventStudioSaveService;
+use Drupal\myeventlane_vendor\Service\UserVendorMembershipQuery;
 use Drupal\node\NodeInterface;
-use Drupal\views\Entity\View as ViewEntity;
-use Drupal\views\ViewExecutable;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Form for listing vendor events with bulk actions functionality.
+ * Adds safe bulk publication controls to the canonical organiser event cards.
  *
- * Event rows are driven by the "mel_vendor_events" View (single source of
- * truth for filters/sorts) and rendered with the "vendor_card" view mode.
+ * The event cards and their checkboxes use the same managed-event view model.
+ * Destructive removal remains an individual, booking-aware action.
  */
 final class VendorEventsBulkActionsForm extends FormBase {
 
-  /**
-   * The entity type manager.
-   */
-  protected EntityTypeManagerInterface $entityTypeManager;
-
-  /**
-   * The current user.
-   */
-  protected AccountProxyInterface $currentUser;
-
-  /**
-   * Logger for the myeventlane_vendor channel.
-   */
-  protected LoggerInterface $logger;
-
-  /**
-   * Constructs the form.
-   */
   public function __construct(
-    EntityTypeManagerInterface $entity_type_manager,
-    AccountProxyInterface $current_user,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
+    private readonly AccountProxyInterface $currentUser,
     MessengerInterface $messenger,
-    LoggerInterface $logger,
+    private readonly LoggerInterface $logger,
     private readonly EventStudioSaveService $eventStudioSave,
+    private readonly UserVendorMembershipQuery $membershipQuery,
   ) {
-    $this->entityTypeManager = $entity_type_manager;
-    $this->currentUser = $current_user;
     $this->setMessenger($messenger);
-    $this->logger = $logger;
   }
 
   /**
@@ -67,6 +44,7 @@ final class VendorEventsBulkActionsForm extends FormBase {
       $container->get('messenger'),
       $container->get('logger.channel.myeventlane_vendor'),
       $container->get('myeventlane_event_studio.save'),
+      $container->get('myeventlane_vendor.user_vendor_membership_query'),
     );
   }
 
@@ -78,216 +56,146 @@ final class VendorEventsBulkActionsForm extends FormBase {
   }
 
   /**
-   * {@inheritdoc}
+   * Builds checkbox controls around the canonical event-index model.
+   *
+   * @param array<string, mixed> $form
+   *   Initial form render array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   Current form state.
+   * @param array<string, mixed> $model
+   *   Canonical, filtered event-index view model for the current page.
+   *
+   * @return array<string, mixed>
+   *   Completed form render array.
    */
-  public function buildForm(array $form, FormStateInterface $form_state): array {
+  public function buildForm(
+    array $form,
+    FormStateInterface $form_state,
+    array $model = [],
+  ): array {
     $form['#attributes']['class'][] = 'mel-vendor-events-form';
-    $form['#create_event_url'] = Url::fromRoute('myeventlane_vendor.create_event_gateway')->toString();
+    $form['#vendor_event_index_model'] = $model;
     $form['#attached']['library'][] = 'myeventlane_vendor_theme/mel_vendor_events';
 
-    $executable = $this->loadVendorEventsViewExecutable();
-    if ($executable === NULL) {
-      $this->logger->error('View "mel_vendor_events" is missing or invalid; vendor events list cannot be built.');
-      $form['fatal'] = [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('Events could not be loaded. Please try again later.'),
-        '#attributes' => ['class' => ['messages', 'messages--error']],
-      ];
-      return $form;
-    }
-
-    $executable->execute();
-    $nodes = $this->collectNodesFromViewResult($executable);
-
-    $display = $executable->getDisplay();
-    $cache_metadata = $display->getCacheMetadata();
-    $form['#cache']['tags'] = $cache_metadata->getCacheTags();
-    $form['#cache']['contexts'] = $cache_metadata->getCacheContexts();
-    $form['#cache']['max-age'] = 0;
-
-    if (empty($nodes)) {
-      $form['empty_state'] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-empty--events-inner']],
-        'title' => [
-          '#type' => 'html_tag',
-          '#tag' => 'h3',
-          '#value' => $this->t('No events yet'),
-          '#attributes' => ['class' => ['mel-empty__title']],
-        ],
-        'text' => [
-          '#type' => 'html_tag',
-          '#tag' => 'p',
-          '#value' => $this->t('Create an event to add details, RSVPs, or tickets.'),
-          '#attributes' => ['class' => ['mel-empty__text']],
-        ],
-        'action' => [
-          '#type' => 'link',
-          '#title' => $this->t('Create event'),
-          '#url' => Url::fromRoute('myeventlane_vendor.create_event_gateway'),
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--primary']],
-        ],
-      ];
-      return $form;
-    }
-
-    $viewBuilder = $this->entityTypeManager->getViewBuilder('node');
-
-    $form['bulk_actions'] = [
+    $events = is_array($model['events'] ?? NULL) ? $model['events'] : [];
+    $allowedPageIds = [];
+    $form['events'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-bulk-actions']],
+      '#tree' => TRUE,
+      '#attributes' => ['class' => ['mel-vendor-events-selection']],
     ];
 
-    $form['bulk_actions']['action'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Bulk Actions'),
-      '#title_display' => 'invisible',
-      '#options' => [
-        '' => $this->t('- Select action -'),
-        'publish' => $this->t('Publish'),
-        'unpublish' => $this->t('Unpublish'),
-        'delete' => $this->t('Delete'),
-      ],
-      '#attributes' => [
-        'class' => ['mel-bulk-actions__select'],
-      ],
-    ];
-
-    $form['bulk_actions']['apply'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('Apply'),
-      '#attributes' => [
-        'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--sm'],
-      ],
-    ];
-
-    $form['bulk_actions']['select_all_wrapper'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-bulk-actions__select-all']],
-    ];
-
-    $form['bulk_actions']['select_all_wrapper']['select_all'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Select all'),
-      '#attributes' => [
-        'class' => ['mel-select-all'],
-        'data-select-all' => 'events',
-      ],
-    ];
-
-    $form['events_wrapper'] = [
-      '#type' => 'container',
-      '#attributes' => [
-        'class' => ['mel-events-bulk-list'],
-      ],
-    ];
-
-    foreach ($nodes as $nid => $node) {
-      if (!$node instanceof NodeInterface) {
+    foreach ($events as $event) {
+      $nid = (int) ($event['nid'] ?? 0);
+      if ($nid <= 0) {
         continue;
       }
-      $nid = (int) $nid;
-      $form['events_wrapper'][$nid] = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-vendor-event-row']],
-        'select' => [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Select @title', ['@title' => $node->label()]),
-          '#title_display' => 'invisible',
-          '#return_value' => $nid,
-          '#parents' => ['events', $nid],
+      $allowedPageIds[] = $nid;
+      $title = (string) ($event['title'] ?? $this->t('Untitled event'));
+      $form['events'][$nid] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Select @title', ['@title' => $title]),
+        '#return_value' => $nid,
+        '#attributes' => [
+          'class' => ['mel-event-select'],
+          'data-event-select' => (string) $nid,
         ],
-        'card' => $viewBuilder->view($node, 'vendor_card'),
+        '#wrapper_attributes' => [
+          'class' => ['mel-vendor-events-v2__selection'],
+        ],
       ];
-      $form['events_wrapper'][$nid]['select']['#weight'] = -10;
+    }
+    $form_state->set('allowed_page_event_ids', $allowedPageIds);
+
+    if ($allowedPageIds !== []) {
+      $form['bulk_actions'] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => [
+            'mel-bulk-actions',
+            'mel-vendor-events-v2__bulk-actions',
+          ],
+          'data-events-bulk-toolbar' => '',
+          'hidden' => 'hidden',
+        ],
+      ];
+      $form['bulk_actions']['action'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Action for selected events'),
+        '#options' => [
+          '' => $this->t('- Select action -'),
+          'publish' => $this->t('Publish'),
+          'unpublish' => $this->t('Unpublish'),
+        ],
+        '#attributes' => ['class' => ['mel-bulk-actions__select']],
+      ];
+      $form['bulk_actions']['apply'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Apply'),
+        '#attributes' => [
+          'class' => ['mel-btn', 'mel-btn--primary', 'mel-btn--sm'],
+        ],
+      ];
+      $form['bulk_actions']['select_all'] = [
+        '#type' => 'checkbox',
+        '#title' => $this->t('Select this page'),
+        '#attributes' => [
+          'class' => ['mel-select-all'],
+          'data-select-all' => 'events',
+        ],
+        '#wrapper_attributes' => [
+          'class' => ['mel-bulk-actions__select-all'],
+        ],
+      ];
     }
 
     $form['#attached']['library'][] = 'myeventlane_vendor/bulk_actions';
-
     return $form;
-  }
-
-  /**
-   * Loads the executable for the canonical vendor events View.
-   */
-  private function loadVendorEventsViewExecutable(): ?ViewExecutable {
-    $storage = $this->entityTypeManager->getStorage('view');
-    $view = $storage->load('mel_vendor_events');
-    if (!$view instanceof ViewEntity) {
-      return NULL;
-    }
-    $executable = $view->getExecutable();
-    if (!$executable instanceof ViewExecutable) {
-      return NULL;
-    }
-    $executable->initDisplay();
-    $executable->setDisplay('default');
-    return $executable;
-  }
-
-  /**
-   * Collects event nodes from a executed view result set.
-   *
-   * @return array<int, \Drupal\node\NodeInterface>
-   *   Keyed by node ID.
-   */
-  private function collectNodesFromViewResult(ViewExecutable $executable): array {
-    $out = [];
-    foreach ($executable->result as $row) {
-      if (!isset($row->_entity)) {
-        continue;
-      }
-      $entity = $row->_entity;
-      if ($entity instanceof NodeInterface && $entity->bundle() === 'event') {
-        $out[(int) $entity->id()] = $entity;
-      }
-    }
-    return $out;
-  }
-
-  /**
-   * Returns allowed event node IDs from the view (authoritative for access).
-   *
-   * @return array<int, int>
-   */
-  private function getAllowedEventNidsFromView(): array {
-    $executable = $this->loadVendorEventsViewExecutable();
-    if ($executable === NULL) {
-      return [];
-    }
-    $executable->execute();
-    $nodes = $this->collectNodesFromViewResult($executable);
-    return array_map(static fn (NodeInterface $node): int => (int) $node->id(), $nodes);
   }
 
   /**
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state): void {
-    $action = $form_state->getValue('action');
-    $selectedRaw = $form_state->getValue('events') ?? [];
-    $selectedEvents = array_filter(
-      is_array($selectedRaw) ? $selectedRaw : [],
-      static fn($v): bool => $v !== 0 && $v !== '0' && $v !== '',
+    $action = (string) $form_state->getValue('action', '');
+    $selected = $this->selectedEventIds($form_state);
+
+    if (!in_array($action, ['publish', 'unpublish'], TRUE)) {
+      $form_state->setErrorByName(
+        'action',
+        $this->t('Select an action for these events.'),
+      );
+    }
+    if ($selected === []) {
+      $form_state->setErrorByName(
+        'events',
+        $this->t('Select at least one event.'),
+      );
+      return;
+    }
+
+    $pageIds = array_map(
+      'intval',
+      (array) $form_state->get('allowed_page_event_ids'),
     );
-
-    if (empty($action)) {
-      $form_state->setErrorByName('action', $this->t('Please select an action.'));
-      return;
-    }
-
-    if (empty($selectedEvents)) {
-      $form_state->setErrorByName('events', $this->t('Please select at least one event.'));
-      return;
-    }
-
-    $allowed = array_flip($this->getAllowedEventNidsFromView());
-    foreach (array_keys($selectedEvents) as $nid) {
-      $nid = (int) $nid;
-      if (!isset($allowed[$nid])) {
-        $this->logger->warning('Vendor events bulk: rejected selection for disallowed nid @nid.', ['@nid' => (string) $nid]);
-        $form_state->setErrorByName('events', $this->t('Your selection could not be validated. Please refresh and try again.'));
+    $managedIds = $this->membershipQuery->getManagedEventNodeIds(
+      (int) $this->currentUser->id(),
+      FALSE,
+    );
+    foreach ($selected as $nid) {
+      if (!in_array($nid, $pageIds, TRUE)
+        || !in_array($nid, $managedIds, TRUE)) {
+        $this->logger->warning(
+          'Organiser event bulk action rejected nid @nid for uid @uid.',
+          [
+            '@nid' => (string) $nid,
+            '@uid' => (string) $this->currentUser->id(),
+          ],
+        );
+        $form_state->setErrorByName(
+          'events',
+          $this->t('Your selection could not be validated. Refresh and try again.'),
+        );
         return;
       }
     }
@@ -297,120 +205,82 @@ final class VendorEventsBulkActionsForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $action = $form_state->getValue('action');
-    $selectedRaw = $form_state->getValue('events') ?? [];
-    $selectedEvents = array_filter(
-      is_array($selectedRaw) ? $selectedRaw : [],
-      static fn($v): bool => $v !== 0 && $v !== '0' && $v !== '',
-    );
+    $publish = $form_state->getValue('action') === 'publish';
+    $updated = 0;
+    $failed = 0;
+    $storage = $this->entityTypeManager->getStorage('node');
 
-    if (empty($selectedEvents)) {
-      return;
-    }
+    foreach ($this->selectedEventIds($form_state) as $nid) {
+      $node = $storage->load($nid);
+      if (!$node instanceof NodeInterface
+        || $node->bundle() !== 'event'
+        || !$node->access('update', $this->currentUser, TRUE)->isAllowed()) {
+        $failed++;
+        continue;
+      }
 
-    $userId = (int) $this->currentUser->id();
-    $nodeStorage = $this->entityTypeManager->getStorage('node');
-
-    switch ($action) {
-      case 'delete':
-        $this->handleDelete($selectedEvents, $userId, $nodeStorage);
-        break;
-
-      case 'publish':
-        $this->handlePublish($selectedEvents, $userId, $nodeStorage, TRUE);
-        break;
-
-      case 'unpublish':
-        $this->handlePublish($selectedEvents, $userId, $nodeStorage, FALSE);
-        break;
-    }
-
-    $form_state->setRedirect('myeventlane_vendor.console.events');
-  }
-
-  /**
-   * Handle bulk delete action.
-   */
-  private function handleDelete(array $selectedEvents, int $userId, $nodeStorage): void {
-    $deletedCount = 0;
-    $failedCount = 0;
-
-    foreach (array_keys($selectedEvents) as $nodeId) {
-      $nodeId = (int) $nodeId;
-      $node = $nodeStorage->load($nodeId);
-
-      if ($node instanceof NodeInterface
-          && $node->bundle() === 'event'
-          && (int) $node->getOwnerId() === $userId) {
-        try {
-          $node->delete();
-          $deletedCount++;
-        }
-        catch (EntityStorageException $e) {
-          $failedCount++;
-          $this->logger->error('Vendor events bulk delete failed for event @nid by user @uid: @message', [
-            '@nid' => (string) $nodeId,
-            '@uid' => (string) $userId,
+      try {
+        $this->eventStudioSave->setNodePublishedState(
+          $node,
+          $this->currentUser,
+          $publish,
+          $publish
+            ? 'Bulk publish from organiser events list.'
+            : 'Bulk unpublish from organiser events list.',
+        );
+        $updated++;
+      }
+      catch (\Throwable $e) {
+        $failed++;
+        $this->logger->warning(
+          'Organiser event bulk update failed for nid @nid: @message',
+          [
+            '@nid' => (string) $nid,
             '@message' => $e->getMessage(),
-          ]);
-        }
+          ],
+        );
       }
     }
 
-    if ($deletedCount > 0) {
-      $this->messenger()->addStatus($this->t('Successfully deleted @count event(s).', [
-        '@count' => $deletedCount,
-      ]));
+    if ($updated > 0) {
+      $this->messenger()->addStatus($this->formatPlural(
+        $updated,
+        'Updated 1 event.',
+        'Updated @count events.',
+      ));
     }
-    else {
-      $this->messenger()->addWarning($this->t('No events were deleted.'));
+    if ($failed > 0) {
+      $this->messenger()->addWarning($this->formatPlural(
+        $failed,
+        '1 event could not be updated.',
+        '@count events could not be updated.',
+      ));
     }
 
-    if ($failedCount > 0) {
-      $this->messenger()->addError($this->t('@count event(s) could not be deleted. Please try again or contact support.', [
-        '@count' => $failedCount,
-      ]));
-    }
+    $query = $this->getRequest()->query->all();
+    unset($query['page']);
+    $form_state->setRedirect(
+      'myeventlane_vendor.console.events',
+      [],
+      ['query' => $query],
+    );
   }
 
   /**
-   * Handle bulk publish/unpublish action.
+   * Extracts positive event node IDs from submitted checkbox values.
+   *
+   * @return list<int>
+   *   Selected event node IDs.
    */
-  private function handlePublish(array $selectedEvents, int $userId, $nodeStorage, bool $publish): void {
-    $updatedCount = 0;
-    $action = $publish ? 'published' : 'unpublished';
-
-    foreach (array_keys($selectedEvents) as $nodeId) {
-      $nodeId = (int) $nodeId;
-      $node = $nodeStorage->load($nodeId);
-
-      if ($node instanceof NodeInterface
-          && $node->bundle() === 'event'
-          && (int) $node->getOwnerId() === $userId) {
-        try {
-          $this->eventStudioSave->setNodePublishedState(
-            $node,
-            $this->currentUser,
-            $publish,
-            $publish ? 'Bulk publish from vendor events list.' : 'Bulk unpublish from vendor events list.',
-          );
-          $updatedCount++;
-        }
-        catch (\InvalidArgumentException $e) {
-          $this->messenger()->addError($e->getMessage());
-        }
-      }
+  private function selectedEventIds(FormStateInterface $form_state): array {
+    $raw = $form_state->getValue('events', []);
+    if (!is_array($raw)) {
+      return [];
     }
-
-    if ($updatedCount > 0) {
-      $this->messenger()->addStatus($this->t('Successfully @action @count event(s).', [
-        '@action' => $action,
-        '@count' => $updatedCount,
-      ]));
-    }
-    else {
-      $this->messenger()->addWarning($this->t('No events were updated.'));
-    }
+    return array_values(array_filter(
+      array_map('intval', $raw),
+      static fn (int $nid): bool => $nid > 0,
+    ));
   }
 
 }

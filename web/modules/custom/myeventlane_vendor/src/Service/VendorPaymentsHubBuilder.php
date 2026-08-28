@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
+use Drupal\Core\Access\AccessManagerInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -27,6 +28,8 @@ final class VendorPaymentsHubBuilder {
    *
    * @param \Drupal\Core\Session\AccountProxyInterface $currentUser
    *   Current user.
+   * @param \Drupal\Core\Access\AccessManagerInterface $accessManager
+   *   Route access manager.
    * @param \Drupal\myeventlane_vendor\Service\CurrentVendorResolverInterface $vendorResolver
    *   Vendor resolver.
    * @param \Drupal\myeventlane_vendor\Service\VendorPaymentsHealthService $paymentsHealth
@@ -50,6 +53,7 @@ final class VendorPaymentsHubBuilder {
    */
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
+    private readonly AccessManagerInterface $accessManager,
     private readonly CurrentVendorResolverInterface $vendorResolver,
     private readonly VendorPaymentsHealthService $paymentsHealth,
     private readonly TicketSalesService $ticketSales,
@@ -201,7 +205,7 @@ final class VendorPaymentsHubBuilder {
     $pending = 0;
     $completed = 0;
     $declined = 0;
-    $hubUrl = $this->safeRouteUrl('myeventlane_escalations_refunds.vendor_refund_summary');
+    $reviewUrl = NULL;
 
     if ($this->refundsRepository !== NULL
       && $this->refundsMetrics !== NULL
@@ -214,6 +218,7 @@ final class VendorPaymentsHubBuilder {
           $windowDays = $this->resolveRefundSummaryWindowDays();
           $data = $this->refundsRepository->findVendorSummary((int) $owner->id(), $windowDays);
           $metrics = $this->refundsMetrics->calculateForVendor($data['logs'], $data['requests']);
+          $reviewUrl = $this->findRefundReviewUrl($data['requests']);
           $byRequest = $metrics['requests_by_status'] ?? [];
           $byLog = $metrics['logs_by_status'] ?? [];
           // Buyer requests default to "requested" (awaiting organiser action).
@@ -246,21 +251,61 @@ final class VendorPaymentsHubBuilder {
       'pending' => $pending,
       'completed' => $completed,
       'declined' => $declined,
-      'hub_url' => $hubUrl,
+      'review_url' => $reviewUrl,
       'cta_label' => (string) $this->t('Review refunds'),
       'empty' => ($pending + $completed + $declined) === 0,
       'empty_body' => (string) $this->t('No refund activity yet. Requests from guests will show up here.'),
-      'quick_actions' => array_values(array_filter([
-        $hubUrl ? [
-          'label' => (string) $this->t('Refund activity'),
-          'url' => $hubUrl,
-        ] : NULL,
-      ])),
     ];
   }
 
   /**
-   * Resolves the refund summary window used by the linked activity page.
+   * Finds an accessible event queue with a refund awaiting organiser review.
+   *
+   * Vendor summary requests are returned newest first, so the first accessible
+   * event is the most recent queue requiring attention.
+   *
+   * @param array<int, array<string, mixed>> $requests
+   *   Vendor-scoped refund request rows.
+   *
+   * @return string|null
+   *   Event refund-request URL, or NULL when there is nothing to review.
+   */
+  private function findRefundReviewUrl(array $requests): ?string {
+    foreach ($requests as $request) {
+      if (($request['status'] ?? '') !== 'requested') {
+        continue;
+      }
+
+      $eventId = (int) ($request['event_id'] ?? 0);
+      if ($eventId <= 0) {
+        continue;
+      }
+
+      try {
+        $parameters = ['node' => $eventId];
+        $access = $this->accessManager->checkNamedRoute(
+          'myeventlane_refunds.vendor_refund_requests',
+          $parameters,
+          $this->currentUser->getAccount(),
+          TRUE,
+        );
+        if ($access->isAllowed()) {
+          return $this->safeRouteUrl(
+            'myeventlane_refunds.vendor_refund_requests',
+            $parameters,
+          );
+        }
+      }
+      catch (\Throwable) {
+        continue;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Resolves the refund summary window used by the Payments card.
    */
   private function resolveRefundSummaryWindowDays(): int {
     $days = (int) ($this->configFactory
