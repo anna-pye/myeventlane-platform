@@ -1,5 +1,5 @@
-customer_terms_version: '1.0'
-vendor_terms_version: '1.0'
+customer_terms_version: '1.1'
+vendor_terms_version: '1.1'
 privacy_version: '1.0'
 customer_terms_url: '/terms'
 vendor_terms_url: '/vendor-terms'
