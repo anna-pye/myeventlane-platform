@@ -10,6 +10,8 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
+use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
+use Drupal\myeventlane_commerce\Service\CartTicketTierHoldStore;
 use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\node\NodeInterface;
@@ -128,6 +130,14 @@ final class TicketCapacityOrderSubscriber implements EventSubscriberInterface {
             );
             throw new CapacityExceededException('This ticket is not available for this event.');
           }
+          $tier = $this->ticketAvailability->resolveTierForVariation($event_node, $variation);
+          $tierReservationKey = $tier === NULL
+            ? NULL
+            : CartTicketTierHoldStore::reservationKey(
+              (int) $order->id(),
+              (int) $event_id,
+              (int) $tier->id(),
+            );
           try {
             $this->ticketAvailability->assertPaidLineAndEventTotal(
               $event_node,
@@ -135,7 +145,8 @@ final class TicketCapacityOrderSubscriber implements EventSubscriberInterface {
               $variation,
               (int) $qty,
               $requested_total,
-              'order:' . $order->id() . ':event:' . $event_id,
+              CartTicketHoldManager::reservationKey((int) $order->id(), (int) $event_id),
+              $tierReservationKey,
             );
           }
           catch (CapacityExceededException $e) {

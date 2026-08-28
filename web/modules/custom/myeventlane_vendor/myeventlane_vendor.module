@@ -175,6 +175,8 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
       'variables' => [
         'events' => [],
         'vendor_event_index_model' => NULL,
+        'bulk_selection' => NULL,
+        'bulk_actions' => NULL,
       ],
       'template' => 'myeventlane-vendor-events-grid',
       'path' => $vendor_theme_path . '/templates',

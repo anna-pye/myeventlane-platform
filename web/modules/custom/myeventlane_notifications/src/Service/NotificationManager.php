@@ -14,6 +14,7 @@ use Drupal\Core\State\StateInterface;
 use Drupal\myeventlane_notifications\Entity\MelNotification;
 use Drupal\myeventlane_notifications\NotificationContext;
 use Drupal\myeventlane_notifications\NotificationDomain;
+use Drupal\myeventlane_notifications\NotificationAttentionPolicy;
 use Drupal\myeventlane_notifications\NotificationTaxonomy;
 use Drupal\myeventlane_notifications\Plugin\QueueWorker\NotificationDispatchWorker;
 
@@ -42,7 +43,8 @@ final class NotificationManager {
    *   priority (optional), priority_score (optional), suppression_key (optional),
    *   group_key (optional), action_label (optional), action_uri (optional legacy),
    *   action_context (optional), context (optional), domain (optional),
-   *   route_name (optional preferred), route_parameters (optional array).
+   *   route_name (optional preferred), route_parameters (optional array),
+   *   event_id (optional), requires_action (optional explicit override).
    *
    * Deep-linking: always set route_name + route_parameters for new notifications.
    * action_uri is retained for legacy rows; NotificationViewBuilder falls back to
@@ -95,6 +97,17 @@ final class NotificationManager {
       ? ''
       : json_encode($routeParameters, JSON_THROW_ON_ERROR);
 
+    $eventId = max(0, (int) ($data['event_id'] ?? $routeParameters['node'] ?? $routeParameters['event'] ?? 0));
+    if ($eventId > 0) {
+      $event = $this->entityTypeManager->getStorage('node')->load($eventId);
+      if (!$event || $event->bundle() !== 'event') {
+        $eventId = 0;
+      }
+    }
+    $requiresAction = array_key_exists('requires_action', $data)
+      ? (bool) $data['requires_action']
+      : NotificationAttentionPolicy::requiresAction($context, $actionContext);
+
     $actionLabel = trim((string) ($data['action_label'] ?? ''));
     $actionUri = $this->normalizeActionUri($data['action_uri'] ?? '');
     if ($actionLabel !== '' && $actionUri === '' && $routeName === '') {
@@ -124,6 +137,8 @@ final class NotificationManager {
       'domain' => $domain,
       'route_name' => $routeName,
       'route_parameters' => $routeParametersJson,
+      'event_id' => $eventId ?: NULL,
+      'requires_action' => $requiresAction,
     ]);
     foreach ($channels as $channel) {
       $entity->get('channels')->appendItem($channel);

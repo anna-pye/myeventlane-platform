@@ -10,6 +10,8 @@ use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
 use Drupal\myeventlane_capacity\Service\CapacityOrderInspector;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 use Drupal\myeventlane_commerce\Service\CustomerTicketTierDisplayBuilder;
+use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
+use Drupal\myeventlane_commerce\Service\CartTicketTierHoldStore;
 use Drupal\myeventlane_commerce\Service\TicketAccessCodeService;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
 use Drupal\myeventlane_commerce\Service\TicketBookingSessionService;
@@ -65,6 +67,7 @@ final class TicketSelectionForm extends FormBase {
     protected TicketTypeManager $ticketTypeManager,
     protected ?EventCapacityServiceInterface $capacityService = NULL,
     protected ?CustomerTicketTierDisplayBuilder $customerTicketTierDisplay = NULL,
+    protected ?CartTicketHoldManager $cartTicketHold = NULL,
   ) {}
 
   /**
@@ -89,6 +92,9 @@ final class TicketSelectionForm extends FormBase {
         : NULL,
       $container->has('myeventlane_commerce.customer_ticket_tier_display')
         ? $container->get('myeventlane_commerce.customer_ticket_tier_display')
+        : NULL,
+      $container->has('myeventlane_commerce.cart_ticket_hold')
+        ? $container->get('myeventlane_commerce.cart_ticket_hold')
         : NULL,
     );
   }
@@ -524,6 +530,34 @@ final class TicketSelectionForm extends FormBase {
     $pending = $this->getPendingCartTicketTotals($node, $product);
     $combined_event_total = $pending['event_total'] + $total_quantity;
 
+    // Tier checks must pass before event capacity creates or refreshes a hold.
+    // Otherwise a rejected tier can leave global inventory reserved.
+    foreach ($per_variation as $variation_id => $qty) {
+      /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
+      $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($variation_id);
+      if (!$variation instanceof ProductVariationInterface) {
+        $form_state->setError($form['actions']['submit'], $this->t('An invalid ticket was selected.'));
+        return;
+      }
+      $existing_line = (int) ($pending['variation'][$variation_id] ?? 0);
+      $combined_line = $existing_line + $qty;
+      try {
+        $this->ticketAvailability->assertPaidVariationLineConstraints(
+          $node,
+          $product,
+          $variation,
+          $combined_line,
+          NULL,
+          NULL,
+          $this->tierCapacityReservationKey($node, $product, $variation),
+        );
+      }
+      catch (CapacityExceededException $e) {
+        $form_state->setError($form['actions']['submit'], $e->getMessage());
+        return;
+      }
+    }
+
     if ($node) {
       try {
         $this->ticketAvailability->assertEventTotalBookable(
@@ -538,24 +572,6 @@ final class TicketSelectionForm extends FormBase {
           ? $this->t('Only @remaining ticket(s) remaining. Please adjust your quantity.', ['@remaining' => $remaining])
           : $this->t('This event is sold out.');
         $form_state->setError($form['actions']['submit'], $message);
-        return;
-      }
-    }
-
-    foreach ($per_variation as $variation_id => $qty) {
-      /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
-      $variation = $this->entityTypeManager->getStorage('commerce_product_variation')->load($variation_id);
-      if (!$variation instanceof ProductVariationInterface) {
-        $form_state->setError($form['actions']['submit'], $this->t('An invalid ticket was selected.'));
-        return;
-      }
-      $existing_line = (int) ($pending['variation'][$variation_id] ?? 0);
-      $combined_line = $existing_line + $qty;
-      try {
-        $this->ticketAvailability->assertPaidVariationLineConstraints($node, $product, $variation, $combined_line);
-      }
-      catch (CapacityExceededException $e) {
-        $form_state->setError($form['actions']['submit'], $e->getMessage());
         return;
       }
     }
@@ -602,39 +618,53 @@ final class TicketSelectionForm extends FormBase {
 
     $pending = $this->getPendingCartTicketTotals($node, $product);
     $combined_event_total = $pending['event_total'] + $total_quantity;
+    $selectionReservationKey = $this->eventCapacityReservationKey($node, $product);
 
-    try {
-      $this->ticketAvailability->assertEventTotalBookable(
-        $node,
-        $combined_event_total,
-        $this->eventCapacityReservationKey($node, $product),
-      );
-    }
-    catch (CapacityExceededException $e) {
-      $this->messenger()->addError($e->getMessage());
-      return;
-    }
-
+    // Validate every tier before refreshing event-level capacity.
     foreach ($per_variation as $variation_id => $qty) {
       /** @var \Drupal\commerce_product\Entity\ProductVariationInterface|null $variation */
       $variation = $variation_storage->load($variation_id);
       if (!$variation instanceof ProductVariationInterface) {
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
         $this->messenger()->addError($this->t('An invalid ticket was selected.'));
         return;
       }
       $existing_line = (int) ($pending['variation'][$variation_id] ?? 0);
       $combined_line = $existing_line + $qty;
       try {
-        $this->ticketAvailability->assertPaidVariationLineConstraints($node, $product, $variation, $combined_line);
+        $this->ticketAvailability->assertPaidVariationLineConstraints(
+          $node,
+          $product,
+          $variation,
+          $combined_line,
+          NULL,
+          NULL,
+          $this->tierCapacityReservationKey($node, $product, $variation),
+        );
       }
       catch (CapacityExceededException $e) {
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
         $this->messenger()->addError($e->getMessage());
         return;
       }
     }
 
+    try {
+      $this->ticketAvailability->assertEventTotalBookable(
+        $node,
+        $combined_event_total,
+        $selectionReservationKey,
+      );
+    }
+    catch (CapacityExceededException $e) {
+      $this->releaseProvisionalSelectionReservation($selectionReservationKey);
+      $this->messenger()->addError($e->getMessage());
+      return;
+    }
+
     $stores = $product->getStores();
     if (empty($stores)) {
+      $this->releaseProvisionalSelectionReservation($selectionReservationKey);
       $this->messenger()->addError($this->t('No store available for this product.'));
       return;
     }
@@ -649,6 +679,7 @@ final class TicketSelectionForm extends FormBase {
     $donation_currency = NULL;
     if ($donation > 0) {
       if (!$cart->hasField('field_mel_donation')) {
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
         $this->logger('myeventlane_commerce')->error('Unable to add booking contribution because field_mel_donation is missing from commerce_order bundle @bundle.', [
           '@bundle' => $cart->bundle(),
         ]);
@@ -658,6 +689,7 @@ final class TicketSelectionForm extends FormBase {
 
       $donation_currency = $this->resolveDonationCurrency($cart, $per_variation, $variation_storage);
       if ($donation_currency === NULL) {
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
         $this->logger('myeventlane_commerce')->error('Unable to add booking contribution because no currency could be resolved for order @order_id.', [
           '@order_id' => $cart->id() ?: 'new',
         ]);
@@ -667,6 +699,7 @@ final class TicketSelectionForm extends FormBase {
     }
 
     $added = FALSE;
+    $touchedItems = [];
     foreach ($per_variation as $variation_id => $quantity) {
       /** @var \Drupal\commerce_product\Entity\ProductVariationInterface $variation */
       $variation = $variation_storage->load($variation_id);
@@ -676,11 +709,47 @@ final class TicketSelectionForm extends FormBase {
           $order_item->set('field_target_event', ['target_id' => $node->id()]);
           $order_item->save();
         }
+        if ($order_item) {
+          $touchedItems[(int) $variation_id] = $order_item;
+        }
         $added = TRUE;
       }
     }
 
     if ($added) {
+      try {
+        if ($this->cartTicketHold === NULL) {
+          throw new \RuntimeException('The cart ticket hold service is unavailable.');
+        }
+        $this->cartTicketHold->refresh($cart);
+      }
+      catch (CapacityExceededException $e) {
+        $this->restoreCartTicketQuantities($cart, $touchedItems, $pending['variation']);
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
+        $this->messenger()->addError($e->getMessage());
+        return;
+      }
+      catch (\Throwable $e) {
+        $this->restoreCartTicketQuantities($cart, $touchedItems, $pending['variation']);
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
+        $this->logger('myeventlane_commerce')->error(
+          'Unable to create a ticket hold for cart @cart: @message',
+          [
+            '@cart' => (string) $cart->id(),
+            '@message' => $e->getMessage(),
+          ],
+        );
+        $this->messenger()->addError($this->t('We could not hold these tickets. Please try again.'));
+        return;
+      }
+
+      $cartReservationKey = CartTicketHoldManager::reservationKey(
+        (int) $cart->id(),
+        (int) $node->id(),
+      );
+      if ($selectionReservationKey !== $cartReservationKey) {
+        $this->releaseProvisionalSelectionReservation($selectionReservationKey);
+      }
       if ($donation > 0 && $donation_currency !== NULL) {
         $this->applyMelDonationToOrder($cart, $donation, $donation_currency);
       }
@@ -854,6 +923,69 @@ final class TicketSelectionForm extends FormBase {
   }
 
   /**
+   * Existing cart-tier hold excluded while validating a quantity increase.
+   */
+  private function tierCapacityReservationKey(
+    NodeInterface $event,
+    ProductInterface $product,
+    ProductVariationInterface $variation,
+  ): ?string {
+    $tier = $this->ticketAvailability->resolveTierForVariation($event, $variation);
+    if (!$tier instanceof TicketTypeInterface) {
+      return NULL;
+    }
+    $stores = $product->getStores();
+    if ($stores === []) {
+      return NULL;
+    }
+    $store = reset($stores);
+    $cart = $this->cartProvider->getCart('default', $store);
+    if (!$cart instanceof OrderInterface) {
+      return NULL;
+    }
+    return CartTicketTierHoldStore::reservationKey(
+      (int) $cart->id(),
+      (int) $event->id(),
+      (int) $tier->id(),
+    );
+  }
+
+  /**
+   * Releases a validation-only session hold without removing an existing cart.
+   */
+  private function releaseProvisionalSelectionReservation(string $reservationKey): void {
+    if (str_starts_with($reservationKey, 'ticket-select:')) {
+      $this->capacityService?->releaseReservation($reservationKey);
+    }
+  }
+
+  /**
+   * Restores cart quantities if the authoritative hold cannot be created.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $cart
+   *   Active Commerce cart.
+   * @param array<int, \Drupal\commerce_order\Entity\OrderItemInterface> $items
+   *   Touched order items keyed by variation ID.
+   * @param array<int, int> $originalQuantities
+   *   Pre-submit cart quantity keyed by variation ID.
+   */
+  private function restoreCartTicketQuantities(
+    OrderInterface $cart,
+    array $items,
+    array $originalQuantities,
+  ): void {
+    foreach ($items as $variationId => $item) {
+      $originalQuantity = (int) ($originalQuantities[$variationId] ?? 0);
+      if ($originalQuantity < 1) {
+        $this->cartManager->removeOrderItem($cart, $item);
+        continue;
+      }
+      $item->setQuantity((string) $originalQuantity);
+      $this->cartManager->updateOrderItem($cart, $item);
+    }
+  }
+
+  /**
    * Ticket quantities already in the active cart for this event (same store as product).
    *
    * @return array{event_total: int, variation: array<int, int>}
@@ -891,20 +1023,14 @@ final class TicketSelectionForm extends FormBase {
     if ($this->customerTicketTierDisplay instanceof CustomerTicketTierDisplayBuilder) {
       return $this->customerTicketTierDisplay->buyerFacingAvailabilityMessage($event, $tier, $variationId);
     }
-    if (!$tier instanceof TicketTypeInterface) {
+    $pool = $this->ticketAvailability->getPublicPoolRemaining(
+      $event,
+      $tier,
+      $variationId,
+    );
+    if ($pool === NULL) {
       return (string) $this->t('Available');
     }
-    if ($tier->get('capacity')->isEmpty()) {
-      return (string) $this->t('Available');
-    }
-    $cap = (int) $tier->get('capacity')->value;
-    if ($cap < 1) {
-      return (string) $this->t('Available');
-    }
-    $eid = (int) $event->id();
-    $sold = $this->ticketAvailability->countCompletedSoldForVariation($eid, $variationId);
-    $held = $this->tierWaitlist->sumActiveOfferReserved($eid, (int) $tier->id());
-    $pool = max(0, $cap - $sold - $held);
     if ($pool < 1) {
       return (string) $this->t('Limited availability');
     }

@@ -10,13 +10,17 @@
 #}
 {% set model = vendor_event_index_model|default({}) %}
 {% set summary = model.summary|default({}) %}
-{% set filters = model.filters|default({'active': 'all', 'items': []}) %}
-{% set sort = model.sort|default({'active': 'soonest', 'items': []}) %}
+{% set summary_items = model.summary_items|default([]) %}
+{% set filters = model.filters|default({'active': 'current', 'items': []}) %}
+{% set sort = model.sort|default({'active': 'recommended', 'items': []}) %}
+{% set search = model.search|default({'value': '', 'clear_url': null}) %}
 {% set events = model.events|default([]) %}
 {% set empty_state = model.empty_state|default({}) %}
 {% set primary = model.primary_action|default({}) %}
+{% set selection = bulk_selection|default(null) %}
+{% set actions = bulk_actions|default(null) %}
 
-<div class="mel-vendor-events-v2">
+<div class="mel-vendor-events-v2" data-events-index data-events-index-url="{{ path('myeventlane_vendor.console.events') }}">
   <header class="mel-vendor-events-v2__header mel-vendor-events-v2__surface">
     <div class="mel-vendor-events-v2__header-text">
       <h1 class="mel-vendor-events-v2__title">{{ model.title|default('Events'|t) }}</h1>
@@ -24,35 +28,29 @@
         <p class="mel-vendor-events-v2__subtitle">{{ model.subtitle }}</p>
       {% endif %}
     </div>
-    {# Primary Create Event CTA lives in the vendor shell header (shell_primary_action). #}
+    {% if events|length > 0 and actions %}
+      <button
+        type="button"
+        class="mel-btn mel-btn--secondary mel-vendor-events-v2__select-toggle"
+        data-events-select-toggle
+        aria-expanded="false"
+      >{{ 'Select events'|t }}</button>
+    {% endif %}
   </header>
 
-  <section class="mel-vendor-events-v2__summary" aria-label="{{ 'Event counts'|t }}">
-    <article class="mel-vendor-events-v2__summary-card">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.total|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'Total'|t }}</span>
-    </article>
-    <article class="mel-vendor-events-v2__summary-card">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.draft|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'Draft'|t }}</span>
-    </article>
-    <article class="mel-vendor-events-v2__summary-card">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.published|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'Published'|t }}</span>
-    </article>
-    <article class="mel-vendor-events-v2__summary-card mel-vendor-events-v2__summary-card--attention">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.needs_attention|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'Needs attention'|t }}</span>
-    </article>
-    <article class="mel-vendor-events-v2__summary-card">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.paid|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'Paid / hybrid'|t }}</span>
-    </article>
-    <article class="mel-vendor-events-v2__summary-card">
-      <span class="mel-vendor-events-v2__summary-value">{{ summary.rsvp|default(0) }}</span>
-      <span class="mel-vendor-events-v2__summary-label">{{ 'RSVP / hybrid'|t }}</span>
-    </article>
-  </section>
+  {% if summary_items is iterable and summary_items|length > 0 %}
+    <section class="mel-vendor-events-v2__summary" aria-label="{{ 'Event focus'|t }}">
+      {% for item in summary_items %}
+        <a
+          class="mel-vendor-events-v2__summary-card{% if item.emphasis %} mel-vendor-events-v2__summary-card--attention{% endif %}"
+          href="{{ item.url }}"
+        >
+          <span class="mel-vendor-events-v2__summary-value">{{ item.value }}</span>
+          <span class="mel-vendor-events-v2__summary-label">{{ item.label }}</span>
+        </a>
+      {% endfor %}
+    </section>
+  {% endif %}
 
   {% if filters.items is iterable and filters.items|length > 0 %}
     <nav class="mel-vendor-events-v2__filters" aria-label="{{ 'Filter events'|t }}">
@@ -80,28 +78,68 @@
     </nav>
   {% endif %}
 
-  {% if sort.items is iterable and sort.items|length > 0 %}
-    <div class="mel-vendor-events-v2__sort" role="group" aria-label="{{ 'Sort events'|t }}">
-      {% for s in sort.items %}
-        {% if s.url is defined and s.url %}
-          <a
-            class="mel-vendor-events-v2__sort-link{% if s.active %} is-active{% endif %}"
-            href="{{ s.url }}"
-            {% if s.active %}aria-current="true"{% endif %}
-          >{{ s.label }}</a>
+  <div class="mel-vendor-events-v2__controls">
+    <div class="mel-vendor-events-v2__search">
+      <label for="mel-event-search">{{ 'Search events'|t }}</label>
+      <div class="mel-vendor-events-v2__search-row">
+        <input
+          id="mel-event-search"
+          type="search"
+          value="{{ search.value|e('html_attr') }}"
+          placeholder="{{ 'Event name'|t }}"
+          data-events-search
+        />
+        <button type="button" class="mel-btn mel-btn--secondary" data-events-search-apply>{{ 'Search'|t }}</button>
+        {% if search.value and search.clear_url %}
+          <a class="mel-vendor-events-v2__clear" href="{{ search.clear_url }}">{{ 'Clear'|t }}</a>
         {% endif %}
-      {% endfor %}
+      </div>
+    </div>
+    {% if sort.items is iterable and sort.items|length > 0 %}
+      <div class="mel-vendor-events-v2__sort">
+        <label for="mel-events-sort">{{ 'Sort by'|t }}</label>
+        <select id="mel-events-sort" data-events-sort>
+          {% for s in sort.items %}
+            {% if s.url is defined and s.url %}
+              <option value="{{ s.url }}"{% if s.active %} selected{% endif %}>{{ s.label }}</option>
+            {% endif %}
+          {% endfor %}
+        </select>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if actions %}
+    <div class="mel-vendor-events-v2__bulk-region" data-events-bulk-region hidden>
+      {{ actions }}
+      <button type="button" class="mel-btn mel-btn--secondary" data-events-select-cancel>{{ 'Cancel selection'|t }}</button>
+      <p class="mel-vendor-events-v2__bulk-note">{{ 'Archive or delete one event at a time so booking records stay protected.'|t }}</p>
     </div>
   {% endif %}
 
+  <p class="mel-vendor-events-v2__result-count" role="status">
+    {{ model.result_label|default('0 events'|t) }}
+  </p>
+
   {% if events is iterable and events|length > 0 %}
     <div class="mel-vendor-events-v2__grid">
+      {% if sort.active != 'recommended' %}
+        <h2 class="visually-hidden">{{ 'Event results'|t }}</h2>
+      {% endif %}
+      {% set previous_section = null %}
       {% for ev in events %}
         {% set links = ev.links|default({}) %}
         {% set boost = ev.boost|default({}) %}
         {% set boost_extension_recommendation = ev.boost_extension_recommendation|default(null) %}
         {% set sev = ev.status_severity|default('neutral') %}
-        <article class="mel-vendor-events-v2__card{% if ev.status|default('') == 'past' %} mel-vendor-events-v2__card--quiet{% endif %}{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}">
+        {% if sort.active == 'recommended' and ev.section_key|default('') != previous_section %}
+          <h2 class="mel-vendor-events-v2__section-title">{{ ev.section_label }}</h2>
+          {% set previous_section = ev.section_key|default('') %}
+        {% endif %}
+        <article class="mel-vendor-events-v2__card{% if ev.section_key|default('') == 'past' %} mel-vendor-events-v2__card--quiet{% endif %}{% if boost.active %} mel-vendor-events-v2__card--boosted{% endif %}" data-event-card>
+          {% if selection %}
+            {{ attribute(selection, ev.nid) }}
+          {% endif %}
           <div class="mel-vendor-events-v2__card-top">
             {% set img = ev.image|default({}) %}
             {% set img_url = img.url|default('') %}
@@ -138,7 +176,7 @@
                   {% endfor %}
                 </div>
               {% endif %}
-              <h2 class="mel-vendor-events-v2__card-title">{{ ev.title|default('') }}</h2>
+              <h3 class="mel-vendor-events-v2__card-title">{{ ev.title|default('') }}</h3>
               {% if boost.active %}
                 <p class="mel-vendor-events-v2__boost-meta">
                   {% if boost.expires %}
@@ -234,7 +272,9 @@
       {% if empty_state.message %}
         <p class="mel-vendor-events-v2__empty-message">{{ empty_state.message }}</p>
       {% endif %}
-      {# Create Event CTA: use shell header primary action when the list is empty. #}
+      {% if empty_state.url and empty_state.action_label %}
+        <a class="mel-btn mel-btn--primary" href="{{ empty_state.url }}">{{ empty_state.action_label }}</a>
+      {% endif %}
     </div>
   {% endif %}
 </div>

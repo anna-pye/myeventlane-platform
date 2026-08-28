@@ -2,7 +2,7 @@ enabled: true
 subject: 'Forgot something? Your tickets are waiting'
 body: |
   <p>Hi {{ first_name }}, you left tickets in your cart on MyEventLane.</p>
-  <p><a href="{{ cart_url }}" style="display:inline-block;padding:12px 16px;border-radius:999px;background:#6e7ef2;color:#fff;text-decoration:none;">Return to cart</a></p>
+  <p><a href="{{ cart_url }}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#6b46ff;color:#fff;text-decoration:none;font-weight:700;">Return to cart</a></p>
 utm:
   enable: true
   params:

@@ -24,6 +24,43 @@ myeventlane_notifications.preferences:
     _user_is_logged_in: 'TRUE'
     _permission: 'access myeventlane notifications'
 
+myeventlane_notifications.organiser_action_centre:
+  path: '/vendor/updates'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\OrganiserActionCentreController::page'
+    _title: 'Updates'
+  requirements:
+    _permission: 'access myeventlane notifications'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme
+
+myeventlane_notifications.organiser_preferences:
+  path: '/vendor/updates/settings'
+  defaults:
+    _form: '\Drupal\myeventlane_notifications\Form\NotificationPreferencesForm'
+    _title: 'Alert preferences'
+  requirements:
+    _permission: 'access myeventlane notifications'
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+  options:
+    _theme: myeventlane_vendor_theme
+
+myeventlane_notifications.organiser_event_action_centre:
+  path: '/vendor/events/{node}/studio/updates'
+  defaults:
+    _controller: '\Drupal\myeventlane_notifications\Controller\OrganiserActionCentreController::eventPage'
+    _title: 'Event updates'
+  requirements:
+    _permission: 'access myeventlane notifications'
+    _custom_access: '\Drupal\myeventlane_event_studio\Access\EventStudioAccess::access'
+    node: \d+
+  options:
+    parameters:
+      node:
+        type: entity:node
+    _theme: myeventlane_vendor_theme
+
 myeventlane_notifications.action_go:
   path: '/myeventlane/notifications/go/{delivery}'
   defaults:

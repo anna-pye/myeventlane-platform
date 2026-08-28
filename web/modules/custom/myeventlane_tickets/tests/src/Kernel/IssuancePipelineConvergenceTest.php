@@ -15,6 +15,8 @@ use Drupal\commerce_product\Entity\ProductVariation;
 use Drupal\commerce_store\Entity\Store;
 use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
+use Drupal\file\Entity\File;
+use Drupal\image\Entity\ImageStyle;
 use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver;
@@ -49,6 +51,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     'user',
     'field',
     'filter',
+    'file',
+    'image',
     'text',
     'link',
     'path',
@@ -116,7 +120,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     }
 
     $this->installEntitySchema('user');
+    $this->installEntitySchema('file');
+    $this->installSchema('file', ['file_usage']);
     $this->installEntitySchema('node');
+    $this->installSchema('node', ['node_access']);
     $this->installEntitySchema('commerce_currency');
     $this->installEntitySchema('profile');
     $this->installEntitySchema('commerce_store');
@@ -125,7 +132,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order');
     $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('myeventlane_ticket');
-    $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order', 'myeventlane_wallet']);
+    $this->installConfig(['system', 'image', 'commerce_store', 'commerce_product', 'commerce_order', 'myeventlane_wallet']);
 
     NodeType::create([
       'type' => 'event',
@@ -391,6 +398,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertSame('Hall A', $pass['semantics']['venueName']);
     $this->assertSame('MyEventLane', $pass['organizationName']);
     $this->assertSame('MyEventLane', $pass['logoText']);
+    $this->assertSame('rgb(41, 50, 65)', $pass['foregroundColor']);
     $this->assertArrayHasKey('relevantDate', $pass);
     $this->assertArrayHasKey('expirationDate', $pass);
 
@@ -402,6 +410,62 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertFalse($zip->locateName('strip.png') !== FALSE, 'Event Ticket passes must omit strip.png.');
     $this->assertFalse($zip->locateName('background.png') !== FALSE);
     $this->assertFalse($zip->locateName('thumbnail.png') !== FALSE);
+    $zip->close();
+  }
+
+  /**
+   * Apple Wallet uses an event hero as responsive full-pass background art.
+   */
+  public function testPkpassIncludesEventHeroBackgroundArtwork(): void {
+    $source = 'public://wallet-event-hero.jpg';
+    $fixture = imagecreatetruecolor(800, 600);
+    $white = imagecolorallocate($fixture, 255, 255, 255);
+    imagefilledrectangle($fixture, 0, 0, 799, 599, $white);
+    $this->assertTrue(imagejpeg($fixture, $source));
+    $file = File::create(['uri' => $source, 'status' => 1]);
+    $file->save();
+    $this->event->set('field_event_image', [
+      'target_id' => $file->id(),
+      'alt' => 'Event hero',
+    ])->save();
+
+    $this->enableEphemeralAppleWalletSigning();
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.pkpass_builder');
+    $path = $builder->generate($item, $ticket);
+    $pass = $this->readPkPassJson($path);
+    $this->assertSame('rgb(255, 255, 255)', $pass['foregroundColor']);
+    $this->assertSame('rgb(214, 194, 255)', $pass['labelColor']);
+
+    $zip = new ZipArchive();
+    $this->assertTrue($zip->open($path) === TRUE);
+    foreach ([
+      'background.png' => [180, 220],
+      'background@2x.png' => [360, 440],
+      'background@3x.png' => [540, 660],
+    ] as $asset => $expected_dimensions) {
+      $this->assertNotFalse(
+        $zip->locateName($asset),
+        $asset . ' must be bundled when the event has a hero image.',
+      );
+      $image_data = $zip->getFromName($asset);
+      $this->assertNotFalse($image_data);
+      $dimensions = getimagesizefromstring($image_data);
+      $this->assertNotFalse($dimensions);
+      $this->assertSame($expected_dimensions, [$dimensions[0], $dimensions[1]]);
+      $this->assertSame('image/png', $dimensions['mime']);
+      $rendered = imagecreatefromstring($image_data);
+      $this->assertInstanceOf(\GdImage::class, $rendered);
+      $pixel = imagecolorsforindex(
+        $rendered,
+        imagecolorat($rendered, intdiv($dimensions[0], 2), intdiv($dimensions[1], 2)),
+      );
+      $this->assertLessThan(120, max($pixel['red'], $pixel['green'], $pixel['blue']));
+    }
     $zip->close();
   }
 
@@ -527,6 +591,95 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertArrayHasKey('genericClasses', $payload['payload']);
     $this->assertArrayHasKey('genericObjects', $payload['payload']);
     $this->assertSame($expected, $payload['payload']['genericObjects'][0]['barcode']['value']);
+    $this->assertArrayNotHasKey('heroImage', $payload['payload']['genericObjects'][0]);
+    $this->assertSame('#FFF0F5', $payload['payload']['genericObjects'][0]['hexBackgroundColor']);
+  }
+
+  /**
+   * Google Wallet uses a public 16:5 event hero with a dark card colour.
+   */
+  public function testGoogleWalletJwtIncludesEventHeroImage(): void {
+    global $base_url;
+    $base_url = 'https://myeventlane.example.test';
+
+    $style = ImageStyle::load('mel_google_wallet_hero');
+    $this->assertNotNull($style);
+
+    $source = 'public://google-wallet-event-hero.jpg';
+    $fixture = imagecreatetruecolor(1600, 900);
+    $purple = imagecolorallocate($fixture, 107, 70, 255);
+    imagefilledrectangle($fixture, 0, 0, 1599, 899, $purple);
+    $this->assertTrue(imagejpeg($fixture, $source));
+    $file = File::create(['uri' => $source, 'status' => 1]);
+    $file->save();
+    $this->event->set('field_event_image', [
+      'target_id' => $file->id(),
+      'alt' => 'Issuance event hero',
+    ])->save();
+
+    $this->enableEphemeralGoogleWalletSigning();
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\GoogleWalletBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.google_wallet_builder');
+    $url = $builder->generateSaveLink($item, $ticket);
+    $jwt = substr($url, strlen('https://pay.google.com/gp/v/save/'));
+    $parts = explode('.', $jwt);
+    $payload_json = base64_decode(strtr($parts[1], '-_', '+/'), TRUE);
+    $this->assertNotFalse($payload_json);
+    $payload = json_decode($payload_json, TRUE, 512, JSON_THROW_ON_ERROR);
+    $object = $payload['payload']['genericObjects'][0];
+
+    $this->assertSame('#1A2238', $object['hexBackgroundColor']);
+    $this->assertSame('Issuance event hero', $object['heroImage']['contentDescription']['defaultValue']['value']);
+    $hero_url = $object['heroImage']['sourceUri']['uri'];
+    $this->assertStringStartsWith('https://', $hero_url);
+    $this->assertStringContainsString('/styles/mel_google_wallet_hero/public/google-wallet-event-hero.jpg', $hero_url);
+    $derivative = $style->buildUri($source);
+    $this->assertFileExists($derivative);
+    $dimensions = getimagesize($derivative);
+    $this->assertNotFalse($dimensions);
+    $this->assertSame([1280, 400], [$dimensions[0], $dimensions[1]]);
+  }
+
+  /**
+   * An unreadable hero is omitted instead of breaking the Google save JWT.
+   */
+  public function testGoogleWalletJwtOmitsUnrenderableEventHero(): void {
+    global $base_url;
+    $base_url = 'https://myeventlane.example.test';
+
+    $this->assertNotNull(ImageStyle::load('mel_google_wallet_hero'));
+
+    $file = File::create([
+      'uri' => 'public://missing-google-wallet-hero.jpg',
+      'status' => 1,
+    ]);
+    $file->save();
+    $this->event->set('field_event_image', [
+      'target_id' => $file->id(),
+      'alt' => 'Missing event hero',
+    ])->save();
+
+    $this->enableEphemeralGoogleWalletSigning();
+    $order = $this->loadOrder();
+    $this->issuer()->issueForOrder($order);
+    $item = array_values($order->getItems())[0];
+    $ticket = $this->loadTicketsForOrder((int) $order->id())[0];
+    /** @var \Drupal\myeventlane_wallet\Service\GoogleWalletBuilder $builder */
+    $builder = $this->container->get('myeventlane_wallet.google_wallet_builder');
+    $url = $builder->generateSaveLink($item, $ticket);
+    $jwt = substr($url, strlen('https://pay.google.com/gp/v/save/'));
+    $parts = explode('.', $jwt);
+    $payload_json = base64_decode(strtr($parts[1], '-_', '+/'), TRUE);
+    $this->assertNotFalse($payload_json);
+    $payload = json_decode($payload_json, TRUE, 512, JSON_THROW_ON_ERROR);
+    $object = $payload['payload']['genericObjects'][0];
+
+    $this->assertArrayNotHasKey('heroImage', $object);
+    $this->assertSame('#FFF0F5', $object['hexBackgroundColor']);
   }
 
   /**
@@ -636,6 +789,10 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
       'field_event_vendor' => [
         'type' => 'entity_reference',
         'settings' => ['target_type' => 'user'],
+      ],
+      'field_event_image' => [
+        'type' => 'image',
+        'settings' => [],
       ],
     ];
   }

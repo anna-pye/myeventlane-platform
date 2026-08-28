@@ -120,6 +120,13 @@ services:
     arguments:
       - '@entity_type.manager'
 
+  myeventlane_commerce.cart_ticket_tier_hold_store:
+    class: Drupal\myeventlane_commerce\Service\CartTicketTierHoldStore
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@myeventlane_capacity.service'
+
   myeventlane_commerce.ticket_capacity:
     class: Drupal\myeventlane_commerce\Service\TicketCapacityService
     arguments:
@@ -127,6 +134,7 @@ services:
       - '@database'
       - '@myeventlane_commerce.ticket_variation_sold'
       - '@datetime.time'
+      - '@myeventlane_commerce.cart_ticket_tier_hold_store'
 
   myeventlane_commerce.ticket_tier_waitlist:
     class: Drupal\myeventlane_commerce\Service\TicketTierWaitlistService
@@ -174,6 +182,18 @@ services:
       - '@current_route_match'
       - '@request_stack'
 
+  myeventlane_commerce.cart_ticket_hold:
+    class: Drupal\myeventlane_commerce\Service\CartTicketHoldManager
+    arguments:
+      - '@myeventlane_capacity.service'
+      - '@myeventlane_capacity.order_inspector'
+      - '@myeventlane_commerce.ticket_availability'
+      - '@entity_type.manager'
+      - '@datetime.time'
+      - '@database'
+      - '@myeventlane_commerce.cart_ticket_tier_hold_store'
+      - '@lock'
+
   myeventlane_commerce.event_default_ticket_resolver:
     alias: myeventlane_event.ticket_type_manager
 
@@ -183,7 +203,6 @@ services:
       - '@myeventlane_commerce.ticket_availability'
       - '@myeventlane_event.ticket_tier_lifecycle'
       - '@commerce_price.currency_formatter'
-      - '@myeventlane_commerce.ticket_tier_waitlist'
       - '@myeventlane_commerce.event_default_ticket_resolver'
       - '@string_translation'
 
@@ -221,9 +240,8 @@ services:
   myeventlane_commerce.ticket_availability_subscriber:
     class: Drupal\myeventlane_commerce\EventSubscriber\TicketAvailabilityCommerceSubscriber
     arguments:
-      - '@myeventlane_commerce.ticket_availability'
+      - '@myeventlane_commerce.cart_ticket_hold'
       - '@myeventlane_capacity.order_inspector'
-      - '@entity_type.manager'
       - '@lock'
       - '@request_stack'
       - '@string_translation'

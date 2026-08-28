@@ -1,0 +1,86 @@
+{#
+/**
+ * @file
+ * Organiser Action Centre: actionable work, activity, and platform updates.
+ */
+#}
+<div class="mel-action-centre">
+  <header class="mel-action-centre__header">
+    <div>
+      <p class="mel-action-centre__eyebrow">{{ event ? 'Event updates'|t : 'Organiser updates'|t }}</p>
+      <h1>{{ event ? event.label : 'Action Centre'|t }}</h1>
+      <p>{{ event
+        ? 'Updates linked to this event. Messages you send to guests still live in Messages.'|t
+        : 'See what needs a response, what has happened, and important MyEventLane updates.'|t
+      }}</p>
+    </div>
+    <div class="mel-action-centre__header-links">
+      {% if event %}
+        <a href="{{ event.studio_url }}">{{ 'Back to Event Studio'|t }}</a>
+        <a href="{{ portfolio_url }}">{{ 'All organiser updates'|t }}</a>
+      {% endif %}
+      <a href="{{ settings_url }}">{{ 'Alert preferences'|t }}</a>
+    </div>
+  </header>
+
+  {% set section_meta = {
+    attention: {
+      title: 'Needs your attention'|t,
+      intro: 'Items that need a decision or follow-up. They stay here until you mark them handled.'|t,
+      empty: 'Nothing needs your attention.'|t
+    },
+    activity: {
+      title: 'Recent activity'|t,
+      intro: 'A durable record of bookings, RSVPs, event changes and completed actions.'|t,
+      empty: 'No recent activity.'|t
+    },
+    platform: {
+      title: 'MyEventLane updates'|t,
+      intro: 'Account, security and platform information from MyEventLane.'|t,
+      empty: 'No platform updates.'|t
+    }
+  } %}
+
+  {% for key, meta in section_meta %}
+    {% set items = sections[key] ?? [] %}
+    <section class="mel-action-centre__section mel-action-centre__section--{{ key }}" aria-labelledby="mel-action-centre-{{ key }}">
+      <div class="mel-action-centre__section-head">
+        <div>
+          <h2 id="mel-action-centre-{{ key }}">{{ meta.title }}</h2>
+          <p>{{ meta.intro }}</p>
+        </div>
+        {% if items %}<span class="mel-action-centre__count">{{ items|length }}</span>{% endif %}
+      </div>
+
+      {% if items %}
+        <ol class="mel-action-centre__list">
+          {% for row in items %}
+            <li class="mel-action-centre__item{% if row.is_unread %} is-unread{% endif %}{% if row.is_handled %} is-handled{% endif %}">
+              <div class="mel-action-centre__item-head">
+                <div class="mel-action-centre__labels">
+                  <span class="mel-action-centre__state mel-action-centre__state--{{ row.requires_action and not row.is_handled ? 'action' : (row.is_handled ? 'handled' : 'info') }}">{{ row.state_label }}</span>
+                  {% if row.event_label %}
+                    <a class="mel-action-centre__event" href="{{ path('myeventlane_notifications.organiser_event_action_centre', {'node': row.event_id}) }}">{{ row.event_label }}</a>
+                  {% endif %}
+                </div>
+                <time>{{ row.when }}</time>
+              </div>
+              <h3>{{ row.title }}</h3>
+              <p>{{ row.message_preview }}</p>
+              {% if row.group_count > 1 %}
+                <p class="mel-action-centre__group-note">{{ 'Latest of @count matching updates'|t({'@count': row.group_count}) }}</p>
+              {% endif %}
+              <div class="mel-action-centre__actions">
+                {% if row.action %}<a class="mel-action-centre__primary" href="{{ row.action.url }}">{{ row.action.label }}</a>{% endif %}
+                {% if row.handled_form %}{{ row.handled_form }}{% endif %}
+                {% if row.mark_read_form %}{{ row.mark_read_form }}{% endif %}
+              </div>
+            </li>
+          {% endfor %}
+        </ol>
+      {% else %}
+        <p class="mel-action-centre__empty">{{ meta.empty }}</p>
+      {% endif %}
+    </section>
+  {% endfor %}
+</div>

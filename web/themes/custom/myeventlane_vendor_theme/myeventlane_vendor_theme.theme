@@ -390,9 +390,9 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   // Safe inbox URL for sidebar fallbacks (omit when user cannot access the route).
   $variables['page']['vendor_notification_inbox_url'] = NULL;
   if (\Drupal::moduleHandler()->moduleExists('myeventlane_notifications')
-    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_notifications.inbox', [])) {
+    && _myeventlane_vendor_theme_named_route_accessible('myeventlane_notifications.organiser_action_centre', [])) {
     try {
-      $variables['page']['vendor_notification_inbox_url'] = \Drupal\Core\Url::fromRoute('myeventlane_notifications.inbox')->toString();
+      $variables['page']['vendor_notification_inbox_url'] = \Drupal\Core\Url::fromRoute('myeventlane_notifications.organiser_action_centre')->toString();
     }
     catch (\Throwable) {
     }
@@ -445,6 +445,13 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   $variables['page']['mel_vendor_route_tabs'] = NULL;
   if (str_starts_with($current_path, '/vendor/support')) {
     $variables['page']['shell_page_title'] = t('Support');
+  }
+  elseif (in_array($route_name, [
+    'myeventlane_notifications.organiser_action_centre',
+    'myeventlane_notifications.organiser_preferences',
+    'myeventlane_notifications.organiser_event_action_centre',
+  ], TRUE)) {
+    $variables['page']['shell_page_title'] = t('Updates');
   }
   elseif ($route_name === 'myeventlane_vendor.console.events') {
     $variables['page']['shell_page_title'] = t('Events');
@@ -574,11 +581,11 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
 
     if ($current_user->hasPermission('access myeventlane notifications')) {
       try {
-        $notif_url = \Drupal\Core\Url::fromRoute('myeventlane_notifications.inbox');
+        $notif_url = \Drupal\Core\Url::fromRoute('myeventlane_notifications.organiser_action_centre');
         if ($notif_url->access()) {
           $user_menu_items[] = [
             '#type' => 'link',
-            '#title' => t('Notifications'),
+            '#title' => t('Updates'),
             '#url' => $notif_url,
             '#attributes' => ['class' => ['user-menu__item']],
           ];
@@ -2720,7 +2727,7 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
  */
 function myeventlane_vendor_theme_preprocess_form__mel_vendor_events(array &$variables): void {
   $element = $variables['element'] ?? [];
-  $variables['create_event_url'] = $element['#create_event_url'] ?? '';
+  $variables['vendor_event_index_model'] = $element['#vendor_event_index_model'] ?? [];
 }
 
 /**

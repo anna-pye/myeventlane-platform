@@ -1,36 +1,16 @@
 {#
 /**
  * @file
- * Vendor events list form: bulk actions + view-mode toggle (TASK 6 shell below).
- *
- * Create-event CTA lives on the events index view model header — not duplicated here.
+ * Single organiser event index with optional bulk publication controls.
  */
 #}
 <form{{ attributes.addClass('mel-vendor-events-form') }}>
   {{ element.form_build_id }}
   {{ element.form_token }}
   {{ element.form_id }}
-
-  <div class="mel-vendor-events-bulk-toolbar">
-    <h2 class="mel-vendor-events-bulk-toolbar__title">{{ 'Bulk actions'|t }}</h2>
-    <div class="mel-vendor-events-bulk-toolbar__controls">
-      <div class="mel-view-toggle" data-view-toggle>
-        <button type="button" class="is-active" data-view="list">{{ 'List'|t }}</button>
-        <button type="button" data-view="grid">{{ 'Grid'|t }}</button>
-      </div>
-    </div>
-  </div>
-
-  {% if element.fatal is defined %}
-    {{ element.fatal }}
-  {% elseif element.empty_state is defined %}
-    <div class="mel-empty mel-empty--events mel-empty--solo">
-      {{ element.empty_state }}
-    </div>
-  {% else %}
-    {{ element.bulk_actions }}
-    <div class="mel-events-wrapper" data-view-container data-view="list">
-      {{ element.events_wrapper }}
-    </div>
-  {% endif %}
+  {% include '@myeventlane_vendor_theme/myeventlane-vendor-events-grid.html.twig' with {
+    vendor_event_index_model: vendor_event_index_model,
+    bulk_selection: element.events,
+    bulk_actions: element.bulk_actions|default(null),
+  } only %}
 </form>

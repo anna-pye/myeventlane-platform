@@ -3,7 +3,7 @@ subject: 'Your “{{ title }}” boost ends in ~24h'
 body: |
   <h2 style="margin:0 0 12px 0;">Keep {{ title }} featured</h2>
   <p>Your Boost will end around <strong>{{ expires_at }}</strong>.</p>
-  <p><a href="{{ extend_url }}" style="display:inline-block;padding:12px 16px;border-radius:999px;background:#f26d5b;color:#fff;text-decoration:none;">Extend Boost</a></p>
+  <p><a href="{{ extend_url }}" style="display:inline-block;padding:12px 18px;border-radius:12px;background:#6b46ff;color:#fff;text-decoration:none;font-weight:700;">Extend Boost</a></p>
 utm:
   enable: true
   params:

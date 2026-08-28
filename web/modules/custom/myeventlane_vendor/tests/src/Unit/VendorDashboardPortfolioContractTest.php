@@ -36,6 +36,10 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     $this->assertStringContainsString('model.priority_action|default(null)', $this->template);
     $this->assertStringContainsString('href="{{ links.manage }}"', $this->template);
     $this->assertStringContainsString("{{ 'Open workspace'|t }}", $this->template);
+    $this->assertStringContainsString(
+      "'manage' => \$this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace', ['event' => \$nid]",
+      $this->builder,
+    );
   }
 
   public function testPortfolioIsAFirstClassDashboardZone(): void {

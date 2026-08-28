@@ -101,16 +101,17 @@ final class MessageRenderer {
    *   Optional override template string (e.g. from A/B variant).
    *
    * @return string
-   *   Plain text, stripped of HTML and trimmed.
+   *   Single-line plain text, stripped of HTML and trimmed.
    */
   public function renderSmsText(Config $conf, array $context, ?string $override = NULL): string {
     $tpl = $override ?? (string) ($conf->get('sms_text') ?? '');
     if ($tpl === '') {
       return '';
     }
-    return trim(strip_tags(Html::decodeEntities(
+    $text = strip_tags(Html::decodeEntities(
       $this->renderString($tpl, $context)
-    )));
+    ));
+    return trim((string) preg_replace('/\s+/u', ' ', $text));
   }
 
 }

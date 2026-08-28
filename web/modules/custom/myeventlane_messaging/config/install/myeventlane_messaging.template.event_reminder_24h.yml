@@ -46,10 +46,10 @@ body: |
       {% endif %}
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="{{ my_tickets_url }}" style="display: inline-block; background-color: #ff6b9d; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; margin: 5px;">
+        <a href="{{ my_tickets_url }}" style="display: inline-block; background-color: #6b46ff; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; font-size: 16px; margin: 5px;">
           View Digital Pass
         </a>
-        <a href="{{ event_url }}" style="display: inline-block; background-color: #ffffff; color: #ff6b9d; text-decoration: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; font-size: 16px; border: 2px solid #ff6b9d; margin: 5px;">
+        <a href="{{ event_url }}" style="display: inline-block; background-color: #ffffff; color: #5935e8; text-decoration: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; font-size: 16px; border: 2px solid #6b46ff; margin: 5px;">
           View Event Details
         </a>
       </div>
@@ -66,4 +66,3 @@ utm:
     utm_source: 'email'
     utm_medium: 'transactional'
     utm_campaign: 'event_reminder_24h'
-

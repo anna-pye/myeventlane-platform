@@ -65,6 +65,39 @@ function myeventlane_notifications_preprocess_page(array &$variables): void {
 }
 
 /**
+ * Adds the selected-event update subset to Event Studio navigation.
+ */
+function myeventlane_notifications_preprocess_mel_event_studio_workspace(array &$variables): void {
+  $event = $variables['node'] ?? NULL;
+  if (!$event instanceof NodeInterface || $event->bundle() !== 'event') {
+    return;
+  }
+  try {
+    $url = Url::fromRoute('myeventlane_notifications.organiser_event_action_centre', [
+      'node' => (int) $event->id(),
+    ]);
+    if (!$url->access()) {
+      return;
+    }
+    $variables['sections']['Workspace'] ??= [];
+    $variables['sections']['Workspace'][] = [
+      'id' => 'updates',
+      'label' => t('Updates'),
+      'group' => 'Workspace',
+      'icon' => 'notifications',
+      'url' => $url->toString(),
+      'active' => FALSE,
+      'section_state' => 'readonly',
+      'readonly' => TRUE,
+      'navigation_visible' => TRUE,
+    ];
+  }
+  catch (\Throwable) {
+    // The Action Centre is an optional navigation enhancement at render time.
+  }
+}
+
+/**
  * Implements hook_theme().
  */
 function myeventlane_notifications_theme(array $existing, string $type, string $theme, string $path): array {
@@ -91,6 +124,15 @@ function myeventlane_notifications_theme(array $existing, string $type, string $
         'in_account_shell' => FALSE,
       ],
       'template' => 'mel-notification-inbox',
+    ],
+    'mel_organiser_action_centre' => [
+      'variables' => [
+        'event' => NULL,
+        'sections' => [],
+        'settings_url' => NULL,
+        'portfolio_url' => NULL,
+      ],
+      'template' => 'mel-organiser-action-centre',
     ],
   ];
 }
@@ -360,6 +402,21 @@ function myeventlane_notifications_page_attachments(array &$attachments): void {
     : 'myeventlane_theme/mel_notifications';
   $attachments['#attached']['library'][] = $library;
   $query = ['bell_context' => $bellContext];
+  $groupReadTemplate = $readTemplate;
+  if ($bellContext === NotificationContext::BUSINESS) {
+    $groupReadTemplate = Url::fromRoute(
+      'myeventlane_notifications.mark_read',
+      ['delivery' => $placeholder],
+      [
+        'absolute' => TRUE,
+        'query' => [
+          'bell_context' => NotificationContext::BUSINESS,
+          'read_mode' => 'semantic_group',
+        ],
+      ],
+    )->toString();
+    $groupReadTemplate = str_replace((string) $placeholder, '__DELIVERY__', $groupReadTemplate);
+  }
   $attachments['#attached']['drupalSettings']['myeventlaneNotifications'] = [
     'pollSeconds' => 25,
     'bellContext' => $bellContext,
@@ -369,5 +426,6 @@ function myeventlane_notifications_page_attachments(array &$attachments): void {
     'readAllUrl' => Url::fromRoute('myeventlane_notifications.mark_all_read', [], ['absolute' => TRUE, 'query' => $query])->toString(),
     'inboxUrl' => Url::fromRoute('myeventlane_notifications.inbox', [], ['absolute' => TRUE])->toString(),
     'readUrlTemplate' => $readTemplate,
+    'groupReadUrlTemplate' => $groupReadTemplate,
   ];
 }

@@ -4,26 +4,16 @@
    Supports both .mel-vendor-wizard and .mel-event-form--wizard
    ========================================================= */
 
-:root {
-  /* Figma-aligned MEL tokens */
-  --mel-bg: #fef5ec;
-  --mel-card: #ffffff;
-  --mel-primary: #f26d5b;
-  --mel-secondary: #6e7ef2;
-  --mel-accent: #f5c04c;
-  --mel-ink: #293241;
-  --mel-muted: #6b7280;
-
-  --mel-radius-lg: 18px;
-  --mel-radius-md: 12px;
-  --mel-shadow-soft: 0 10px 30px rgba(41, 50, 65, 0.08);
-}
-
 /* ---------- Wizard Layout (supports both class sets) ---------- */
 
 .mel-wizard,
 .mel-vendor-wizard,
 .mel-event-form--wizard {
+  // Component-only aliases. Global brand tokens are owned by base/_tokens.scss.
+  --mel-card: var(--mel-surface);
+  --mel-secondary: var(--mel-color-lavender);
+  --mel-shadow-soft: var(--mel-shadow-3);
+
   display: grid;
   grid-template-columns: 240px 1fr;
   gap: 32px;
@@ -157,7 +147,7 @@
   border-radius: var(--mel-radius-lg);
   box-shadow: var(--mel-shadow-soft);
   padding: 0;
-  animation: melFadeUp 0.25s ease-out;
+  animation: mel-fade-up 0.25s ease-out;
 
   @media (width <= 600px) {
     border-radius: var(--mel-radius-md);
@@ -442,11 +432,12 @@
 
 /* ---------- Step Transition Animation ---------- */
 
-@keyframes melFadeUp {
+@keyframes mel-fade-up {
   from {
     opacity: 0;
     transform: translateY(4px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);

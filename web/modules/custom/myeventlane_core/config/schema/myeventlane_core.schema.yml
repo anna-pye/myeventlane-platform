@@ -14,6 +14,12 @@ myeventlane_core.settings:
     platform_fee_gst_inclusive:
       type: boolean
       label: 'MEL ticket platform fee includes GST and has no additional fixed component'
+    platform_legal_name:
+      type: string
+      label: 'Legal supplier name for MEL platform charges'
+    platform_abn:
+      type: string
+      label: 'ABN for MEL platform charges'
     operational_extras_platform_fee_percent:
       type: float
       label: 'Operational extras platform fee percentage (0-100); empty uses double ticket fee'

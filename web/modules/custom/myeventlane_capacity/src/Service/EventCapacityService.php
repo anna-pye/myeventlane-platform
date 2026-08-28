@@ -285,6 +285,41 @@ final class EventCapacityService implements EventCapacityServiceInterface {
   }
 
   /**
+   * {@inheritdoc}
+   */
+  public function getActiveReservation(string $reservationKey): ?array {
+    $reservationKey = trim($reservationKey);
+    if ($reservationKey === '') {
+      return NULL;
+    }
+
+    $row = $this->database->select('myeventlane_capacity_reservation', 'r')
+      ->fields('r', ['event_id', 'quantity', 'created', 'expires'])
+      ->condition('reservation_key', $reservationKey)
+      ->condition('expires', $this->time->getRequestTime(), '>')
+      ->execute()
+      ->fetchAssoc();
+
+    if (!is_array($row)) {
+      return NULL;
+    }
+
+    return [
+      'event_id' => (int) $row['event_id'],
+      'quantity' => (int) $row['quantity'],
+      'created' => (int) $row['created'],
+      'expires' => (int) $row['expires'],
+    ];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getReservationTtl(): int {
+    return self::RESERVATION_TTL;
+  }
+
+  /**
    * Ensures a lock row exists for the event before SELECT … FOR UPDATE.
    */
   private function ensureLockRow(int $eventId): void {

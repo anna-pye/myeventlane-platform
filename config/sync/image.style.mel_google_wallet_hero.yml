@@ -1,0 +1,18 @@
+uuid: 35a275ad-acde-48fa-a572-742a3b5c9ee1
+langcode: en
+status: true
+dependencies:
+  module:
+    - image
+name: mel_google_wallet_hero
+label: 'MEL Google Wallet hero'
+effects:
+  061a50ee-fb32-4ca4-8b3c-48172cba8739:
+    uuid: 061a50ee-fb32-4ca4-8b3c-48172cba8739
+    id: image_scale_and_crop
+    weight: 0
+    data:
+      width: 1280
+      height: 400
+      anchor: center-center
+pipeline: __default__

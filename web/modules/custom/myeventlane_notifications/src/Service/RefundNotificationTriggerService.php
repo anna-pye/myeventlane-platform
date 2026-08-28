@@ -253,6 +253,7 @@ final class RefundNotificationTriggerService {
         'priority' => MelNotification::PRIORITY_HIGH,
         'priority_score' => 70,
         'suppression_key' => $suppressionKey,
+        'group_key' => $suppressionKey,
         'context' => $context,
         'domain' => $domain,
         'action_label' => $actionLabel,

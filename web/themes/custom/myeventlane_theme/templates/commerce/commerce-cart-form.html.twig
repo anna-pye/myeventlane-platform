@@ -27,6 +27,13 @@
       </h1>
     </div>
 
+    {% if mel_ticket_hold is defined and mel_ticket_hold.has_hold|default(false) %}
+      {% include '@myeventlane_theme/commerce/mel-ticket-hold.html.twig' with {
+        mel_ticket_hold: mel_ticket_hold,
+        surface: 'cart',
+      } only %}
+    {% endif %}
+
     {% if form['#order_items']|length > 0 %}
       {% if grouped_items is defined and grouped_items|length > 0 %}
         <div class="mel-cart-event-overview" role="region" aria-label="{{ L.events_region|default('') }}">
@@ -112,7 +119,7 @@
         </div>
       {% endif %}
 
-      <div class="mel-cart-actions">
+      <div class="mel-cart-actions" id="mel-cart-actions">
         {{ form.actions }}
       </div>
 

@@ -2,6 +2,8 @@ platform_fee_percent: 1.5
 direct_charge_enabled: false
 direct_charge_fee_model_approved: true
 platform_fee_gst_inclusive: true
+platform_legal_name: 'MyEventLane Inc'
+platform_abn: '11 304 813 593'
 fee_payer: buyer
 checkout_rate_limit_per_minute: 15
 support_email: support@myeventlane.com.au

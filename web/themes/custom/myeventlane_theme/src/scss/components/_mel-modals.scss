@@ -14,8 +14,7 @@
   inset: 0;
   z-index: z.mel-z('modal');
   display: grid;
-  align-items: center;
-  justify-items: center;
+  place-items: center center;
   padding: space.mel-space(4);
 }
 
@@ -35,6 +34,89 @@
   background: $mel-color-surface;
   border-radius: $mel-radius-lg;
   box-shadow: $mel-shadow-lg;
+}
+
+// Drupal AJAX dialogs use jQuery UI markup. Keep their behaviour while
+// replacing Claro's visual chrome on public MEL pages.
+.ui-dialog:not(.ui-dialog-off-canvas) {
+  max-width: min(calc(100% - #{space.mel-space(6)}), 40rem);
+  max-height: min(90dvh, 48rem);
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid $mel-color-border;
+  border-radius: $mel-radius-lg;
+  background: $mel-color-surface;
+  box-shadow: $mel-shadow-lg;
+
+  .ui-dialog-titlebar {
+    display: flex;
+    align-items: center;
+    min-height: 3.5rem;
+    padding: space.mel-space(4) space.mel-space(5);
+    border: 0;
+    border-bottom: 1px solid $mel-color-border;
+    background: $mel-color-surface;
+    color: $mel-color-text;
+  }
+
+  .ui-dialog-title {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+  }
+
+  .ui-dialog-titlebar-close {
+    position: absolute;
+    inset: space.mel-space(3) space.mel-space(3) auto auto;
+    display: grid;
+    width: 2.75rem;
+    min-width: 2.75rem;
+    height: 2.75rem;
+    margin: 0;
+    padding: 0;
+    place-items: center;
+    border: 1px solid $mel-color-border;
+    border-radius: $mel-radius-full;
+    background: $mel-color-surface;
+    color: $mel-color-text;
+
+    &:focus-visible {
+      @include mel-focus-ring;
+    }
+  }
+
+  .ui-dialog-content {
+    max-height: calc(90dvh - 3.5rem);
+    overflow: auto;
+    padding: space.mel-space(5);
+  }
+
+  .ui-dialog-buttonpane {
+    margin: 0;
+    padding: space.mel-space(4) space.mel-space(5);
+    border-top: 1px solid $mel-color-border;
+    background: $mel-color-bg;
+  }
+}
+
+.ui-widget-overlay {
+  background: $mel-color-overlay;
+  opacity: 1;
+}
+
+dialog:not(.mel-media-lightbox) {
+  width: min(calc(100% - #{space.mel-space(6)}), 40rem);
+  max-height: 90dvh;
+  padding: space.mel-space(5);
+  border: 1px solid $mel-color-border;
+  border-radius: $mel-radius-lg;
+  background: $mel-color-surface;
+  color: $mel-color-text;
+  box-shadow: $mel-shadow-lg;
+}
+
+dialog:not(.mel-media-lightbox)::backdrop {
+  background: $mel-color-overlay;
 }
 
 .mel-modal--fullscreen-mobile .mel-modal__dialog {

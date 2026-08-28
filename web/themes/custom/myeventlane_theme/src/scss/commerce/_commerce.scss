@@ -12,6 +12,11 @@
 @use '../tokens/shadows';
 @use '../tokens/breakpoints';
 
+// Header mini-cart is global. Full transactional surfaces are emitted only by
+// commerce.scss; main.scss configures this module with the flag disabled.
+/* stylelint-disable-next-line annotation-no-unknown */
+$include-transactional: true !default;
+
 // ---------------------------------------------------------------------------
 // Mini cart (Commerce cart block — single cart system, no duplicate UI)
 // ---------------------------------------------------------------------------
@@ -258,6 +263,8 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
 // Shared: .mel-commerce (cart + checkout routes)
 // ---------------------------------------------------------------------------
 // Pastel visual system applied: glass panels, soft shadows, rounded radius.
+
+@if $include-transactional {
 // Checkout logic and flow are NOT changed.
 
 .mel-commerce {
@@ -297,15 +304,15 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     max-width: 1180px;
     margin: space-tokens.mel-space(4) auto;
     border-radius: radii.$mel-radius-lg;
-    border: 1px solid rgba(242, 109, 91, 0.22);
+    border: 1px solid rgba(colors.$mel-color-primary, 0.22);
     background: colors.$mel-color-surface;
-    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    box-shadow: shadows.$mel-shadow-lg;
     padding: space-tokens.mel-space(4) space-tokens.mel-space(5);
     color: colors.$mel-color-text;
   }
 
   .messages--status {
-    border-color: rgba(242, 109, 91, 0.26);
+    border-color: rgba(colors.$mel-color-primary, 0.26);
   }
 
   .messages--error {
@@ -338,6 +345,173 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
 }
 
 // ---------------------------------------------------------------------------
+// Limited-ticket hold countdown: cart + checkout
+// ---------------------------------------------------------------------------
+
+.mel-ticket-hold {
+  --mel-ticket-hold-tone: #{colors.$mel-color-primary};
+
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: space-tokens.mel-space(3);
+  margin: 0 0 space-tokens.mel-space(5);
+  padding: space-tokens.mel-space(4);
+  border: 1px solid rgba(colors.$mel-color-primary, 0.3);
+  border-radius: radii.$mel-radius-lg;
+  background: colors.$mel-color-pastel-sky;
+  color: colors.$mel-color-text;
+  box-shadow: shadows.$mel-shadow-sm;
+
+  &.is-warning {
+    --mel-ticket-hold-tone: #{colors.$mel-color-warning};
+
+    border-color: rgba(colors.$mel-color-warning, 0.55);
+    background: colors.$mel-color-warning-bg;
+  }
+
+  &.is-urgent {
+    --mel-ticket-hold-tone: #{colors.$mel-color-highlight};
+
+    border-color: rgba(colors.$mel-color-highlight, 0.5);
+    background: colors.$mel-color-pastel-peach;
+  }
+
+  &.is-expired {
+    --mel-ticket-hold-tone: #{colors.$mel-color-error};
+
+    border-color: rgba(colors.$mel-color-error, 0.42);
+    background: colors.$mel-color-error-bg;
+  }
+}
+
+.mel-ticket-hold__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: colors.$mel-color-surface;
+  color: var(--mel-ticket-hold-tone);
+  box-shadow: 0 0 0 1px rgba(colors.$mel-color-border, 0.8);
+
+  svg {
+    width: 24px;
+    height: 24px;
+    fill: none;
+    stroke: currentcolor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.9;
+  }
+}
+
+.mel-ticket-hold__body {
+  min-width: 0;
+}
+
+.mel-ticket-hold__heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: space-tokens.mel-space(3);
+}
+
+.mel-ticket-hold__heading {
+  margin: 0;
+  font-size: typography.mel-font-size(md);
+  font-weight: typography.$mel-font-bold;
+  line-height: typography.$mel-leading-snug;
+}
+
+.mel-ticket-hold__time {
+  flex: 0 0 auto;
+  color: var(--mel-ticket-hold-tone);
+  font-family: typography.$mel-font-family-mono;
+  font-size: typography.mel-font-size(xl);
+  font-variant-numeric: tabular-nums;
+  font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.mel-ticket-hold__message {
+  margin: space-tokens.mel-space(1) 0 0;
+  color: colors.$mel-color-text-muted;
+  font-size: typography.mel-font-size(sm);
+  line-height: typography.$mel-leading-normal;
+
+  a {
+    color: colors.$mel-color-primary;
+    font-weight: typography.$mel-font-semibold;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+}
+
+.mel-ticket-hold__progress {
+  height: 6px;
+  margin-top: space-tokens.mel-space(3);
+  overflow: hidden;
+  border-radius: radii.$mel-radius-pill;
+  background: rgba(colors.$mel-color-surface, 0.82);
+}
+
+.mel-ticket-hold__progress-value {
+  display: block;
+  width: var(--mel-ticket-hold-progress, 0%);
+  height: 100%;
+  border-radius: inherit;
+  background: var(--mel-ticket-hold-tone);
+  transition: width 0.35s linear;
+}
+
+.mel-cart-actions .mel-cart-action--renew-hold {
+  background: colors.$mel-color-primary;
+  color: colors.$mel-color-text-inverse;
+  box-shadow: shadows.$mel-shadow-2;
+}
+
+// Cart action layout uses an explicit display value, so preserve the native
+// hidden contract until the countdown reaches zero.
+.mel-cart-action--renew-hold[hidden] {
+  display: none;
+}
+
+.mel-ticket-hold-protected-action:disabled,
+.mel-ticket-hold-protected-action[aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
+@include breakpoints.mel-break(sm, max) {
+  .mel-ticket-hold {
+    grid-template-columns: 36px minmax(0, 1fr);
+    padding: space-tokens.mel-space(3);
+  }
+
+  .mel-ticket-hold__icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .mel-ticket-hold__heading-row {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: space-tokens.mel-space(2);
+  }
+
+  .mel-ticket-hold__time {
+    font-size: typography.mel-font-size(2xl);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-ticket-hold__progress-value {
+    transition: none;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // CART: /cart
 // ---------------------------------------------------------------------------
 
@@ -359,7 +533,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
 
   tbody tr {
     background: colors.$mel-color-surface;
-    box-shadow: 0 8px 24px shadows.$mel-shadow-lg;
+    box-shadow: shadows.$mel-shadow-lg;
     border-radius: radii.$mel-radius-lg;
     overflow: hidden;
   }
@@ -446,16 +620,16 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     cursor: pointer;
   }
 
-  .form-actions input.form-submit[value*="Checkout"],
-  .form-actions button[value*="Checkout"] {
-    background: colors.$mel-color-secondary;
+  .form-actions .mel-cart-action--checkout {
+    background: colors.$mel-color-primary;
     color: colors.$mel-color-text-inverse;
+    box-shadow: shadows.$mel-shadow-2;
   }
 
-  .form-actions input.form-submit[value*="Update"],
-  .form-actions button[value*="Update"] {
-    background: colors.$mel-color-bg;
-    color: colors.$mel-color-text;
+  .form-actions .mel-cart-action--update {
+    background: colors.$mel-color-surface;
+    color: colors.$mel-color-primary;
+    border: 1px solid colors.$mel-color-primary;
   }
 
   /* Mobile: stack table into cards */
@@ -473,19 +647,46 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     }
 
     tbody tr {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: space-tokens.mel-space(2) space-tokens.mel-space(4);
       padding: space-tokens.mel-space(4);
     }
 
     tbody td {
-      padding: space-tokens.mel-space(2) 0;
+      padding: space-tokens.mel-space(1) 0;
       display: flex;
       justify-content: space-between;
       gap: space-tokens.mel-space(4);
       align-items: center;
     }
 
-    tbody td:first-child {
+    tbody td:first-child,
+    tbody td.views-field-purchased-entity {
+      grid-column: 1 / -1;
       display: block;
+      padding-bottom: space-tokens.mel-space(3);
+      border-bottom: 1px solid colors.$mel-color-border;
+    }
+
+    tbody td.views-field-unit-price-number,
+    tbody td.views-field-edit-quantity,
+    tbody td.views-field-total-price-number {
+      grid-column: 1 / -1;
+    }
+
+    tbody td.views-field-unit-price-number::before,
+    tbody td.views-field-edit-quantity::before,
+    tbody td.views-field-total-price-number::before {
+      content: attr(data-label);
+      color: colors.$mel-color-text-muted;
+      font-size: typography.mel-font-size(sm);
+      font-weight: typography.$mel-font-medium;
+    }
+
+    tbody td.views-field-remove-button {
+      grid-column: 1 / -1;
+      justify-content: flex-start;
     }
 
     /* Sticky action bar */
@@ -493,7 +694,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     .mel-cart-actions {
       position: sticky;
       bottom: 0;
-      background: rgba(254, 245, 236, 0.92);
+      background: rgba(colors.$mel-color-bg, 0.96);
       backdrop-filter: blur(6px);
       padding: space-tokens.mel-space(4);
       border-top: 1px solid colors.$mel-color-border;
@@ -507,6 +708,16 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     .mel-cart-actions button {
       flex: 1 1 auto;
       min-height: 44px;
+    }
+
+    .form-actions,
+    .mel-cart-actions .form-actions {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .form-actions .mel-cart-action {
+      width: 100%;
     }
   }
 
@@ -702,10 +913,10 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   .mel-cart-empty {
-    max-width: 40rem;
+    max-width: 72rem;
     margin: space-tokens.mel-space(8) auto;
-    text-align: center;
-    padding: space-tokens.mel-space(7) space-tokens.mel-space(6) space-tokens.mel-space(6);
+    text-align: left;
+    padding: space-tokens.mel-space(5);
   }
 
   .mel-cart-empty.mel-panel--lavender {
@@ -713,10 +924,22 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     box-shadow: shadows.$mel-shadow-glass;
   }
 
+  .mel-cart-empty__card {
+    display: grid;
+    grid-template-columns: minmax(16rem, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: clamp(1.5rem, 4vw, 3.5rem);
+    padding: clamp(1.25rem, 4vw, 2.5rem);
+    border: 1px solid colors.$mel-color-border;
+    border-radius: var(--mel-radius-panel, 24px);
+    background: colors.$mel-color-surface;
+    box-shadow: shadows.$mel-shadow-glass;
+  }
+
   .mel-cart-empty__hero {
     position: relative;
     width: min(22rem, 78vw);
-    margin: 0 auto space-tokens.mel-space(5);
+    margin: 0 auto;
     aspect-ratio: 3 / 2;
     display: grid;
     place-items: end center;
@@ -770,7 +993,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   .mel-cart-empty__state {
-    margin-bottom: space-tokens.mel-space(2);
+    min-width: 0;
   }
 
   .mel-cart-empty--governed .mel-empty-state--governed {
@@ -791,14 +1014,14 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   .mel-cart-empty--governed .mel-empty-state__what,
   .mel-cart-empty--governed .mel-empty-state__why,
   .mel-cart-empty--governed .mel-empty-state__next {
-    margin-left: auto;
-    margin-right: auto;
+    margin-left: 0;
+    margin-right: 0;
     max-width: 32rem;
     color: colors.$mel-color-text-muted;
   }
 
   .mel-cart-empty--governed .mel-empty-state__cta {
-    justify-content: center;
+    justify-content: flex-start;
     margin-top: space-tokens.mel-space(5);
   }
 
@@ -806,6 +1029,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     min-height: 3rem;
     padding-inline: space-tokens.mel-space(7);
     border-radius: radii.$mel-radius-pill;
+    color: colors.$mel-color-text-inverse;
     box-shadow: 0 10px 24px rgba(242, 109, 91, 0.24);
   }
 
@@ -868,7 +1092,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   .mel-cart-empty__support {
-    margin-top: space-tokens.mel-space(5);
+    margin-top: space-tokens.mel-space(4);
     justify-content: center;
   }
 
@@ -883,7 +1107,24 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   @include breakpoints.mel-break(md, max) {
     .mel-cart-empty {
       margin: space-tokens.mel-space(6) space-tokens.mel-space(4);
-      padding: space-tokens.mel-space(6) space-tokens.mel-space(5);
+      padding: space-tokens.mel-space(4);
+      text-align: center;
+    }
+
+    .mel-cart-empty__card {
+      grid-template-columns: 1fr;
+      gap: space-tokens.mel-space(5);
+    }
+
+    .mel-cart-empty--governed .mel-empty-state__what,
+    .mel-cart-empty--governed .mel-empty-state__why,
+    .mel-cart-empty--governed .mel-empty-state__next {
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .mel-cart-empty--governed .mel-empty-state__cta {
+      justify-content: center;
     }
   }
 
@@ -1012,6 +1253,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   /* Pane cards: glass panel treatment (pastel visual system) */
+
   /* Calmness pass: increased spacing for breathing room. */
   .checkout-pane,
   .commerce-checkout-pane,
@@ -1058,6 +1300,8 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
   }
 
   /* Sticky aside on desktop — glass panel (pastel visual system) */
+  // Continuation of the sizing selector above; kept separate by responsibility.
+  /* stylelint-disable-next-line no-duplicate-selectors */
   .mel-checkout__aside,
   .mel-checkout__summary,
   .mel-checkout__sidebar,
@@ -1506,7 +1750,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
       padding: 0;
       margin: -1px;
       overflow: hidden;
-      clip: rect(0, 0, 0, 0);
+      clip-path: inset(50%);
       white-space: nowrap;
       border: 0;
     }
@@ -1578,8 +1822,12 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
 // ---------------------------------------------------------------------------
 // Softens the checkout progress indicator with pastel colours.
 
+// Intentional enhancement layer over the base Commerce progress component.
+/* stylelint-disable-next-line no-duplicate-selectors */
 .mel-commerce-checkout {
+  /* stylelint-disable-next-line no-duplicate-selectors */
   .mel-checkout__progress {
+    /* stylelint-disable-next-line no-duplicate-selectors */
     li,
     .checkout-progress--step {
       background: rgba(255, 255, 255, 0.6);
@@ -1591,6 +1839,7 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
       }
     }
 
+    /* stylelint-disable-next-line no-duplicate-selectors */
     li.is-active,
     li.is-current,
     li.active,
@@ -1732,3 +1981,5 @@ body.mel-commerce-checkout .mel-header-cart .mel-mini-cart {
     padding: space-tokens.mel-space(5);
   }
 }
+
+} // End route-only transactional surfaces.

@@ -43,20 +43,28 @@ final class NotificationPreferencesForm extends FormBase {
     }
 
     $prefs = $this->preferenceService->getPreferences($user);
+    $organiser = $this->getRouteMatch()->getRouteName() === 'myeventlane_notifications.organiser_preferences';
 
-    $surface_options = [
-      NotificationSurface::TOAST_INBOX => $this->t('Toast + Inbox (most visible)'),
-      NotificationSurface::BELL_INBOX => $this->t('Bell + Inbox'),
-      NotificationSurface::INBOX_ONLY => $this->t('Inbox only (quietest)'),
-    ];
+    $surface_options = $organiser
+      ? [
+        NotificationSurface::TOAST_INBOX => $this->t('Show immediately and keep in the Action Centre'),
+        NotificationSurface::BELL_INBOX => $this->t('Show in the bell and keep in the Action Centre'),
+        NotificationSurface::INBOX_ONLY => $this->t('Keep in the Action Centre only'),
+      ]
+      : [
+        NotificationSurface::TOAST_INBOX => $this->t('Show immediately and keep in Notifications'),
+        NotificationSurface::BELL_INBOX => $this->t('Show in the bell and keep in Notifications'),
+        NotificationSurface::INBOX_ONLY => $this->t('Keep in Notifications only'),
+      ];
 
     $form['intro'] = [
       '#type' => 'markup',
       '#markup' => '<p class="mel-notif-prefs__intro">' . $this->t(
-        'Choose what we surface in the header bell, toasts, and your inbox. Preferences are grouped by personal, business, and platform context.'
+        $organiser
+          ? 'Choose how organiser and MyEventLane updates get your attention. Important safety and account updates may still be kept in the Action Centre.'
+          : 'Choose how personal and MyEventLane updates get your attention.'
       ) . '</p>',
     ];
-
     $sections = [
       'personal' => [
         '#title' => $this->t('Personal'),
@@ -86,6 +94,11 @@ final class NotificationPreferencesForm extends FormBase {
         ],
       ],
     ];
+    if ($organiser) {
+      unset($sections['personal']);
+      $sections['business']['#title'] = $this->t('Your events and bookings');
+      $sections['platform']['#title'] = $this->t('Your MyEventLane account');
+    }
 
     $form['category'] = [
       '#type' => 'container',
@@ -149,14 +162,15 @@ final class NotificationPreferencesForm extends FormBase {
       return;
     }
 
-    $out = [];
+    $out = $this->preferenceService->getPreferences($user);
     $categoryValues = $form_state->getValue('category');
     if (!is_array($categoryValues)) {
       $categoryValues = [];
     }
     foreach (NotificationPreferenceService::categoryKeys() as $key) {
-      $enabled = TRUE;
-      $surface = NotificationSurface::INBOX_ONLY;
+      $found = FALSE;
+      $enabled = (bool) ($out[$key]['enabled'] ?? TRUE);
+      $surface = (string) ($out[$key]['surface'] ?? NotificationSurface::INBOX_ONLY);
       foreach (['personal', 'business', 'platform'] as $section) {
         if (!isset($categoryValues[$section][$key]) || !is_array($categoryValues[$section][$key])) {
           continue;
@@ -164,7 +178,11 @@ final class NotificationPreferencesForm extends FormBase {
         $entry = $categoryValues[$section][$key];
         $enabled = (bool) ($entry['enabled'] ?? TRUE);
         $surface = (string) ($entry['surface'] ?? NotificationSurface::INBOX_ONLY);
+        $found = TRUE;
         break;
+      }
+      if (!$found) {
+        continue;
       }
       if (!in_array($surface, NotificationSurface::allowed(), TRUE)) {
         $surface = NotificationSurface::INBOX_ONLY;
@@ -189,7 +207,10 @@ final class NotificationPreferencesForm extends FormBase {
       $this->messenger()->addError($this->t('Could not save preferences. Please try again.'));
     }
 
-    $form_state->setRedirectUrl(Url::fromRoute('myeventlane_notifications.preferences'));
+    $route = $this->getRouteMatch()->getRouteName() === 'myeventlane_notifications.organiser_preferences'
+      ? 'myeventlane_notifications.organiser_preferences'
+      : 'myeventlane_notifications.preferences';
+    $form_state->setRedirectUrl(Url::fromRoute($route));
   }
 
 }

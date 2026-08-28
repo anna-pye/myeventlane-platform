@@ -484,6 +484,13 @@ function myeventlane_theme_theme(array $existing, string $type, string $theme, s
       ],
       'template' => 'commerce/mel-checkout-order-summary-grouped',
     ],
+    'mel_ticket_hold' => [
+      'variables' => [
+        'mel_ticket_hold' => [],
+        'surface' => 'cart',
+      ],
+      'template' => 'commerce/mel-ticket-hold',
+    ],
     'mel_tax_invoice_pdf' => [
       'variables' => [
         'invoice' => [],
@@ -845,11 +852,17 @@ function _myeventlane_theme_attach_tax_invoice_variables(OrderInterface $order, 
   $data = $builder->build($order);
   $variables['vendor_name'] = $data['vendor_name'];
   $variables['vendor_abn'] = $data['vendor_abn'];
+  $variables['document_title'] = $data['document_title'];
+  $variables['is_tax_invoice'] = $data['is_tax_invoice'];
   $variables['order_total_gst'] = $data['order_total_gst'];
   $variables['order_total'] = $data['order_total'];
   $variables['mel_invoice_lines'] = $data['invoice_lines'];
   $variables['invoice_date_display'] = $data['invoice_date_display'];
   $variables['mel_invoice_fee_lines'] = $data['fee_lines'];
+  $variables['platform_name'] = $data['platform_name'];
+  $variables['platform_abn'] = $data['platform_abn'];
+  $variables['mel_platform_fee_lines'] = $data['platform_fee_lines'];
+  $variables['platform_total_gst'] = $data['platform_total_gst'];
   $variables['mel_invoice_tax_lines'] = $data['tax_lines'];
   $variables['invoice_lines_include_gst_column'] = $data['invoice_lines_include_gst_column'] ?? FALSE;
 }
@@ -1083,6 +1096,9 @@ function myeventlane_theme_preprocess_commerce_checkout_form(array &$variables):
   if (($step_id ?? '') !== 'complete') {
     $order_param = _myeventlane_theme_commerce_order_from_route();
     if ($order_param instanceof OrderInterface) {
+      if (\Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
+        $variables['mel_ticket_hold'] = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($order_param);
+      }
       $event = _myeventlane_theme_get_first_event_from_order($order_param);
       $variables['mel_checkout_refunds_available'] = _myeventlane_theme_event_has_refunds_available($event);
       if ($event instanceof NodeInterface) {
@@ -1926,6 +1942,21 @@ function _myeventlane_theme_build_mobile_bottom_nav(bool $auth_minimal = FALSE):
 }
 
 /**
+ * Whether the current route needs the transactional Commerce stylesheet.
+ */
+function _myeventlane_theme_is_commerce_styled_route(string $route_name): bool {
+  return str_starts_with($route_name, 'commerce_cart.')
+    || str_starts_with($route_name, 'commerce_checkout.')
+    || $route_name === 'entity.commerce_order.user_view'
+    || in_array($route_name, [
+      'entity.commerce_payment_method.collection',
+      'entity.commerce_payment_method.add_form',
+      'entity.commerce_payment_method.edit_form',
+      'entity.commerce_payment_method.delete_form',
+    ], TRUE);
+}
+
+/**
  * Implements hook_preprocess_html().
  */
 function myeventlane_theme_preprocess_html(array &$variables): void {
@@ -1933,8 +1964,15 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
   $route_name = $route_match ? $route_match->getRouteName() : '';
 
   if (is_string($route_name) && $route_name !== '') {
+    // Attach from HTML preprocess as the reliable, route-aware path. The
+    // page-attachments hook remains a harmless fallback for normal pages.
+    if (_myeventlane_theme_is_commerce_styled_route($route_name)) {
+      $variables['mel_attach_commerce_styling'] = TRUE;
+      $variables['#attached']['library'][] = 'myeventlane_theme/commerce-styling';
+    }
+
     // Scope all Commerce cart/checkout/order-detail styling.
-    if (str_starts_with($route_name, 'commerce_cart.') || str_starts_with($route_name, 'commerce_checkout.') || $route_name === 'entity.commerce_order.user_view') {
+    if (_myeventlane_theme_is_commerce_styled_route($route_name)) {
       $variables['attributes']['class'][] = 'mel-commerce';
     }
 
@@ -2039,10 +2077,20 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['directory'] = base_path() . $theme_path;
   }
 
+  $route_name = \Drupal::routeMatch()->getRouteName() ?? '';
+  $transactional_routes = [
+    'entity.commerce_order.user_view',
+    'myeventlane_core.error_403',
+    'myeventlane_core.error_404',
+  ];
+  $variables['mel_footer_compact'] = str_starts_with($route_name, 'commerce_cart.')
+    || str_starts_with($route_name, 'commerce_checkout.')
+    || in_array($route_name, $transactional_routes, TRUE);
+
   // Footer navigation (single preprocess source; shared with /sitemap).
   $variables['mel_footer_sections'] = \Drupal::service('myeventlane_front.public_footer_navigation')->buildSections();
   $variables['mel_footer_trust_items'] = _myeventlane_theme_build_footer_trust_items();
-  $variables['mel_footer_show_cta_band'] = empty($variables['is_front']);
+  $variables['mel_footer_show_cta_band'] = empty($variables['is_front']) && !$variables['mel_footer_compact'];
   $variables['mel_is_organiser'] = \Drupal::currentUser()->hasPermission('access vendor dashboard');
   $variables['#attached']['library'][] = 'myeventlane_theme/footer-internal';
 
@@ -2932,6 +2980,21 @@ function myeventlane_theme_library_info_alter(array &$libraries, string $extensi
           $relative => [],
         ];
       }
+    }
+  }
+
+  // Transactional CSS entry: cart, checkout and customer order routes only.
+  if (isset($libraries['commerce-styling'])) {
+    $commerce = $manifest['scss/commerce.scss'] ?? NULL;
+    if (is_array($commerce) && !empty($commerce['file']) && is_string($commerce['file'])) {
+      $css = ltrim($commerce['file'], '/');
+      $relative = 'dist/' . $css;
+      if (!is_file($theme_fs . $relative)) {
+        $log_missing_asset($relative);
+      }
+      $libraries['commerce-styling']['css']['theme'] = [
+        $relative => [],
+      ];
     }
   }
 
@@ -5275,6 +5338,9 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
   $variables['item_event_map'] = $item_event_map;
 
   $order = $form['#order'] ?? NULL;
+  if (isset($form['#mel_ticket_hold']) && is_array($form['#mel_ticket_hold'])) {
+    $variables['mel_ticket_hold'] = $form['#mel_ticket_hold'];
+  }
   if ($order instanceof OrderInterface && \Drupal::hasService('myeventlane_checkout_flow.checkout_summary_presenter')) {
     /** @var \Drupal\myeventlane_checkout_flow\Service\MelCheckoutSummaryPresenter $cart_presenter */
     $cart_presenter = \Drupal::service('myeventlane_checkout_flow.checkout_summary_presenter');
@@ -5285,6 +5351,28 @@ function myeventlane_theme_preprocess_commerce_cart_form(array &$variables): voi
     _myeventlane_theme_attach_mel_operational_fulfillment_execution_customer($variables);
     _myeventlane_theme_attach_mel_operational_purchase_composition($variables);
     _myeventlane_theme_attach_mel_operational_checkout($variables);
+  }
+}
+
+/**
+ * Implements hook_preprocess_HOOK() for Views tables.
+ *
+ * Exposes translated cart column headings to the mobile card layout instead of
+ * hard-coding English labels in CSS.
+ */
+function myeventlane_theme_preprocess_views_view_table(array &$variables): void {
+  $view = $variables['view'] ?? NULL;
+  if (!$view instanceof ViewExecutable || $view->id() !== 'commerce_cart_form') {
+    return;
+  }
+
+  foreach ($variables['rows'] ?? [] as &$row) {
+    foreach ($row['columns'] ?? [] as $key => &$column) {
+      $label = trim(strip_tags((string) ($variables['header'][$key]['content'] ?? '')));
+      if ($label !== '' && isset($column['attributes']) && $column['attributes'] instanceof Attribute) {
+        $column['attributes']->setAttribute('data-label', $label);
+      }
+    }
   }
 }
 
@@ -5924,34 +6012,43 @@ function _myeventlane_theme_mel_cart_illustration_url(): string {
  * Aligns with checkout classification in MelFormClassificationResolver and
  * mel-form-system.md (cart, checkout, event book).
  */
-function _myeventlane_theme_status_messages_use_toasts(): bool {
+function _myeventlane_theme_status_message_context(): string {
   $route = \Drupal::routeMatch()->getRouteName() ?? '';
   $path = \Drupal::request()->getPathInfo() ?? '';
 
-  if (str_starts_with((string) $route, 'commerce_')) {
-    return TRUE;
+  if (str_starts_with((string) $route, 'commerce_cart.')
+    || $route === 'myeventlane_commerce.event_book'
+    || preg_match('#^/cart(?:/|$)#', $path) === 1
+    || preg_match('#^/event/\d+/book/?$#', $path) === 1) {
+    return 'cart';
   }
-  if ($route === 'myeventlane_commerce.event_book') {
-    return TRUE;
-  }
-  if (preg_match('#^/cart(?:/|$)#', $path) === 1 || preg_match('#^/checkout(?:/|$)#', $path) === 1) {
-    return TRUE;
-  }
-  if (preg_match('#^/event/\d+/book/?$#', $path) === 1) {
-    return TRUE;
+  if (str_starts_with((string) $route, 'commerce_checkout.')
+    || preg_match('#^/checkout(?:/|$)#', $path) === 1) {
+    return 'checkout';
   }
 
-  return FALSE;
+  return 'default';
+}
+
+/**
+ * Whether the current request uses a transient, cart-specific status toast.
+ */
+function _myeventlane_theme_status_messages_use_toasts(): bool {
+  return _myeventlane_theme_status_message_context() === 'cart';
 }
 
 /**
  * Implements hook_page_attachments().
  */
 function myeventlane_theme_page_attachments(array &$attachments): void {
-  if (!_myeventlane_theme_status_messages_use_toasts()) {
-    return;
+  $route = (string) (\Drupal::routeMatch()->getRouteName() ?? '');
+  if (_myeventlane_theme_is_commerce_styled_route($route)) {
+    $attachments['#attached']['library'][] = 'myeventlane_theme/commerce-styling';
   }
-  $attachments['#attached']['library'][] = 'myeventlane_theme/mel_toasts';
+
+  if (_myeventlane_theme_status_messages_use_toasts()) {
+    $attachments['#attached']['library'][] = 'myeventlane_theme/mel_toasts';
+  }
 }
 
 /**
@@ -6004,12 +6101,16 @@ function _myeventlane_theme_cart_toast_plain_text(mixed $message): string {
  * Adds is_commerce_route for toast vs banner display.
  */
 function myeventlane_theme_preprocess_status_messages(array &$variables): void {
-  $variables['is_commerce_route'] = _myeventlane_theme_status_messages_use_toasts();
-  if (!$variables['is_commerce_route']) {
+  $variables['mel_message_context'] = _myeventlane_theme_status_message_context();
+  $variables['is_commerce_route'] = $variables['mel_message_context'] === 'cart';
+  if ($variables['mel_message_context'] !== 'cart') {
     return;
   }
 
-  $variables['mel_toast_mascot_url'] = _myeventlane_theme_mel_cart_illustration_url();
+  $variables['mel_cart_toast_show_cart_action'] = !str_starts_with(
+    \Drupal::routeMatch()->getRouteName() ?? '',
+    'commerce_cart.',
+  );
 
   if (!empty($variables['message_list']) && is_array($variables['message_list'])) {
     $variables['message_list'] = _myeventlane_theme_consolidate_cart_toast_messages($variables['message_list']);

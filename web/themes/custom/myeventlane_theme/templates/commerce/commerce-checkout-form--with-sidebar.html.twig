@@ -113,6 +113,13 @@
 
     <p class="mel-checkout__helper mel-checkout__helper--governed">{{ mcp_hero.flow_helper|default('') }}</p>
 
+    {% if mel_ticket_hold is defined and mel_ticket_hold.has_hold|default(false) %}
+      {% include '@myeventlane_theme/commerce/mel-ticket-hold.html.twig' with {
+        mel_ticket_hold: mel_ticket_hold,
+        surface: 'checkout',
+      } only %}
+    {% endif %}
+
     {% if mel_organiser_checkout.purchase_details is defined %}
       {% set purchase = mel_organiser_checkout.purchase_details %}
       <section class="mel-checkout-purchase-context mel-card-surface" aria-labelledby="mel-checkout-purchase-context-heading">
@@ -248,8 +255,12 @@
         {% set sidebar_content = form.sidebar|render %}
         {% if (mel_contextual_help_checkout is defined and mel_contextual_help_checkout) or (sidebar_content|striptags|trim is not empty) or (mel_support_panel is defined and mel_support_panel) %}
           <aside class="mel-checkout__summary mel-checkout-summary mel-checkout-summary--v2"{% if mcp.summary_aria %} aria-label="{{ mcp.summary_aria }}"{% endif %}>
-            <div class="mel-checkout__summary-inner mel-checkout-summary__inner">
-              <h2 id="mel-checkout-summary-heading" class="mel-checkout__summary-title">{{ sum_titles.title|default('') }}</h2>
+            <details class="mel-checkout-summary__disclosure" data-mel-checkout-summary open>
+              <summary class="mel-checkout-summary__toggle">
+                <span id="mel-checkout-summary-heading" class="mel-checkout__summary-title">{{ sum_titles.title|default('') }}</span>
+                <span class="mel-checkout-summary__toggle-hint" aria-hidden="true"></span>
+              </summary>
+              <div class="mel-checkout__summary-inner mel-checkout-summary__inner">
               {% if mel_contextual_help_checkout is defined and mel_contextual_help_checkout %}
                 <div class="mel-contextual-help mel-contextual-help--checkout mel-contextual-help--checkout-card mel-checkout__summary-region">
                   {{ mel_contextual_help_checkout }}
@@ -279,7 +290,8 @@
                   {{ mel_support_panel }}
                 </div>
               {% endif %}
-            </div>
+              </div>
+            </details>
           </aside>
         {% endif %}
       {% endif %}

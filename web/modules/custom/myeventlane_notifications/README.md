@@ -25,6 +25,23 @@ Allowed values: `low`, `normal`, `high`, `critical`.
 - `high` — refunds, capacity, boost expiring, etc.
 - `normal` / `low` — routine business and personal updates.
 
+Priority and organiser action state are separate:
+
+- `requires_action` is set by `NotificationAttentionPolicy` for the small set
+  of business events that require a decision or follow-up.
+- `read_at` means the recipient has seen the update.
+- `resolved_at` means the recipient explicitly marked the work as handled.
+- Following the primary action marks an update read, never handled.
+
+## Organiser Action Centre
+
+- `/vendor/updates` is the portfolio-level organiser history.
+- `/vendor/events/{node}/studio/updates` is the access-checked event subset.
+- Organiser items are split into Needs your attention, Recent activity and
+  MyEventLane updates. Messages sent to guests remain in Messages.
+- Set `event_id` for event-scoped notifications. `NotificationManager` infers
+  it from `route_parameters.node` or `route_parameters.event` where possible.
+
 ## Trigger services
 
 | Service ID | Role |

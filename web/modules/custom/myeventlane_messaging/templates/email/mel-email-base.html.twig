@@ -6,11 +6,11 @@
  * Variables: preheader, content, context, logo_path, marketing, accent_color, site_name
  */
 #}
-{% set accent = accent_color|default(context.accent_color|default('#f26d5b')) %}
+{% set accent = accent_color|default(context.accent_color|default('#6b46ff')) %}
 {% set text = '#293241' %}
 {% set text_muted = '#5c6370' %}
 {% set line = '#e8e8e8' %}
-{% set page_bg = '#fef5ec' %}
+{% set page_bg = '#fff7ee' %}
 {% set card = '#ffffff' %}
 {% if preheader is empty and context.preheader|default('') is not empty %}
   {% set preheader = context.preheader %}
@@ -26,37 +26,45 @@
     {{ preheader|striptags|trim }}
   </div>
 {% endif %}
+<style>
+  @media only screen and (max-width: 620px) {
+    .mel-email-shell { padding: 12px 8px !important; }
+    .mel-email-pad { padding-left: 18px !important; padding-right: 18px !important; }
+    .mel-email-content { font-size: 16px !important; line-height: 1.55 !important; }
+    .mel-email-cta { display: block !important; text-align: center !important; }
+  }
+</style>
 <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" data-mel-email-layout="1" data-mel-wrapper="1" style="width:100%;background:{{ page_bg }};margin:0;padding:0;font-family:'Nunito',Arial,Helvetica,sans-serif;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;">
   <tr>
-    <td style="padding:20px 12px;">
+    <td class="mel-email-shell" style="padding:20px 12px;">
       <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:600px;margin:0 auto;border-collapse:separate;border-radius:16px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.07);">
         <tr>
           <td style="background:{{ card }};border-radius:16px 16px 0 0;overflow:hidden;">
             {% if logo_path %}
-              <div style="padding:20px 24px 0 24px;">
-                <img src="{{ logo_path|e('html_attr') }}" width="140" alt="" style="display:block;max-width:100%;height:auto;border:0;outline:none;" />
+              <div class="mel-email-pad" style="padding:20px 24px 0 24px;">
+                <img src="{{ logo_path|e('html_attr') }}" width="140" alt="{{ site_name|e('html_attr') }}" style="display:block;max-width:100%;height:auto;border:0;outline:none;" />
               </div>
             {% endif %}
-            <div style="padding:16px 24px 0 24px;border-bottom:1px solid {{ line }};">
+            <div class="mel-email-pad" style="padding:16px 24px 0 24px;border-bottom:1px solid {{ line }};">
               <div style="font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:{{ text_muted }};font-weight:800;">{{ site_name }}</div>
             </div>
-            <div class="mel-email-content" style="padding:24px 24px 8px 24px;color:{{ text }};font-size:16px;line-height:1.65;">
+            <div class="mel-email-content mel-email-pad" style="padding:24px 24px 8px 24px;color:{{ text }};font-size:16px;line-height:1.65;">
               {{ content|raw }}
             </div>
             {% set marketing = context.marketing|default({}) %}
             {% if marketing.promo_title|default('') and marketing.promo_body|default('') %}
-              <div style="padding:16px 24px 24px 24px;border-top:1px solid {{ line }};">
+              <div class="mel-email-pad" style="padding:16px 24px 24px 24px;border-top:1px solid {{ line }};">
                 <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:700;color:{{ text }};">{{ marketing.promo_title|e }}</h3>
                 <p style="margin:0 0 16px 0;font-size:15px;color:{{ text_muted }};line-height:1.5;">{{ marketing.promo_body|e }}</p>
                 {% if marketing.promo_url|default('') %}
-                  <a href="{{ marketing.promo_url|e('url') }}" style="display:inline-block;border-radius:9999px;padding:10px 20px;font-size:15px;font-weight:700;text-decoration:none;color:#ffffff !important;background:{{ accent }};">{{ marketing.promo_button|default('Learn more')|e }}</a>
+                  <a class="mel-email-cta" href="{{ marketing.promo_url|e('url') }}" style="display:inline-block;border-radius:12px;padding:11px 20px;font-size:15px;font-weight:700;text-decoration:none;color:#ffffff !important;background:{{ accent }};">{{ marketing.promo_button|default('Learn more')|e }}</a>
                 {% endif %}
               </div>
             {% endif %}
-            <div style="padding:16px 24px 24px 24px;border-top:1px solid {{ line }};font-size:12px;line-height:1.5;color:{{ text_muted }};">
+            <div class="mel-email-pad" style="padding:16px 24px 24px 24px;border-top:1px solid {{ line }};font-size:12px;line-height:1.5;color:{{ text_muted }};">
               {{ context.footer_text|default("You're receiving this because you interacted with MyEventLane.")|e }}{% if context.unsubscribe_url|default('') %}
                 <span style="white-space:nowrap;">&nbsp;·&nbsp;
-                  <a href="{{ context.unsubscribe_url|e('url') }}" style="color:#6e7ef2;">Unsubscribe</a>
+                  <a href="{{ context.unsubscribe_url|e('url') }}" style="color:#5935e8;">Unsubscribe</a>
                 </span>
               {% endif %}
             </div>

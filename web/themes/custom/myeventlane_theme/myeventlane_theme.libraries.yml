@@ -15,6 +15,28 @@ global-styling:
     - core/once
     - myeventlane_theme/skeleton
 
+# Route-only cart, checkout and customer order CSS. The current hashed asset is
+# injected from the Vite manifest by hook_library_info_alter().
+commerce-styling:
+  dependencies:
+    - core/drupal
+    - myeventlane_theme/stripe-card-presentation
+
+stripe-card-presentation:
+  js:
+    js/stripe-card-presentation.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+
+# Real-time presentation of the server-side limited-ticket reservation.
+cart_ticket_hold:
+  js:
+    js/cart-ticket-hold.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once
+
 account-settings-hub:
   js:
     js/account-settings-hub.js: { attributes: { defer: true } }
@@ -226,6 +248,7 @@ mel_checkout:
   dependencies:
     - core/drupal
     - core/once
+    - myeventlane_theme/commerce-styling
 
 # Auth pages: register and password reset (CSS only). Login uses Gin Login only.
 # Attached on user.register, user.pass — not on user.login.

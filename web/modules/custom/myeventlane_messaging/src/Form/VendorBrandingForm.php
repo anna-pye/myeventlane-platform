@@ -28,7 +28,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  */
 final class VendorBrandingForm extends FormBase {
 
-  private const DEFAULT_PRIMARY_COLOR = '#f26d5b';
+  private const DEFAULT_PRIMARY_COLOR = '#6b46ff';
 
   /**
    * Constructs the vendor branding form.

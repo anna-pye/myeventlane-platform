@@ -25,6 +25,13 @@ services:
       - '@extension.list.module'
       - '@logger.channel.myeventlane_wallet'
       - '@myeventlane_wallet.event_presentation'
+      - '@myeventlane_wallet.event_background'
+
+  myeventlane_wallet.event_background:
+    class: Drupal\myeventlane_wallet\Service\WalletEventBackground
+    arguments:
+      - '@image.factory'
+      - '@logger.channel.myeventlane_wallet'
 
   myeventlane_wallet.event_presentation:
     class: Drupal\myeventlane_wallet\Service\WalletEventPresentation
@@ -36,6 +43,13 @@ services:
     arguments:
       - '@config.factory'
       - '@myeventlane_tickets.universal_ticket_view_model_builder'
+      - '@logger.channel.myeventlane_wallet'
+      - '@myeventlane_wallet.google_event_hero'
+
+  myeventlane_wallet.google_event_hero:
+    class: Drupal\myeventlane_wallet\Service\GoogleWalletEventHero
+    arguments:
+      - '@entity_type.manager'
       - '@logger.channel.myeventlane_wallet'
 
   myeventlane_wallet.presentation_gate:

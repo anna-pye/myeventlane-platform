@@ -1,53 +1,62 @@
 @use 'sass:color';
 
-$mel-color-bg: #fff9f5;
-$mel-color-surface: #ffffff;
-$mel-color-surface-alt: #fdf1ec;
+$mel-brand-purple: #6b46ff;
+$mel-brand-lavender: #cdbdff;
+$mel-brand-coral: #ff6b4a;
+$mel-brand-discovery-gold: #ffc83d;
+$mel-brand-warm-cream: #fff7ee;
+$mel-brand-soft-sky: #eaf4ff;
+
+$mel-color-bg: $mel-brand-warm-cream;
+$mel-color-surface: #fff;
+$mel-color-surface-alt: #fffbf6;
 $mel-color-overlay: rgba(36, 48, 58, 0.38);
-$mel-color-on-primary: #ffffff;
+$mel-color-on-primary: #fff;
 
-$mel-color-primary: #f26d5b;
-$mel-color-primary-hover: #e55c49;
-$mel-color-primary-active: #cf4f3d;
+$mel-color-primary: $mel-brand-purple;
+$mel-color-primary-hover: #5935e8;
+$mel-color-primary-active: #4826cc;
 
-$mel-color-accent: #7c83fd;
-$mel-color-accent-hover: #676ee6;
-$mel-color-accent-active: #555dd4;
+// Interactive accent remains an accessible purple. Lavender and coral are
+// presentation accents and must not carry white small text.
+$mel-color-accent: $mel-brand-purple;
+$mel-color-accent-hover: $mel-color-primary-hover;
+$mel-color-accent-active: $mel-color-primary-active;
 
 $mel-color-navy: #24303a;
 $mel-color-blue: $mel-color-accent;
-$mel-color-orange: #f5a04c;
+$mel-color-orange: $mel-brand-coral;
 $mel-color-cream: $mel-color-bg;
 $mel-color-grey-light: $mel-color-surface-alt;
 
 $mel-color-secondary: $mel-color-accent;
 $mel-color-secondary-hover: $mel-color-accent-hover;
 $mel-color-secondary-active: $mel-color-accent-active;
-$mel-color-accent-alt: color.mix($mel-color-accent, #ffffff, 12%);
+$mel-color-accent-alt: $mel-brand-lavender;
 
-$mel-color-highlight: $mel-color-primary;
-$mel-color-highlight-hover: $mel-color-primary-hover;
-$mel-color-highlight-active: $mel-color-primary-active;
+$mel-color-highlight: $mel-brand-coral;
+$mel-color-highlight-hover: #e45434;
+$mel-color-highlight-active: #c94629;
 
-$mel-color-momentum: $mel-color-primary;
-$mel-color-momentum-hover: $mel-color-primary-hover;
-$mel-color-momentum-active: $mel-color-primary-active;
+$mel-color-momentum: $mel-brand-coral;
+$mel-color-momentum-hover: $mel-color-highlight-hover;
+$mel-color-momentum-active: $mel-color-highlight-active;
 
-$mel-color-accent-1: $mel-color-primary;
-$mel-color-accent-2: $mel-color-accent;
-$mel-color-accent-3: $mel-color-orange;
-$mel-color-accent-4: $mel-color-accent-alt;
+$mel-color-accent-1: $mel-brand-coral;
+$mel-color-accent-2: $mel-brand-lavender;
+$mel-color-accent-3: $mel-brand-discovery-gold;
+$mel-color-accent-4: $mel-brand-soft-sky;
 
 $mel-color-text: #24303a;
 $mel-color-text-muted: #5b6670;
 $mel-color-text-light: #7a838b;
-$mel-color-text-inverse: #ffffff;
+$mel-color-text-inverse: #fff;
 
 // MEL highlight apricot — category pill on cards & event hero.
 $mel-color-highlight-apricot: #f6c47a;
 
 // MEL Discovery Gold — Hidden Gem badge and discovery highlights (brand token).
-$mel-color-discovery-gold: #ffc83d;
+$mel-color-discovery-gold: $mel-brand-discovery-gold;
 
 $mel-color-border: #e9e3de;
 $mel-color-border-strong: color.scale($mel-color-border, $lightness: -16%);
@@ -61,11 +70,11 @@ $mel-color-warning-bg: #fef3c7;
 $mel-color-info: #3b82f6;
 $mel-color-info-bg: #dbeafe;
 
-$mel-color-pastel-lavender: color.mix($mel-color-accent, #ffffff, 14%);
-$mel-color-pastel-pink: color.mix($mel-color-primary, #ffffff, 14%);
-$mel-color-pastel-mint: color.mix($mel-color-accent-alt, #ffffff, 35%);
-$mel-color-pastel-peach: color.mix($mel-color-primary, #ffffff, 18%);
-$mel-color-pastel-sky: color.mix($mel-color-accent, #ffffff, 10%);
+$mel-color-pastel-lavender: color.mix($mel-brand-lavender, #fff, 42%);
+$mel-color-pastel-pink: color.mix($mel-brand-coral, #fff, 14%);
+$mel-color-pastel-mint: color.mix(#bcebd2, #fff, 55%);
+$mel-color-pastel-peach: color.mix($mel-brand-coral, #fff, 18%);
+$mel-color-pastel-sky: $mel-brand-soft-sky;
 $mel-color-pastel-bg: $mel-color-bg;
 
 $mel-glass-bg: rgba(255, 255, 255, 0.68);
@@ -86,6 +95,8 @@ $mel-focus-ring:
 }
 
 @mixin mel-focus-visible {
+  // The selector is intentionally relative so this mixin composes at call-site.
+  /* stylelint-disable nesting-selector-no-missing-scoping-root */
   &:focus {
     outline: none;
   }
@@ -93,4 +104,5 @@ $mel-focus-ring:
   &:focus-visible {
     @include mel-focus-ring;
   }
+  /* stylelint-enable nesting-selector-no-missing-scoping-root */
 }

@@ -4,11 +4,11 @@
   - warning/error always inline banners
 #}
 
-{% set is_commerce_route = is_commerce_route|default(false) %}
+{% set message_context = mel_message_context|default('default') %}
+{% set is_cart_context = message_context == 'cart' %}
 {% set toast_types = ['status', 'info'] %}
-{% set mascot_url = mel_toast_mascot_url|default('') %}
 
-{% if is_commerce_route %}
+{% if is_cart_context %}
   <div class="mel-toasts mel-toasts--cart" aria-live="polite" aria-relevant="additions text">
     {% for type, messages in message_list %}
       {% if type in toast_types %}
@@ -16,30 +16,17 @@
         <div class="mel-toast mel-toast--cart mel-toast--{{ type }}" data-mel-toast role="status">
           <div class="mel-toast__accent" aria-hidden="true"></div>
 
-          {% if mascot_url %}
-            <div class="mel-toast__mascot-frame" aria-hidden="true">
-              <span class="mel-toast__mascot-glow"></span>
-              <img
-                class="mel-toast__mascot-img"
-                src="{{ mascot_url }}"
-                alt=""
-                width="80"
-                height="54"
-                loading="lazy"
-                decoding="async"
-              >
-            </div>
-          {% endif %}
-
           <div class="mel-toast__body">
             <span class="mel-toast__badge">
               <span class="mel-toast__badge-icon" aria-hidden="true">✓</span>
               {{ 'Cart updated'|t }}
             </span>
             <p class="mel-toast__title">{{ message }}</p>
+            {% if mel_cart_toast_show_cart_action|default(false) %}
             <div class="mel-toast__actions">
               <a class="mel-btn mel-btn--primary mel-btn-sm mel-toast__cart-link" href="{{ path('commerce_cart.page') }}">{{ 'View cart'|t }}</a>
             </div>
+            {% endif %}
           </div>
 
           <button class="mel-toast__close" type="button" aria-label="{{ 'Dismiss'|t }}" data-mel-toast-close>
@@ -54,7 +41,7 @@
 
 <div class="mel-banners">
   {% for type, messages in message_list %}
-    {% if is_commerce_route and type in toast_types %}
+    {% if is_cart_context and type in toast_types %}
       {# on commerce pages, status/info are handled by toasts above #}
     {% else %}
       <div class="mel-banner mel-banner--{{ type }}" role="{{ type == 'error' ? 'alert' : 'status' }}">
@@ -69,6 +56,15 @@
             {% endif %}
           </div>
           <div class="mel-banner__content">
+            <h2 class="visually-hidden">
+              {% if type == 'error' %}
+                {{ 'Error message'|t }}
+              {% elseif type == 'warning' %}
+                {{ 'Warning message'|t }}
+              {% else %}
+                {{ 'Status message'|t }}
+              {% endif %}
+            </h2>
             {% for message in messages %}
               <div class="mel-banner__text">{{ message }}</div>
             {% endfor %}

@@ -6,6 +6,84 @@
  */
 
 /**
+ * Implements hook_schema().
+ */
+function myeventlane_commerce_schema(): array {
+  $schema['myeventlane_commerce_ticket_hold'] = [
+    'description' => 'Provisional cart holds for finite ticket-tier inventory.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'reservation_key' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'event_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'tier_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'variation_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'quantity' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'counts_toward_capacity' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 1,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'expires' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'reservation_key' => ['reservation_key'],
+    ],
+    'indexes' => [
+      'event_tier_expires' => [
+        'event_id',
+        'tier_id',
+        'counts_toward_capacity',
+        'expires',
+      ],
+      'order_event' => ['order_id', 'event_id'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Implements hook_update_N().
  */
 function myeventlane_commerce_update_10001(): void {
@@ -178,4 +256,19 @@ function myeventlane_commerce_update_10004(): string {
   }
 
   return 'Installed MEL operational merchandise product types, variation types, and field_mel_operational_product.';
+}
+
+/**
+ * Adds durable cart holds for finite ticket-tier inventory.
+ */
+function myeventlane_commerce_update_10005(): string {
+  $table = 'myeventlane_commerce_ticket_hold';
+  $schema_handler = \Drupal::database()->schema();
+  if ($schema_handler->tableExists($table)) {
+    return 'The ticket-tier cart hold table already exists.';
+  }
+
+  $schema = myeventlane_commerce_schema();
+  $schema_handler->createTable($table, $schema[$table]);
+  return 'Created the ticket-tier cart hold table.';
 }

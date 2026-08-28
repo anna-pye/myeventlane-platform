@@ -124,7 +124,7 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('Edit tickets', $contents);
   }
 
-  public function testVendorManageLinksPointToEventStudioWorkspace(): void {
+  public function testOpenWorkspaceLinksPointToStaffOverview(): void {
     $card = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/node--event--vendor-card.html.twig');
     $indexBuilder = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventIndexViewModelBuilder.php');
     $dashboardBuilder = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorDashboardViewModelBuilder.php');
@@ -133,8 +133,8 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertIsString($dashboardBuilder);
     $this->assertStringContainsString('myeventlane_event_studio.workspace', $card);
     $this->assertStringNotContainsString('myeventlane_vendor.console.event_overview', $card);
-    $this->assertStringContainsString("'manage' => \$this->routeUrlIfAccessible('myeventlane_event_studio.workspace'", $indexBuilder);
-    $this->assertStringContainsString("'manage' => \$this->safeUrlFromRoute('myeventlane_event_studio.workspace'", $dashboardBuilder);
+    $this->assertStringContainsString("'manage' => \$this->routeUrlIfAccessible('myeventlane_vendor.console.event_workspace'", $indexBuilder);
+    $this->assertStringContainsString("'manage' => \$this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace'", $dashboardBuilder);
   }
 
   public function testVendorEventWorkspaceRendersTodaysFocusRegion(): void {
@@ -146,16 +146,49 @@ final class EventStudioManageEventIaTest extends UnitTestCase {
     $this->assertStringContainsString('todays_focus', $twig);
     $this->assertStringContainsString("Today's focus", $twig);
     $this->assertStringContainsString('buildTodaysFocus', $builder);
+    $this->assertStringContainsString('pendingRefundRequestCount', $builder);
+    $this->assertStringContainsString('myeventlane_refunds.vendor_refund_requests', $builder);
+    $this->assertStringContainsString('refund request needs your review', $builder);
+    $this->assertStringContainsString('Review refund requests', $builder);
     $this->assertStringContainsString('readiness_summary', $builder);
   }
 
-  public function testVendorEventWorkspaceReadinessSummaryUsesDetails(): void {
+  /**
+   * Verifies that readiness is compact and links to organiser actions.
+   */
+  public function testVendorEventWorkspaceReadinessSummaryIsCompactAndActionable(): void {
     $twig = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/mel-event/mel-event-workspace.html.twig');
+    $builder = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventWorkspaceViewModelBuilder.php');
     $this->assertIsString($twig);
+    $this->assertIsString($builder);
     $this->assertStringContainsString('readiness_summary', $twig);
-    $this->assertStringContainsString('Show all readiness checks', $twig);
     $this->assertStringContainsString('mel-event-mission-control__readiness-group', $twig);
+    $this->assertStringContainsString('mel-event-mission-control__readiness-action', $twig);
+    $this->assertStringContainsString("item_state == 'attention'", $twig);
+    $this->assertStringNotContainsString('Show all readiness checks', $twig);
+    $this->assertStringContainsString("in_array(\$severity, ['warning', 'error'], TRUE)", $builder);
+    $this->assertStringContainsString("(string) \$this->t('Fix this')", $builder);
+    $this->assertStringContainsString("(string) \$this->t('Recommended')", $builder);
+    $this->assertStringContainsString("(string) \$this->t('Improve')", $builder);
+    $this->assertStringContainsString("(\$item['state'] ?? '') === 'attention'", $builder);
     $this->assertStringNotContainsString('mel-ws-readiness-heading', $twig);
+  }
+
+  /**
+   * Verifies that event guidance contains useful organiser actions only.
+   */
+  public function testVendorEventWorkspaceGuidanceIsCompactAndActionable(): void {
+    $twig = file_get_contents(dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/templates/mel-event/mel-event-workspace.html.twig');
+    $builder = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_vendor/src/Service/VendorEventWorkspaceViewModelBuilder.php');
+    $this->assertIsString($twig);
+    $this->assertIsString($builder);
+    $this->assertStringContainsString('buildActionableLifecycleGuidance', $builder);
+    $this->assertStringContainsString("'action_label' => \$actionLabel", $builder);
+    $this->assertStringNotContainsString("\$key === 'booking_readiness'", $builder);
+    $this->assertStringContainsString('recommended action', $twig);
+    $this->assertStringContainsString('mel-event-mission-control__guidance-action', $twig);
+    $this->assertStringContainsString("('Recommendation'|t)", $twig);
+    $this->assertStringNotContainsString("sev == 'success' ? ('Ready'|t) : ('Guidance'|t)", $twig);
   }
 
   public function testVendorEventWorkspaceActionGridGrouped(): void {

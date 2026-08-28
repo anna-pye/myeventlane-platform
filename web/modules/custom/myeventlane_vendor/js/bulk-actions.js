@@ -10,6 +10,10 @@
    * Returns all event row checkboxes (card layout or legacy table).
    */
   function getEventCheckboxes() {
+    const canonicalCards = document.querySelectorAll('[data-event-select]');
+    if (canonicalCards.length > 0) {
+      return canonicalCards;
+    }
     const fromCards = document.querySelectorAll(
       '.mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"]',
     );
@@ -40,7 +44,7 @@
 
       const rowCheckboxes = once(
         'bulk-checkbox',
-        '.mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"], .mel-table--selectable tbody input[type="checkbox"]',
+        '[data-event-select], .mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"], .mel-table--selectable tbody input[type="checkbox"]',
         context,
       );
 
@@ -69,7 +73,7 @@
         }
         const allCheckboxes = getEventCheckboxes();
         const checkedCheckboxes = document.querySelectorAll(
-          '.mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"]:checked, .mel-table--selectable tbody input[type="checkbox"]:checked',
+          '[data-event-select]:checked, .mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"]:checked, .mel-table--selectable tbody input[type="checkbox"]:checked',
         );
         if (allCheckboxes.length === 0) {
           selectAll.checked = false;
@@ -92,7 +96,7 @@
           return;
         }
         const checkedCheckboxes = document.querySelectorAll(
-          '.mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"]:checked, .mel-table--selectable tbody input[type="checkbox"]:checked',
+          '[data-event-select]:checked, .mel-events-bulk-list .mel-vendor-event-row input[type="checkbox"]:checked, .mel-table--selectable tbody input[type="checkbox"]:checked',
         );
         const count = checkedCheckboxes.length;
         if (count > 0) {
