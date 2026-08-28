@@ -547,7 +547,9 @@ final class VendorEventIndexViewModelBuilder {
         $summary['current']++;
       }
 
-      if (!empty($row['needs_attention']) && !$this->isPastStatus($st)) {
+      if ($st !== 'draft'
+        && !empty($row['needs_attention'])
+        && !$this->isPastStatus($st)) {
         $summary['needs_attention']++;
       }
     }
@@ -705,7 +707,9 @@ final class VendorEventIndexViewModelBuilder {
       'active' => !$isPast && $status !== 'draft',
       'draft' => $status === 'draft',
       'past' => $isPast,
-      'needs_attention' => !empty($row['needs_attention']) && !$isPast,
+      'needs_attention' => $status !== 'draft'
+        && !empty($row['needs_attention'])
+        && !$isPast,
       default => FALSE,
     };
   }
@@ -968,7 +972,7 @@ final class VendorEventIndexViewModelBuilder {
           $account,
           'all',
           'recommended',
-          $search,
+          '',
         ),
       ];
     }

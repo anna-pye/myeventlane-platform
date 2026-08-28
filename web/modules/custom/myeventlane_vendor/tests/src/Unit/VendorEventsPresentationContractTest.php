@@ -101,4 +101,47 @@ final class VendorEventsPresentationContractTest extends TestCase {
     self::assertStringContainsString('data-events-search', $template);
   }
 
+  public function testEmptySearchAndAttentionFiltersDoNotTrapOrDuplicateEvents(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $builder = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_vendor/src/Service/VendorEventIndexViewModelBuilder.php',
+    );
+
+    self::assertStringContainsString(
+      "'action_label' => (string) \$this->t('Show all events')",
+      $builder,
+    );
+    self::assertStringContainsString(
+      "'all',\n          'recommended',\n          '',",
+      $builder,
+    );
+    self::assertStringContainsString(
+      "if (\$st !== 'draft'\n        && !empty(\$row['needs_attention'])",
+      $builder,
+    );
+    self::assertStringContainsString(
+      "'needs_attention' => \$status !== 'draft'\n        && !empty(\$row['needs_attention'])",
+      $builder,
+    );
+  }
+
+  public function testBulkPublishShowsSafeEligibilityReason(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $form = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_vendor/src/Form/VendorEventsBulkActionsForm.php',
+    );
+
+    $eligibilityCatch = strpos($form, 'catch (\\InvalidArgumentException $e)');
+    $unexpectedCatch = strpos($form, 'catch (\\Throwable $e)');
+    self::assertIsInt($eligibilityCatch);
+    self::assertIsInt($unexpectedCatch);
+    self::assertLessThan($unexpectedCatch, $eligibilityCatch);
+    self::assertStringContainsString(
+      "'Could not publish “@event”: @reason'",
+      $form,
+    );
+    self::assertStringContainsString("'@reason' => \$e->getMessage()", $form);
+    self::assertStringContainsString("'1 event could not be updated.'", $form);
+  }
+
 }

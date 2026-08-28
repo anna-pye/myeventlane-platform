@@ -230,6 +230,22 @@ final class VendorEventsBulkActionsForm extends FormBase {
         );
         $updated++;
       }
+      catch (\InvalidArgumentException $e) {
+        $this->messenger()->addWarning($this->t(
+          'Could not publish “@event”: @reason',
+          [
+            '@event' => (string) $node->label(),
+            '@reason' => $e->getMessage(),
+          ],
+        ));
+        $this->logger->notice(
+          'Organiser event bulk publish blocked for nid @nid: @message',
+          [
+            '@nid' => (string) $nid,
+            '@message' => $e->getMessage(),
+          ],
+        );
+      }
       catch (\Throwable $e) {
         $failed++;
         $this->logger->warning(
