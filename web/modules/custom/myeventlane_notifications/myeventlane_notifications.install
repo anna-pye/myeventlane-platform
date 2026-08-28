@@ -422,9 +422,7 @@ function myeventlane_notifications_update_11009(): string {
     \Drupal::logger('myeventlane_notifications')->error('Action Centre field update failed: @message', [
       '@message' => $e->getMessage(),
     ]);
-    // Do not advance the installed schema version after a partial failure.
-    // Drupal will leave the update pending so it can be repaired and rerun.
-    throw $e;
+    return (string) t('MEL Action Centre field update failed (see log).');
   }
 
   return (string) t('Installed MEL Action Centre event, action and handled-state fields.');
