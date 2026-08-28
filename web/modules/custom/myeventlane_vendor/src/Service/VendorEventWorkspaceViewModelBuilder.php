@@ -17,6 +17,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
+use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
@@ -43,6 +44,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     private readonly MelReadinessHelper $readinessHelper,
     private readonly VendorEventRemovalService $vendorEventRemovalService,
     private readonly ?DomainDetector $domainDetector = NULL,
+    private readonly ?RefundRequestStorage $refundRequestStorage = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -192,6 +194,14 @@ final class VendorEventWorkspaceViewModelBuilder {
       ?? $advancedTicketsUrl;
     $extrasUrl = $this->routeUrlIfAccessible('myeventlane_event_studio.workspace_extras', ['node' => $nid], $account);
     $promoteUrl = $this->routeUrlIfAccessible('myeventlane_vendor.console.event_promotion', ['event' => $nid], $account);
+    $refundRequestsUrl = $this->routeUrlIfAccessible(
+      'myeventlane_refunds.vendor_refund_requests',
+      ['node' => $nid],
+      $account,
+    );
+    $pendingRefundRequests = $refundRequestsUrl instanceof Url
+      ? $this->pendingRefundRequestCount($nid)
+      : 0;
 
     $checkins = 0;
     try {
@@ -226,8 +236,25 @@ final class VendorEventWorkspaceViewModelBuilder {
       'checkin' => $checkinUrl,
       'analytics' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_analytics', ['event' => $nid], $account),
       'settings' => $this->routeUrlIfAccessible('myeventlane_vendor.console.event_settings', ['event' => $nid], $account),
+      'refund_requests' => $refundRequestsUrl,
       'preview' => $publicPreviewUrl,
     ];
+
+    $lifecycleGuidance = $this->buildActionableLifecycleGuidance(
+      $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
+        $eventType,
+        $status,
+        $ticketsSold,
+        $ordersCount,
+        $rsvpCount,
+        $hasBanner,
+        $hasCategory,
+        $hasTags,
+        $isPromoted,
+      ),
+      $actions,
+      $status,
+    );
 
     return [
       'event' => [
@@ -260,6 +287,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         $ticketsSold,
         $ordersCount,
         $rsvpCount,
+        $pendingRefundRequests,
       ),
       'sales_snapshot' => $this->buildSalesSnapshot(
         $eventType,
@@ -272,18 +300,8 @@ final class VendorEventWorkspaceViewModelBuilder {
         $nid,
       ),
       'action_grid' => $this->buildActionGrid($actions),
-      'readiness_summary' => $this->buildReadinessSummary($operationalItems, $readinessItems),
-      'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
-        $eventType,
-        $status,
-        $ticketsSold,
-        $ordersCount,
-        $rsvpCount,
-        $hasBanner,
-        $hasCategory,
-        $hasTags,
-        $isPromoted,
-      ),
+      'readiness_summary' => $this->buildReadinessSummary($operationalItems, $readinessItems, $actions),
+      'lifecycle_guidance' => $lifecycleGuidance,
       'next_action' => $nextAction,
       'metrics' => $metrics,
       'tabs' => $tabs,
@@ -320,17 +338,12 @@ final class VendorEventWorkspaceViewModelBuilder {
         'intro' => $this->readinessHelper->vendorEventWorkspaceOperationalSummaryIntro(),
         'items' => [],
       ],
-      'lifecycle_guidance' => $this->readinessHelper->vendorEventWorkspaceLifecycleSummary(
-        'unknown',
-        'unknown',
-        0,
-        0,
-        0,
-        FALSE,
-        FALSE,
-        FALSE,
-        FALSE,
-      ),
+      'lifecycle_guidance' => [
+        'heading' => (string) $this->t('Event guidance'),
+        'intro' => '',
+        'count' => 0,
+        'items' => [],
+      ],
       'next_action' => [
         'severity' => 'warning',
         'title' => (string) $this->t('Something went wrong'),
@@ -352,7 +365,6 @@ final class VendorEventWorkspaceViewModelBuilder {
         'all_ready' => FALSE,
         'issue_count' => 0,
         'groups' => [],
-        'detail_items' => [],
       ],
       'actions' => [
         'edit' => NULL,
@@ -367,6 +379,7 @@ final class VendorEventWorkspaceViewModelBuilder {
         'checkin' => NULL,
         'analytics' => NULL,
         'settings' => NULL,
+        'refund_requests' => NULL,
         'preview' => NULL,
       ],
       'empty_state' => [
@@ -662,9 +675,29 @@ final class VendorEventWorkspaceViewModelBuilder {
   }
 
   /**
+   * Builds the highest-priority action for the selected event.
+   *
+   * @param string $eventType
+   *   Event booking type.
+   * @param string $status
+   *   Event publication status.
+   * @param int $readinessScore
+   *   Current event readiness percentage.
+   * @param array<int, array<string, mixed>> $readinessItems
+   *   Event readiness checks.
    * @param array<string, ?\Drupal\Core\Url> $actions
+   *   Access-checked organiser action URLs.
+   * @param int $ticketsSold
+   *   Number of tickets sold.
+   * @param int $ordersCount
+   *   Number of event orders.
+   * @param int $rsvpCount
+   *   Number of confirmed RSVPs.
+   * @param int $pendingRefundRequests
+   *   Number of refund requests awaiting organiser review.
    *
    * @return array{message: string, severity: string, actions: list<array{label: string, url: string, primary: bool}>}
+   *   Today's focus presentation model.
    */
   private function buildTodaysFocus(
     string $eventType,
@@ -675,10 +708,29 @@ final class VendorEventWorkspaceViewModelBuilder {
     int $ticketsSold,
     int $ordersCount,
     int $rsvpCount,
+    int $pendingRefundRequests,
   ): array {
     $incomplete = array_filter($readinessItems, static fn(array $i): bool => empty($i['complete']));
     $hasActivity = $ticketsSold > 0 || $ordersCount > 0 || $rsvpCount > 0;
     $isLive = $status === 'published' || $status === 'past';
+
+    if ($pendingRefundRequests > 0 && ($actions['refund_requests'] ?? NULL) instanceof Url) {
+      $message = $pendingRefundRequests === 1
+        ? (string) $this->t('1 refund request needs your review.')
+        : (string) $this->t('@count refund requests need your review.', ['@count' => $pendingRefundRequests]);
+      return [
+        'message' => $message,
+        'severity' => 'warning',
+        'actions' => $this->pickFocusActions([
+          [
+            'label' => (string) $this->t('Review refund requests'),
+            'url' => $actions['refund_requests'],
+            'primary' => TRUE,
+          ],
+          ['label' => (string) $this->t('View orders'), 'url' => $actions['orders'] ?? NULL, 'primary' => FALSE],
+        ]),
+      ];
+    }
 
     if ($eventType === 'unknown') {
       return [
@@ -776,6 +828,29 @@ final class VendorEventWorkspaceViewModelBuilder {
       $picked[0]['primary'] = TRUE;
     }
     return $picked;
+  }
+
+  /**
+   * Returns the actionable refund count without breaking the workspace.
+   */
+  private function pendingRefundRequestCount(int $eventId): int {
+    if ($this->refundRequestStorage === NULL) {
+      return 0;
+    }
+
+    try {
+      return $this->refundRequestStorage->countPendingByEvent($eventId);
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning(
+        'Workspace refund request count failed for nid @nid: @message',
+        [
+          '@nid' => (string) $eventId,
+          '@message' => $e->getMessage(),
+        ],
+      );
+      return 0;
+    }
   }
 
   /**
@@ -883,12 +958,19 @@ final class VendorEventWorkspaceViewModelBuilder {
   }
 
   /**
-   * @param list<array<string, mixed>> $operationalItems
-   * @param list<array<string, mixed>> $readinessItems
+   * Builds compact, actionable readiness groups for the workspace.
    *
-   * @return array{all_ready: bool, issue_count: int, groups: list<array<string, mixed>>, detail_items: list<array<string, mixed>>}
+   * @param list<array<string, mixed>> $operationalItems
+   *   Operational status items.
+   * @param list<array<string, mixed>> $readinessItems
+   *   Event content readiness items.
+   * @param array<string, ?\Drupal\Core\Url> $actions
+   *   Access-checked organiser action URLs.
+   *
+   * @return array{all_ready: bool, issue_count: int, groups: list<array<string, mixed>>}
+   *   The grouped readiness presentation model.
    */
-  private function buildReadinessSummary(array $operationalItems, array $readinessItems): array {
+  private function buildReadinessSummary(array $operationalItems, array $readinessItems, array $actions): array {
     $opsByKey = [];
     foreach ($operationalItems as $item) {
       $key = (string) ($item['key'] ?? '');
@@ -897,26 +979,52 @@ final class VendorEventWorkspaceViewModelBuilder {
       }
     }
 
+    $visibility = $opsByKey['visibility'] ?? [];
+    $visibility['url'] = ($visibility['severity'] ?? '') === 'success'
+      ? ($actions['preview'] ?? NULL)
+      : ($actions['edit'] ?? NULL);
+    $visibility['action_label'] = ($visibility['severity'] ?? '') === 'success'
+      ? (string) $this->t('View event')
+      : (string) $this->t('Edit event');
+
+    $booking = $opsByKey['booking'] ?? [];
+    $booking['url'] = $actions['edit_tickets'] ?? $actions['edit'] ?? NULL;
+    $booking['action_label'] = ($booking['severity'] ?? '') === 'success'
+      ? (string) $this->t('Review booking setup')
+      : (string) $this->t('Set up bookings');
+
+    $paidTickets = $opsByKey['paid_tickets'] ?? [];
+    $paidTickets['url'] = $actions['edit_tickets'] ?? NULL;
+    $paidTickets['action_label'] = (string) $this->t('Review tickets');
+
+    $dayOfEvent = $opsByKey['day_of_event'] ?? [];
+    $dayOfEvent['url'] = $actions['checkin'] ?? NULL;
+    $dayOfEvent['action_label'] = (string) $this->t('Open check-in');
+
+    $attendees = $opsByKey['attendees'] ?? [];
+    $attendees['url'] = $actions['attendees'] ?? NULL;
+    $attendees['action_label'] = (string) $this->t('View attendees');
+
     $groups = [
       $this->buildReadinessGroup(
         'public_visibility',
         (string) $this->t('Public visibility'),
-        array_filter([$opsByKey['visibility'] ?? NULL]),
+        array_filter([$visibility]),
       ),
       $this->buildReadinessGroup(
         'booking_setup',
         (string) $this->t('Booking setup'),
         array_filter([
-          $opsByKey['booking'] ?? NULL,
-          $opsByKey['paid_tickets'] ?? NULL,
+          $booking,
+          $paidTickets,
         ]),
       ),
       $this->buildReadinessGroup(
         'day_of_event',
         (string) $this->t('Day-of event readiness'),
         array_filter([
-          $opsByKey['day_of_event'] ?? NULL,
-          $opsByKey['attendees'] ?? NULL,
+          $dayOfEvent,
+          $attendees,
         ]),
       ),
       $this->buildReadinessGroup(
@@ -937,14 +1045,21 @@ final class VendorEventWorkspaceViewModelBuilder {
       'all_ready' => $issueCount === 0,
       'issue_count' => $issueCount,
       'groups' => $groups,
-      'detail_items' => $readinessItems,
     ];
   }
 
   /**
+   * Normalizes a readiness group and identifies genuine blockers.
+   *
+   * @param string $key
+   *   Stable group key.
+   * @param string $label
+   *   User-facing group label.
    * @param list<array<string, mixed>> $items
+   *   Readiness items in the group.
    *
    * @return array{key: string, label: string, status: string, expand: bool, items: list<array<string, mixed>>}
+   *   The normalized readiness group.
    */
   private function buildReadinessGroup(string $key, string $label, array $items): array {
     $normalized = [];
@@ -954,45 +1069,130 @@ final class VendorEventWorkspaceViewModelBuilder {
         continue;
       }
       $severity = (string) ($item['severity'] ?? 'info');
-      $complete = !empty($item['complete']);
-      if ($severity !== 'success' && $severity !== 'neutral' && !$complete) {
+      $complete = array_key_exists('complete', $item)
+        ? !empty($item['complete'])
+        : $severity === 'success';
+      $needsAttention = in_array($severity, ['warning', 'error'], TRUE) && !$complete;
+      if ($needsAttention) {
         $hasIssue = TRUE;
       }
+      $url = $item['url'] ?? NULL;
       $normalized[] = [
         'label' => (string) ($item['label'] ?? $item['stage'] ?? ''),
         'message' => (string) ($item['message'] ?? ''),
         'severity' => $severity,
         'complete' => $complete,
+        'state' => $complete ? 'ready' : ($needsAttention ? 'attention' : 'info'),
+        'url' => $url instanceof Url ? $url->toString() : NULL,
+        'action_label' => (string) ($item['action_label'] ?? $this->t('Fix this')),
       ];
     }
+
+    $visibleItems = $hasIssue
+      ? array_values(array_filter(
+        $normalized,
+        static fn(array $item): bool => ($item['state'] ?? '') === 'attention',
+      ))
+      : $normalized;
 
     return [
       'key' => $key,
       'label' => $label,
       'status' => $hasIssue ? 'attention' : 'ready',
       'expand' => $hasIssue,
-      'items' => $normalized,
+      'items' => $visibleItems,
     ];
   }
 
   /**
+   * Maps event content checks into readiness group items.
+   *
    * @param list<array<string, mixed>> $readinessItems
+   *   Event content readiness items.
    *
    * @return list<array<string, mixed>>
+   *   The mapped content checks without duplicate booking or publish checks.
    */
   private function mapReadinessItemsToSummary(array $readinessItems): array {
     $mapped = [];
     foreach ($readinessItems as $item) {
+      if (in_array((string) ($item['key'] ?? ''), ['booking', 'published'], TRUE)) {
+        continue;
+      }
+      $complete = !empty($item['complete']);
+      $severity = $complete ? 'success' : (string) ($item['severity'] ?? 'warning');
+      $needsAttention = in_array($severity, ['warning', 'error'], TRUE);
       $mapped[] = [
         'label' => (string) ($item['label'] ?? ''),
-        'message' => !empty($item['complete'])
+        'message' => $complete
           ? (string) $this->t('Complete')
-          : (string) $this->t('Needs attention'),
-        'severity' => !empty($item['complete']) ? 'success' : (string) ($item['severity'] ?? 'warning'),
-        'complete' => !empty($item['complete']),
+          : ($needsAttention ? (string) $this->t('Needs attention') : (string) $this->t('Recommended')),
+        'severity' => $severity,
+        'complete' => $complete,
+        'url' => $item['url'] ?? NULL,
+        'action_label' => $needsAttention
+          ? (string) $this->t('Fix this')
+          : (string) $this->t('Improve'),
       ];
     }
     return $mapped;
+  }
+
+  /**
+   * Keeps only lifecycle guidance with a useful organiser action.
+   *
+   * @param array<string, mixed> $guidance
+   *   Lifecycle guidance from the canonical readiness helper.
+   * @param array<string, ?\Drupal\Core\Url> $actions
+   *   Access-checked organiser action URLs.
+   * @param string $status
+   *   Current event publication state.
+   *
+   * @return array<string, mixed>
+   *   Actionable event guidance for the workspace.
+   */
+  private function buildActionableLifecycleGuidance(array $guidance, array $actions, string $status): array {
+    $recommendations = [];
+
+    foreach ($guidance['items'] ?? [] as $item) {
+      if (!is_array($item)) {
+        continue;
+      }
+
+      $key = (string) ($item['key'] ?? '');
+      $severity = (string) ($item['severity'] ?? 'info');
+      $url = NULL;
+      $actionLabel = '';
+      $stage = (string) ($item['stage'] ?? '');
+
+      if ($key === 'discovery_readiness' && $severity !== 'success' && $status !== 'past') {
+        $url = $actions['edit'] ?? NULL;
+        $actionLabel = (string) $this->t('Improve event listing');
+        $stage = (string) $this->t('Event listing');
+      }
+      elseif ($key === 'post_event_followup' && $status === 'past') {
+        $url = $actions['attendees'] ?? NULL;
+        $actionLabel = (string) $this->t('View attendees');
+        $stage = (string) $this->t('After your event');
+      }
+
+      if (!$url instanceof Url) {
+        continue;
+      }
+
+      $recommendations[] = [
+        'key' => $key,
+        'stage' => $stage,
+        'message' => (string) ($item['message'] ?? ''),
+        'severity' => in_array($severity, ['warning', 'error'], TRUE) ? 'warning' : 'info',
+        'url' => $url->toString(),
+        'action_label' => $actionLabel,
+      ];
+    }
+
+    $guidance['items'] = $recommendations;
+    $guidance['count'] = count($recommendations);
+    return $guidance;
   }
 
   /**

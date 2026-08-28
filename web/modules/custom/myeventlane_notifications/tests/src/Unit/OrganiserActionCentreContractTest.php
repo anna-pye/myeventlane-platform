@@ -47,6 +47,20 @@ final class OrganiserActionCentreContractTest extends TestCase {
   }
 
   /**
+   * Ensures vendor button defaults cannot flatten or clip the bell menu.
+   */
+  public function testVendorButtonDefaultsCannotOverrideBellMenu(): void {
+    $css = (string) file_get_contents(dirname(__DIR__, 3) . '/css/mel-notifications-ui.css');
+
+    self::assertStringContainsString('.mel-vendor .mel-notif-bell__trigger', $css);
+    self::assertStringContainsString('.mel-vendor .mel-notif-bell__mark-all', $css);
+    self::assertStringContainsString('.mel-vendor .mel-notif-bell__row', $css);
+    self::assertStringContainsString('.mel-notif-bell__mark-all[hidden]', $css);
+    self::assertStringContainsString('white-space: normal;', $css);
+    self::assertStringContainsString('overflow-wrap: anywhere;', $css);
+  }
+
+  /**
    * Ensures navigation waits for the mark-read request and toasts can close.
    */
   public function testClickNavigationWaitsForReadRequest(): void {

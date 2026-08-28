@@ -274,13 +274,14 @@ services:
       - '@access_manager'
       - '@datetime.time'
       - '@date.formatter'
-      - '@entity_field.manager'
+      - '@pager.manager'
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_boost.extension_recommendation'
+      - '@?myeventlane_event_state.resolver'
 
   myeventlane_vendor.dashboard_view_model_builder:
     class: Drupal\myeventlane_vendor\Service\VendorDashboardViewModelBuilder
@@ -351,6 +352,7 @@ services:
       - '@myeventlane_surface.state_readiness_helper'
       - '@myeventlane_vendor.vendor_event_removal'
       - '@myeventlane_core.domain_detector'
+      - '@?myeventlane_refunds.refund_request_storage'
 
   # Vendor console controllers as services for DI.
   myeventlane_vendor.controller.vendor_dashboard:
@@ -400,7 +402,6 @@ services:
       - '@myeventlane_core.domain_detector'
       - '@current_user'
       - '@messenger'
-      - '@entity_type.manager'
       - '@form_builder'
       - '@myeventlane_vendor.event_index_view_model_builder'
     tags:
@@ -541,6 +542,7 @@ services:
     class: Drupal\myeventlane_vendor\Service\VendorPaymentsHubBuilder
     arguments:
       - '@current_user'
+      - '@access_manager'
       - '@myeventlane_vendor.current_vendor_resolver'
       - '@myeventlane_vendor.payments_health'
       - '@myeventlane_vendor.service.ticket_sales'

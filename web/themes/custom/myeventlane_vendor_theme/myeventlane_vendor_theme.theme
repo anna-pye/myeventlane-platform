@@ -2727,7 +2727,7 @@ function _myeventlane_vendor_theme_get_vendor_alert(\Drupal\Core\Session\Account
  */
 function myeventlane_vendor_theme_preprocess_form__mel_vendor_events(array &$variables): void {
   $element = $variables['element'] ?? [];
-  $variables['create_event_url'] = $element['#create_event_url'] ?? '';
+  $variables['vendor_event_index_model'] = $element['#vendor_event_index_model'] ?? [];
 }
 
 /**

@@ -99,6 +99,18 @@ final class RefundRequestStorage {
   }
 
   /**
+   * Counts refund requests awaiting organiser review for an event.
+   */
+  public function countPendingByEvent(int $eventId): int {
+    return (int) $this->database->select('myeventlane_refund_request', 'r')
+      ->condition('event_id', $eventId)
+      ->condition('status', self::STATUS_REQUESTED)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+  }
+
+  /**
    * Checks for active buyer request for order/event.
    */
   public function hasActiveBuyerRequest(int $orderId, int $eventId, int $buyerUid): bool {
