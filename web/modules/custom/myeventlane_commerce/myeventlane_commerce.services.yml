@@ -94,6 +94,16 @@ services:
       - { name: commerce_order.order_preprocessor, priority: 200 }
       - { name: commerce_order.order_processor, priority: 51, adjustment_type: tax }
 
+  myeventlane_commerce.ticket_bundle_price_allocator:
+    class: Drupal\myeventlane_commerce\Service\TicketBundlePriceAllocator
+    arguments:
+      - '@commerce_price.rounder'
+
+  myeventlane_commerce.ticket_bundle_order_item_comparison_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\TicketBundleOrderItemComparisonSubscriber
+    tags:
+      - { name: event_subscriber }
+
   myeventlane_commerce.ticket_bundle_tax_marker_cleanup_processor:
     class: Drupal\myeventlane_commerce\OrderProcessor\TicketBundleTaxMarkerCleanupProcessor
     tags:

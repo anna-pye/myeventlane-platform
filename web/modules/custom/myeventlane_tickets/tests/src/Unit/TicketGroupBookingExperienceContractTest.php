@@ -47,6 +47,7 @@ final class TicketGroupBookingExperienceContractTest extends TestCase {
     $this->assertStringContainsString('addTicketBundleToCart', $booking);
     $this->assertStringContainsString("setData('mel_ticket_bundle_instance'", $booking);
     $this->assertStringContainsString("setData('mel_ticket_bundle_gross_unit_price'", $booking);
+    $this->assertStringContainsString('ticketBundlePriceAllocator->allocateUnitPrices', $booking);
     $this->assertStringContainsString('->lock()', $booking);
     $this->assertStringContainsString('removeAddedBundleItems', $booking);
     $this->assertSame(2, substr_count($booking, '$this->removeAddedBundleItems($cart, $addedBundleItems)'));

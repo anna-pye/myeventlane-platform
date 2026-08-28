@@ -15,6 +15,7 @@ use Drupal\myeventlane_commerce\Service\CartTicketHoldManager;
 use Drupal\myeventlane_commerce\Service\CartTicketTierHoldStore;
 use Drupal\myeventlane_commerce\Service\TicketAccessCodeService;
 use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
+use Drupal\myeventlane_commerce\Service\TicketBundlePriceAllocator;
 use Drupal\myeventlane_commerce\Service\TicketBookingSessionService;
 use Drupal\myeventlane_commerce\Service\TicketStatusEvaluator;
 use Drupal\myeventlane_commerce\Service\TicketTierWaitlistService;
@@ -61,6 +62,7 @@ final class TicketSelectionForm extends FormBase {
     protected CartManagerInterface $cartManager,
     protected CurrencyFormatter $currencyFormatter,
     protected TicketAvailabilityService $ticketAvailability,
+    protected TicketBundlePriceAllocator $ticketBundlePriceAllocator,
     protected TicketAccessCodeService $accessCodeService,
     protected TicketBookingSessionService $bookingSession,
     protected TicketTierWaitlistService $tierWaitlist,
@@ -83,6 +85,7 @@ final class TicketSelectionForm extends FormBase {
       $container->get('commerce_cart.cart_manager'),
       $container->get('commerce_price.currency_formatter'),
       $container->get('myeventlane_commerce.ticket_availability'),
+      $container->get('myeventlane_commerce.ticket_bundle_price_allocator'),
       $container->get('myeventlane_commerce.ticket_access_code'),
       $container->get('myeventlane_commerce.ticket_booking_session'),
       $container->get('myeventlane_commerce.ticket_tier_waitlist'),
@@ -941,9 +944,7 @@ final class TicketSelectionForm extends FormBase {
     }
 
     $currency = strtoupper($bundle['price']->getCurrencyCode());
-    $bundle_total = Calculator::multiply($bundle['price']->getNumber(), (string) $bundleQuantity);
     $lines = [];
-    $face_total = '0';
     foreach ($bundle['components'] as $component) {
       $variation = $variationStorage->load($component['variation_id']);
       if (!$variation instanceof ProductVariationInterface || !$variation->isPublished() || !$variation->getPrice()) {
@@ -954,7 +955,6 @@ final class TicketSelectionForm extends FormBase {
       }
       $quantity = $component['quantity'] * $bundleQuantity;
       $face_line_total = Calculator::multiply($variation->getPrice()->getNumber(), (string) $quantity);
-      $face_total = Calculator::add($face_total, $face_line_total);
       $lines[] = [
         'component' => $component,
         'variation' => $variation,
@@ -968,30 +968,23 @@ final class TicketSelectionForm extends FormBase {
 
     $instance_id = sprintf('%d-%s', $groupId, bin2hex(random_bytes(8)));
     $added_items = [];
-    $allocated = '0';
-    $last_index = array_key_last($lines);
+    $unit_prices = $this->ticketBundlePriceAllocator->allocateUnitPrices(
+      $bundle['price'],
+      $bundleQuantity,
+      $lines,
+    );
+    if (count($unit_prices) !== count($lines)) {
+      return [];
+    }
     foreach ($lines as $index => $line) {
-      if ($index === $last_index) {
-        $line_total = Calculator::subtract($bundle_total, $allocated);
-      }
-      elseif (Calculator::compare($face_total, '0') > 0) {
-        $share = Calculator::divide($line['face_line_total'], $face_total, 6);
-        $line_total = Calculator::multiply($bundle_total, $share, 6);
-        $allocated = Calculator::add($allocated, $line_total, 6);
-      }
-      else {
-        $share = Calculator::divide((string) $line['quantity'], (string) array_sum(array_column($lines, 'quantity')), 6);
-        $line_total = Calculator::multiply($bundle_total, $share, 6);
-        $allocated = Calculator::add($allocated, $line_total, 6);
-      }
-      $unit_price = Calculator::divide($line_total, (string) $line['quantity'], 6);
+      $unit_price = $unit_prices[$index];
 
       $order_item = $this->cartManager->createOrderItem($line['variation'], (string) $line['quantity']);
       $order_item->setTitle($this->t('@bundle — @ticket', [
         '@bundle' => $bundle['name'],
         '@ticket' => $line['component']['label'],
       ]), TRUE);
-      $order_item->setUnitPrice(new Price($unit_price, $currency), TRUE);
+      $order_item->setUnitPrice($unit_price, TRUE);
       if ($order_item->hasField('field_target_event')) {
         $order_item->set('field_target_event', ['target_id' => $event->id()]);
       }
@@ -1005,7 +998,7 @@ final class TicketSelectionForm extends FormBase {
       // refresh on every draft save and Commerce Tax removes included tax on
       // each refresh. The bundle preprocessor restores this gross amount first
       // so an overridden bundle price cannot drift down across cart refreshes.
-      $order_item->setData('mel_ticket_bundle_gross_unit_price', $unit_price);
+      $order_item->setData('mel_ticket_bundle_gross_unit_price', $unit_price->getNumber());
       $order_item->setData('mel_ticket_bundle_currency', $currency);
       $order_item->lock();
       $this->cartManager->addOrderItem($cart, $order_item, FALSE, FALSE);
