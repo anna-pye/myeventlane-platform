@@ -30,6 +30,23 @@ final class OrganiserActionCentreContractTest extends TestCase {
   }
 
   /**
+   * Ensures the organiser Action Centre is reachable from the left navigation.
+   */
+  public function testOrganiserNavigationExposesActionCentre(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $navBuilder = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_vendor/src/Service/VendorNavBuilder.php',
+    );
+    $sidebar = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/templates/includes/sidebar.html.twig',
+    );
+
+    self::assertStringContainsString("'key' => 'updates'", $navBuilder);
+    self::assertStringContainsString("'route' => 'myeventlane_notifications.organiser_action_centre'", $navBuilder);
+    self::assertStringContainsString("keys: ['pro', 'updates', 'settings', 'support']", $sidebar);
+  }
+
+  /**
    * Ensures navigation waits for the mark-read request and toasts can close.
    */
   public function testClickNavigationWaitsForReadRequest(): void {
