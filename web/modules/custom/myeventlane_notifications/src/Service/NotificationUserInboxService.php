@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_notifications\Service;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\myeventlane_notifications\Entity\MelNotificationDelivery;
 use Drupal\myeventlane_notifications\NotificationContext;
@@ -26,6 +27,7 @@ final class NotificationUserInboxService {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly TimeInterface $time,
+    private readonly Connection $database,
   ) {}
 
   /**
@@ -45,7 +47,7 @@ final class NotificationUserInboxService {
       return 0;
     }
     if ($focused) {
-      return count($this->getFocusedUnreadDeliveryIds($uid, $contexts));
+      return array_sum($this->countFocusedUnreadBreakdown($uid, $contexts));
     }
     $notificationIds = $this->notificationIdsForContexts($contexts);
     if ($notificationIds === []) {
@@ -71,15 +73,97 @@ final class NotificationUserInboxService {
    * @return array{personal: int, business: int, platform: int, unread: int}
    */
   public function countUnreadBreakdown(int $uid): array {
-    $personal = $this->countUnreadForContexts($uid, [NotificationContext::PERSONAL]);
-    $business = $this->countUnreadForContexts($uid, [NotificationContext::BUSINESS]);
-    $platform = $this->countUnreadForContexts($uid, [NotificationContext::PLATFORM]);
-    return [
-      'personal' => $personal,
-      'business' => $business,
-      'platform' => $platform,
-      'unread' => $personal + $business + $platform,
+    $counts = [
+      NotificationContext::PERSONAL => 0,
+      NotificationContext::BUSINESS => 0,
+      NotificationContext::PLATFORM => 0,
     ];
+    if ($uid > 0) {
+      $query = $this->database->select('mel_notification_delivery', 'd');
+      $query->innerJoin('mel_notification', 'n', 'n.id = d.notification_id');
+      $query->fields('n', ['context']);
+      $query->addExpression('COUNT(d.id)', 'unread_count');
+      $query->condition('d.recipient_uid', $uid)
+        ->condition('d.suppressed', 0)
+        ->condition('d.status', [
+          MelNotificationDelivery::STATUS_SENT,
+          MelNotificationDelivery::STATUS_PENDING,
+        ], 'IN')
+        ->condition('n.context', array_keys($counts), 'IN');
+      $query->groupBy('n.context');
+      foreach ($query->execute() as $row) {
+        $context = (string) $row->context;
+        if (array_key_exists($context, $counts)) {
+          $counts[$context] = (int) $row->unread_count;
+        }
+      }
+    }
+
+    return [
+      'personal' => $counts[NotificationContext::PERSONAL],
+      'business' => $counts[NotificationContext::BUSINESS],
+      'platform' => $counts[NotificationContext::PLATFORM],
+      'unread' => array_sum($counts),
+    ];
+  }
+
+  /**
+   * Counts focused unread semantic groups without hydrating entities.
+   *
+   * @param int $uid
+   *   Recipient user ID.
+   * @param list<string> $contexts
+   *   Notification contexts to count.
+   *
+   * @return array<string, int>
+   *   Grouped unread counts keyed by requested context.
+   */
+  public function countFocusedUnreadBreakdown(int $uid, array $contexts): array {
+    $contexts = array_values(array_intersect($contexts, NotificationContext::allowed()));
+    $counts = array_fill_keys($contexts, 0);
+    if ($uid < 1 || $contexts === []) {
+      return $counts;
+    }
+
+    foreach ([TRUE, FALSE] as $hasGroupKey) {
+      $query = $this->database->select('mel_notification_delivery', 'd');
+      $query->innerJoin('mel_notification', 'n', 'n.id = d.notification_id');
+      $query->fields('n', ['context']);
+      $query->condition('d.recipient_uid', $uid)
+        ->condition('d.suppressed', 0)
+        ->condition('d.status', [
+          MelNotificationDelivery::STATUS_SENT,
+          MelNotificationDelivery::STATUS_PENDING,
+        ], 'IN')
+        ->condition('n.context', $contexts, 'IN');
+      $attention = $query->orConditionGroup()
+        ->condition('n.requires_action', 1)
+        ->condition('n.priority', ['high', 'critical'], 'IN');
+      $query->condition($attention);
+
+      if ($hasGroupKey) {
+        $query->isNotNull('n.group_key')
+          ->condition('n.group_key', '', '<>');
+        $query->addExpression('COUNT(DISTINCT n.group_key)', 'group_count');
+      }
+      else {
+        $emptyGroup = $query->orConditionGroup()
+          ->isNull('n.group_key')
+          ->condition('n.group_key', '');
+        $query->condition($emptyGroup);
+        $query->addExpression('COUNT(DISTINCT n.id)', 'group_count');
+      }
+      $query->groupBy('n.context');
+
+      foreach ($query->execute() as $row) {
+        $context = (string) $row->context;
+        if (array_key_exists($context, $counts)) {
+          $counts[$context] += (int) $row->group_count;
+        }
+      }
+    }
+
+    return $counts;
   }
 
   /**
@@ -390,7 +474,7 @@ final class NotificationUserInboxService {
   }
 
   /**
-   * Marks one delivery, or its semantic group, as read for the recipient.
+   * Marks exactly one delivery as read for the recipient.
    */
   public function markReadOne(int $uid, int $deliveryId): bool {
     if ($uid < 1 || $deliveryId < 1) {
@@ -411,9 +495,34 @@ final class NotificationUserInboxService {
     if (!$entity instanceof MelNotificationDelivery) {
       return FALSE;
     }
+    if (in_array((string) $entity->get('status')->value, [
+      MelNotificationDelivery::STATUS_SENT,
+      MelNotificationDelivery::STATUS_PENDING,
+    ], TRUE)) {
+      $entity->set('status', MelNotificationDelivery::STATUS_READ);
+      $entity->set('read_at', $this->time->getRequestTime());
+      $entity->save();
+    }
+    return TRUE;
+  }
+
+  /**
+   * Marks a grouped organiser-bell summary as read for the recipient.
+   */
+  public function markReadGroup(int $uid, int $deliveryId): bool {
+    if ($uid < 1 || $deliveryId < 1) {
+      return FALSE;
+    }
+    $storage = $this->entityTypeManager->getStorage('mel_notification_delivery');
+    /** @var \Drupal\myeventlane_notifications\Entity\MelNotificationDelivery|null $delivery */
+    $delivery = $storage->load($deliveryId);
+    if (!$delivery instanceof MelNotificationDelivery
+      || (int) $delivery->get('recipient_uid')->target_id !== $uid) {
+      return FALSE;
+    }
+
     $now = $this->time->getRequestTime();
-    $groupIds = $this->deliveryIdsForGroup($uid, $entity);
-    foreach ($storage->loadMultiple($groupIds) as $groupDelivery) {
+    foreach ($storage->loadMultiple($this->deliveryIdsForGroup($uid, $delivery)) as $groupDelivery) {
       $status = (string) $groupDelivery->get('status')->value;
       if (!in_array($status, [
         MelNotificationDelivery::STATUS_SENT,

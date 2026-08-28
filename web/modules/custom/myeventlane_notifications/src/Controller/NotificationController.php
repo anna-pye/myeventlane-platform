@@ -58,7 +58,7 @@ final class NotificationController extends ControllerBase {
       $uid,
       self::UNREAD_HARD_LIMIT,
       $contexts,
-      $bellContext === NotificationContext::BUSINESS,
+      FALSE,
     );
     $rows = $this->viewBuilder->buildRowsForDeliveries($ids, $uid);
     $payload = [];
@@ -101,23 +101,15 @@ final class NotificationController extends ControllerBase {
     $contexts = $this->contextsForBell($bellContext);
     $breakdown = $this->userInbox->countUnreadBreakdown($uid);
     if ($bellContext === NotificationContext::BUSINESS) {
-      $breakdown['business'] = $this->userInbox->countUnreadForContexts(
-        $uid,
-        [NotificationContext::BUSINESS],
-        TRUE,
-      );
-      $breakdown['platform'] = $this->userInbox->countUnreadForContexts(
-        $uid,
-        [NotificationContext::PLATFORM],
-        TRUE,
-      );
+      $focused = $this->userInbox->countFocusedUnreadBreakdown($uid, $contexts);
+      $breakdown['business'] = $focused[NotificationContext::BUSINESS] ?? 0;
+      $breakdown['platform'] = $focused[NotificationContext::PLATFORM] ?? 0;
       $breakdown['unread'] = $breakdown['business'] + $breakdown['platform'];
+      $count = $breakdown['unread'];
     }
-    $count = $this->userInbox->countUnreadForContexts(
-      $uid,
-      $contexts,
-      $bellContext === NotificationContext::BUSINESS,
-    );
+    else {
+      $count = $this->userInbox->countUnreadForContexts($uid, $contexts);
+    }
 
     $response = new CacheableJsonResponse([
       'unread' => $count,
@@ -209,13 +201,19 @@ final class NotificationController extends ControllerBase {
   /**
    * Marks a delivery as read (CSRF header required on route).
    */
-  public function markRead(int $delivery): JsonResponse {
+  public function markRead(int $delivery, ?Request $request = NULL): JsonResponse {
     $uid = (int) $this->currentUser()->id();
     if ($uid < 1) {
       throw new AccessDeniedHttpException();
     }
 
-    if (!$this->userInbox->markReadOne($uid, $delivery)) {
+    $grouped = $request !== NULL
+      && $this->bellContextFromRequest($request) === NotificationContext::BUSINESS
+      && (string) $request->query->get('read_mode') === 'semantic_group';
+    $marked = $grouped
+      ? $this->userInbox->markReadGroup($uid, $delivery)
+      : $this->userInbox->markReadOne($uid, $delivery);
+    if (!$marked) {
       throw new NotFoundHttpException();
     }
 

@@ -58,6 +58,40 @@ final class OrganiserActionCentreContractTest extends TestCase {
   }
 
   /**
+   * Protects the distinctions between inbox, toast and grouped bell reads.
+   */
+  public function testGroupedReadsStayOnGroupedOrganiserSurfaces(): void {
+    $service = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Service/NotificationUserInboxService.php');
+    $controller = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Controller/NotificationController.php');
+    $form = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Form/MarkDeliveryReadForm.php');
+    $javascript = (string) file_get_contents(dirname(__DIR__, 3) . '/js/mel-notifications-ui.js');
+
+    $markOne = strstr($service, 'public function markReadOne');
+    self::assertIsString($markOne);
+    $markOne = strstr($markOne, 'public function markReadGroup', TRUE);
+    self::assertIsString($markOne);
+    self::assertStringNotContainsString('deliveryIdsForGroup', $markOne);
+    self::assertStringContainsString('public function markReadGroup', $service);
+    self::assertStringContainsString('markReadGroup($uid, $deliveryId)', $form);
+    self::assertStringContainsString('settings.groupReadUrlTemplate || settings.readUrlTemplate', $javascript);
+    self::assertStringContainsString("self::UNREAD_HARD_LIMIT,\n      \$contexts,\n      FALSE,", $controller);
+  }
+
+  /**
+   * Ensures schema failures and focused-count regressions fail safely.
+   */
+  public function testUpdateAndFocusedCountGuardrails(): void {
+    $install = (string) file_get_contents(dirname(__DIR__, 3) . '/myeventlane_notifications.install');
+    $service = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Service/NotificationUserInboxService.php');
+    $controller = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Controller/NotificationController.php');
+
+    self::assertStringContainsString('throw $e;', $install);
+    self::assertStringContainsString('COUNT(DISTINCT n.group_key)', $service);
+    self::assertStringContainsString('COUNT(DISTINCT n.id)', $service);
+    self::assertSame(1, substr_count($controller, 'countFocusedUnreadBreakdown'));
+  }
+
+  /**
    * Ensures repeated semantic alerts collapse without merging separate work.
    */
   public function testRepeatedSemanticAlertsCollapseBySection(): void {

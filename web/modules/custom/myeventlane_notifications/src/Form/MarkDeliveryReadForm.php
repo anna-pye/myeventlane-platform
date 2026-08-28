@@ -83,8 +83,17 @@ final class MarkDeliveryReadForm extends FormBase {
     if (!in_array($filter, NotificationFilter::allowedFilters(), TRUE)) {
       $filter = NotificationFilter::FILTER_ALL;
     }
+    $isOrganiserActionCentre = in_array($returnRoute, [
+      'myeventlane_notifications.organiser_action_centre',
+      'myeventlane_notifications.organiser_event_action_centre',
+    ], TRUE);
     if ($uid > 0 && $deliveryId > 0) {
-      $this->userInbox->markReadOne($uid, $deliveryId);
+      if ($isOrganiserActionCentre) {
+        $this->userInbox->markReadGroup($uid, $deliveryId);
+      }
+      else {
+        $this->userInbox->markReadOne($uid, $deliveryId);
+      }
     }
     if ($returnRoute === 'myeventlane_notifications.organiser_event_action_centre' && $eventId > 0) {
       $form_state->setRedirect($returnRoute, ['node' => $eventId]);

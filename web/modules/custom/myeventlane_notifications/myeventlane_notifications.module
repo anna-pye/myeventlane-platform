@@ -402,6 +402,21 @@ function myeventlane_notifications_page_attachments(array &$attachments): void {
     : 'myeventlane_theme/mel_notifications';
   $attachments['#attached']['library'][] = $library;
   $query = ['bell_context' => $bellContext];
+  $groupReadTemplate = $readTemplate;
+  if ($bellContext === NotificationContext::BUSINESS) {
+    $groupReadTemplate = Url::fromRoute(
+      'myeventlane_notifications.mark_read',
+      ['delivery' => $placeholder],
+      [
+        'absolute' => TRUE,
+        'query' => [
+          'bell_context' => NotificationContext::BUSINESS,
+          'read_mode' => 'semantic_group',
+        ],
+      ],
+    )->toString();
+    $groupReadTemplate = str_replace((string) $placeholder, '__DELIVERY__', $groupReadTemplate);
+  }
   $attachments['#attached']['drupalSettings']['myeventlaneNotifications'] = [
     'pollSeconds' => 25,
     'bellContext' => $bellContext,
@@ -411,5 +426,6 @@ function myeventlane_notifications_page_attachments(array &$attachments): void {
     'readAllUrl' => Url::fromRoute('myeventlane_notifications.mark_all_read', [], ['absolute' => TRUE, 'query' => $query])->toString(),
     'inboxUrl' => Url::fromRoute('myeventlane_notifications.inbox', [], ['absolute' => TRUE])->toString(),
     'readUrlTemplate' => $readTemplate,
+    'groupReadUrlTemplate' => $groupReadTemplate,
   ];
 }

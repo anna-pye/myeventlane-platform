@@ -305,7 +305,7 @@
       btn.appendChild(p);
       btn.addEventListener('click', function () {
         var id = row.delivery_id;
-        markRead(settings.readUrlTemplate, id)
+        markRead(settings.groupReadUrlTemplate || settings.readUrlTemplate, id)
           .catch(function () {})
           .finally(function () {
             refreshAllBells();

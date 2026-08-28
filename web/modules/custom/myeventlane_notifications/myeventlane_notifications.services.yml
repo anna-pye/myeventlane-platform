@@ -34,6 +34,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@datetime.time'
+      - '@database'
 
   myeventlane_notifications.view_builder:
     class: Drupal\myeventlane_notifications\Service\NotificationViewBuilder
