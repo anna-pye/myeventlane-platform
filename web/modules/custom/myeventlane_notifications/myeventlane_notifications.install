@@ -364,6 +364,97 @@ function myeventlane_notifications_update_11008(): string {
 }
 
 /**
+ * Adds organiser Action Centre event, action and handled state fields.
+ */
+function myeventlane_notifications_update_11009(): string {
+  try {
+    $update_manager = \Drupal::entityDefinitionUpdateManager();
+    $notification_type = \Drupal::entityTypeManager()->getDefinition('mel_notification');
+    $delivery_type = \Drupal::entityTypeManager()->getDefinition('mel_notification_delivery');
+    $notification_fields = \Drupal\myeventlane_notifications\Entity\MelNotification::baseFieldDefinitions($notification_type);
+    $delivery_fields = \Drupal\myeventlane_notifications\Entity\MelNotificationDelivery::baseFieldDefinitions($delivery_type);
+
+    foreach (['event_id', 'requires_action'] as $field_name) {
+      if ($update_manager->getFieldStorageDefinition($field_name, 'mel_notification') === NULL) {
+        $update_manager->installFieldStorageDefinition(
+          $field_name,
+          'mel_notification',
+          'myeventlane_notifications',
+          $notification_fields[$field_name],
+        );
+      }
+    }
+    if ($update_manager->getFieldStorageDefinition('resolved_at', 'mel_notification_delivery') === NULL) {
+      $update_manager->installFieldStorageDefinition(
+        'resolved_at',
+        'mel_notification_delivery',
+        'myeventlane_notifications',
+        $delivery_fields['resolved_at'],
+      );
+    }
+
+    // Existing rows can be scoped from their stored route parameters.
+    $storage = \Drupal::entityTypeManager()->getStorage('mel_notification');
+    $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+    foreach (array_chunk(array_values($ids), 100) as $chunk) {
+      /** @var \Drupal\myeventlane_notifications\Entity\MelNotification[] $notifications */
+      $notifications = $storage->loadMultiple($chunk);
+      foreach ($notifications as $notification) {
+        $parameters = json_decode((string) $notification->get('route_parameters')->value, TRUE);
+        $event_id = is_array($parameters)
+          ? (int) ($parameters['node'] ?? $parameters['event'] ?? 0)
+          : 0;
+        if ($event_id > 0) {
+          $event = \Drupal::entityTypeManager()->getStorage('node')->load($event_id);
+          if ($event && $event->bundle() === 'event') {
+            $notification->set('event_id', $event_id);
+          }
+        }
+        $notification->set('requires_action', \Drupal\myeventlane_notifications\NotificationAttentionPolicy::requiresAction(
+          (string) $notification->get('context')->value,
+          (string) $notification->get('action_context')->value,
+        ));
+        $notification->save();
+      }
+    }
+  }
+  catch (\Throwable $e) {
+    \Drupal::logger('myeventlane_notifications')->error('Action Centre field update failed: @message', [
+      '@message' => $e->getMessage(),
+    ]);
+    return (string) t('MEL Action Centre field update failed (see log).');
+  }
+
+  return (string) t('Installed MEL Action Centre event, action and handled-state fields.');
+}
+
+/**
+ * Backfills semantic group keys used by the focused organiser experience.
+ */
+function myeventlane_notifications_update_11010(): string {
+  $storage = \Drupal::entityTypeManager()->getStorage('mel_notification');
+  $ids = $storage->getQuery()->accessCheck(FALSE)->execute();
+  $updated = 0;
+
+  foreach (array_chunk(array_values($ids), 100) as $chunk) {
+    /** @var \Drupal\myeventlane_notifications\Entity\MelNotification[] $notifications */
+    $notifications = $storage->loadMultiple($chunk);
+    foreach ($notifications as $notification) {
+      $group_key = trim((string) $notification->get('group_key')->value);
+      $suppression_key = trim((string) $notification->get('suppression_key')->value);
+      if ($group_key !== '' || $suppression_key === '') {
+        continue;
+      }
+      $notification->set('group_key', $suppression_key);
+      $notification->save();
+      $updated++;
+    }
+  }
+
+  return (string) t('Backfilled @count notification group keys.', ['@count' => $updated]);
+}
+
+/**
  * Builds a table spec fragment for Schema::addIndex() on MySQL (Drupal 11).
  *
  * @param string[] $columns

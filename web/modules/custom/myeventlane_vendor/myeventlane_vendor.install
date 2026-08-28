@@ -1705,6 +1705,83 @@ function myeventlane_vendor_update_10026(): string {
 }
 
 /**
+ * Restores missing SQL schema metadata for organiser tax declaration fields.
+ */
+function myeventlane_vendor_update_10027(): string {
+  $fieldNames = [
+    'field_acnc_status',
+    'field_dgr_status',
+    'field_gst_registration_status',
+    'field_tax_declaration_at',
+    'field_tax_entity_type',
+  ];
+
+  $entityTypeId = 'myeventlane_vendor';
+  $schemaStore = \Drupal::keyValue('entity.storage_schema.sql');
+  $fieldManager = \Drupal::service('entity_field.manager');
+  $installedSchema = \Drupal::service('entity.last_installed_schema.repository');
+  $updateManager = \Drupal::entityDefinitionUpdateManager();
+  $storage = \Drupal::entityTypeManager()->getStorage($entityTypeId);
+  $tableMapping = $storage->getTableMapping();
+  $databaseSchema = \Drupal::database()->schema();
+  $currentDefinitions = $fieldManager->getFieldStorageDefinitions($entityTypeId);
+  $installedDefinitions = $installedSchema->getLastInstalledFieldStorageDefinitions($entityTypeId);
+  $repaired = [];
+
+  foreach ($fieldNames as $fieldName) {
+    $schemaKey = $entityTypeId . '.field_schema_data.' . $fieldName;
+    if ($schemaStore->has($schemaKey)) {
+      continue;
+    }
+
+    $current = $currentDefinitions[$fieldName] ?? NULL;
+    $installed = $installedDefinitions[$fieldName] ?? NULL;
+    if ($current === NULL || $installed === NULL) {
+      throw new UpdateException(sprintf(
+        'Cannot repair %s: its current or last-installed field definition is missing.',
+        $fieldName,
+      ));
+    }
+    if ($current->getSchema() !== $installed->getSchema()) {
+      throw new UpdateException(sprintf(
+        'Cannot repair %s automatically because its field schema has genuinely changed.',
+        $fieldName,
+      ));
+    }
+
+    $tableName = $tableMapping->getFieldTableName($fieldName);
+    if (!$databaseSchema->tableExists($tableName)) {
+      throw new UpdateException(sprintf(
+        'Cannot repair %s: expected data table %s is missing.',
+        $fieldName,
+        $tableName,
+      ));
+    }
+
+    // With identical definitions and an existing table, Drupal only refreshes
+    // its last-installed SQL schema record. Existing field rows are preserved.
+    $updateManager->updateFieldStorageDefinition($current);
+    if (!$schemaStore->has($schemaKey)) {
+      throw new UpdateException(sprintf(
+        'Drupal did not save repaired schema metadata for %s.',
+        $fieldName,
+      ));
+    }
+    $repaired[] = $fieldName;
+  }
+
+  if ($repaired === []) {
+    return 'Organiser tax declaration field schema metadata was already complete.';
+  }
+
+  return sprintf(
+    'Restored SQL schema metadata for %d organiser tax declaration fields: %s.',
+    count($repaired),
+    implode(', ', $repaired),
+  );
+}
+
+/**
  * Implements hook_uninstall().
  */
 function myeventlane_vendor_uninstall(): void {
