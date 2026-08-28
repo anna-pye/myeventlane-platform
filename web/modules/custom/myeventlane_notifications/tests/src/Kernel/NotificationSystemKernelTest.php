@@ -534,6 +534,64 @@ final class NotificationSystemKernelTest extends KernelTestBase {
     $this->assertSame(MelNotificationDelivery::STATUS_READ, $delivery->get('status')->value);
   }
 
+  public function testGroupedReadRequiresExplicitGroupOperation(): void {
+    $this->installEntitySchema('user');
+    $this->installEntitySchema('mel_notification');
+    $this->installEntitySchema('mel_notification_delivery');
+    $this->installConfig(['user']);
+
+    $user = User::create([
+      'name' => 'grouped_recipient',
+      'mail' => 'grouped_recipient@example.com',
+      'status' => 1,
+    ]);
+    $user->save();
+
+    $notificationStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification');
+    $deliveryStorage = $this->container->get('entity_type.manager')->getStorage('mel_notification_delivery');
+    $deliveryIds = [];
+    foreach (['First', 'Second'] as $title) {
+      /** @var \Drupal\myeventlane_notifications\Entity\MelNotification $notification */
+      $notification = $notificationStorage->create([
+        'type' => MelNotification::TYPE_SYSTEM,
+        'title' => $title,
+        'message' => 'Grouped notification',
+        'audience_type' => MelNotification::AUDIENCE_USER_IDS,
+        'audience_data' => json_encode(['user_ids' => [(int) $user->id()]], JSON_THROW_ON_ERROR),
+        'status' => MelNotification::STATUS_SENT,
+        'context' => NotificationContext::BUSINESS,
+        'group_key' => 'boost_expiring:42',
+      ]);
+      $notification->get('channels')->appendItem('toast');
+      $notification->save();
+
+      /** @var \Drupal\myeventlane_notifications\Entity\MelNotificationDelivery $delivery */
+      $delivery = $deliveryStorage->create([
+        'notification_id' => $notification->id(),
+        'recipient_uid' => $user->id(),
+        'status' => MelNotificationDelivery::STATUS_SENT,
+        'delivered_at' => $this->container->get('datetime.time')->getRequestTime(),
+        'surface' => NotificationSurface::TOAST_INBOX,
+      ]);
+      $delivery->save();
+      $deliveryIds[] = (int) $delivery->id();
+    }
+
+    /** @var \Drupal\myeventlane_notifications\Service\NotificationUserInboxService $inbox */
+    $inbox = $this->container->get('myeventlane_notifications.user_inbox');
+    $this->assertTrue($inbox->markReadOne((int) $user->id(), $deliveryIds[0]));
+    $deliveryStorage->resetCache($deliveryIds);
+    $deliveries = $deliveryStorage->loadMultiple($deliveryIds);
+    $this->assertSame(MelNotificationDelivery::STATUS_READ, $deliveries[$deliveryIds[0]]->get('status')->value);
+    $this->assertSame(MelNotificationDelivery::STATUS_SENT, $deliveries[$deliveryIds[1]]->get('status')->value);
+
+    $this->assertTrue($inbox->markReadGroup((int) $user->id(), $deliveryIds[0]));
+    $deliveryStorage->resetCache($deliveryIds);
+    $deliveries = $deliveryStorage->loadMultiple($deliveryIds);
+    $this->assertSame(MelNotificationDelivery::STATUS_READ, $deliveries[$deliveryIds[0]]->get('status')->value);
+    $this->assertSame(MelNotificationDelivery::STATUS_READ, $deliveries[$deliveryIds[1]]->get('status')->value);
+  }
+
   public function testGroupSummariesMergeSameGroupKey(): void {
     /** @var \Drupal\myeventlane_notifications\Service\NotificationViewBuilder $vb */
     $vb = $this->container->get('myeventlane_notifications.view_builder');

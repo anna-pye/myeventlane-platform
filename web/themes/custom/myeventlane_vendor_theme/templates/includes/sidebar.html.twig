@@ -4,7 +4,7 @@
  * Left navigation sidebar for MyEventLane Organiser Console.
  *
  * Groups VendorNavBuilder items by Convergence IA (presentation only).
- * Primary: Dashboard → Marketing. Account: Settings · Support.
+ * Primary: Dashboard → Marketing. Account: Pro · Updates · Settings · Support.
  */
 #}
 <nav class="mel-sidebar mel-vendor-console__nav" aria-label="{{ 'Organiser navigation'|t }}">
@@ -36,7 +36,7 @@
   {% set nav_items = page.vendor_shell_nav_items is defined ? page.vendor_shell_nav_items : [] %}
   {% set nav_groups = [
     { id: 'primary', label: '', keys: ['dashboard', 'events', 'attendees', 'orders', 'messages', 'payments', 'analytics', 'marketing'] },
-    { id: 'account', label: 'Account'|t, keys: ['pro', 'settings', 'support'] },
+    { id: 'account', label: 'Account'|t, keys: ['pro', 'updates', 'settings', 'support'] },
   ] %}
 
   <div class="mel-sidebar__nav-groups">

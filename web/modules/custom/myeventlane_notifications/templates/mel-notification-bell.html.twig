@@ -33,7 +33,7 @@
        tabindex="-1"
        hidden>
     <div class="mel-notif-bell__panel-head">
-      <span class="mel-notif-bell__panel-title">{{ 'Notifications'|t }}</span>
+      <span class="mel-notif-bell__panel-title">{{ bell_context == 'business' ? 'Organiser updates'|t : 'Notifications'|t }}</span>
       <button type="button" class="mel-notif-bell__mark-all" data-mel-notif-mark-all hidden>
         {{ 'Mark all read'|t }}
       </button>
@@ -44,7 +44,7 @@
       <p class="mel-notif-bell__loading">{{ 'Loading…'|t }}</p>
     </div>
     <div class="mel-notif-bell__panel-foot">
-      <a href="{{ inbox_url }}" class="mel-notif-bell__inbox-link">{{ 'View inbox'|t }}</a>
+      <a href="{{ inbox_url }}" class="mel-notif-bell__inbox-link">{{ bell_context == 'business' ? 'Open Action Centre'|t : 'View inbox'|t }}</a>
       {% if settings_url %}
         <a href="{{ settings_url }}" class="mel-notif-bell__settings-link">{{ 'Notification settings'|t }}</a>
       {% endif %}

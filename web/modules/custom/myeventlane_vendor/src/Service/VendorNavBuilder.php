@@ -51,6 +51,7 @@ final class VendorNavBuilder {
     'payments' => 'primary',
     'analytics' => 'primary',
     'marketing' => 'primary',
+    'updates' => 'account',
     'pro' => 'account',
     'settings' => 'account',
     'support' => 'account',
@@ -92,6 +93,9 @@ final class VendorNavBuilder {
     }
     if (str_starts_with($path, '/vendor/settings')) {
       return 'settings';
+    }
+    if (str_starts_with($path, '/vendor/updates') || preg_match('#^/vendor/events/\d+/studio/updates$#', $path) === 1) {
+      return 'updates';
     }
     if (str_starts_with($path, '/vendor/pro')) {
       return 'pro';
@@ -136,6 +140,9 @@ final class VendorNavBuilder {
 
     $mapping = [
       'myeventlane_vendor.console.dashboard' => 'dashboard',
+      'myeventlane_notifications.organiser_action_centre' => 'updates',
+      'myeventlane_notifications.organiser_preferences' => 'updates',
+      'myeventlane_notifications.organiser_event_action_centre' => 'updates',
       'myeventlane_vendor.console.events' => 'events',
       'myeventlane_vendor.console.events_add' => 'events',
       'myeventlane_vendor.console.event_workspace' => 'events',
@@ -350,6 +357,14 @@ final class VendorNavBuilder {
           ? 'myeventlane_pro.manage'
           : 'myeventlane_pro.overview',
         'children' => [],
+      ],
+      [
+        'key' => 'updates',
+        'label' => $this->t('Updates'),
+        'icon' => 'notifications',
+        'route' => 'myeventlane_notifications.organiser_action_centre',
+        'children' => [],
+        'requires_module' => 'myeventlane_notifications',
       ],
       [
         'key' => 'settings',

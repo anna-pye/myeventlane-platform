@@ -141,14 +141,23 @@
     el.style.borderLeft = '4px solid ' + accentForDomain(item.domain || '', item.type);
 
     var title = document.createElement('div');
+    title.className = 'mel-notification-toast__title';
     title.style.fontWeight = '600';
     title.style.marginBottom = '4px';
     title.textContent = item.title || '';
 
     var body = document.createElement('div');
+    body.className = 'mel-notification-toast__body';
     body.style.opacity = '0.85';
     body.textContent = item.message_preview || item.message || '';
 
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'mel-notification-toast__close';
+    close.setAttribute('aria-label', Drupal.t('Dismiss notification'));
+    close.textContent = '×';
+
+    el.appendChild(close);
     el.appendChild(title);
     el.appendChild(body);
 
@@ -161,9 +170,19 @@
       }, 180);
     };
 
-    window.setTimeout(remove, 5000);
+    var timeoutId = window.setTimeout(remove, 8000);
+    var pauseRemoval = function () {
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+    };
+    el.addEventListener('mouseenter', pauseRemoval);
+    el.addEventListener('focusin', pauseRemoval);
 
-    el.addEventListener('click', function () {
+    close.addEventListener('click', function (event) {
+      event.stopPropagation();
+      pauseRemoval();
       DISMISSED[item.id] = true;
       markRead(settings.readUrlTemplate, item.id)
         .catch(function () {})
@@ -171,9 +190,20 @@
           remove();
           refreshAllBells();
         });
-      if (item.action && item.action.url) {
-        window.location.href = item.action.url;
-      }
+    });
+
+    el.addEventListener('click', function () {
+      pauseRemoval();
+      DISMISSED[item.id] = true;
+      markRead(settings.readUrlTemplate, item.id)
+        .catch(function () {})
+        .finally(function () {
+          remove();
+          refreshAllBells();
+          if (item.action && item.action.url) {
+            window.location.href = item.action.url;
+          }
+        });
     });
 
     stack.appendChild(el);
@@ -275,14 +305,14 @@
       btn.appendChild(p);
       btn.addEventListener('click', function () {
         var id = row.delivery_id;
-        markRead(settings.readUrlTemplate, id)
+        markRead(settings.groupReadUrlTemplate || settings.readUrlTemplate, id)
           .catch(function () {})
           .finally(function () {
             refreshAllBells();
+            if (row.action && row.action.url) {
+              window.location.href = row.action.url;
+            }
           });
-        if (row.action && row.action.url) {
-          window.location.href = row.action.url;
-        }
       });
       listEl.appendChild(btn);
     });

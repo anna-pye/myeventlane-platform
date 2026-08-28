@@ -1229,53 +1229,17 @@ class OrganiserProfileSettingsForm extends FormBase {
       ],
     ];
     $form['preferences']['notifications'] = [
-      '#type' => 'fieldset',
-      '#title' => $this->t('Email notifications'),
-      '#description' => $this->t('Choose when MyEventLane emails you about bookings. Message delivery to guests lives in Messages.'),
+      '#type' => 'container',
+    ];
+    $form['preferences']['notifications']['explanation'] = [
+      '#markup' => '<p>' . $this->t('Manage in-app organiser alerts in the Action Centre. Email alert controls are not available yet. Messages you send to guests live in Messages.') . '</p>',
     ];
 
-    $email_on_order_default = TRUE;
-    $email_on_rsvp_default = TRUE;
-    $email_digest_default = 'daily';
-
-    if ($vendor->hasField('field_pref_email_on_order')) {
-      $email_on_order_default = (bool) $this->getFieldValue($vendor, 'field_pref_email_on_order', TRUE);
-    }
-    if ($vendor->hasField('field_pref_email_on_rsvp')) {
-      $email_on_rsvp_default = (bool) $this->getFieldValue($vendor, 'field_pref_email_on_rsvp', TRUE);
-    }
-    if ($vendor->hasField('field_pref_email_digest')) {
-      $email_digest_default = $this->getFieldValue($vendor, 'field_pref_email_digest', 'daily');
-    }
-
-    $form['preferences']['notifications']['email_on_new_order'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Email me when someone books tickets'),
-      '#default_value' => $email_on_order_default,
-    ];
-
-    $form['preferences']['notifications']['email_on_rsvp'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('Email me when someone RSVPs'),
-      '#default_value' => $email_on_rsvp_default,
-    ];
-
-    $form['preferences']['notifications']['email_digest'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Email digest'),
-      '#options' => [
-        'never' => $this->t('Never'),
-        'daily' => $this->t('Daily'),
-        'weekly' => $this->t('Weekly'),
-      ],
-      '#default_value' => $email_digest_default,
-    ];
-
-    if ($this->routeExists('myeventlane_notifications.preferences')) {
+    if ($this->routeExists('myeventlane_notifications.organiser_preferences')) {
       $form['preferences']['inbox_link'] = [
         '#type' => 'link',
-        '#title' => $this->t('Inbox & alert preferences'),
-        '#url' => Url::fromRoute('myeventlane_notifications.preferences'),
+        '#title' => $this->t('Open alert preferences'),
+        '#url' => Url::fromRoute('myeventlane_notifications.organiser_preferences'),
         '#attributes' => ['class' => ['mel-vendor-settings-v2__header-link']],
       ];
     }
@@ -1883,17 +1847,6 @@ class OrganiserProfileSettingsForm extends FormBase {
       if ($vendor->hasField($field_name)) {
         $vendor->set($field_name, (int) ($form_state->getValue($form_path) ?? FALSE));
       }
-    }
-
-    // Save preferences to vendor entity fields.
-    if ($vendor->hasField('field_pref_email_on_order')) {
-      $vendor->set('field_pref_email_on_order', (int) ($form_state->getValue(['preferences', 'notifications', 'email_on_new_order']) ?? TRUE));
-    }
-    if ($vendor->hasField('field_pref_email_on_rsvp')) {
-      $vendor->set('field_pref_email_on_rsvp', (int) ($form_state->getValue(['preferences', 'notifications', 'email_on_rsvp']) ?? TRUE));
-    }
-    if ($vendor->hasField('field_pref_email_digest')) {
-      $vendor->set('field_pref_email_digest', $form_state->getValue(['preferences', 'notifications', 'email_digest']) ?? 'daily');
     }
 
     // Save business information fields (canonical values from store.business above).

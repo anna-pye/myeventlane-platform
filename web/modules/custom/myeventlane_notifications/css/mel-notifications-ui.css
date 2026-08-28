@@ -226,6 +226,7 @@
 
 /* —— Toast stack (legacy positions; refined) —— */
 .mel-notification-toast {
+  position: relative;
   pointer-events: auto;
   background: #fffdf9;
   border-radius: 16px;
@@ -237,9 +238,261 @@
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
+.mel-notification-toast__title,
+.mel-notification-toast__body {
+  padding-right: 1.5rem;
+}
+
+.mel-notification-toast__close {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.45rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #293241;
+  font: inherit;
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.mel-notification-toast__close:hover,
+.mel-notification-toast__close:focus-visible {
+  background: rgba(41, 50, 65, 0.08);
+  outline: 2px solid #6b5ce6;
+}
+
 .mel-notification-toast.is-leaving {
   opacity: 0;
   transform: translateX(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mel-notification-toast,
+  .mel-notif-bell__panel,
+  .mel-notif-bell__trigger,
+  .mel-notif-bell__badge {
+    transition: none;
+  }
+}
+
+/* —— Organiser Action Centre —— */
+.mel-action-centre {
+  width: min(100%, 68rem);
+  margin: 0 auto;
+  padding: 0 0 3rem;
+  color: #293241;
+}
+
+.mel-action-centre__header,
+.mel-action-centre__section-head,
+.mel-action-centre__item-head,
+.mel-action-centre__actions,
+.mel-action-centre__labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mel-action-centre__header {
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+}
+
+.mel-action-centre__header h1,
+.mel-action-centre__section h2,
+.mel-action-centre__item h3,
+.mel-action-centre__header p,
+.mel-action-centre__section-head p,
+.mel-action-centre__item p {
+  margin-block: 0;
+}
+
+.mel-action-centre__header h1 {
+  font-size: clamp(1.65rem, 3vw, 2.2rem);
+}
+
+.mel-action-centre__header > div:first-child {
+  max-width: 44rem;
+}
+
+.mel-action-centre__header > div:first-child > p:last-child,
+.mel-action-centre__section-head p,
+.mel-action-centre__item p {
+  color: rgba(41, 50, 65, 0.72);
+}
+
+.mel-action-centre__eyebrow {
+  color: #6b5ce6;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-action-centre__header-links {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mel-action-centre__header-links a,
+.mel-action-centre__event {
+  color: #5b4bd8;
+  font-weight: 650;
+}
+
+.mel-action-centre__section {
+  margin-top: 1rem;
+  padding: 1.1rem;
+  border: 1px solid rgba(41, 50, 65, 0.09);
+  border-radius: 1rem;
+  background: #fffdf9;
+}
+
+.mel-action-centre__section--attention {
+  border-color: rgba(196, 92, 138, 0.26);
+  background: #fffafb;
+}
+
+.mel-action-centre__section-head {
+  align-items: flex-start;
+}
+
+.mel-action-centre__section h2 {
+  font-size: 1.15rem;
+}
+
+.mel-action-centre__section-head p {
+  margin-top: 0.2rem;
+  font-size: 0.9rem;
+}
+
+.mel-action-centre__count {
+  min-width: 1.7rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(107, 92, 230, 0.1);
+  text-align: center;
+  font-weight: 700;
+}
+
+.mel-action-centre__list {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.mel-action-centre__item {
+  padding: 1rem;
+  border: 1px solid rgba(41, 50, 65, 0.08);
+  border-radius: 0.8rem;
+  background: #fff;
+}
+
+.mel-action-centre__item.is-unread {
+  border-left: 4px solid #6b5ce6;
+}
+
+.mel-action-centre__item.is-handled {
+  opacity: 0.78;
+}
+
+.mel-action-centre__item-head time {
+  color: rgba(41, 50, 65, 0.6);
+  font-size: 0.8rem;
+}
+
+.mel-action-centre__item h3 {
+  margin-top: 0.6rem;
+  font-size: 1rem;
+}
+
+.mel-action-centre__item > p {
+  margin-top: 0.3rem;
+}
+
+.mel-action-centre__item .mel-action-centre__group-note {
+  color: #5b4bd8;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.mel-action-centre__state {
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.mel-action-centre__state--action {
+  background: #fce7ef;
+  color: #8c315a;
+}
+
+.mel-action-centre__state--handled {
+  background: #e5f5ef;
+  color: #246d58;
+}
+
+.mel-action-centre__state--info {
+  background: #eef0fb;
+  color: #4b438e;
+}
+
+.mel-action-centre__actions {
+  justify-content: flex-start;
+  margin-top: 0.8rem;
+}
+
+.mel-action-centre__actions form,
+.mel-action-centre__actions .form-actions {
+  display: inline-flex;
+  margin: 0;
+}
+
+.mel-action-centre__primary,
+.mel-action-centre__handled-button,
+.mel-action-centre .mel-notif-inbox__mark-read-btn {
+  display: inline-flex;
+  border: 1px solid #6b5ce6;
+  border-radius: 0.55rem;
+  padding: 0.45rem 0.7rem;
+  background: #fff;
+  color: #5547c6;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.mel-action-centre__primary {
+  background: #6b5ce6;
+  color: #fff;
+}
+
+.mel-action-centre__empty {
+  margin: 0.9rem 0 0;
+  padding: 0.8rem;
+  border-radius: 0.65rem;
+  background: rgba(41, 50, 65, 0.035);
+}
+
+@media (width <= 640px) {
+  .mel-action-centre__header {
+    display: block;
+  }
+
+  .mel-action-centre__header-links {
+    margin-top: 1rem;
+  }
 }
 
 /* —— Inbox page —— */

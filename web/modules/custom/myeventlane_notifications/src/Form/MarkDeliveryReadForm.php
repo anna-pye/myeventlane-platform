@@ -37,7 +37,7 @@ final class MarkDeliveryReadForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, int $delivery_id = 0, string $tab = NotificationFilter::TAB_ALL, string $filter = NotificationFilter::FILTER_ALL): array {
+  public function buildForm(array $form, FormStateInterface $form_state, int $delivery_id = 0, string $tab = NotificationFilter::TAB_ALL, string $filter = NotificationFilter::FILTER_ALL, string $return_route = '', int $event_id = 0): array {
     if (!in_array($tab, NotificationFilter::allowedTabs(), TRUE)) {
       $tab = NotificationFilter::TAB_ALL;
     }
@@ -56,6 +56,8 @@ final class MarkDeliveryReadForm extends FormBase {
       '#type' => 'hidden',
       '#value' => $filter,
     ];
+    $form['return_route'] = ['#type' => 'hidden', '#value' => $return_route];
+    $form['event_id'] = ['#type' => 'hidden', '#value' => $event_id];
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
@@ -73,14 +75,33 @@ final class MarkDeliveryReadForm extends FormBase {
     $deliveryId = (int) $form_state->getValue('delivery_id');
     $tab = (string) $form_state->getValue('tab');
     $filter = (string) $form_state->getValue('filter');
+    $returnRoute = (string) $form_state->getValue('return_route');
+    $eventId = (int) $form_state->getValue('event_id');
     if (!in_array($tab, NotificationFilter::allowedTabs(), TRUE)) {
       $tab = NotificationFilter::TAB_ALL;
     }
     if (!in_array($filter, NotificationFilter::allowedFilters(), TRUE)) {
       $filter = NotificationFilter::FILTER_ALL;
     }
+    $isOrganiserActionCentre = in_array($returnRoute, [
+      'myeventlane_notifications.organiser_action_centre',
+      'myeventlane_notifications.organiser_event_action_centre',
+    ], TRUE);
     if ($uid > 0 && $deliveryId > 0) {
-      $this->userInbox->markReadOne($uid, $deliveryId);
+      if ($isOrganiserActionCentre) {
+        $this->userInbox->markReadGroup($uid, $deliveryId);
+      }
+      else {
+        $this->userInbox->markReadOne($uid, $deliveryId);
+      }
+    }
+    if ($returnRoute === 'myeventlane_notifications.organiser_event_action_centre' && $eventId > 0) {
+      $form_state->setRedirect($returnRoute, ['node' => $eventId]);
+      return;
+    }
+    if ($returnRoute === 'myeventlane_notifications.organiser_action_centre') {
+      $form_state->setRedirect($returnRoute);
+      return;
     }
     $form_state->setRedirect('myeventlane_notifications.inbox', [], ['query' => ['tab' => $tab, 'filter' => $filter]]);
   }

@@ -54,7 +54,12 @@ final class NotificationController extends ControllerBase {
     $bellContext = $this->bellContextFromRequest($request);
     $contexts = $this->contextsForBell($bellContext);
 
-    $ids = $this->userInbox->getUnreadDeliveryIds($uid, self::UNREAD_HARD_LIMIT, $contexts);
+    $ids = $this->userInbox->getUnreadDeliveryIds(
+      $uid,
+      self::UNREAD_HARD_LIMIT,
+      $contexts,
+      FALSE,
+    );
     $rows = $this->viewBuilder->buildRowsForDeliveries($ids, $uid);
     $payload = [];
     foreach ($rows as $row) {
@@ -95,7 +100,16 @@ final class NotificationController extends ControllerBase {
     $bellContext = $this->bellContextFromRequest($request);
     $contexts = $this->contextsForBell($bellContext);
     $breakdown = $this->userInbox->countUnreadBreakdown($uid);
-    $count = $this->userInbox->countUnreadForContexts($uid, $contexts);
+    if ($bellContext === NotificationContext::BUSINESS) {
+      $focused = $this->userInbox->countFocusedUnreadBreakdown($uid, $contexts);
+      $breakdown['business'] = $focused[NotificationContext::BUSINESS] ?? 0;
+      $breakdown['platform'] = $focused[NotificationContext::PLATFORM] ?? 0;
+      $breakdown['unread'] = $breakdown['business'] + $breakdown['platform'];
+      $count = $breakdown['unread'];
+    }
+    else {
+      $count = $this->userInbox->countUnreadForContexts($uid, $contexts);
+    }
 
     $response = new CacheableJsonResponse([
       'unread' => $count,
@@ -121,7 +135,12 @@ final class NotificationController extends ControllerBase {
 
     $bellContext = $this->bellContextFromRequest($request);
     $contexts = $this->contextsForBell($bellContext);
-    $ids = $this->userInbox->getUnreadDeliveryIds($uid, NotificationUserInboxService::BELL_PREVIEW_LIMIT, $contexts);
+    $ids = $this->userInbox->getUnreadDeliveryIds(
+      $uid,
+      NotificationUserInboxService::BELL_PREVIEW_LIMIT,
+      $contexts,
+      $bellContext === NotificationContext::BUSINESS,
+    );
     $rows = $this->viewBuilder->buildRowsForDeliveries($ids, $uid);
     $response = new CacheableJsonResponse(['items' => $rows, 'bell_context' => $bellContext]);
     $response->addCacheableDependency($this->currentUser());
@@ -172,19 +191,29 @@ final class NotificationController extends ControllerBase {
       }
     }
 
+    // Following an action proves the update was seen, but it does not prove
+    // that an organiser task was completed. Handled state remains explicit.
+    $this->userInbox->markReadOne($uid, $delivery);
+
     return new RedirectResponse($action['url']);
   }
 
   /**
    * Marks a delivery as read (CSRF header required on route).
    */
-  public function markRead(int $delivery): JsonResponse {
+  public function markRead(int $delivery, ?Request $request = NULL): JsonResponse {
     $uid = (int) $this->currentUser()->id();
     if ($uid < 1) {
       throw new AccessDeniedHttpException();
     }
 
-    if (!$this->userInbox->markReadOne($uid, $delivery)) {
+    $grouped = $request !== NULL
+      && $this->bellContextFromRequest($request) === NotificationContext::BUSINESS
+      && (string) $request->query->get('read_mode') === 'semantic_group';
+    $marked = $grouped
+      ? $this->userInbox->markReadGroup($uid, $delivery)
+      : $this->userInbox->markReadOne($uid, $delivery);
+    if (!$marked) {
       throw new NotFoundHttpException();
     }
 
