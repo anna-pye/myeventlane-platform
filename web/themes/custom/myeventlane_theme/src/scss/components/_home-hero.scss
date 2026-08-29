@@ -1017,10 +1017,10 @@
     min-height: clamp(460px, 118vw, 520px);
   }
 
-  // Mobile discovery already has category shortcuts and the persistent Events
-  // navigation. Keep the hero image and message clear instead of repeating a
-  // full search form here.
-  .mel-home-hero__search-shell {
+  // The mobile homepage already has category shortcuts and persistent Events
+  // navigation. Keep its hero image and message clear instead of repeating a
+  // full search form.
+  .mel-home-hero--front .mel-home-hero__search-shell {
     display: none;
   }
 
