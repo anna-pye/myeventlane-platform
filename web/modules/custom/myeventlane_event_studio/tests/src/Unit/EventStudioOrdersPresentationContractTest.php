@@ -50,4 +50,17 @@ final class EventStudioOrdersPresentationContractTest extends TestCase {
     self::assertStringNotContainsString("{{ 'Tickets'|t }}", $template);
   }
 
+  public function testStudioOrdersBecomeLabelledCardsOnMobile(): void {
+    $root = dirname(__DIR__, 7);
+    $template = (string) file_get_contents($root . '/web/themes/custom/myeventlane_vendor_theme/templates/event/orders.html.twig');
+    $styles = (string) file_get_contents($root . '/web/themes/custom/myeventlane_vendor_theme/src/scss/pages/_event-studio-orders.scss');
+
+    self::assertStringContainsString('data-label="{{ \'Order\'|t }}"', $template);
+    self::assertStringContainsString('data-label="{{ \'Actions\'|t }}"', $template);
+    self::assertStringContainsString('@media (max-width: 640px)', $styles);
+    self::assertStringContainsString('content: attr(data-label);', $styles);
+    self::assertStringContainsString('min-width: 0;', $styles);
+    self::assertStringContainsString('min-height: 44px;', $styles);
+  }
+
 }

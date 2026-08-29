@@ -23,6 +23,32 @@ body.mel-has-mobile-bottom-nav {
     .mel-mobile-cta {
       bottom: var(--mel-mobile-bottom-nav-height);
     }
+
+    // High-intent journeys own the bottom edge with their primary action.
+    // Keeping the global nav here hides cart and booking controls on short
+    // mobile viewports and creates two competing fixed action bars.
+    &:has(.mel-mobile-cta),
+    &:has(.mel-book-page),
+    &:has(.mel-checkout),
+    &:has(form[id^='views-form-commerce-cart-form']) {
+      --mel-mobile-bottom-nav-height: 0;
+
+      .mel-page {
+        padding-bottom: 0;
+      }
+
+      .mel-mobile-bottom-nav {
+        display: none;
+      }
+
+      .mel-mobile-cta {
+        bottom: 0;
+      }
+    }
+
+    &:has(.mel-mobile-cta) .mel-page {
+      padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0));
+    }
   }
 }
 
@@ -37,7 +63,7 @@ body.mel-has-mobile-bottom-nav {
     bottom: 0;
     z-index: z.mel-z(header);
     box-sizing: border-box;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0);
     background: #fffdf9;
     border-top: 1px solid colors.$mel-color-border;
     font-family: var(--mel-font-head, 'Nunito', system-ui, sans-serif);

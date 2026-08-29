@@ -2148,6 +2148,29 @@
   font: inherit;
 }
 
+// Keep the mobile purchase action compact enough to leave the event visible.
+// Supporting reassurance remains in the booking panel immediately above.
+@include breakpoints.mel-break(md, max) {
+  .mel-mobile-cta {
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0));
+  }
+
+  .mel-mobile-cta__inner {
+    gap: 0.3rem;
+  }
+
+  .mel-mobile-cta__urgency,
+  .mel-mobile-cta__trust {
+    display: none;
+  }
+
+  .mel-mobile-cta__eyebrow,
+  .mel-mobile-cta__helper,
+  .mel-mobile-cta__waitlist-sub {
+    font-size: typography.mel-font-size(sm);
+  }
+}
+
 .mel-mobile-cta__trust-link {
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, colors.$mel-color-text-muted 50%, #fff 50%);
