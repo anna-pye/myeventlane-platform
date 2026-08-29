@@ -330,7 +330,7 @@ body.mel-vendor .mel-event-studio-mission-control__quality-title,
 
 @media (width <= 47.99em) {
   .mel-event-studio-mission-control__actions {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
     align-items: stretch;
   }
 

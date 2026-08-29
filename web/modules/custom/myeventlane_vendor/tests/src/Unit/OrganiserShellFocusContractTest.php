@@ -135,6 +135,9 @@ final class OrganiserShellFocusContractTest extends TestCase {
     self::assertStringContainsString('order: 1;', $hero);
     self::assertStringContainsString('.mel-event-studio-mission-control__cta,', $missionControl);
     self::assertStringContainsString('flex: 1 1 0;', $missionControl);
+    self::assertStringContainsString('flex-wrap: wrap;', $missionControl);
+    self::assertStringContainsString('.mel-event-studio-mission-control__details[open] {', $missionControl);
+    self::assertStringContainsString('flex: 1 1 100%;', $missionControl);
   }
 
 }
