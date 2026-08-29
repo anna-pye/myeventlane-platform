@@ -90,4 +90,26 @@ final class PublicMobileConversionContractTest extends TestCase {
     self::assertStringContainsString('scroll-snap-type: inline mandatory;', $frontPage);
   }
 
+  public function testHomepageKeepsTheMobileHeroImageClearOfTheSearchForm(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $hero = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/src/scss/components/_home-hero.scss',
+    );
+    $homeHeroTemplate = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_front/templates/myeventlane-home-hero.html.twig',
+    );
+    $discoveryHeroTemplate = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/components/discovery-hero/discovery-hero.html.twig',
+    );
+
+    self::assertStringContainsString('@media (max-width: 767px)', $hero);
+    self::assertStringContainsString(
+      ".mel-home-hero--front .mel-home-hero__search-shell {\n    display: none;\n  }",
+      $hero,
+    );
+    self::assertStringContainsString('mel-home-hero mel-home-hero--front', $homeHeroTemplate);
+    self::assertStringContainsString('mel-home-hero mel-home-hero--discovery', $discoveryHeroTemplate);
+  }
+
 }

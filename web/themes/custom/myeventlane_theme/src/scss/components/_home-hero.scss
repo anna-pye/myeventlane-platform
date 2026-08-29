@@ -1017,6 +1017,13 @@
     min-height: clamp(460px, 118vw, 520px);
   }
 
+  // The mobile homepage already has category shortcuts and persistent Events
+  // navigation. Keep its hero image and message clear instead of repeating a
+  // full search form.
+  .mel-home-hero--front .mel-home-hero__search-shell {
+    display: none;
+  }
+
   .mel-home-hero__scrim {
     background:
       linear-gradient(180deg, rgba(12, 16, 24, 0.72) 0%, rgba(12, 16, 24, 0.38) 42%, rgba(12, 16, 24, 0.52) 100%);
