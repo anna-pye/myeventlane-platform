@@ -82,6 +82,20 @@ final class VendorSettingsPresentationContractTest extends TestCase {
   }
 
   /**
+   * Keeps the ATO-facing GST declaration consistent with onboarding.
+   */
+  public function testBusinessDetailsUseCurrentGstRegistrationLanguage(): void {
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/OrganiserProfileSettingsForm.php');
+    self::assertIsString($form);
+
+    self::assertStringContainsString('currently registered for GST with the Australian Taxation Office (ATO)', $form);
+    self::assertStringContainsString('An active ABN does not automatically mean the organisation is registered for GST', $form);
+    self::assertStringContainsString('“Registered from” date shown for Goods & Services Tax on ABN Lookup', $form);
+    self::assertStringContainsString('separate platform fee may still include GST', $form);
+    self::assertStringContainsString('match the Australian Business Register', $form);
+  }
+
+  /**
    * Ensures the retired compatibility module cannot be re-enabled.
    */
   public function testCompatibilityModuleIsRetired(): void {

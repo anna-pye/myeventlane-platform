@@ -12,8 +12,8 @@ type: list_string
 settings:
   allowed_values:
     - { value: unknown, label: 'Not yet declared' }
-    - { value: not_registered, label: 'Not registered for GST' }
-    - { value: registered, label: 'Registered for GST' }
+    - { value: not_registered, label: 'Not currently registered for GST' }
+    - { value: registered, label: 'Currently registered for GST' }
   allowed_values_function: ''
 module: options
 locked: false

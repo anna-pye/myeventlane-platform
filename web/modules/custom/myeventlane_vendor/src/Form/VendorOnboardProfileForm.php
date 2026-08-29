@@ -134,7 +134,7 @@ final class VendorOnboardProfileForm extends FormBase {
     $form['step_content']['tax'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Legal and tax details'),
-      '#description' => $this->t('We use this information to apply GST correctly and prepare invoices and receipts.'),
+      '#description' => $this->t('We use this information to apply GST correctly and prepare invoices and receipts. An active ABN does not automatically mean the organisation is registered for GST.'),
     ];
     $form['step_content']['tax']['entity_type'] = [
       '#type' => 'select',
@@ -155,13 +155,15 @@ final class VendorOnboardProfileForm extends FormBase {
     ];
     $form['step_content']['tax']['gst_status'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Are you registered for GST?'),
+      '#title' => $this->t('Is this organisation currently registered for GST with the Australian Taxation Office (ATO)?'),
       '#options' => [
-        OrganiserTaxProfileManager::STATUS_REGISTERED => $this->t('Yes, registered for GST'),
-        OrganiserTaxProfileManager::STATUS_NOT_REGISTERED => $this->t('No, not registered for GST'),
+        OrganiserTaxProfileManager::STATUS_REGISTERED => $this->t('Yes — currently registered for GST'),
+        OrganiserTaxProfileManager::STATUS_NOT_REGISTERED => $this->t('No — not currently registered for GST'),
       ],
       '#default_value' => (string) ($flags['gst_registration_status'] ?? ''),
-      '#description' => $this->t('Not-for-profit or charity status does not automatically exempt an organisation from GST.'),
+      '#description' => $this->t('Check the organisation\'s GST status and effective date on <a href=":url" target="_blank" rel="noopener">ABN Lookup</a>. Not-for-profit or charity status does not determine GST registration.', [
+        ':url' => 'https://abr.business.gov.au/',
+      ]),
       '#required' => TRUE,
     ];
     $form['step_content']['tax']['abn'] = [
@@ -169,7 +171,7 @@ final class VendorOnboardProfileForm extends FormBase {
       '#title' => $this->t('ABN'),
       '#default_value' => (string) ($flags['abn'] ?? ''),
       '#maxlength' => 14,
-      '#description' => $this->t('Required if you are registered for GST.'),
+      '#description' => $this->t('Required when currently registered for GST. The ABN must match the Australian Business Register.'),
       '#states' => [
         'required' => [':input[name="step_content[tax][gst_status]"]' => ['value' => OrganiserTaxProfileManager::STATUS_REGISTERED]],
       ],
@@ -178,6 +180,7 @@ final class VendorOnboardProfileForm extends FormBase {
       '#type' => 'date',
       '#title' => $this->t('GST registration effective date'),
       '#default_value' => (string) ($flags['gst_effective_date'] ?? ''),
+      '#description' => $this->t('Enter the “Registered from” date shown for Goods & Services Tax on ABN Lookup.'),
       '#states' => [
         'visible' => [':input[name="step_content[tax][gst_status]"]' => ['value' => OrganiserTaxProfileManager::STATUS_REGISTERED]],
         'required' => [':input[name="step_content[tax][gst_status]"]' => ['value' => OrganiserTaxProfileManager::STATUS_REGISTERED]],
@@ -204,7 +207,7 @@ final class VendorOnboardProfileForm extends FormBase {
     ];
     $form['step_content']['tax']['declaration'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('I confirm these legal and tax details are current and accurate.'),
+      '#title' => $this->t('I confirm that this GST registration status and effective date match the Australian Business Register.'),
       '#default_value' => !empty($flags['tax_declaration_at']),
       '#required' => TRUE,
     ];
@@ -265,7 +268,7 @@ final class VendorOnboardProfileForm extends FormBase {
         $form_state->setError($form['step_content']['tax']['abn'], $this->t('Enter a valid 11-digit ABN for a GST-registered organiser.'));
       }
       if (empty($tax['gst_effective_date'])) {
-        $form_state->setError($form['step_content']['tax']['gst_effective_date'], $this->t('Enter the date your GST registration took effect.'));
+        $form_state->setError($form['step_content']['tax']['gst_effective_date'], $this->t('Enter the “Registered from” date shown for Goods & Services Tax on ABN Lookup.'));
       }
     }
     if (empty($tax['declaration'])) {

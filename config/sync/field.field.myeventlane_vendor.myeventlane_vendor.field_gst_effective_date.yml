@@ -11,7 +11,7 @@ field_name: field_gst_effective_date
 entity_type: myeventlane_vendor
 bundle: myeventlane_vendor
 label: 'GST registration effective date'
-description: 'The date GST registration began. Required only when registered.'
+description: 'The “Registered from” date shown for Goods & Services Tax on ABN Lookup. Required only when currently registered.'
 required: false
 translatable: false
 default_value: {  }

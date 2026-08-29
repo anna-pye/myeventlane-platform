@@ -1038,7 +1038,7 @@ class OrganiserProfileSettingsForm extends FormBase {
     $form['store']['business'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Legal entity'),
-      '#description' => $this->t('Used on invoices and tax documents.'),
+      '#description' => $this->t('Used on invoices and tax documents. An active ABN does not automatically mean the organisation is registered for GST.'),
       '#attributes' => ['class' => ['mel-vendor-settings-v2__grid']],
     ];
 
@@ -1086,13 +1086,15 @@ class OrganiserProfileSettingsForm extends FormBase {
     if ($vendor->hasField('field_gst_registration_status')) {
       $form['store']['business']['gst_registration_status'] = [
         '#type' => 'radios',
-        '#title' => $this->t('Are you registered for GST?'),
+        '#title' => $this->t('Is this organisation currently registered for GST with the Australian Taxation Office (ATO)?'),
         '#options' => [
-          'registered' => $this->t('Yes, registered for GST'),
-          'not_registered' => $this->t('No, not registered for GST'),
+          'registered' => $this->t('Yes — currently registered for GST'),
+          'not_registered' => $this->t('No — not currently registered for GST'),
         ],
         '#default_value' => $this->getFieldValue($vendor, 'field_gst_registration_status', ''),
-        '#description' => $this->t('Not-for-profit or charity status does not automatically exempt an organisation from GST.'),
+        '#description' => $this->t('Check the organisation\'s GST status and effective date on <a href=":url" target="_blank" rel="noopener">ABN Lookup</a>. Not-for-profit or charity status does not determine GST registration. If it is not registered, MyEventLane will not include organiser GST in ticket sales; MyEventLane\'s separate platform fee may still include GST.', [
+          ':url' => 'https://abr.business.gov.au/',
+        ]),
         '#required' => TRUE,
       ];
     }
@@ -1102,6 +1104,7 @@ class OrganiserProfileSettingsForm extends FormBase {
         '#type' => 'date',
         '#title' => $this->t('GST registration effective date'),
         '#default_value' => $this->getFieldValue($vendor, 'field_gst_effective_date', ''),
+        '#description' => $this->t('Enter the “Registered from” date shown for Goods & Services Tax on ABN Lookup.'),
         '#states' => [
           'visible' => [':input[name="store[business][gst_registration_status]"]' => ['value' => 'registered']],
           'required' => [':input[name="store[business][gst_registration_status]"]' => ['value' => 'registered']],
@@ -1137,7 +1140,7 @@ class OrganiserProfileSettingsForm extends FormBase {
 
     $form['store']['business']['tax_declaration'] = [
       '#type' => 'checkbox',
-      '#title' => $this->t('I confirm these legal and tax details are current and accurate.'),
+      '#title' => $this->t('I confirm that this GST registration status and effective date match the Australian Business Register.'),
       '#default_value' => $vendor->hasField('field_tax_declaration_at')
         && !$vendor->get('field_tax_declaration_at')->isEmpty(),
       '#required' => TRUE,
@@ -1477,7 +1480,7 @@ class OrganiserProfileSettingsForm extends FormBase {
       if (empty($business['gst_effective_date'])) {
         $form_state->setError(
           $form['store']['business']['gst_effective_date'],
-          $this->t('Enter the date your GST registration took effect.')
+          $this->t('Enter the “Registered from” date shown for Goods & Services Tax on ABN Lookup.')
         );
       }
     }

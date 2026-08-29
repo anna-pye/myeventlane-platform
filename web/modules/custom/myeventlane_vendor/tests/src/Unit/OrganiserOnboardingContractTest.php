@@ -48,6 +48,9 @@ final class OrganiserOnboardingContractTest extends TestCase {
     self::assertStringContainsString("'#required' => TRUE", $form);
     self::assertStringContainsString("'field_tax_declaration_at'", $form);
     self::assertStringContainsString('isValidAbn', $form);
+    self::assertStringContainsString('currently registered for GST with the Australian Taxation Office (ATO)', $form);
+    self::assertStringContainsString('“Registered from” date shown for Goods & Services Tax on ABN Lookup', $form);
+    self::assertStringContainsString('match the Australian Business Register', $form);
   }
 
   public function testStripeIsRequiredOnlyByPaidEventChecks(): void {
