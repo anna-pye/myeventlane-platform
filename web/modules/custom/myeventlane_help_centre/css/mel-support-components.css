@@ -196,9 +196,13 @@
 }
 
 @media (max-width: 600px) {
+  .mel-mel-support-mount {
+    position: static;
+  }
+
   .mel-mel-support-floating {
-    left: 0.75rem;
-    right: 0.75rem;
+    position: static;
+    margin: 0.75rem;
     max-width: none;
   }
 }

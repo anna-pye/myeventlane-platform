@@ -527,11 +527,18 @@
   font-weight: 700;
 }
 
-.mel-event-extra-card__qty-input {
+.mel-event-extra-card input[type='number'].mel-event-extra-card__qty-input {
   position: absolute;
   width: 1px;
   height: 1px;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
   opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
   pointer-events: none;
 }
 

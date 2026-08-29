@@ -173,6 +173,14 @@
     bottom: calc(var(--mel-mobile-bottom-nav-height, 56px) + var(--mel-space-3, 12px));
   }
 
+  /* Do not cover the primary action in high-intent purchase journeys. */
+  body:has(.mel-mobile-cta) .mel-guide,
+  body:has(.mel-book-page) .mel-guide,
+  body:has(form[id^='views-form-commerce-cart-form']) .mel-guide,
+  body:has(.mel-checkout) .mel-guide {
+    display: none;
+  }
+
   .mel-guide__image {
     width: 68px;
     height: 68px;
