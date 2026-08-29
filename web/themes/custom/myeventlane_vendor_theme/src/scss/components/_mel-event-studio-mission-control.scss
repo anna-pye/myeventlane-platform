@@ -327,3 +327,23 @@ body.mel-vendor .mel-event-studio-mission-control__quality-title,
     transition: none;
   }
 }
+
+@media (width <= 47.99em) {
+  .mel-event-studio-mission-control__actions {
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .mel-event-studio-mission-control__cta,
+  .mel-event-studio-mission-control__details {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  body.mel-vendor .mel-event-studio-mission-control__details > .mel-event-studio-mission-control__details-summary,
+  .mel-event-studio-mission-control__details > .mel-event-studio-mission-control__details-summary {
+    width: 100%;
+    min-width: 0;
+    padding-inline: $spacing-2;
+  }
+}

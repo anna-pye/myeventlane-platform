@@ -1037,6 +1037,29 @@
   overflow-x: clip;
 }
 
+// Upcoming Highlights is a browse rail on phones, not a seven-card page wall.
+// Showing part of the next card makes the horizontal interaction discoverable.
+@media (width <= 640px) {
+  .mel-page--home .mel-section--latest .mel-event-grid.mel-grid--events.mel-home-event-grid {
+    display: grid;
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: clamp(260px, 82vw, 320px);
+    gap: 14px;
+    padding-block-end: 8px;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-padding-inline: 2px;
+    scroll-snap-type: inline mandatory;
+    scrollbar-width: thin;
+  }
+
+  .mel-page--home .mel-section--latest .mel-home-event-grid > .mel-event-card {
+    height: 100%;
+    scroll-snap-align: start;
+  }
+}
+
 // Homepage poster grids — slightly denser tiles than marketplace default (4:3 vs 5:6).
 .mel-page--home .mel-section--discover .mel-event-grid.mel-grid--events .mel-event-card--compact,
 .mel-page--home .mel-section--discover-chips .mel-event-grid.mel-grid--events .mel-event-card--compact {

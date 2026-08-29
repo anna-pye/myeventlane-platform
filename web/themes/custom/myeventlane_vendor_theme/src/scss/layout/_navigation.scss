@@ -564,6 +564,12 @@
     gap: $spacing-2;
   }
 
+  // Keep Event Studio navigation useful without spending a tenth of a phone
+  // screen on shell padding before the organiser reaches the event itself.
+  .mel-vendor-shell--studio-focus .mel-shell-header {
+    padding: $spacing-3 $spacing-4;
+  }
+
   .mel-shell-header__left {
     align-items: center;
     gap: $spacing-2;
