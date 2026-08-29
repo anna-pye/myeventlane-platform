@@ -74,4 +74,20 @@ final class PublicMobileConversionContractTest extends TestCase {
     self::assertStringNotContainsString('position: absolute !important;', $addons);
   }
 
+  public function testHomepageRemovesCompletedSkeletonsAndUsesMobileEventRail(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $skeleton = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/src/js/skeleton.js',
+    );
+    $frontPage = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/src/scss/pages/_front-page.scss',
+    );
+
+    self::assertStringContainsString('const transitionFallback = setTimeout(remove, 350);', $skeleton);
+    self::assertStringContainsString('clearTimeout(transitionFallback);', $skeleton);
+    self::assertStringContainsString('grid-auto-columns: clamp(260px, 82vw, 320px);', $frontPage);
+    self::assertStringContainsString('scroll-snap-type: inline mandatory;', $frontPage);
+  }
+
 }

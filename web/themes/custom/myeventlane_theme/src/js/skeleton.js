@@ -59,7 +59,12 @@
     grid.setAttribute('data-loaded', 'true');
     if (skeleton && skeleton.hasAttribute('data-skeleton')) {
       skeleton.classList.add('skeleton-hidden');
+      let removed = false;
       const remove = function () {
+        if (removed) {
+          return;
+        }
+        removed = true;
         skeleton.setAttribute('hidden', '');
         skeleton.style.display = 'none';
       };
@@ -68,7 +73,14 @@
         remove();
       }
       else {
-        skeleton.addEventListener('transitionend', remove, { once: true });
+        // A transitionend event is not guaranteed when the class is applied
+        // before first paint. Always remove the faded skeleton from layout so
+        // it cannot leave a large blank gap above the real event cards.
+        const transitionFallback = setTimeout(remove, 350);
+        skeleton.addEventListener('transitionend', function () {
+          clearTimeout(transitionFallback);
+          remove();
+        }, { once: true });
       }
     }
     tearDown(skeleton);

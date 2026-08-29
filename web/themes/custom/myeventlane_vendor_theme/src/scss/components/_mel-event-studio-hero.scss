@@ -312,8 +312,19 @@
 }
 
 // Mobile action row — Warm Cream continuity (not cool white admin); not sticky
-@media (max-width: 719px) {
+@media (width <= 719px) {
+  .mel-event-studio-topbar__breadcrumb,
+  .mel-event-studio-topbar__eyebrow {
+    display: none;
+  }
+
   .mel-event-studio-topbar__actions {
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scroll-snap-type: inline mandatory;
+    scrollbar-width: thin;
     background: linear-gradient(
       180deg,
       rgba(255, 247, 238, 0) 0%,
@@ -321,15 +332,40 @@
     );
   }
 
-  .mel-event-studio-topbar__actions .mel-btn--primary {
-    flex: 1 1 auto;
+  .mel-vendor-console.mel-vendor-shell .mel-event-studio--workspace .mel-event-studio-topbar__actions .mel-btn,
+  .mel-event-studio-topbar__actions .mel-btn {
+    flex: 0 0 auto;
+    scroll-snap-align: start;
+    white-space: nowrap;
+  }
+
+  // Put the next required action first; secondary utilities remain available
+  // with a horizontal swipe instead of creating three rows of buttons.
+  .mel-event-studio-topbar__primary-link {
+    order: 1;
+  }
+
+  .mel-event-studio-topbar__publish {
+    order: 2;
+  }
+
+  .mel-event-studio-topbar__view {
+    order: 3;
+  }
+
+  .mel-event-studio-topbar__share {
+    order: 4;
+  }
+
+  .mel-event-studio-topbar__manage-event {
+    order: 5;
   }
 }
 
 @container (max-width: 620px) {
   .mel-event-studio-topbar {
-    padding: $spacing-4;
+    padding: $spacing-3;
     border-radius: $radius-xl;
-    gap: $spacing-4;
+    gap: $spacing-3;
   }
 }

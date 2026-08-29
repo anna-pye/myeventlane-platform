@@ -117,4 +117,27 @@ final class OrganiserShellFocusContractTest extends TestCase {
     self::assertStringContainsString('position: static;', $support);
   }
 
+  public function testStudioMobileChromeKeepsTheWorkAreaNearTheFirstViewport(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $navigation = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/layout/_navigation.scss',
+    );
+    $hero = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-hero.scss',
+    );
+    $missionControl = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-mission-control.scss',
+    );
+
+    self::assertStringContainsString('.mel-vendor-shell--studio-focus .mel-shell-header {', $navigation);
+    self::assertStringContainsString('scroll-snap-type: inline mandatory;', $hero);
+    self::assertStringContainsString('.mel-event-studio-topbar__primary-link {', $hero);
+    self::assertStringContainsString('order: 1;', $hero);
+    self::assertStringContainsString('.mel-event-studio-mission-control__cta,', $missionControl);
+    self::assertStringContainsString('flex: 1 1 0;', $missionControl);
+    self::assertStringContainsString('flex-wrap: wrap;', $missionControl);
+    self::assertStringContainsString('.mel-event-studio-mission-control__details[open] {', $missionControl);
+    self::assertStringContainsString('flex: 1 1 100%;', $missionControl);
+  }
+
 }
