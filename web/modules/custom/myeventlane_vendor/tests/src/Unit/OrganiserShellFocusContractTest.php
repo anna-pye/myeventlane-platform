@@ -100,4 +100,21 @@ final class OrganiserShellFocusContractTest extends TestCase {
     self::assertStringContainsString('max-width: 64rem;', $studioStyles);
   }
 
+  public function testMobileShellCannotGrowPastTheViewport(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $navigation = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/layout/_navigation.scss',
+    );
+    $support = (string) file_get_contents(
+      $webRoot . '/modules/custom/myeventlane_help_centre/css/mel-support-components.css',
+    );
+
+    self::assertStringContainsString('box-sizing: border-box;', $navigation);
+    self::assertStringContainsString('width: 100%;', $navigation);
+    self::assertStringContainsString('.mel-shell-header__left {', $navigation);
+    self::assertStringContainsString('min-width: 0;', $navigation);
+    self::assertStringContainsString('.mel-mel-support-floating {', $support);
+    self::assertStringContainsString('position: static;', $support);
+  }
+
 }

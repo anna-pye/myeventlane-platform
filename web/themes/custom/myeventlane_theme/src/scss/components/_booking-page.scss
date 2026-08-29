@@ -551,7 +551,7 @@ $mel-book-layout-min: 960px;
     flex-direction: column;
   }
 
-  // Summary above ticket matrix; trust/next steps follow selection (display: contents).
+  // Let people choose tickets before presenting the live selection summary.
   .mel-book-layout:not(.mel-book-layout--single):not(.mel-book-layout--rsvp) {
     .mel-book-sidebar,
     .mel-book-sidebar__inner {
@@ -559,11 +559,11 @@ $mel-book-layout-min: 960px;
     }
 
     .mel-book-summary[data-mel-booking-summary] {
-      order: 1;
+      order: 2;
     }
 
     .mel-book-main {
-      order: 2;
+      order: 1;
     }
 
     .mel-book-trust,

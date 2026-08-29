@@ -156,4 +156,71 @@
   .mel-studio-orders__metric {
     min-height: 82px;
   }
+
+  .mel-studio-orders .mel-table {
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .mel-studio-orders .mel-table__head {
+    display: none;
+  }
+
+  .mel-studio-orders .mel-table__body {
+    display: grid;
+    gap: $spacing-4;
+  }
+
+  .mel-studio-orders .mel-table__row {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: $spacing-3;
+    border: 1px solid rgba(45, 55, 72, 0.12);
+    border-radius: 14px;
+    background: $bg-primary;
+  }
+
+  .mel-studio-orders .mel-table__row > div {
+    position: relative;
+    display: block;
+    min-height: 2rem;
+    padding: $spacing-2 0 $spacing-2 calc(5rem + #{$spacing-3});
+    border-bottom: 1px solid rgba(45, 55, 72, 0.08);
+  }
+
+  .mel-studio-orders .mel-table__row > div::before {
+    content: attr(data-label);
+    position: absolute;
+    top: $spacing-2;
+    left: 0;
+    width: 5rem;
+    color: $text-secondary;
+    font-size: 0.75rem;
+    font-weight: $font-weight-bold;
+    line-height: 1.4;
+  }
+
+  .mel-studio-orders .mel-table__row > div:last-child {
+    border-bottom: 0;
+  }
+
+  .mel-studio-orders .mel-table__row > .mel-inline-actions {
+    display: flex;
+    align-items: center;
+  }
+
+  .mel-studio-orders .mel-link--action {
+    min-height: 44px;
+  }
+
+  .mel-studio-orders .mel-table__footer {
+    margin-top: $spacing-4;
+  }
+
+  .mel-studio-orders .mel-table__footer .mel-table__row > div:empty {
+    display: none;
+  }
 }

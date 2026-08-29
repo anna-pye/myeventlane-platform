@@ -473,6 +473,9 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: $spacing-4;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
   padding: $spacing-5 $spacing-5 $spacing-4;
   background: rgba(247, 248, 250, 0.95);
   border-bottom: 1px solid $border-color-light;
@@ -485,8 +488,10 @@
 
 .mel-shell-header__left {
   display: flex;
+  flex: 1 1 auto;
   align-items: flex-start;
   gap: $spacing-3;
+  min-width: 0;
 }
 
 .mel-shell-header__studio-brand {
@@ -529,6 +534,7 @@
 .mel-shell-header__titles {
   display: grid;
   gap: $spacing-1;
+  min-width: 0;
 }
 
 .mel-shell-header__title {
@@ -547,8 +553,29 @@
 
 .mel-shell-header__actions {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: $spacing-2;
+}
+
+@media (max-width: 640px) {
+  .mel-shell-header {
+    align-items: center;
+    gap: $spacing-2;
+  }
+
+  .mel-shell-header__left {
+    align-items: center;
+    gap: $spacing-2;
+  }
+
+  .mel-shell-header__subtitle {
+    display: none;
+  }
+
+  .mel-shell-header__title {
+    overflow-wrap: anywhere;
+  }
 }
 
 .mel-vendor-shell__content {
