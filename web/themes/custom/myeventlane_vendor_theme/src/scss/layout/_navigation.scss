@@ -811,13 +811,13 @@
       &.is-active,
       &[aria-current='page'] {
         color: #293241;
-        background: #e8e6ff;
-        border-color: #d5cff8;
+        background: #fff0ec;
+        border-color: #f4c7bd;
       }
     }
 
     .mel-sidebar__link.is-active::before {
-      background: #6e7ef2;
+      background: #f26d5b;
     }
   }
 

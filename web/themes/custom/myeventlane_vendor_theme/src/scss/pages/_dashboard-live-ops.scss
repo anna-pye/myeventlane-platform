@@ -1513,7 +1513,34 @@ $mel-dash-attention-danger: #D64545;
 .mel-vendor-portfolio {
   --portfolio-border: #{rgba($mel-shell-border, 0.62)};
 
-  gap: $spacing-8;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'identity'
+    'guidance'
+    'work'
+    'outcome';
+  gap: $spacing-6;
+  align-items: start;
+
+  @include respond-to(xl) {
+    grid-template-columns: minmax(0, 1fr) minmax(17rem, 20rem);
+    grid-template-areas:
+      'identity identity'
+      'guidance outcome'
+      'work outcome';
+    column-gap: $spacing-6;
+    row-gap: $spacing-6;
+  }
+
+  &--empty {
+    @include respond-to(xl) {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        'identity'
+        'guidance';
+    }
+  }
 
   &__identity,
   &__guidance,
@@ -1524,15 +1551,16 @@ $mel-dash-attention-danger: #D64545;
   }
 
   &__identity {
+    grid-area: identity;
     display: grid;
     gap: $spacing-5;
     align-items: end;
-    padding: $spacing-8 0 $spacing-5;
+    padding: $spacing-5 0 $spacing-3;
 
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) auto;
       gap: $spacing-10;
-      padding-top: $spacing-10;
+      padding-top: $spacing-8;
     }
   }
 
@@ -1555,7 +1583,7 @@ $mel-dash-attention-danger: #D64545;
   &__title {
     margin: 0;
     color: $mel-ws-navy;
-    font-size: clamp(2rem, 6vw, 3rem);
+    font-size: clamp(1.85rem, 5vw, 2.55rem);
     font-weight: $font-weight-bold;
     letter-spacing: -0.03em;
     line-height: $line-height-tight;
@@ -1656,10 +1684,12 @@ $mel-dash-attention-danger: #D64545;
 
   &__guidance,
   &__first-event {
+    grid-area: guidance;
     padding: $spacing-5;
     border: 1px solid rgba($mel-shell-border, 0.55);
-    border-radius: $radius-xl;
-    background: $mel-ws-soft-sky;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #fff4f1 0%, #f6f3ff 100%);
+    box-shadow: 0 12px 30px rgba(41, 50, 65, 0.06);
 
     @include respond-to(md) {
       padding: $spacing-8;
@@ -1766,7 +1796,16 @@ $mel-dash-attention-danger: #D64545;
   }
 
   &__work {
-    padding-top: $spacing-2;
+    grid-area: work;
+    padding: $spacing-5;
+    border: 1px solid var(--portfolio-border);
+    border-radius: 20px;
+    background: $bg-primary;
+    box-shadow: 0 14px 34px rgba(41, 50, 65, 0.06);
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
   }
 
   &__groups,
@@ -1787,6 +1826,11 @@ $mel-dash-attention-danger: #D64545;
 
     &--past {
       margin-top: $spacing-2;
+    }
+
+    &:first-child {
+      padding-top: 0;
+      border-top: 0;
     }
   }
 
@@ -1813,7 +1857,8 @@ $mel-dash-attention-danger: #D64545;
     padding: $spacing-4;
     border: 1px solid var(--portfolio-border);
     border-radius: $radius-lg;
-    background: $bg-primary;
+    background: #fffdfb;
+    box-shadow: 0 5px 16px rgba(41, 50, 65, 0.04);
 
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) auto;
@@ -1823,6 +1868,11 @@ $mel-dash-attention-danger: #D64545;
     &:focus-within {
       outline: 3px solid rgba($primary, 0.35);
       outline-offset: 2px;
+    }
+
+    &:hover {
+      border-color: rgba($primary, 0.35);
+      box-shadow: 0 9px 22px rgba(41, 50, 65, 0.07);
     }
 
     &--quiet {
@@ -1894,8 +1944,25 @@ $mel-dash-attention-danger: #D64545;
   }
 
   &__outcome {
-    padding: $spacing-6 0 $spacing-8;
-    border-top: 1px solid var(--portfolio-border);
+    grid-area: outcome;
+    padding: $spacing-5;
+    border: 1px solid var(--portfolio-border);
+    border-radius: 20px;
+    background: $bg-primary;
+    box-shadow: 0 12px 30px rgba(41, 50, 65, 0.05);
+
+    @include respond-to(xl) {
+      position: sticky;
+      top: $spacing-20;
+    }
+
+    .mel-vendor-portfolio__section-heading {
+      margin-bottom: $spacing-3;
+
+      h2 {
+        font-size: $font-size-xl;
+      }
+    }
   }
 
   &__metrics {
@@ -1908,11 +1975,20 @@ $mel-dash-attention-danger: #D64545;
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
+    @include respond-to(xl) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     > div {
       display: grid;
       gap: $spacing-1;
       min-width: 0;
       padding: $spacing-4 0;
+      border-bottom: 1px solid var(--portfolio-border);
+
+      &:last-child {
+        border-bottom: 0;
+      }
     }
 
     dt,

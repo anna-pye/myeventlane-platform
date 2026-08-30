@@ -87,6 +87,16 @@ final class OrganiserShellFocusContractTest extends TestCase {
     self::assertStringContainsString('pointer-events: auto;', $navigation);
   }
 
+  public function testOrganiserShellUsesApprovedLightActiveState(): void {
+    $navigation = (string) file_get_contents(
+      dirname(__DIR__, 6) . '/themes/custom/myeventlane_vendor_theme/src/scss/layout/_navigation.scss',
+    );
+
+    self::assertStringContainsString('background: #fff0ec;', $navigation);
+    self::assertStringContainsString('border-color: #f4c7bd;', $navigation);
+    self::assertStringContainsString('background: #f26d5b;', $navigation);
+  }
+
   public function testStudioContentUsesWiderLeftAlignedDesktopLayout(): void {
     $webRoot = dirname(__DIR__, 6);
     $studioStyles = (string) file_get_contents(

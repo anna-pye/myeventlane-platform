@@ -19,6 +19,8 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
 
   private string $services;
 
+  private string $styles;
+
   protected function setUp(): void {
     parent::setUp();
     $webRoot = dirname(__DIR__, 6);
@@ -29,6 +31,9 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     );
     $this->services = (string) file_get_contents(
       $webRoot . '/modules/custom/myeventlane_vendor/myeventlane_vendor.services.yml',
+    );
+    $this->styles = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/pages/_dashboard-live-ops.scss',
     );
   }
 
@@ -115,6 +120,19 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
       'MyEventLane will open a dedicated workspace',
       $this->template,
     );
+  }
+
+  public function testApprovedDashboardHierarchyIsPresentationOnly(): void {
+    $this->assertStringContainsString("grid-template-areas:", $this->styles);
+    $this->assertStringContainsString("'identity identity'", $this->styles);
+    $this->assertStringContainsString("'guidance outcome'", $this->styles);
+    $this->assertStringContainsString("'work outcome'", $this->styles);
+    $this->assertStringContainsString('grid-area: work;', $this->styles);
+    $this->assertStringContainsString('grid-area: outcome;', $this->styles);
+
+    $this->assertStringContainsString('model.priority_action|default(null)', $this->template);
+    $this->assertStringContainsString('model.events|default([])', $this->template);
+    $this->assertStringContainsString('model.kpis|default([])', $this->template);
   }
 
 }
