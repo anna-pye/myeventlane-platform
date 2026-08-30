@@ -118,6 +118,52 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
   }
 
   /**
+   * Renames one organiser-owned reusable setup without changing event tickets.
+   *
+   * @return bool
+   *   TRUE when the title changed, otherwise FALSE.
+   */
+  public function renameReusableTicketSetup(
+    TicketTypeInterface $setup,
+    AccountInterface $account,
+    string $title,
+  ): bool {
+    $this->assertManageableReusableTicketSetup($setup, $account);
+    $title = trim($title);
+    if ($title === '') {
+      throw new InvalidArgumentException('Saved ticket setup names cannot be empty.');
+    }
+    if (mb_strlen($title) > 255) {
+      throw new InvalidArgumentException('Saved ticket setup names cannot exceed 255 characters.');
+    }
+    if ($setup->getTitle() === $title) {
+      return FALSE;
+    }
+
+    $setup->set('title', $title);
+    // Reassert privacy whenever a reusable setup is changed.
+    $setup->set('status', FALSE);
+    $setup->save();
+    return TRUE;
+  }
+
+  /**
+   * Removes one organiser-owned setup from the reusable library safely.
+   *
+   * The entity is archived, not deleted. Event tickets already created from
+   * it remain independent and keep their template-source audit reference.
+   */
+  public function archiveReusableTicketSetup(
+    TicketTypeInterface $setup,
+    AccountInterface $account,
+  ): void {
+    $this->assertManageableReusableTicketSetup($setup, $account);
+    $setup->set('status', FALSE);
+    $setup->set('lifecycle_status', TicketTypeInterface::LIFECYCLE_ARCHIVED);
+    $setup->save();
+  }
+
+  /**
    * Saves a private configuration-only setup from an event ticket.
    *
    * Capacity, sales windows, attendee questions, order history, event IDs and
@@ -348,6 +394,22 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
       return $setup->getExternalUrlString() === $expectedUrl;
     }
     return TRUE;
+  }
+
+  /**
+   * Ensures setup-library changes stay inside the current organiser account.
+   */
+  private function assertManageableReusableTicketSetup(
+    TicketTypeInterface $setup,
+    AccountInterface $account,
+  ): void {
+    if ((int) $setup->id() < 1
+      || (int) $account->id() < 1
+      || !$setup->isReusable()
+      || $setup->isArchived()
+      || (int) $setup->get('vendor_id')->target_id !== (int) $account->id()) {
+      throw new InvalidArgumentException('That saved ticket setup is not available to this user.');
+    }
   }
 
   /**

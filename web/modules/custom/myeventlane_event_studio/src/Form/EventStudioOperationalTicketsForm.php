@@ -597,6 +597,70 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $form['new_ticket']['quick_add'] = $form['quick_add'];
     unset($form['quick_add']);
 
+    if ($saved_setups !== []) {
+      $setup_manager_open = FALSE;
+      foreach (array_keys($form_state->getErrors()) as $error_name) {
+        if (str_contains((string) $error_name, 'saved_setup_manager')) {
+          $setup_manager_open = TRUE;
+          break;
+        }
+      }
+      $form['new_ticket']['saved_setups']['manage'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Manage saved setups'),
+        '#open' => $setup_manager_open,
+        '#attributes' => ['class' => ['mel-event-studio-saved-ticket-manager']],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Rename a setup or remove it from this list. Tickets already created from it will not change.'),
+          '#attributes' => ['class' => ['mel-event-studio-saved-ticket-manager__copy']],
+        ],
+        'items' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-event-studio-saved-ticket-manager__items']],
+        ],
+      ];
+      foreach ($saved_setups as $setup_id => $setup) {
+        $setup_price = $setup->toPriceValue();
+        $setup_summary = match ($setup->getTicketKind()) {
+          'paid' => $setup_price !== NULL
+            ? $this->t('Paid · A$@amount', ['@amount' => number_format((float) $setup_price->getNumber(), 2, '.', '')])
+            : $this->t('Paid'),
+          'rsvp' => $this->t('Free RSVP'),
+          default => $this->t('External link'),
+        };
+        $form['new_ticket']['saved_setups']['manage']['items'][$setup_id] = [
+          '#type' => 'container',
+          '#attributes' => [
+            'class' => ['mel-event-studio-saved-ticket-manager__item'],
+            'data-mel-saved-ticket-manager-row' => (string) $setup_id,
+          ],
+          'title' => [
+            '#type' => 'textfield',
+            '#title' => $this->t('Setup name'),
+            '#default_value' => $setup->getTitle(),
+            '#maxlength' => 255,
+            '#required' => FALSE,
+            '#parents' => ['saved_setup_manager', (string) $setup_id, 'title'],
+          ],
+          'meta' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $setup_summary,
+            '#attributes' => ['class' => ['mel-event-studio-saved-ticket-manager__meta']],
+          ],
+          'remove' => [
+            '#type' => 'checkbox',
+            '#title' => $this->t('Remove from saved setups'),
+            '#default_value' => FALSE,
+            '#parents' => ['saved_setup_manager', (string) $setup_id, 'remove'],
+            '#attributes' => ['data-mel-saved-ticket-setup-remove' => '1'],
+          ],
+        ];
+      }
+    }
+
     $form['sticky_add'] = [
       '#type' => 'container',
       '#attributes' => [
@@ -705,6 +769,40 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     $new = $form_state->getValue('new_ticket');
+    $selected_setup_id = is_array($new) ? (int) ($new['setup_id'] ?? 0) : 0;
+    foreach ($this->submittedReusableSetupRows($form_state) as $setup_id => $row) {
+      $setup = $this->ticketTierLifecycle->loadReusableTicketSetupForAccount($setup_id, $this->currentUser);
+      if (!$setup instanceof TicketTypeInterface) {
+        $form_state->setErrorByName(
+          'saved_setup_manager][' . $setup_id,
+          $this->t('That saved ticket setup is no longer available.'),
+        );
+        continue;
+      }
+      $title = trim((string) ($row['title'] ?? ''));
+      $remove = !empty($row['remove']);
+      if (!$remove && $title === '') {
+        $form_state->setErrorByName(
+          'saved_setup_manager][' . $setup_id . '][title',
+          $this->t('Enter a name for this saved ticket setup.'),
+        );
+      }
+      elseif (!$remove && mb_strlen($title) > 255) {
+        $form_state->setErrorByName(
+          'saved_setup_manager][' . $setup_id . '][title',
+          $this->t('Saved ticket setup names cannot exceed 255 characters.'),
+        );
+      }
+
+      $setup_is_changing = $remove || $title !== $setup->getTitle();
+      if ($setup_is_changing && $selected_setup_id === $setup_id) {
+        $form_state->setErrorByName(
+          'new_ticket][setup_id',
+          $this->t('Save setup-library changes first, then use that saved setup to add a ticket.'),
+        );
+      }
+    }
+
     if (is_array($new) && !empty($new['setup_id'])) {
       $setup = $this->ticketTierLifecycle->loadReusableTicketSetupForAccount((int) $new['setup_id'], $this->currentUser);
       if (!$setup instanceof TicketTypeInterface) {
@@ -744,6 +842,8 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $this->assertCanManageEvent($event);
 
     $saved_setup_count = 0;
+    $renamed_setup_count = 0;
+    $removed_setup_count = 0;
     try {
       foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
         $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
@@ -826,6 +926,25 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $created->id());
       }
 
+      foreach ($this->submittedReusableSetupRows($form_state) as $setup_id => $row) {
+        $setup = $this->ticketTierLifecycle->loadReusableTicketSetupForAccount($setup_id, $this->currentUser);
+        if (!$setup instanceof TicketTypeInterface) {
+          throw new \InvalidArgumentException('That saved ticket setup is no longer available.');
+        }
+        if (!empty($row['remove'])) {
+          $this->ticketTierLifecycle->archiveReusableTicketSetup($setup, $this->currentUser);
+          $removed_setup_count++;
+          continue;
+        }
+        if ($this->ticketTierLifecycle->renameReusableTicketSetup(
+          $setup,
+          $this->currentUser,
+          (string) ($row['title'] ?? ''),
+        )) {
+          $renamed_setup_count++;
+        }
+      }
+
       $this->ticketTierLifecycle->reconcileEventTicketReferences($event);
     }
     catch (\Throwable $e) {
@@ -845,6 +964,20 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $saved_setup_count,
         'Reusable ticket setup saved. It contains configuration only — no sales, capacity, attendee or order data.',
         '@count reusable ticket setups saved. They contain configuration only — no sales, capacity, attendee or order data.',
+      ));
+    }
+    if ($renamed_setup_count > 0) {
+      $this->messenger()->addStatus($this->formatPlural(
+        $renamed_setup_count,
+        'Saved ticket setup renamed. Existing event tickets were not changed.',
+        '@count saved ticket setups renamed. Existing event tickets were not changed.',
+      ));
+    }
+    if ($removed_setup_count > 0) {
+      $this->messenger()->addStatus($this->formatPlural(
+        $removed_setup_count,
+        'Saved ticket setup removed from your list. Existing event tickets were not changed.',
+        '@count saved ticket setups removed from your list. Existing event tickets were not changed.',
       ));
     }
     $form_state->setRedirect('myeventlane_event_studio.workspace_tickets', [
@@ -1394,6 +1527,27 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $row['save_as_setup'] = !empty($row['actions']['save_as_setup']) ? 1 : 0;
       }
       $out[(int) $ticket_id] = $row;
+    }
+    return $out;
+  }
+
+  /**
+   * @return array<int, array{title: string, remove: bool}>
+   */
+  private function submittedReusableSetupRows(FormStateInterface $form_state): array {
+    $rows = $form_state->getValue('saved_setup_manager') ?? [];
+    if (!is_array($rows)) {
+      return [];
+    }
+    $out = [];
+    foreach ($rows as $setup_id => $row) {
+      if (!is_numeric($setup_id) || !is_array($row)) {
+        continue;
+      }
+      $out[(int) $setup_id] = [
+        'title' => trim((string) ($row['title'] ?? '')),
+        'remove' => !empty($row['remove']),
+      ];
     }
     return $out;
   }

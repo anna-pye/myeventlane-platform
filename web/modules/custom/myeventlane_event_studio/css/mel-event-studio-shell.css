@@ -8356,6 +8356,67 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   margin: 10px 0 0;
 }
 
+.mel-event-studio .mel-event-studio-saved-ticket-manager {
+  margin-top: 12px;
+  border: 0;
+  border-top: 1px solid rgba(110, 126, 242, 0.2);
+  border-radius: 0;
+  background: transparent;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager > summary {
+  min-height: 42px;
+  padding: 11px 2px 8px;
+  color: #4f46a5;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__copy {
+  margin: 2px 0 10px;
+  color: #625ca0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__items {
+  display: grid;
+  gap: 8px;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__item {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto minmax(11rem, auto);
+  gap: 10px;
+  align-items: end;
+  padding: 10px;
+  border: 1px solid rgba(110, 126, 242, 0.16);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__item .form-item {
+  margin: 0;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__meta {
+  align-self: center;
+  color: #625ca0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__item .form-type-checkbox {
+  align-self: center;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-manager__item .form-type-checkbox label {
+  color: #8f3b32;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
 .mel-event-studio .mel-event-studio-ticket-add .mel-event-studio-ticket-quick-add__choices {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -8400,6 +8461,11 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 }
 
 @container (max-width: 40rem) {
+  .mel-event-studio .mel-event-studio-saved-ticket-manager__item {
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+
   .mel-event-studio .mel-event-studio-ticket-add .mel-event-studio-ticket-quick-add__choices {
     grid-template-columns: minmax(0, 1fr);
   }

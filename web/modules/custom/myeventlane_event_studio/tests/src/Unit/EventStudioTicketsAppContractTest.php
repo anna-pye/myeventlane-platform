@@ -113,12 +113,19 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('updateAndSaveReusableTicketSetup', $form);
     $this->assertStringContainsString('cloneFromReusableTemplate', $form);
     $this->assertStringContainsString('Sales, capacity, attendees and orders are never copied.', $form);
+    $this->assertStringContainsString('Manage saved setups', $form);
+    $this->assertStringContainsString('Remove from saved setups', $form);
+    $this->assertStringContainsString('Tickets already created from it will not change.', $form);
+    $this->assertStringContainsString('submittedReusableSetupRows', $form);
+    $this->assertStringContainsString('renameReusableTicketSetup', $form);
+    $this->assertStringContainsString('archiveReusableTicketSetup', $form);
 
     $this->assertNotFalse($javascript);
     $this->assertStringContainsString('function applySavedTicketSetup(select)', $javascript);
     $this->assertStringContainsString("assign('[name=\"new_ticket[capacity]\"]', '', 'input')", $javascript);
     $this->assertStringContainsString("hydrated.value = '1'", $javascript);
     $this->assertStringContainsString('reusable_ticket_setup_selected', $javascript);
+    $this->assertStringContainsString('mel-saved-ticket-setup-remove-safe-default', $javascript);
 
     $this->assertNotFalse($lifecycle);
     $this->assertStringContainsString('function saveReusableTicketSetupFromTicket', $lifecycle);
@@ -126,6 +133,15 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString("\$values['template_source'] = ['target_id' => (int) \$template->id()]", $lifecycle);
     $this->assertStringContainsString("'commerce_variation' => NULL", $lifecycle);
     $this->assertStringContainsString("'event' => NULL", $lifecycle);
+    $this->assertStringContainsString('function renameReusableTicketSetup', $lifecycle);
+    $this->assertStringContainsString('function archiveReusableTicketSetup', $lifecycle);
+    $archiveStart = strpos($lifecycle, 'public function archiveReusableTicketSetup');
+    $archiveEnd = strpos($lifecycle, 'public function saveReusableTicketSetupFromTicket');
+    $this->assertNotFalse($archiveStart);
+    $this->assertNotFalse($archiveEnd);
+    $archiveMethod = substr($lifecycle, $archiveStart, $archiveEnd - $archiveStart);
+    $this->assertStringContainsString("TicketTypeInterface::LIFECYCLE_ARCHIVED", $archiveMethod);
+    $this->assertStringNotContainsString('->delete()', $archiveMethod);
 
     $saveStart = strpos($lifecycle, 'private function reusableTicketSetupValues');
     $saveEnd = strpos($lifecycle, 'private function reusableTicketSetupMatches');

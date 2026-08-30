@@ -243,6 +243,10 @@
         checkbox.checked = false;
       });
 
+      once('mel-saved-ticket-setup-remove-safe-default', '[data-mel-saved-ticket-setup-remove]', context).forEach((checkbox) => {
+        checkbox.checked = false;
+      });
+
       once('mel-tickets-advanced-tools', '.mel-event-studio-advanced-tools', context).forEach((details) => {
         details.addEventListener('toggle', () => {
           if (!details.open) {
