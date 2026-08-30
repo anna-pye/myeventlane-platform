@@ -62,6 +62,7 @@ final class EventStudioTicketsAppContractTest extends TestCase {
 
   public function testCompactWorkspaceOverridesTheLegacyWideGrid(): void {
     $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
+    $libraries = file_get_contents($this->moduleRoot() . '/myeventlane_event_studio.libraries.yml');
     $theme_scss = file_get_contents(
       dirname($this->moduleRoot(), 4) . '/web/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-ticket-hierarchy.scss',
     );
@@ -74,11 +75,19 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('flex-direction: column;', $css);
     $this->assertStringContainsString('grid-template-columns: none;', $css);
     $this->assertStringContainsString('.mel-event-studio-ticket-workspace > *', $css);
+    $this->assertStringContainsString('@media (max-width: 1199px)', $css);
+    $this->assertStringContainsString(".mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets", $css);
+    $this->assertStringContainsString('order: 5;', $css);
+
+    $this->assertNotFalse($libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.25", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.14", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
     $this->assertStringContainsString('display: flex;', $theme_scss);
     $this->assertStringContainsString('flex-direction: column;', $theme_scss);
+    $this->assertStringContainsString('@media (max-width: 1199px)', $theme_scss);
   }
 
   public function testQuickAddPresetsPopulateTheExistingTicketFormWithoutSaving(): void {

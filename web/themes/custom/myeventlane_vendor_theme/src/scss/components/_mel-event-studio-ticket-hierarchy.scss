@@ -475,3 +475,46 @@
     grid-column: auto;
   }
 }
+
+/* Keep the compiled vendor theme safe when the module shell is unavailable. */
+@media (max-width: 1199px) {
+  .mel-event-studio--workspace
+    .mel-event-studio-operational-tickets {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    grid-template-areas: none;
+    grid-template-columns: none;
+    min-height: 0;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-ticket-selector {
+    order: 1;
+    border-right: 0;
+    border-bottom: 1px solid $mel-ws-border-soft;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-ticket-cards {
+    order: 2;
+    min-height: 0;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-ticket-add {
+    order: 3;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-operational-tickets
+    > .mel-event-ticket-preview {
+    order: 4;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-operational-tickets
+    > .form-actions {
+    order: 5;
+  }
+}
