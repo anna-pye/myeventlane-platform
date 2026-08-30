@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'orders',
   title: 'Orders',
-  group: 'Workspace',
+  group: 'Sales',
   routeName: 'myeventlane_event_studio.workspace_orders',
   section_state: 'readonly',
-  weight: 90,
+  weight: 40,
   icon: 'orders',
   renderTarget: 'readonly_summary',
   writable: FALSE,

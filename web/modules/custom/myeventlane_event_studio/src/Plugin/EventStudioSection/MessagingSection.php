@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'messaging',
   title: 'Messages',
-  group: 'Workspace',
+  group: 'Run the event',
   routeName: 'myeventlane_event_studio.workspace_messaging',
   section_state: 'active',
-  weight: 70,
+  weight: 20,
   icon: 'promotions',
   routeFragment: 'messages',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\MessagingForm',

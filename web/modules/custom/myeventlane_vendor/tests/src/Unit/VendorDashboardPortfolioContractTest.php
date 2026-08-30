@@ -19,6 +19,8 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
 
   private string $services;
 
+  private string $styles;
+
   protected function setUp(): void {
     parent::setUp();
     $webRoot = dirname(__DIR__, 6);
@@ -30,12 +32,15 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     $this->services = (string) file_get_contents(
       $webRoot . '/modules/custom/myeventlane_vendor/myeventlane_vendor.services.yml',
     );
+    $this->styles = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/pages/_dashboard-live-ops.scss',
+    );
   }
 
   public function testDashboardUsesCanonicalPriorityAndWorkspaceLinks(): void {
     $this->assertStringContainsString('model.priority_action|default(null)', $this->template);
     $this->assertStringContainsString('href="{{ links.manage }}"', $this->template);
-    $this->assertStringContainsString("{{ 'Open workspace'|t }}", $this->template);
+    $this->assertStringContainsString("'Open workspace'|t", $this->template);
     $this->assertStringContainsString(
       "'manage' => \$this->safeUrlFromRoute('myeventlane_vendor.console.event_workspace', ['event' => \$nid]",
       $this->builder,
@@ -91,8 +96,8 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     }
     $this->assertStringContainsString('MAX_EVENTS_PER_LIFECYCLE', $this->builder);
     $this->assertStringContainsString("'event_portfolio' => [", $this->builder);
-    $this->assertStringContainsString('lifecycle_counts', $this->template);
-    $this->assertStringContainsString("'Archived'|t", $this->template);
+    $this->assertStringContainsString("path('myeventlane_vendor.console.events')", $this->template);
+    $this->assertStringContainsString("{{ 'View all events'|t }}", $this->template);
   }
 
   public function testReadyIsNotInferredFromScheduledState(): void {
@@ -103,10 +108,7 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
   }
 
   public function testNewOrganiserReceivesOneGuidedCreateAction(): void {
-    $this->assertStringContainsString(
-      '{% if create_url and not events_empty %}',
-      $this->template,
-    );
+    $this->assertStringContainsString('create_url = create_action.url', $this->template);
     $this->assertStringContainsString(
       'mel-vendor-portfolio__first-event',
       $this->template,
@@ -115,6 +117,40 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
       'MyEventLane will open a dedicated workspace',
       $this->template,
     );
+  }
+
+  public function testApprovedDashboardHierarchyIsPresentationOnly(): void {
+    $this->assertStringContainsString("data-mel-dashboard-slice=\"approved-mockup\"", $this->template);
+    $this->assertStringContainsString('mel-vendor-portfolio__dashboard-grid', $this->template);
+    $this->assertStringContainsString('mel-vendor-portfolio__primary', $this->template);
+    $this->assertStringContainsString('mel-vendor-portfolio__rail', $this->template);
+    $this->assertStringContainsString("grid-template-areas:\n    'identity'\n    'dashboard';", $this->styles);
+
+    $this->assertStringContainsString('model.priority_action|default(null)', $this->template);
+    $this->assertStringContainsString('model.events|default([])', $this->template);
+    $this->assertStringContainsString('model.kpis|default([])', $this->template);
+  }
+
+  public function testApprovedRailUsesExistingOperationalData(): void {
+    $this->assertStringContainsString(
+      'has_outcome = kpis is iterable and kpis|length > 0',
+      $this->template,
+    );
+    $this->assertStringContainsString('dashboard_overnight_booking_count|default(0)', $this->template);
+    $this->assertStringContainsString('upcoming_count|default(0)', $this->template);
+    $this->assertStringContainsString('stripe_summary.status_message', $this->template);
+    $this->assertStringContainsString("{{ 'Open payments'|t }}", $this->template);
+    $this->assertStringContainsString("{{ 'Open support'|t }}", $this->template);
+  }
+
+  public function testDashboardSummaryStaysCompactAndLinksToFullPortfolio(): void {
+    $this->assertStringContainsString(
+      'grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);',
+      $this->styles,
+    );
+    $this->assertStringContainsString('dashboard_events|length < 2', $this->template);
+    $this->assertStringContainsString("event.lifecycle_state|default('') == 'draft' ? 'Continue setup'|t : 'Open workspace'|t", $this->template);
+    $this->assertStringNotContainsString('min-height: 14.5rem;', $this->styles);
   }
 
 }

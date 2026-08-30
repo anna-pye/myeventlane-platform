@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'marketing',
   title: 'Marketing',
-  group: 'Workspace',
+  group: 'Run the event',
   routeName: 'myeventlane_event_studio.workspace_marketing',
   section_state: 'active',
-  weight: 80,
+  weight: 30,
   icon: 'marketing',
   renderTarget: 'marketing_hub',
   writable: FALSE,

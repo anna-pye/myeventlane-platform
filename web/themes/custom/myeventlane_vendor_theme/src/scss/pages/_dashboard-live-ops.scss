@@ -1513,7 +1513,36 @@ $mel-dash-attention-danger: #D64545;
 .mel-vendor-portfolio {
   --portfolio-border: #{rgba($mel-shell-border, 0.62)};
 
-  gap: $spacing-8;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'identity'
+    'guidance'
+    'work'
+    'outcome';
+  gap: $spacing-6;
+  align-items: start;
+
+  &--has-outcome {
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+      grid-template-areas:
+        'identity identity'
+        'guidance outcome'
+        'work outcome';
+      column-gap: $spacing-6;
+      row-gap: $spacing-6;
+    }
+  }
+
+  &--empty {
+    @include respond-to(xl) {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-areas:
+        'identity'
+        'guidance';
+    }
+  }
 
   &__identity,
   &__guidance,
@@ -1524,15 +1553,16 @@ $mel-dash-attention-danger: #D64545;
   }
 
   &__identity {
+    grid-area: identity;
     display: grid;
     gap: $spacing-5;
     align-items: end;
-    padding: $spacing-8 0 $spacing-5;
+    padding: $spacing-5 0 $spacing-3;
 
     @include respond-to(md) {
       grid-template-columns: minmax(0, 1fr) auto;
       gap: $spacing-10;
-      padding-top: $spacing-10;
+      padding-top: $spacing-8;
     }
   }
 
@@ -1555,7 +1585,7 @@ $mel-dash-attention-danger: #D64545;
   &__title {
     margin: 0;
     color: $mel-ws-navy;
-    font-size: clamp(2rem, 6vw, 3rem);
+    font-size: clamp(1.85rem, 5vw, 2.55rem);
     font-weight: $font-weight-bold;
     letter-spacing: -0.03em;
     line-height: $line-height-tight;
@@ -1656,13 +1686,37 @@ $mel-dash-attention-danger: #D64545;
 
   &__guidance,
   &__first-event {
+    grid-area: guidance;
     padding: $spacing-5;
     border: 1px solid rgba($mel-shell-border, 0.55);
-    border-radius: $radius-xl;
-    background: $mel-ws-soft-sky;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #fff4f1 0%, #f6f3ff 100%);
+    box-shadow: 0 12px 30px rgba(41, 50, 65, 0.06);
 
     @include respond-to(md) {
       padding: $spacing-8;
+    }
+  }
+
+  &__guidance {
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      position: absolute;
+      top: -4.5rem;
+      right: -3rem;
+      width: 12rem;
+      height: 12rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba($mel-dash-lavender, 0.18), transparent 68%);
+      content: '';
+      pointer-events: none;
+    }
+
+    > * {
+      position: relative;
+      z-index: 1;
     }
   }
 
@@ -1766,39 +1820,98 @@ $mel-dash-attention-danger: #D64545;
   }
 
   &__work {
-    padding-top: $spacing-2;
+    grid-area: work;
+    padding: $spacing-6;
+    border: 1px solid rgba($mel-shell-border, 0.48);
+    border-radius: 24px;
+    background: rgba(#fffdfb, 0.9);
+    box-shadow: 0 18px 42px rgba(41, 50, 65, 0.07);
+
+    @include respond-to(md) {
+      padding: $spacing-8;
+    }
   }
 
-  &__groups,
+  &__groups {
+    display: grid;
+    gap: $spacing-8;
+  }
+
   &__event-list {
     display: grid;
     gap: $spacing-4;
+
+    @include respond-to(lg) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  &--has-outcome &__event-list {
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    @include respond-to(2xl) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   &__group {
+    --portfolio-group-accent: #{$primary};
+    --portfolio-group-wash: #{rgba($primary, 0.06)};
+
     display: grid;
-    gap: $spacing-3;
-    padding-top: $spacing-5;
-    border-top: 1px solid var(--portfolio-border);
+    gap: $spacing-4;
+    padding-top: $spacing-8;
+    border-top: 1px solid rgba($mel-shell-border, 0.5);
 
     &--attention {
-      border-top-color: rgba($warning, 0.55);
+      --portfolio-group-accent: #{$warning};
+      --portfolio-group-wash: #{rgba($warning, 0.08)};
+      border-top-color: rgba($warning, 0.5);
     }
 
-    &--past {
-      margin-top: $spacing-2;
+    &--live {
+      --portfolio-group-accent: #{$success};
+      --portfolio-group-wash: #{rgba($success, 0.07)};
+    }
+
+    &--draft,
+    &--upcoming {
+      --portfolio-group-accent: #{$mel-dash-lavender};
+      --portfolio-group-wash: #{rgba($mel-dash-lavender, 0.07)};
+    }
+
+    &--completed,
+    &--cancelled,
+    &--archived {
+      --portfolio-group-accent: #{$text-muted};
+      --portfolio-group-wash: #{rgba($text-muted, 0.05)};
+    }
+
+    &:first-child {
+      padding-top: 0;
+      border-top: 0;
     }
   }
 
   &__group-heading {
     display: grid;
-    gap: $spacing-1;
+    gap: $spacing-2;
+    padding-left: $spacing-4;
+    border-left: 4px solid var(--portfolio-group-accent);
 
     h3 {
       margin: 0;
       color: $mel-ws-navy;
-      font-size: $font-size-lg;
+      font-size: $font-size-xl;
       line-height: $line-height-tight;
+
+      span {
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+      }
     }
 
     p {
@@ -1809,15 +1922,17 @@ $mel-dash-attention-danger: #D64545;
   &__event-summary {
     display: grid;
     gap: $spacing-4;
-    align-items: center;
-    padding: $spacing-4;
-    border: 1px solid var(--portfolio-border);
-    border-radius: $radius-lg;
-    background: $bg-primary;
+    align-content: space-between;
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.58);
+    border-top: 4px solid var(--portfolio-group-accent);
+    border-radius: 18px;
+    background: linear-gradient(155deg, var(--portfolio-group-wash) 0%, #fffdfb 38%);
+    box-shadow: 0 8px 22px rgba(41, 50, 65, 0.055);
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 
-    @include respond-to(md) {
-      grid-template-columns: minmax(0, 1fr) auto;
-      padding: $spacing-5;
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
     }
 
     &:focus-within {
@@ -1825,9 +1940,16 @@ $mel-dash-attention-danger: #D64545;
       outline-offset: 2px;
     }
 
+    &:hover {
+      border-color: rgba($primary, 0.35);
+      border-top-color: var(--portfolio-group-accent);
+      box-shadow: 0 14px 28px rgba(41, 50, 65, 0.09);
+      transform: translateY(-2px);
+    }
+
     &--quiet {
-      background: rgba($bg-primary, 0.68);
-      opacity: 0.88;
+      background: rgba($bg-primary, 0.72);
+      box-shadow: none;
     }
   }
 
@@ -1838,6 +1960,12 @@ $mel-dash-attention-danger: #D64545;
     align-items: start;
     min-width: 0;
 
+    .mel-event-card-thumb {
+      width: 80px;
+      height: 80px;
+      border-radius: $radius-lg;
+    }
+
     > div:last-child {
       display: grid;
       gap: $spacing-1;
@@ -1847,7 +1975,7 @@ $mel-dash-attention-danger: #D64545;
     h4 {
       margin: 0;
       color: $mel-ws-navy;
-      font-size: $font-size-base;
+      font-size: $font-size-lg;
       line-height: $line-height-tight;
       overflow-wrap: anywhere;
     }
@@ -1886,16 +2014,30 @@ $mel-dash-attention-danger: #D64545;
   &__open {
     width: 100%;
     justify-content: center;
-
-    @include respond-to(md) {
-      width: auto;
-      min-width: 10rem;
-    }
+    border-color: rgba($primary, 0.28);
+    background: rgba(#fff, 0.86);
   }
 
   &__outcome {
-    padding: $spacing-6 0 $spacing-8;
-    border-top: 1px solid var(--portfolio-border);
+    grid-area: outcome;
+    padding: $spacing-5;
+    border: 1px solid var(--portfolio-border);
+    border-radius: 20px;
+    background: $bg-primary;
+    box-shadow: 0 12px 30px rgba(41, 50, 65, 0.05);
+
+    @include respond-to(lg) {
+      position: sticky;
+      top: $spacing-20;
+    }
+
+    .mel-vendor-portfolio__section-heading {
+      margin-bottom: $spacing-3;
+
+      h2 {
+        font-size: $font-size-xl;
+      }
+    }
   }
 
   &__metrics {
@@ -1908,11 +2050,20 @@ $mel-dash-attention-danger: #D64545;
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     > div {
       display: grid;
       gap: $spacing-1;
       min-width: 0;
       padding: $spacing-4 0;
+      border-bottom: 1px solid var(--portfolio-border);
+
+      &:last-child {
+        border-bottom: 0;
+      }
     }
 
     dt,
@@ -1933,6 +2084,299 @@ $mel-dash-attention-danger: #D64545;
       font-size: clamp(1.35rem, 4vw, 1.75rem);
       font-weight: $font-weight-bold;
       line-height: $line-height-tight;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Approved organiser-home composition.
+// The dashboard is a short portfolio summary; the Events route remains the
+// complete lifecycle catalogue and every row still opens its event workspace.
+// ---------------------------------------------------------------------------
+
+.mel-vendor-portfolio[data-mel-dashboard-slice='approved-mockup'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'identity'
+    'dashboard';
+  gap: $spacing-6;
+
+  .mel-vendor-portfolio__identity {
+    grid-area: identity;
+    grid-template-columns: minmax(0, 1fr);
+    padding: $spacing-5 0 0;
+  }
+
+  .mel-vendor-portfolio__identity-copy {
+    max-width: 54rem;
+  }
+
+  .mel-vendor-portfolio__title {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+  }
+
+  .mel-vendor-portfolio__dashboard-grid {
+    grid-area: dashboard;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-5;
+    min-width: 0;
+
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+      align-items: start;
+    }
+  }
+
+  .mel-vendor-portfolio__primary,
+  .mel-vendor-portfolio__rail {
+    display: grid;
+    gap: $spacing-5;
+    min-width: 0;
+  }
+
+  .mel-vendor-portfolio__guidance,
+  .mel-vendor-portfolio__work,
+  .mel-vendor-portfolio__outcome {
+    grid-area: auto;
+    border-radius: 20px;
+  }
+
+  .mel-vendor-portfolio__guidance {
+    padding: $spacing-5;
+    border: 1px solid rgba(#76a9e8, 0.32);
+    background: rgba($mel-ws-soft-sky, 0.88);
+    box-shadow: none;
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .mel-vendor-portfolio__priority {
+    gap: $spacing-5;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
+  .mel-vendor-portfolio__priority-copy {
+    gap: $spacing-2;
+
+    h2 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: clamp(1.35rem, 3vw, 1.7rem);
+      line-height: $line-height-tight;
+    }
+  }
+
+  .mel-vendor-portfolio__all-clear {
+    display: grid;
+    gap: $spacing-2;
+    padding: 0;
+
+    h2 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-xl;
+    }
+  }
+
+  .mel-vendor-portfolio__secondary-guidance {
+    margin-top: $spacing-4;
+  }
+
+  .mel-vendor-portfolio__work,
+  .mel-vendor-portfolio__outcome {
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.68);
+    background: rgba(#fff, 0.94);
+    box-shadow: none;
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
+  }
+
+  .mel-vendor-portfolio__section-heading {
+    margin-bottom: $spacing-4;
+    align-items: start;
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.35rem, 3vw, 1.7rem);
+    }
+
+    > a {
+      min-height: 44px;
+      align-items: center;
+    }
+  }
+
+  .mel-vendor-portfolio__event-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    border-top: 1px solid rgba($mel-shell-border, 0.62);
+  }
+
+  .mel-vendor-portfolio__event-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-4;
+    align-items: center;
+    padding: $spacing-4 0;
+    border: 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.62);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    &:hover {
+      border-color: rgba($mel-shell-border, 0.62);
+      box-shadow: none;
+      transform: none;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  .mel-vendor-portfolio__event-identity {
+    gap: $spacing-3;
+
+    .mel-event-card-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: $radius-md;
+    }
+
+    h3 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-base;
+      line-height: $line-height-tight;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .mel-vendor-portfolio__event-signals {
+    margin-top: $spacing-1;
+  }
+
+  .mel-vendor-portfolio__open {
+    width: 100%;
+    min-width: 0;
+    background: #fff;
+
+    @include respond-to(md) {
+      width: auto;
+      min-width: 9.5rem;
+    }
+  }
+
+  .mel-vendor-portfolio__outcome {
+    position: static;
+    top: auto;
+  }
+
+  .mel-vendor-portfolio__metrics {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-3;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    > div {
+      gap: $spacing-2;
+      padding: $spacing-4;
+      border: 0;
+      border-radius: $radius-lg;
+      background: #f8f4f1;
+    }
+
+    dd {
+      font-size: clamp(1.35rem, 4vw, 1.8rem);
+    }
+  }
+
+  .mel-vendor-portfolio__rail {
+    align-content: start;
+
+    @include respond-to(lg) {
+      position: sticky;
+      top: $spacing-20;
+    }
+  }
+
+  .mel-vendor-portfolio__rail-card {
+    display: grid;
+    gap: $spacing-3;
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.7);
+    border-radius: 18px;
+    background: rgba(#fff, 0.94);
+
+    h2 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-xl;
+      line-height: $line-height-tight;
+    }
+
+    p {
+      margin: 0;
+      color: $text-secondary;
+      line-height: $line-height-relaxed;
+    }
+
+    .mel-btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+  }
+
+  .mel-vendor-portfolio__today-list {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+
+    > div {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: $spacing-2;
+      align-items: baseline;
+    }
+
+    dt {
+      grid-column: 2;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+    }
+
+    dd {
+      grid-column: 1;
+      grid-row: 1;
+      margin: 0;
+      color: $mel-ws-navy;
+      font-weight: $font-weight-bold;
       font-variant-numeric: tabular-nums;
     }
   }

@@ -688,9 +688,9 @@
   &.mel-vendor-shell--dashboard {
     .mel-shell-header--dashboard {
       padding-block: $spacing-3;
-      border-bottom-color: transparent;
-      background: transparent;
-      backdrop-filter: none;
+      border-bottom-color: #e9e3de;
+      background: rgba(255, 253, 251, 0.98);
+      backdrop-filter: blur(10px);
 
       @include respond-to(md) {
         padding-block: $spacing-4;
@@ -703,6 +703,38 @@
 
     .mel-shell-header--dashboard .mel-shell-header__actions {
       margin-left: auto;
+    }
+
+    .mel-shell-header--dashboard .mel-shell-header__title {
+      font-size: 1.25rem;
+      font-weight: $font-weight-bold;
+    }
+
+    .mel-shell-header--dashboard .mel-notif-bell__trigger {
+      width: auto;
+      min-width: 44px;
+      height: 44px;
+      gap: $spacing-2;
+      padding: 0 $spacing-4;
+      border: 1px solid #e1d8d1;
+      border-radius: 12px;
+      background: #fff;
+    }
+
+    .mel-shell-header--dashboard .mel-notif-bell__trigger-label {
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+    }
+
+    @media (max-width: 640px) {
+      .mel-shell-header--dashboard .mel-notif-bell__trigger {
+        width: 44px;
+        padding: 0;
+      }
+
+      .mel-shell-header--dashboard .mel-notif-bell__trigger-label {
+        display: none;
+      }
     }
 
     .mel-vendor-shell__content {
@@ -811,13 +843,13 @@
       &.is-active,
       &[aria-current='page'] {
         color: #293241;
-        background: #e8e6ff;
-        border-color: #d5cff8;
+        background: #fff0ec;
+        border-color: #f4c7bd;
       }
     }
 
     .mel-sidebar__link.is-active::before {
-      background: #6e7ef2;
+      background: #f26d5b;
     }
   }
 

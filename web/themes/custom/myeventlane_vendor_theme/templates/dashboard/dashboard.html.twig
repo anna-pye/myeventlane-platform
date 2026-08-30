@@ -16,36 +16,56 @@
 {% set secondary_actions = model.secondary_actions|default([]) %}
 {% set events = model.events|default([]) %}
 {% set event_portfolio = model.event_portfolio|default({}) %}
-{% set lifecycle_counts = event_portfolio.counts|default({}) %}
 {% set portfolio_total = event_portfolio.total|default(events|length) %}
 {% set empty_state = model.empty_state|default({}) %}
 {% set kpis = model.kpis|default([]) %}
+{% set has_outcome = kpis is iterable and kpis|length > 0 %}
 {% set pro_membership = pro_status|default({}) %}
 {% set create_action = organiser_actions|filter(item => item.key|default('') == 'create')|first|default(null) %}
+{% set support_action = organiser_actions|filter(item => item.key|default('') == 'support')|first|default(null) %}
+{% set payment_action = quick_actions|default([])|filter(item => item.url|default('') == '/vendor/payments')|first|default(null) %}
 {% set create_url = create_action.url|default(empty_state.url|default(null)) %}
-{% set create_label = create_action.label|default('Create event'|t) %}
 {% set events_url = path('myeventlane_vendor.console.events') %}
+{% set payments_url = payment_action.url|default(path('myeventlane_vendor.console.payments')) %}
+{% set support_url = support_action.url|default(path('myeventlane_help_centre.vendors_index')) %}
+{% set stripe_summary = stripe|default({}) %}
+{% set overnight_booking_count = dashboard_overnight_booking_count|default(0) %}
+{% set upcoming_event_count = upcoming_count|default(0) %}
+{% set attention_count = model.action_queue|default([])|length %}
 {% set events_empty = portfolio_total == 0 %}
-{% set attention_events = events|filter(event =>
-  event.attention_reasons|default([])|length > 0
-  and event.lifecycle_state|default('') not in ['draft', 'ended', 'cancelled', 'archived']
-) %}
 {% set live_events = events|filter(event => event.lifecycle_state|default('') in ['live', 'sold_out']) %}
-{% set upcoming_events = events|filter(event => event.lifecycle_state|default('') == 'scheduled') %}
 {% set draft_events = events|filter(event => event.lifecycle_state|default('') == 'draft') %}
-{% set completed_events = events|filter(event => event.lifecycle_state|default('') == 'ended') %}
-{% set cancelled_events = events|filter(event => event.lifecycle_state|default('') == 'cancelled') %}
-{% set archived_events = events|filter(event => event.lifecycle_state|default('') == 'archived') %}
+{% set dashboard_events = [] %}
+{% set dashboard_event_ids = [] %}
+{% if live_events|length > 0 %}
+  {% set live_event = live_events|first %}
+  {% set dashboard_events = dashboard_events|merge([live_event]) %}
+  {% set dashboard_event_ids = dashboard_event_ids|merge([live_event.nid|default(0)]) %}
+{% endif %}
+{% if draft_events|length > 0 %}
+  {% set draft_event = draft_events|first %}
+  {% if draft_event.nid|default(0) not in dashboard_event_ids %}
+    {% set dashboard_events = dashboard_events|merge([draft_event]) %}
+    {% set dashboard_event_ids = dashboard_event_ids|merge([draft_event.nid|default(0)]) %}
+  {% endif %}
+{% endif %}
+{% for event in events %}
+  {% set event_id = event.nid|default(0) %}
+  {% if dashboard_events|length < 2 and event_id and event_id not in dashboard_event_ids %}
+    {% set dashboard_events = dashboard_events|merge([event]) %}
+    {% set dashboard_event_ids = dashboard_event_ids|merge([event_id]) %}
+  {% endif %}
+{% endfor %}
 
 <main
   class="mel-vendor-dashboard mel-vendor-portfolio mel-layout--dashboard{% if events_empty %} mel-vendor-portfolio--empty{% endif %}"
   data-mel-vendor-dashboard
-  data-mel-dashboard-slice="portfolio-foundation"
+  data-mel-dashboard-slice="approved-mockup"
 >
   {# Identity — establish whose organiser home this is. #}
   <header class="mel-vendor-portfolio__identity" aria-labelledby="mel-dashboard-title">
     <div class="mel-vendor-portfolio__identity-copy">
-      <p class="mel-vendor-portfolio__eyebrow">{{ 'Organiser home'|t }}</p>
+      <p class="mel-vendor-portfolio__eyebrow">{{ 'Welcome back'|t }}</p>
       <h1 id="mel-dashboard-title" class="mel-vendor-portfolio__title">
         {% if events_empty %}
           {% if organiser_display_name %}
@@ -54,7 +74,7 @@
             {{ 'Welcome to MyEventLane'|t }}
           {% endif %}
         {% elseif organiser_display_name %}
-          {{ organiser_display_name }}
+          {{ "@name's organiser home"|t({'@name': organiser_display_name}) }}
         {% else %}
           {{ 'Your events'|t }}
         {% endif %}
@@ -63,7 +83,7 @@
         {% if events_empty %}
           {{ empty_state.message|default('Create your first event and start inviting your community.'|t) }}
         {% else %}
-          {{ 'See what needs attention, choose an event and continue in its dedicated workspace.'|t }}
+          {{ 'See what needs attention, then choose an event.'|t }}
         {% endif %}
       </p>
       {% if is_pro|default(false) %}
@@ -85,11 +105,6 @@
       {% endif %}
     </div>
 
-    {% if create_url and not events_empty %}
-      <a class="mel-btn mel-btn--primary mel-vendor-portfolio__create" href="{{ create_url }}">
-        {{ create_label }}
-      </a>
-    {% endif %}
   </header>
 
   {% if events_empty %}
@@ -110,211 +125,141 @@
       {% endif %}
     </section>
   {% else %}
-    {# Guidance — the canonical queue owns priority; Twig only presents it. #}
-    <section class="mel-vendor-portfolio__guidance" aria-labelledby="mel-guidance-title">
-      <div class="mel-vendor-portfolio__section-heading">
-        <div>
-          <p class="mel-vendor-portfolio__eyebrow">{{ 'Your next step'|t }}</p>
-          <h2 id="mel-guidance-title">{{ 'Keep things moving'|t }}</h2>
-        </div>
-      </div>
-
-      {% if priority_action %}
-        <article class="mel-vendor-portfolio__priority">
-          <div class="mel-vendor-portfolio__priority-copy">
-            <p class="mel-vendor-portfolio__priority-status">
-              {% if priority_action.severity|default('info') == 'error' %}
-                {{ 'Urgent'|t }}
-              {% elseif priority_action.severity|default('info') == 'warning' %}
-                {{ 'Needs attention'|t }}
-              {% else %}
-                {{ 'Recommended'|t }}
-              {% endif %}
-            </p>
-            <h3>{{ priority_action.title|default('') }}</h3>
-            {% if priority_action.message|default('') %}
-              <p>{{ priority_action.message }}</p>
-            {% endif %}
-          </div>
-          {% if priority_action.url and priority_action.action_label|default('') %}
-            <a class="mel-btn mel-btn--primary" href="{{ priority_action.url }}">
-              {{ priority_action.action_label }}
-            </a>
-          {% endif %}
-        </article>
-      {% else %}
-        <div class="mel-vendor-portfolio__all-clear" role="status">
-          <div>
-            <h3>{{ "You're all caught up"|t }}</h3>
-            <p>{{ 'Choose an event below when you are ready to continue.'|t }}</p>
-          </div>
-        </div>
-      {% endif %}
-
-      {% if secondary_actions is iterable and secondary_actions|length > 0 %}
-        <details class="mel-vendor-portfolio__secondary-guidance">
-          <summary>{{ 'More things to do'|t }}</summary>
-          <ul role="list">
-            {% for action in secondary_actions %}
-              <li>
-                <div>
-                  <strong>{{ action.title|default('') }}</strong>
-                  {% if action.message|default('') %}<span>{{ action.message }}</span>{% endif %}
-                </div>
-                {% if action.url and action.action_label|default('') %}
-                  <a href="{{ action.url }}">{{ action.action_label }}</a>
+    <div class="mel-vendor-portfolio__dashboard-grid">
+      <div class="mel-vendor-portfolio__primary">
+        {# Guidance — the canonical action queue still owns priority. #}
+        <section class="mel-vendor-portfolio__guidance" aria-labelledby="mel-guidance-title">
+          {% if priority_action %}
+            <article class="mel-vendor-portfolio__priority">
+              <div class="mel-vendor-portfolio__priority-copy">
+                <p class="mel-vendor-portfolio__eyebrow">{{ 'Next best action'|t }}</p>
+                <h2 id="mel-guidance-title">{{ priority_action.title|default('') }}</h2>
+                {% if priority_action.message|default('') %}
+                  <p>{{ priority_action.message }}</p>
                 {% endif %}
-              </li>
-            {% endfor %}
-          </ul>
-        </details>
-      {% endif %}
-    </section>
-
-    {# Work — a portfolio selector, never a combined event editor. #}
-    <section class="mel-vendor-portfolio__work" aria-labelledby="mel-portfolio-title">
-      <div class="mel-vendor-portfolio__section-heading mel-vendor-portfolio__section-heading--with-link">
-        <div>
-          <p class="mel-vendor-portfolio__eyebrow">{{ 'Your work'|t }}</p>
-          <h2 id="mel-portfolio-title">{{ 'Your events'|t }}</h2>
-          <p>{{ 'Select an event to open its dedicated workspace.'|t }}</p>
-        </div>
-        <a href="{{ events_url }}">{{ 'View all events'|t }}</a>
-      </div>
-
-      {% set portfolio_groups = [
-        {
-          key: 'attention',
-          title: 'Needs attention'|t,
-          intro: 'Events with an outstanding setup or operational signal.'|t,
-          items: attention_events,
-          count: attention_events|length
-        },
-        {
-          key: 'live',
-          title: 'Live'|t,
-          intro: 'Published events currently open or underway.'|t,
-          items: live_events,
-          count: lifecycle_counts.live|default(0) + lifecycle_counts.sold_out|default(0)
-        },
-        {
-          key: 'draft',
-          title: 'Drafts'|t,
-          intro: 'Events you have started but not published.'|t,
-          items: draft_events,
-          count: lifecycle_counts.draft|default(0)
-        },
-        {
-          key: 'upcoming',
-          title: 'Upcoming'|t,
-          intro: 'Published events scheduled to open later.'|t,
-          items: upcoming_events,
-          count: lifecycle_counts.scheduled|default(0)
-        },
-        {
-          key: 'completed',
-          title: 'Completed'|t,
-          intro: 'Past events, kept quieter for reference.'|t,
-          items: completed_events,
-          count: lifecycle_counts.ended|default(0)
-        },
-        {
-          key: 'cancelled',
-          title: 'Cancelled'|t,
-          intro: 'Cancelled events retained for reference.'|t,
-          items: cancelled_events,
-          count: lifecycle_counts.cancelled|default(0)
-        },
-        {
-          key: 'archived',
-          title: 'Archived'|t,
-          intro: 'Events moved out of the active portfolio.'|t,
-          items: archived_events,
-          count: lifecycle_counts.archived|default(0)
-        }
-      ] %}
-      {% set shown_event_ids = [] %}
-
-      <div class="mel-vendor-portfolio__groups">
-        {% for group in portfolio_groups %}
-          {% set group_items = [] %}
-          {% for event in group.items %}
-            {% set event_id = event.nid|default(0) %}
-            {% if event_id and event_id not in shown_event_ids %}
-              {% set group_items = group_items|merge([event]) %}
-              {% set shown_event_ids = shown_event_ids|merge([event_id]) %}
-            {% endif %}
-          {% endfor %}
-
-          {% if group_items|length > 0 %}
-            <section class="mel-vendor-portfolio__group mel-vendor-portfolio__group--{{ group.key }}" aria-labelledby="mel-group-{{ group.key }}">
-              <header class="mel-vendor-portfolio__group-heading">
-                <h3 id="mel-group-{{ group.key }}">{{ group.title }} <span aria-label="{{ '@count events'|t({'@count': group.count}) }}">({{ group.count }})</span></h3>
-                <p>{{ group.intro }}</p>
-              </header>
-              <div class="mel-vendor-portfolio__event-list" role="list">
-                {% for event in group_items %}
-                  {% set links = event.links|default({}) %}
-                  {% set image = event.image|default({}) %}
-                  <article class="mel-vendor-portfolio__event-summary{% if event.lifecycle_state|default('') in ['ended', 'cancelled', 'archived'] %} mel-vendor-portfolio__event-summary--quiet{% endif %}" role="listitem">
-                    <div class="mel-vendor-portfolio__event-identity">
-                      {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with {
-                        image: image
-                      } only %}
-                      <div>
-                        <h4>{{ event.title|default('Untitled event'|t) }}</h4>
-                        {% if event.date_label|default('') %}
-                          <p class="mel-vendor-portfolio__event-date">{{ event.date_label }}</p>
-                        {% endif %}
-                        <div class="mel-vendor-portfolio__event-signals">
-                          {% if event.lifecycle_label|default('') %}
-                            <span class="mel-vendor-portfolio__status">{{ event.lifecycle_label }}</span>
-                          {% endif %}
-                          {% if event.booking_state_label|default('') and event.lifecycle_state|default('') not in ['ended', 'cancelled', 'archived'] %}
-                            <span>{{ event.booking_state_label }}</span>
-                          {% endif %}
-                          {% if event.metric_label|default('') %}
-                            <span>{{ event.metric_label }}</span>
-                          {% endif %}
-                        </div>
-                      </div>
-                    </div>
-                    {% if links.manage|default(null) %}
-                      <a class="mel-btn mel-btn--secondary mel-vendor-portfolio__open" href="{{ links.manage }}">
-                        {{ 'Open workspace'|t }}
-                        <span class="visually-hidden">: {{ event.title|default('Untitled event'|t) }}</span>
-                      </a>
-                    {% endif %}
-                  </article>
-                {% endfor %}
               </div>
-            </section>
-          {% endif %}
-        {% endfor %}
-      </div>
-    </section>
-
-    {# Outcome — quiet orientation using existing canonical metrics only. #}
-    {% if kpis is iterable and kpis|length > 0 %}
-      <section class="mel-vendor-portfolio__outcome" aria-labelledby="mel-outcome-title">
-        <div class="mel-vendor-portfolio__section-heading">
-          <div>
-            <p class="mel-vendor-portfolio__eyebrow">{{ 'Portfolio outcome'|t }}</p>
-            <h2 id="mel-outcome-title">{{ 'Across your events'|t }}</h2>
-          </div>
-        </div>
-        <dl class="mel-vendor-portfolio__metrics">
-          {% for kpi in kpis|slice(0, 4) %}
-            <div>
-              <dt>{{ kpi.label|default('') }}</dt>
-              <dd>{{ kpi.value|default('0') }}</dd>
-              {% if kpi.context|default(kpi.sub|default('')) %}
-                <span>{{ kpi.context|default(kpi.sub|default('')) }}</span>
+              {% if priority_action.url and priority_action.action_label|default('') %}
+                <a class="mel-btn mel-btn--primary" href="{{ priority_action.url }}">
+                  {{ priority_action.action_label }}
+                </a>
               {% endif %}
+            </article>
+          {% else %}
+            <div class="mel-vendor-portfolio__all-clear" role="status">
+              <p class="mel-vendor-portfolio__eyebrow">{{ 'Next best action'|t }}</p>
+              <h2 id="mel-guidance-title">{{ "You're all caught up"|t }}</h2>
+              <p>{{ 'Choose an event below when you are ready to continue.'|t }}</p>
             </div>
-          {% endfor %}
-        </dl>
-      </section>
-    {% endif %}
+          {% endif %}
+
+          {% if secondary_actions is iterable and secondary_actions|length > 0 %}
+            <details class="mel-vendor-portfolio__secondary-guidance">
+              <summary>{{ 'More things to do'|t }}</summary>
+              <ul role="list">
+                {% for action in secondary_actions %}
+                  <li>
+                    <div>
+                      <strong>{{ action.title|default('') }}</strong>
+                      {% if action.message|default('') %}<span>{{ action.message }}</span>{% endif %}
+                    </div>
+                    {% if action.url and action.action_label|default('') %}
+                      <a href="{{ action.url }}">{{ action.action_label }}</a>
+                    {% endif %}
+                  </li>
+                {% endfor %}
+              </ul>
+            </details>
+          {% endif %}
+        </section>
+
+        {# Dashboard summary only; the Events route remains the complete portfolio. #}
+        <section class="mel-vendor-portfolio__work" aria-labelledby="mel-portfolio-title">
+          <div class="mel-vendor-portfolio__section-heading mel-vendor-portfolio__section-heading--with-link">
+            <div>
+              <h2 id="mel-portfolio-title">{{ 'Your events'|t }}</h2>
+              <p>{{ 'Each event opens in its own workspace.'|t }}</p>
+            </div>
+            <a href="{{ events_url }}">{{ 'View all events'|t }}</a>
+          </div>
+
+          <div class="mel-vendor-portfolio__event-list" role="list">
+            {% for event in dashboard_events %}
+              {% set links = event.links|default({}) %}
+              {% set image = event.image|default({}) %}
+              <article class="mel-vendor-portfolio__event-summary" role="listitem">
+                <div class="mel-vendor-portfolio__event-identity">
+                  {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with {
+                    image: image
+                  } only %}
+                  <div>
+                    <h3>{{ event.title|default('Untitled event'|t) }}</h3>
+                    {% if event.date_label|default('') %}
+                      <p class="mel-vendor-portfolio__event-date">{{ event.date_label }}</p>
+                    {% endif %}
+                    <div class="mel-vendor-portfolio__event-signals">
+                      {% if event.lifecycle_label|default('') %}
+                        <span class="mel-vendor-portfolio__status">{{ event.lifecycle_label }}</span>
+                      {% endif %}
+                      {% if event.metric_label|default('') %}
+                        <span>{{ event.metric_label }}</span>
+                      {% elseif event.booking_state_label|default('') %}
+                        <span>{{ event.booking_state_label }}</span>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% if links.manage|default(null) %}
+                  <a class="mel-btn mel-btn--secondary mel-vendor-portfolio__open" href="{{ links.manage }}">
+                    {{ event.lifecycle_state|default('') == 'draft' ? 'Continue setup'|t : 'Open workspace'|t }}
+                    <span class="visually-hidden">: {{ event.title|default('Untitled event'|t) }}</span>
+                  </a>
+                {% endif %}
+              </article>
+            {% endfor %}
+          </div>
+        </section>
+
+        {% if has_outcome %}
+          <section class="mel-vendor-portfolio__outcome" aria-labelledby="mel-outcome-title">
+            <div class="mel-vendor-portfolio__section-heading">
+              <div>
+                <h2 id="mel-outcome-title">{{ 'Across your events'|t }}</h2>
+              </div>
+            </div>
+            <dl class="mel-vendor-portfolio__metrics">
+              {% for kpi in kpis|slice(0, 4) %}
+                <div>
+                  <dt>{{ kpi.label|default('') }}</dt>
+                  <dd>{{ kpi.value|default('0') }}</dd>
+                </div>
+              {% endfor %}
+            </dl>
+          </section>
+        {% endif %}
+      </div>
+
+      <aside class="mel-vendor-portfolio__rail" aria-label="{{ 'Organiser overview'|t }}">
+        <section class="mel-vendor-portfolio__rail-card" aria-labelledby="mel-today-title">
+          <h2 id="mel-today-title">{{ 'Today'|t }}</h2>
+          <dl class="mel-vendor-portfolio__today-list">
+            <div><dt>{{ 'Bookings since last night'|t }}</dt><dd>{{ overnight_booking_count }}</dd></div>
+            <div><dt>{{ 'Upcoming events'|t }}</dt><dd>{{ upcoming_event_count }}</dd></div>
+            <div><dt>{{ 'Items needing attention'|t }}</dt><dd>{{ attention_count }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="mel-vendor-portfolio__rail-card" aria-labelledby="mel-payments-title">
+          <h2 id="mel-payments-title">{{ 'Payments'|t }}</h2>
+          <p>{{ stripe_summary.status_message|default('Review payment health, Stripe payouts and refunds.'|t) }}</p>
+          <a class="mel-btn mel-btn--secondary" href="{{ payments_url }}">{{ 'Open payments'|t }}</a>
+        </section>
+
+        <section class="mel-vendor-portfolio__rail-card" aria-labelledby="mel-support-title">
+          <h2 id="mel-support-title">{{ 'Need help?'|t }}</h2>
+          <p>{{ 'Get plain-English guidance or contact support.'|t }}</p>
+          <a class="mel-btn mel-btn--secondary" href="{{ support_url }}">{{ 'Open support'|t }}</a>
+        </section>
+      </aside>
+    </div>
   {% endif %}
 </main>

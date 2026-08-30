@@ -12,7 +12,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'addons',
   title: 'Add-ons',
-  group: 'Tickets & sales',
+  group: 'Sales',
   routeName: 'myeventlane_event_studio.workspace_addons',
   section_state: 'deferred',
   weight: 140,

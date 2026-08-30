@@ -14,27 +14,30 @@ use Drupal\Tests\UnitTestCase;
 final class EventWorkspaceNavIaTest extends UnitTestCase {
 
   /**
-   * Confirms primary section plugins match Convergence order and labels.
+   * Confirms primary section plugins match the approved groups and labels.
    */
-  public function testPrimarySectionsMatchConvergenceOrder(): void {
+  public function testPrimarySectionsMatchApprovedStudioGroups(): void {
     $dir = dirname(__DIR__, 3) . '/src/Plugin/EventStudioSection';
     $expected = [
-      'overview' => ['Home', 0, TRUE],
-      'information' => ['Details', 10, TRUE],
-      'schedule' => ['Schedule', 20, TRUE],
-      'venue' => ['Venue', 30, TRUE],
-      'branding' => ['Images', 40, TRUE],
-      'tickets' => ['Tickets', 50, TRUE],
-      'attendees' => ['Attendees', 60, TRUE],
-      'messaging' => ['Messages', 70, TRUE],
-      'marketing' => ['Marketing', 80, TRUE],
-      'orders' => ['Orders', 90, TRUE],
-      'analytics' => ['Analytics', 100, TRUE],
-      'publishing' => ['Publishing', 110, TRUE],
-      'settings' => ['Settings', 120, TRUE],
+      'overview' => ['Home', 'Set up', 0],
+      'information' => ['Details', 'Set up', 10],
+      'schedule' => ['Schedule', 'Set up', 20],
+      'venue' => ['Venue', 'Set up', 30],
+      'branding' => ['Branding', 'Set up', 40],
+      'content' => ['Content', 'Set up', 50],
+      'publishing' => ['Publishing', 'Set up', 60],
+      'tickets' => ['Ticketing', 'Sales', 10],
+      'extras' => ['Merch & add-ons', 'Sales', 20],
+      'fulfilment' => ['Collection', 'Sales', 30],
+      'orders' => ['Orders', 'Sales', 40],
+      'attendees' => ['Attendees', 'Run the event', 10],
+      'messaging' => ['Messages', 'Run the event', 20],
+      'marketing' => ['Marketing', 'Run the event', 30],
+      'analytics' => ['Analytics', 'Run the event', 40],
+      'settings' => ['Settings', 'Run the event', 50],
     ];
 
-    foreach ($expected as $id => [$title, $weight, $visible]) {
+    foreach ($expected as $id => [$title, $group, $weight]) {
       $file = match ($id) {
         'information' => 'InformationSection.php',
         'branding' => 'BrandingSection.php',
@@ -45,28 +48,50 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
       $this->assertIsString($contents, $file);
       $this->assertStringContainsString("title: '$title'", $contents);
       $this->assertStringContainsString("weight: $weight", $contents);
-      $this->assertStringContainsString("group: 'Workspace'", $contents);
-      if ($visible) {
-        $this->assertStringNotContainsString('navigationVisible: FALSE', $contents);
-      }
+      $this->assertStringContainsString("group: '$group'", $contents);
+      $this->assertStringNotContainsString('navigationVisible: FALSE', $contents);
     }
   }
 
   /**
-   * Confirms advanced sections stay off the primary Workspace nav.
+   * Confirms duplicate and advanced sales routes stay off the primary nav.
    */
   public function testAdvancedSectionsHiddenFromPrimaryNav(): void {
     $files = [
-      'ContentSection.php',
       'QuestionsSection.php',
       'CapacitySection.php',
-      'ExtrasSection.php',
-      'FulfilmentSection.php',
+      'MerchandiseSection.php',
+      'AddonsSection.php',
     ];
     foreach ($files as $file) {
       $contents = file_get_contents(dirname(__DIR__, 3) . '/src/Plugin/EventStudioSection/' . $file);
       $this->assertIsString($contents);
       $this->assertStringContainsString('navigationVisible: FALSE', $contents);
+    }
+  }
+
+  /**
+   * Confirms the shell orders approved navigation groups consistently.
+   */
+  public function testApprovedGroupOrderIsExplicit(): void {
+    $base = file_get_contents(dirname(__DIR__, 3) . '/src/Plugin/EventStudioSection/EventStudioSectionBase.php');
+    $this->assertIsString($base);
+    $this->assertStringContainsString("'Set up' => 0", $base);
+    $this->assertStringContainsString("'Sales' => 100", $base);
+    $this->assertStringContainsString("'Run the event' => 200", $base);
+  }
+
+  /**
+   * Confirms sales tools remain routes for the selected event's Studio.
+   */
+  public function testSalesRoutesRemainInsideSelectedEventStudio(): void {
+    $routing = file_get_contents(dirname(__DIR__, 3) . '/myeventlane_event_studio.routing.yml');
+    $this->assertIsString($routing);
+
+    foreach (['tickets', 'extras', 'fulfilment', 'orders'] as $section) {
+      $this->assertStringContainsString("myeventlane_event_studio.workspace_$section:", $routing);
+      $this->assertStringContainsString("path: '/vendor/events/{node}/studio/$section'", $routing);
+      $this->assertStringContainsString("section: '$section'", $routing);
     }
   }
 
@@ -82,8 +107,9 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
     $this->assertIsString($controller);
     $this->assertStringContainsString('Event Workspace', $topbar);
     $this->assertStringContainsString('Event breadcrumb', $topbar);
-    $this->assertStringContainsString('View page', $topbar);
-    $this->assertStringContainsString('Event workspace', $sidebar);
+    $this->assertStringContainsString("'View'|t", $topbar);
+    $this->assertStringContainsString('Event Workspace', $sidebar);
+    $this->assertStringContainsString('has_group_heading', $sidebar);
     $this->assertStringContainsString('Event Workspace', $controller);
     $this->assertStringNotContainsString("'Event Studio'|t", $topbar);
   }

@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'analytics',
   title: 'Analytics',
-  group: 'Workspace',
+  group: 'Run the event',
   routeName: 'myeventlane_event_studio.workspace_analytics',
   section_state: 'readonly',
-  weight: 100,
+  weight: 40,
   icon: 'analytics',
   renderTarget: 'readonly_summary',
   writable: FALSE,

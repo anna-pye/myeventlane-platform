@@ -1,0 +1,75 @@
+/**
+ * @file
+ * Event Studio work canvas — presentation-only chrome.
+ *
+ * The module continues to own section markup, forms, save actions, AJAX and
+ * workspace behaviour. This layer only establishes the approved visual order:
+ * Identity → Guidance → Work.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/shadows' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/breakpoints' as *;
+
+// Keep the selected event's work in one readable column. The spare desktop
+// space is intentionally retained for a future, separately approved help rail.
+.mel-event-studio--workspace:not(.mel-event-studio--home) .mel-event-studio-workspace__main {
+  width: min(100%, 64rem);
+  max-width: 64rem;
+}
+
+.mel-event-studio-section {
+  border-color: $mel-ws-border-soft;
+  border-radius: $radius-workspace-card;
+  background: $mel-shell-surface;
+  box-shadow: $shadow-sm;
+}
+
+.mel-event-studio-section__header {
+  padding: $spacing-6 $spacing-6 0;
+}
+
+.mel-event-studio-section__title {
+  color: $text-primary;
+  font-size: $font-size-band-title;
+  font-weight: $font-weight-bold;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+
+  @include respond-to(md) {
+    font-size: $font-size-band-title-lg;
+  }
+}
+
+.mel-event-studio-section__body {
+  padding: $spacing-5 $spacing-6 $spacing-6;
+}
+
+// Home deliberately owns a card-free overview composition.
+.mel-event-studio--home .mel-event-studio-section--flush {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.mel-event-studio--home .mel-event-studio-section--flush .mel-event-studio-section__body {
+  padding: 0;
+}
+
+@media (max-width: 47.99em) {
+  .mel-event-studio-section {
+    border-radius: $radius-xl;
+  }
+
+  .mel-event-studio-section__header {
+    padding: $spacing-5 $spacing-4 0;
+  }
+
+  .mel-event-studio-section__body {
+    padding: $spacing-4;
+  }
+}

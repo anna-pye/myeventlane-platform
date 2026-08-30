@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'extras',
   title: 'Merch & add-ons',
-  group: 'Workspace',
+  group: 'Sales',
   routeName: 'myeventlane_event_studio.workspace_extras',
   section_state: 'active',
-  weight: 57,
+  weight: 20,
   icon: 'extras',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventStudioEventExtrasForm',
   writable: TRUE,
@@ -24,6 +24,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 155,
   operationalArea: 'commerce_product',
-  navigationVisible: FALSE,
+  navigationVisible: TRUE,
 )]
 final class ExtrasSection extends EventStudioSectionBase {}

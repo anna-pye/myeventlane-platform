@@ -10,7 +10,8 @@
  */
 #}
 {% set hide_shell_title = hide_shell_title|default(false) %}
-<header class="mel-shell-header mel-vendor-console__header{% if hide_shell_title %} mel-shell-header--dashboard{% endif %}" role="banner">
+{% set is_dashboard_route = is_dashboard_route|default(false) %}
+<header class="mel-shell-header mel-vendor-console__header{% if is_dashboard_route %} mel-shell-header--dashboard{% endif %}" role="banner">
   <div class="mel-shell-header__left">
     <button class="mel-shell-header__menu-btn"
             type="button"

@@ -7,11 +7,15 @@
 <aside class="mel-event-studio-sidebar" id="mel-event-studio-sidebar" aria-label="{{ 'Event Workspace'|t }}">
   <div class="mel-event-studio-sidebar__inner">
     {% for group, items in sections %}
-      <nav class="mel-event-studio-sidebar__group" aria-label="{{ 'Event Workspace sections'|t }}">
-        {% if group and group != 'Workspace' %}
+      {% set has_group_heading = group and group != 'Workspace' %}
+      <nav
+        class="mel-event-studio-sidebar__group mel-event-studio-sidebar__group--{{ group|clean_class }}"
+        {% if has_group_heading %}aria-labelledby="mel-studio-nav-{{ loop.index }}"{% else %}aria-label="{{ 'Event Workspace sections'|t }}"{% endif %}
+      >
+        {% if has_group_heading %}
           <h2 class="mel-event-studio-sidebar__heading" id="mel-studio-nav-{{ loop.index }}">{{ group }}</h2>
         {% endif %}
-        <ul class="mel-event-studio-sidebar__list"{% if group and group != 'Workspace' %} aria-labelledby="mel-studio-nav-{{ loop.index }}"{% endif %}>
+        <ul class="mel-event-studio-sidebar__list">
           {% for item in items %}
             <li
               class="mel-event-studio-sidebar__item mel-event-studio-sidebar__item--{{ item.section_state|default('active')|clean_class }}"
