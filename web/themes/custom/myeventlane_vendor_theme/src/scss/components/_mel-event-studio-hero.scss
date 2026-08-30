@@ -25,22 +25,24 @@
 // ============================================================================
 
 .mel-event-studio-topbar {
-  gap: $spacing-5 $spacing-6;
-  min-height: 4.5rem;
-  padding: $spacing-5 $spacing-5;
+  gap: $spacing-4 $spacing-6;
+  min-height: 4.25rem;
+  padding: $spacing-4 $spacing-5;
   border: 1px solid $mel-ws-border-soft;
   border-radius: $radius-workspace-header;
-  background: $mel-shell-surface;
+  background:
+    linear-gradient(110deg, rgba(234, 244, 255, 0.42) 0%, rgba(255, 255, 255, 0.96) 38%),
+    $mel-shell-surface;
   box-shadow: $shadow-header;
   // Soft separation from Guidance/Work below (zone breath, not a heavy toolbar)
   margin-block-end: 0;
 }
 
 .mel-event-studio--workspace > .mel-event-studio-topbar {
-  margin-block-end: $mel-zone-gap-sm;
+  margin-block-end: $spacing-2;
 
   @include respond-to(md) {
-    margin-block-end: $mel-zone-gap-md;
+    margin-block-end: $spacing-3;
   }
 }
 
@@ -118,7 +120,7 @@
   overflow-wrap: anywhere;
 
   @include respond-to(md) {
-    font-size: 1.75rem; // 28px — clear, not competing with Work band titles wrongly sized
+    font-size: 1.625rem; // 26px — identity leads without crowding the work canvas
   }
 }
 
