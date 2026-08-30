@@ -141,6 +141,7 @@ See [`scripts/README.md`](../../scripts/README.md) for per-script safety metadat
 | `test-vendor-access.sh` | `scripts/test-vendor-access.sh` |
 | `verify-access-fix.sh` | `scripts/verify-access-fix.sh` |
 | `backup-build-and-db.sh` | `scripts/backup-build-and-db.sh` (was untracked) |
+| (new maintenance utility) | `scripts/maintenance/mel-update-drupal.sh` (guarded local Drupal dependency updater) |
 | `delete-events.php` | `scripts/dangerous/delete-events.php` |
 | `reset-admin-password.sh` | `scripts/dangerous/reset-admin-password.sh` |
 | `reset-drupal.sh` | `scripts/dangerous/reset-drupal.sh` |
