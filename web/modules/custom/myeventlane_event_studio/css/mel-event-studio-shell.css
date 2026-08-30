@@ -8512,3 +8512,90 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/*
+ * Narrow-screen fallback for browsers that retain an older container-query
+ * layout. Switching the form itself to flex prevents desktop grid tracks from
+ * reserving a very tall blank area when the Studio canvas is constrained by
+ * the organiser shell.
+ */
+@media (max-width: 1199px) {
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-workspace {
+    overflow: visible;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets:has(> .mel-event-ticket-preview) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    grid-template-areas: none;
+    grid-template-columns: none;
+    min-height: 0;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-selector {
+    order: 1;
+    align-self: auto;
+    border-right: 0;
+    border-bottom: 1px solid #eadfd8;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-cards {
+    order: 2;
+    min-height: 0;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-add {
+    order: 3;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-sticky-add {
+    order: 4;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets > .form-actions {
+    order: 5;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets > .mel-event-ticket-preview,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-tickets-app > .mel-event-ticket-preview {
+    position: static;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+  }
+}
+
+@media (max-width: 760px) {
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-selector,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-cards {
+    padding: 14px;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-selector__items,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__header,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-saved-ticket-manager__item {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__header,
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__body {
+    min-width: 0;
+    min-height: 0;
+    height: auto;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-add {
+    width: auto;
+    margin: 0 14px 14px;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets > .form-actions {
+    position: static;
+    width: 100%;
+    margin: 0;
+    padding: 12px 14px;
+  }
+}
