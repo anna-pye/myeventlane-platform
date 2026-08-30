@@ -36,6 +36,32 @@
   }
 
   /**
+   * Starts a new ticket from a visual preset without saving anything.
+   */
+  function applyTicketPreset(button) {
+    const details = document.getElementById('mel-add-ticket');
+    if (!(details instanceof HTMLDetailsElement)) {
+      return;
+    }
+
+    const kind = details.querySelector('[name="new_ticket[ticket_kind]"]');
+    const title = details.querySelector('[name="new_ticket[title]"]');
+    if (kind instanceof HTMLSelectElement && button.dataset.melTicketKind) {
+      kind.value = button.dataset.melTicketKind;
+      kind.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (title instanceof HTMLInputElement) {
+      title.value = button.dataset.melTicketTitle || '';
+      title.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    openAddTicketPanel(details);
+    emitAnalytics('ticket_preset_selected', {
+      preset: button.dataset.melTicketPreset || 'custom',
+    });
+  }
+
+  /**
    * Clears one ticket card's sales window without submitting the form.
    */
   function resetSalesWindow(button) {
@@ -109,6 +135,10 @@
           event.preventDefault();
           openAddTicketPanel(details);
         });
+      });
+
+      once('mel-ticket-preset', '[data-mel-ticket-preset]', context).forEach((button) => {
+        button.addEventListener('click', () => applyTicketPreset(button));
       });
 
       once('mel-tickets-reset-sales-window', '[data-mel-reset-sales-window]', context).forEach((button) => {

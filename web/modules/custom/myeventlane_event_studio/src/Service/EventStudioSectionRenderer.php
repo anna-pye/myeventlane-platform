@@ -824,7 +824,57 @@ final class EventStudioSectionRenderer {
         'data-mel-tickets-app' => '1',
       ],
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
+      'other_sales' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticketing-companion'],
+          'role' => 'region',
+          'aria-labelledby' => 'mel-ticketing-companion-title',
+        ],
+        'icon' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => '＋',
+          '#attributes' => [
+            'class' => ['mel-event-studio-ticketing-companion__icon'],
+            'aria-hidden' => 'true',
+          ],
+        ],
+        'copy' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mel-event-studio-ticketing-companion__copy']],
+          'eyebrow' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $this->t('Other event sales'),
+            '#attributes' => ['class' => ['mel-event-studio-ticketing-companion__eyebrow']],
+          ],
+          'title' => [
+            '#type' => 'html_tag',
+            '#tag' => 'h3',
+            '#value' => $this->t('Merchandise & add-ons'),
+            '#attributes' => [
+              'id' => 'mel-ticketing-companion-title',
+              'class' => ['mel-event-studio-ticketing-companion__title'],
+            ],
+          ],
+          'description' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $this->t('Sell merchandise, parking, meals, camping, transport or VIP extras for this event. These stay separate from ticket types and remain inside Event Studio.'),
+            '#attributes' => ['class' => ['mel-event-studio-ticketing-companion__description']],
+          ],
+        ],
+        'action' => [
+          '#type' => 'link',
+          '#title' => $this->t('Manage merchandise & add-ons'),
+          '#url' => Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $event->id()]),
+          '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-event-studio-ticketing-companion__action']],
+        ],
+      ],
     ];
+
+    $build['other_sales']['#weight'] = 2;
 
     if ($uses_ticket_types) {
       $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);

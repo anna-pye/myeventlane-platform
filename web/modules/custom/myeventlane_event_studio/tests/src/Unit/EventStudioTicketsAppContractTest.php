@@ -24,6 +24,27 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('Advanced Ticket Tools', $renderer);
     $this->assertStringContainsString('advanced_tools_opened', $renderer);
     $this->assertStringContainsString('mel-event-studio-tickets-app', $renderer);
+    $this->assertStringContainsString('Merchandise & add-ons', $renderer);
+    $this->assertStringContainsString("'myeventlane_event_studio.workspace_extras'", $renderer);
+    $this->assertStringContainsString('remain inside Event Studio', $renderer);
+  }
+
+  public function testQuickAddPresetsPopulateTheExistingTicketFormWithoutSaving(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $javascript = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString('Quick add a ticket type', $form);
+    $this->assertStringContainsString('data-mel-ticket-preset', $form);
+    $this->assertStringContainsString("'general' => ['General admission', 'paid']", $form);
+    $this->assertStringContainsString("'rsvp' => ['Free RSVP', 'rsvp']", $form);
+
+    $this->assertNotFalse($javascript);
+    $this->assertStringContainsString('function applyTicketPreset(button)', $javascript);
+    $this->assertStringContainsString("details.querySelector('[name=\"new_ticket[ticket_kind]\"]')", $javascript);
+    $this->assertStringContainsString("details.querySelector('[name=\"new_ticket[title]\"]')", $javascript);
+    $this->assertStringContainsString("emitAnalytics('ticket_preset_selected'", $javascript);
+    $this->assertStringNotContainsString('requestSubmit()', $javascript);
   }
 
   public function testOperationalTicketsFormUsesOrganiserLanguage(): void {

@@ -206,6 +206,75 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ],
     ];
 
+    $form['quick_add'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-studio-ticket-quick-add'],
+        'role' => 'region',
+        'aria-labelledby' => 'mel-ticket-quick-add-title',
+      ],
+      'header' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-quick-add__header']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Quick add a ticket type'),
+          '#attributes' => [
+            'id' => 'mel-ticket-quick-add-title',
+            'class' => ['mel-event-studio-ticket-quick-add__title'],
+          ],
+        ],
+        'hint' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Choose a starting point, then confirm the price and capacity before saving.'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-quick-add__hint']],
+        ],
+      ],
+      'choices' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-quick-add__choices'],
+          'role' => 'list',
+        ],
+      ],
+    ];
+
+    $quick_add_choices = [
+      'general' => ['General admission', 'paid'],
+      'vip' => ['VIP', 'paid'],
+      'early-bird' => ['Early bird', 'paid'],
+      'concession' => ['Concession', 'paid'],
+      'rsvp' => ['Free RSVP', 'rsvp'],
+      'custom' => ['', 'paid'],
+    ];
+    foreach ($quick_add_choices as $key => [$title, $kind]) {
+      $form['quick_add']['choices'][$key] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-quick-add__item'],
+          'role' => 'listitem',
+        ],
+        'button' => [
+          '#type' => 'html_tag',
+          '#tag' => 'button',
+          '#value' => $key === 'custom' ? $this->t('Custom') : $this->t($title),
+          '#attributes' => [
+            'type' => 'button',
+            'class' => [
+              'mel-event-studio-ticket-quick-add__choice',
+              'mel-event-studio-ticket-quick-add__choice--' . $key,
+            ],
+            'data-mel-ticket-preset' => $key,
+            'data-mel-ticket-kind' => $kind,
+            'data-mel-ticket-title' => $title,
+            'aria-controls' => 'mel-add-ticket',
+          ],
+        ],
+      ];
+    }
+
     $form['tickets'] = [
       '#type' => 'container',
       '#tree' => TRUE,

@@ -6762,6 +6762,125 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   gap: 1.25rem;
 }
 
+.mel-event-studio-ticketing-companion {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.1rem 1.2rem;
+  border: 1px solid rgba(242, 109, 91, 0.2);
+  border-radius: 1.25rem;
+  background: linear-gradient(135deg, #fff7ed 0%, #fff 48%, #faf5ff 100%);
+  box-shadow: 0 12px 30px rgba(88, 63, 130, 0.06);
+}
+
+.mel-event-studio-ticketing-companion__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f26d5b, #f59e0b);
+  color: #fff;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.mel-event-studio-ticketing-companion__eyebrow,
+.mel-event-studio-ticketing-companion__title,
+.mel-event-studio-ticketing-companion__description {
+  margin: 0;
+}
+
+.mel-event-studio-ticketing-companion__eyebrow {
+  color: #d94f3d;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mel-event-studio-ticketing-companion__title {
+  margin-top: 0.18rem;
+  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.mel-event-studio-ticketing-companion__description {
+  margin-top: 0.2rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.mel-event-studio-ticket-quick-add {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.15rem;
+  border-radius: 1.25rem;
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.06);
+}
+
+.mel-event-studio-ticket-quick-add__title,
+.mel-event-studio-ticket-quick-add__hint {
+  margin: 0;
+}
+
+.mel-event-studio-ticket-quick-add__title {
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.mel-event-studio-ticket-quick-add__hint {
+  margin-top: 0.18rem;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.mel-event-studio-ticket-quick-add__choices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.mel-event-studio-ticket-quick-add__item {
+  min-width: 0;
+}
+
+.mel-event-studio-ticket-quick-add__choice {
+  width: 100%;
+  min-height: 46px;
+  padding: 0.7rem 0.9rem;
+  border: 0;
+  border-radius: 12px;
+  color: #fff;
+  font: inherit;
+  font-weight: 750;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1);
+  transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.mel-event-studio-ticket-quick-add__choice:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+}
+
+.mel-event-studio-ticket-quick-add__choice:focus-visible {
+  outline: 3px solid #0f172a;
+  outline-offset: 2px;
+}
+
+.mel-event-studio-ticket-quick-add__choice--general { background: linear-gradient(135deg, #3182f6, #2563eb); }
+.mel-event-studio-ticket-quick-add__choice--vip { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+.mel-event-studio-ticket-quick-add__choice--early-bird { background: linear-gradient(135deg, #c056d7, #a855f7); }
+.mel-event-studio-ticket-quick-add__choice--concession { background: linear-gradient(135deg, #f59e0b, #f97316); }
+.mel-event-studio-ticket-quick-add__choice--rsvp { background: linear-gradient(135deg, #22c3c9, #0891b2); }
+.mel-event-studio-ticket-quick-add__choice--custom { background: linear-gradient(135deg, #ec4899, #db2777); }
+
 .mel-event-studio-ticket-empty--guided {
   display: grid;
   gap: 0.75rem;
@@ -6920,6 +7039,19 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 }
 
 @media (max-width: 620px) {
+  .mel-event-studio-ticketing-companion {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .mel-event-studio-ticketing-companion__action {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .mel-event-studio-ticket-quick-add__choices {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .mel-event-studio details.mel-event-studio-ticket-card__body > summary,
   .mel-event-studio details.mel-event-studio-ticket-card__quick-actions > summary {
     align-items: flex-start;
