@@ -240,7 +240,9 @@ ddev composer validate --strict --no-check-publish
 ddev drush status
 
 UPDB_BEFORE="${TMP_ROOT}/updatedb-before.txt"
-ddev drush updatedb:status >"${UPDB_BEFORE}"
+# Drush 13 logs "[success] No pending updates." on stderr. Capture both
+# streams so a clean site is not treated as pending (same as validate-release.sh).
+ddev drush updatedb:status >"${UPDB_BEFORE}" 2>&1
 cat "${UPDB_BEFORE}"
 if ! grep -Eiq 'No pending updates|No database updates required|No updates required' "${UPDB_BEFORE}"; then
   die "Pending database updates already exist. Resolve them before changing dependencies."
