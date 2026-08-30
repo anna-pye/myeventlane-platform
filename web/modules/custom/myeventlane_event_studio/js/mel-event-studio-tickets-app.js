@@ -2,7 +2,7 @@
  * @file
  * VX2 Tickets app: progressive disclosure analytics + Add Ticket sticky CTA.
  */
-(function (Drupal, once) {
+(function (Drupal, once, drupalSettings) {
   'use strict';
 
   function emitAnalytics(eventName, detail) {
@@ -35,6 +35,17 @@
     });
   }
 
+  function clearSavedTicketSetup(details) {
+    const select = details.querySelector('[data-mel-saved-ticket-setup]');
+    const hydrated = details.querySelector('[data-mel-saved-ticket-setup-hydrated]');
+    if (select instanceof HTMLSelectElement) {
+      select.value = '';
+    }
+    if (hydrated instanceof HTMLInputElement) {
+      hydrated.value = '0';
+    }
+  }
+
   /**
    * Starts a new ticket from a visual preset without saving anything.
    */
@@ -44,6 +55,7 @@
       return;
     }
 
+    clearSavedTicketSetup(details);
     const kind = details.querySelector('[name="new_ticket[ticket_kind]"]');
     const title = details.querySelector('[name="new_ticket[title]"]');
     if (kind instanceof HTMLSelectElement && button.dataset.melTicketKind) {
@@ -59,6 +71,59 @@
     emitAnalytics('ticket_preset_selected', {
       preset: button.dataset.melTicketPreset || 'custom',
     });
+  }
+
+  /**
+   * Prefills the add-ticket fields from a private configuration-only setup.
+   */
+  function applySavedTicketSetup(select) {
+    const details = document.getElementById('mel-add-ticket');
+    if (!(details instanceof HTMLDetailsElement) || !(select instanceof HTMLSelectElement)) {
+      return;
+    }
+    const hydrated = details.querySelector('[data-mel-saved-ticket-setup-hydrated]');
+    const setupId = select.value;
+    if (!setupId) {
+      if (hydrated instanceof HTMLInputElement) {
+        hydrated.value = '0';
+      }
+      return;
+    }
+    const setups = drupalSettings.myeventlaneEventStudio?.ticketSetups || {};
+    const setup = setups[setupId];
+    if (!setup) {
+      return;
+    }
+
+    const assign = (selector, value, eventName) => {
+      const field = details.querySelector(selector);
+      if (field instanceof HTMLInputElement || field instanceof HTMLSelectElement) {
+        field.value = value;
+        field.dispatchEvent(new Event(eventName || 'change', { bubbles: true }));
+      }
+    };
+    assign('[name="new_ticket[ticket_kind]"]', setup.kind || 'paid');
+    assign('[name="new_ticket[title]"]', setup.title || '', 'input');
+    assign('[name="new_ticket[price_amount]"]', setup.price || '', 'input');
+    assign('[name="new_ticket[capacity]"]', '', 'input');
+    assign('[name="new_ticket[external_uri]"]', setup.externalUrl || '', 'input');
+    assign('[name="new_ticket[visibility_mode]"]', setup.visibility || 'public');
+
+    const status = details.querySelector('[name="new_ticket[status]"]');
+    if (status instanceof HTMLInputElement) {
+      status.checked = false;
+      status.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    const bestValue = details.querySelector('[name="new_ticket[field_is_best_value]"]');
+    if (bestValue instanceof HTMLInputElement) {
+      bestValue.checked = false;
+    }
+    if (hydrated instanceof HTMLInputElement) {
+      hydrated.value = '1';
+    }
+
+    openAddTicketPanel(details);
+    emitAnalytics('reusable_ticket_setup_selected', { setup_id: setupId });
   }
 
   /**
@@ -248,6 +313,10 @@
         button.addEventListener('click', () => applyTicketPreset(button));
       });
 
+      once('mel-saved-ticket-setup', '[data-mel-saved-ticket-setup]', context).forEach((select) => {
+        select.addEventListener('change', () => applySavedTicketSetup(select));
+      });
+
       once('mel-tickets-reset-sales-window', '[data-mel-reset-sales-window]', context).forEach((button) => {
         const ticketId = button.dataset.melResetSalesWindow || '';
         const card = button.closest('.mel-event-studio-ticket-card');
@@ -264,4 +333,4 @@
       });
     },
   };
-})(Drupal, once);
+})(Drupal, once, drupalSettings);

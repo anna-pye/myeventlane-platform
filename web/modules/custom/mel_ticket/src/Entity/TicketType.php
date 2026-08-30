@@ -235,8 +235,8 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
       ->setDisplayConfigurable('view', TRUE);
 
     $fields['is_reusable'] = BaseFieldDefinition::create('boolean')
-      ->setLabel(t('Reusable across events'))
-      ->setDescription(t('When enabled, this ticket is not tied to a single event entity.'))
+      ->setLabel(t('Reusable ticket setup'))
+      ->setDescription(t('A private organiser-owned setup that can create a fresh ticket for another event.'))
       ->setDefaultValue(FALSE)
       ->setDisplayOptions('form', [
         'type' => 'boolean_checkbox',
@@ -536,10 +536,10 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
    */
   public static function preCreate(EntityStorageInterface $storage, array &$values) {
     parent::preCreate($storage, $values);
-    if (empty($values['status'])) {
+    if (!array_key_exists('status', $values)) {
       $values['status'] = 1;
     }
-    if (empty($values['lifecycle_status'])) {
+    if (!array_key_exists('lifecycle_status', $values) || $values['lifecycle_status'] === '') {
       $values['lifecycle_status'] = self::LIFECYCLE_ACTIVE;
     }
   }
@@ -562,9 +562,14 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     }
     if ($kind === 'paid') {
       $this->set('external_url', NULL);
-      // Invariant: paid tiers always have a Commerce variation per event product.
-      // The entity form may submit is_reusable from the checkbox; normalize here.
-      $this->set('is_reusable', FALSE);
+      if ($this->isReusable()) {
+        // A reusable paid setup stores configuration only. It must never point
+        // at an event or a live Commerce variation. Applying it creates both
+        // records afresh for the destination event.
+        $this->set('event', NULL);
+        $this->set('commerce_variation', NULL);
+        $this->set('status', FALSE);
+      }
     }
     if ($this->isReusable() && $this->hasField('field_is_default_ticket')) {
       $this->set('field_is_default_ticket', FALSE);
@@ -583,6 +588,15 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
     $kind = $this->getTicketKind();
     $violations = [];
 
+    if ($this->isReusable()) {
+      if (!$this->get('event')->isEmpty()) {
+        $violations[] = 'Reusable ticket setups cannot be attached to an event.';
+      }
+      if (!$this->get('commerce_variation')->isEmpty()) {
+        $violations[] = 'Reusable ticket setups cannot reference a Commerce variation.';
+      }
+    }
+
     if ($this->hasField('sale_start') && $this->hasField('sale_end')
         && !$this->get('sale_start')->isEmpty() && !$this->get('sale_end')->isEmpty()) {
       $start_item = $this->get('sale_start')->first();
@@ -599,9 +613,6 @@ final class TicketType extends ContentEntityBase implements TicketTypeInterface 
 
     switch ($kind) {
       case 'paid':
-        if ($this->isReusable()) {
-          $violations[] = 'Paid tickets cannot be marked reusable: Commerce variations are created per event product. Use RSVP or external reusable tickets, or create a paid ticket per event.';
-        }
         if ($this->toPriceValue() === NULL) {
           $violations[] = 'Paid tickets must include a price.';
         }

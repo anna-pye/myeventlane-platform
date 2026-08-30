@@ -10,11 +10,11 @@ use Drupal\Core\Entity\Plugin\EntityReferenceSelection\DefaultSelection;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 
 /**
- * Limits autocomplete to reusable ticket types owned by the active user.
+ * Limits autocomplete to reusable ticket setups owned by the active user.
  */
 #[EntityReferenceSelection(
   id: 'mel_ticket:reusable',
-  label: new TranslatableMarkup('Reusable ticket types (own vendor)'),
+  label: new TranslatableMarkup('Reusable ticket setups (current organiser)'),
   entity_types: ['mel_ticket_type'],
   group: 'mel_ticket',
   weight: 0,
@@ -28,10 +28,6 @@ final class ReusableTicketSelection extends DefaultSelection {
     $query = parent::buildEntityQuery($match, $match_operator);
     $query->condition('is_reusable', 1);
     $query->condition('vendor_id', $this->currentUser->id());
-    $group = $query->orConditionGroup();
-    $group->condition('ticket_kind', 'rsvp');
-    $group->condition('ticket_kind', 'external');
-    $query->condition($group);
     return $query;
   }
 

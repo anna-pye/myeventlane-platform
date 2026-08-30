@@ -1,6 +1,6 @@
 name: 'MEL Ticket'
 type: module
-description: 'Reusable ticket type entities for MyEventLane events (RSVP, paid, external) with Commerce-backed pricing.'
+description: 'Event ticket types and private reusable setups for RSVP, paid and external booking.'
 package: MyEventLane
 core_version_requirement: ^11
 

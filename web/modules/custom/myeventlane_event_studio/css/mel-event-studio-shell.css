@@ -8273,6 +8273,32 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   color: #475569;
 }
 
+.mel-event-studio .mel-event-studio-ticket-card__reusable-setup {
+  margin-top: 2px;
+  padding: 12px 14px;
+  border: 1px solid rgba(110, 126, 242, 0.22);
+  border-radius: 13px;
+  background: #f4f2ff;
+  color: #4f46a5;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__reusable-setup .form-item {
+  margin: 0;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__reusable-setup label {
+  color: #403987;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__reusable-setup .description {
+  margin-top: 3px;
+  color: #625ca0;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
 .mel-event-studio .mel-event-studio-ticket-add {
   grid-area: add;
   width: auto;
@@ -8298,6 +8324,36 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   border: 0;
   background: #fff9f5;
   box-shadow: none;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-setups {
+  margin-bottom: 14px;
+  padding: 14px;
+  border: 1px solid rgba(110, 126, 242, 0.22);
+  border-radius: 14px;
+  background: #f7f6ff;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-setups__title,
+.mel-event-studio .mel-event-studio-saved-ticket-setups__copy {
+  margin: 0;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-setups__title {
+  color: #403987;
+  font-size: 0.96rem;
+  font-weight: 800;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-setups__copy {
+  margin-top: 3px;
+  color: #625ca0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.mel-event-studio .mel-event-studio-saved-ticket-setups .form-item {
+  margin: 10px 0 0;
 }
 
 .mel-event-studio .mel-event-studio-ticket-add .mel-event-studio-ticket-quick-add__choices {

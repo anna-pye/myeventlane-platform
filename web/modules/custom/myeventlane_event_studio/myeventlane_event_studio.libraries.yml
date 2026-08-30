@@ -18,11 +18,12 @@ mel_event_studio:
     - myeventlane_event_studio/mel_event_studio_highlights
 
 mel_event_studio_tickets_app:
-  version: 1.4
+  version: 1.5
   js:
     js/mel-event-studio-tickets-app.js: {}
   dependencies:
     - core/drupal
+    - core/drupalSettings
     - core/once
 
 mel_event_studio_attendees_app:

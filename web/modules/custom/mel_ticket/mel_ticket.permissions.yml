@@ -13,8 +13,8 @@ delete own mel_ticket_type entities:
   title: 'Delete own ticket types'
 
 reuse mel_ticket_type entities:
-  title: 'Reuse ticket types'
-  description: 'Attach reusable ticket types owned by the account to events.'
+  title: 'Reuse ticket setups'
+  description: 'Create fresh event tickets from reusable setups owned by the account.'
 
 assign mel_ticket_type entities:
   title: 'Assign ticket types to events'

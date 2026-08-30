@@ -28,7 +28,7 @@ interface TicketTypeInterface extends ContentEntityInterface, EntityPublishedInt
   public function getTicketKind(): string;
 
   /**
-   * Whether the ticket may be attached to multiple events.
+   * Whether this is a private setup used to create fresh event tickets.
    */
   public function isReusable(): bool;
 

@@ -70,17 +70,129 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
   }
 
   /**
-   * Clones a reusable template into a new non-reusable row for an event.
-   *
-   * Does not update the event node; caller appends the new ID as needed.
-   *
-   * @throws \InvalidArgumentException
+   * Loads one private reusable setup owned by the current organiser.
    */
-  public function cloneFromReusableTemplate(
+  public function loadReusableTicketSetupForAccount(int $setupId, AccountInterface $account): ?TicketTypeInterface {
+    if ($setupId < 1 || (int) $account->id() < 1) {
+      return NULL;
+    }
+    $setup = $this->entityTypeManager->getStorage('mel_ticket_type')->load($setupId);
+    return $setup instanceof TicketTypeInterface
+      && $setup->isReusable()
+      && !$setup->isArchived()
+      && (int) $setup->get('vendor_id')->target_id === (int) $account->id()
+        ? $setup
+        : NULL;
+  }
+
+  /**
+   * Loads private reusable setups owned by the current organiser.
+   *
+   * @return array<int, \Drupal\mel_ticket\Entity\TicketTypeInterface>
+   */
+  public function loadReusableTicketSetupsForAccount(AccountInterface $account): array {
+    $accountId = (int) $account->id();
+    if ($accountId < 1) {
+      return [];
+    }
+    $ids = $this->entityTypeManager->getStorage('mel_ticket_type')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('vendor_id', $accountId)
+      ->condition('is_reusable', 1)
+      ->condition('lifecycle_status', TicketTypeInterface::LIFECYCLE_ACTIVE)
+      ->sort('title')
+      ->sort('id')
+      ->execute();
+    if ($ids === []) {
+      return [];
+    }
+    $loaded = $this->entityTypeManager->getStorage('mel_ticket_type')->loadMultiple($ids);
+    $setups = [];
+    foreach ($ids as $id) {
+      $setup = $loaded[$id] ?? NULL;
+      if ($setup instanceof TicketTypeInterface && $setup->isReusable()) {
+        $setups[(int) $id] = $setup;
+      }
+    }
+    return $setups;
+  }
+
+  /**
+   * Saves a private configuration-only setup from an event ticket.
+   *
+   * Capacity, sales windows, attendee questions, order history, event IDs and
+   * Commerce variation IDs are intentionally excluded.
+   */
+  public function saveReusableTicketSetupFromTicket(
+    TicketTypeInterface $source,
+    AccountInterface $account,
+  ): TicketTypeInterface {
+    if ((int) $source->get('vendor_id')->target_id !== (int) $account->id()) {
+      throw new InvalidArgumentException('Ticket setups must be owned by the current user.');
+    }
+    $kind = $source->getTicketKind();
+    if (!in_array($kind, ['paid', 'rsvp', 'external'], TRUE)) {
+      throw new InvalidArgumentException('Unsupported ticket kind for reusable setup.');
+    }
+
+    $values = $this->reusableTicketSetupValues($source, $account);
+    foreach ($this->loadReusableTicketSetupsForAccount($account) as $existing) {
+      if ($this->reusableTicketSetupMatches($existing, $values)) {
+        return $existing;
+      }
+    }
+
+    /** @var \Drupal\mel_ticket\Entity\TicketTypeInterface $setup */
+    $setup = $this->entityTypeManager->getStorage('mel_ticket_type')->create($values);
+    // TicketType::preCreate historically defaults empty status values to TRUE.
+    // Reassert privacy before the first save so templates are never public.
+    $setup->set('status', FALSE);
+    $setup->save();
+    return $setup;
+  }
+
+  /**
+   * Applies source edits and saves a reusable setup in one transaction.
+   *
+   * @param array<string, mixed> $values
+   */
+  public function updateAndSaveReusableTicketSetup(
+    NodeInterface $event,
+    TicketTypeInterface $ticket,
+    AccountInterface $account,
+    array $values,
+  ): TicketTypeInterface {
+    $this->applyTicketValuesWithoutSave($ticket, $values);
+    $this->validateTicketTypeForPersist($ticket, $event);
+
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->updateTicketType($ticket, $event, []);
+      return $this->saveReusableTicketSetupFromTicket($ticket, $account);
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+  }
+
+  /**
+   * Builds fresh event-ticket values from a reusable setup.
+   *
+   * The result never carries capacity, sales dates, attendee questions,
+   * event references, order data or Commerce variation references from the
+   * source setup. Organiser overrides are accepted only for the new event.
+   *
+   * @param array<string, mixed> $overrides
+   *
+   * @return array<string, mixed>
+   */
+  public function buildTicketValuesFromReusableTemplate(
     TicketTypeInterface $template,
     NodeInterface $event,
     AccountInterface $account,
-  ): TicketTypeInterface {
+    array $overrides = [],
+  ): array {
     if ($event->bundle() !== 'event') {
       throw new InvalidArgumentException('Clone target must be an event node.');
     }
@@ -91,92 +203,151 @@ final class TicketTierLifecycleService implements EventPaidTicketLoaderInterface
       throw new InvalidArgumentException('Templates must be owned by the current user.');
     }
     $kind = $template->getTicketKind();
-    if ($kind === 'paid') {
-      throw new InvalidArgumentException('Paid ticket templates are not supported; create paid tiers per event.');
-    }
-    if (!in_array($kind, ['rsvp', 'external'], TRUE)) {
+    if (!in_array($kind, ['paid', 'rsvp', 'external'], TRUE)) {
       throw new InvalidArgumentException('Unsupported ticket kind for template clone.');
     }
 
-    $values = [
+    $input = [
       'title' => $template->getTitle(),
       'ticket_kind' => $kind,
-      'vendor_id' => $template->get('vendor_id')->getValue(),
-      'is_reusable' => FALSE,
-      'event' => ['target_id' => $event->id()],
-      'status' => 1,
+      'status' => 0,
+      'capacity' => NULL,
+      'field_is_best_value' => 0,
     ];
-
-    if (!$template->get('capacity')->isEmpty()) {
-      $values['capacity'] = (int) $template->get('capacity')->value;
-    }
-    if (!$template->get('rsvp_limit')->isEmpty()) {
-      $values['rsvp_limit'] = (int) $template->get('rsvp_limit')->value;
-    }
-    if (!$template->get('sale_start')->isEmpty()) {
-      $values['sale_start'] = $template->get('sale_start')->getValue();
-    }
-    if (!$template->get('sale_end')->isEmpty()) {
-      $values['sale_end'] = $template->get('sale_end')->getValue();
-    }
-    if (!$template->get('external_url')->isEmpty()) {
-      $values['external_url'] = $template->get('external_url')->getValue();
-    }
-
     if ($template->hasField('visibility_mode') && !$template->get('visibility_mode')->isEmpty()) {
-      $values['visibility_mode'] = (string) $template->get('visibility_mode')->value;
+      $input['visibility_mode'] = (string) $template->get('visibility_mode')->value;
     }
+    if ($template->hasField('short_description') && !$template->get('short_description')->isEmpty()) {
+      $input['short_description'] = (string) $template->get('short_description')->value;
+    }
+    if ($kind === 'paid') {
+      $price = $template->toPriceValue();
+      if ($price === NULL || (float) $price->getNumber() <= 0) {
+        throw new InvalidArgumentException('Paid ticket setups require a price greater than zero.');
+      }
+      $input['price_amount'] = $price->getNumber();
+      $input['price_currency'] = $price->getCurrencyCode();
+    }
+    if ($kind === 'external') {
+      $uri = $template->getExternalUrlString();
+      if ($uri === NULL || $uri === '') {
+        throw new InvalidArgumentException('External ticket setups require a valid https URL.');
+      }
+      $input['external_uri'] = $uri;
+    }
+
+    foreach (['title', 'price_amount', 'price_currency', 'capacity', 'external_uri', 'visibility_mode', 'status', 'field_is_best_value'] as $key) {
+      if (array_key_exists($key, $overrides)) {
+        $input[$key] = $overrides[$key];
+      }
+    }
+    // A saved setup cannot change kind while being applied.
+    $input['ticket_kind'] = $kind;
+
+    $values = $this->buildTicketValuesFromInput($event, $account, $input);
     if ($template->hasField('hidden_label') && !$template->get('hidden_label')->isEmpty()) {
       $values['hidden_label'] = (string) $template->get('hidden_label')->value;
     }
-    if ($template->hasField('short_description') && !$template->get('short_description')->isEmpty()) {
-      $values['short_description'] = (string) $template->get('short_description')->value;
-    }
-    if ($template->hasField('waitlist_enabled')) {
-      $values['waitlist_enabled'] = $template->get('waitlist_enabled')->value ? 1 : 0;
-    }
-    if ($template->hasField('waitlist_capacity') && !$template->get('waitlist_capacity')->isEmpty()) {
-      $values['waitlist_capacity'] = (int) $template->get('waitlist_capacity')->value;
-    }
-    if ($template->hasField('auto_promote_waitlist')) {
-      $values['auto_promote_waitlist'] = $template->get('auto_promote_waitlist')->value ? 1 : 0;
-    }
-    if ($template->hasField('group_sale_mode') && !$template->get('group_sale_mode')->isEmpty()) {
-      $values['group_sale_mode'] = (string) $template->get('group_sale_mode')->value;
-    }
-    if ($template->hasField('group_min_size') && !$template->get('group_min_size')->isEmpty()) {
-      $values['group_min_size'] = (int) $template->get('group_min_size')->value;
-    }
-    if ($template->hasField('group_bundle_size') && !$template->get('group_bundle_size')->isEmpty()) {
-      $values['group_bundle_size'] = (int) $template->get('group_bundle_size')->value;
-    }
-
-    if ($template->hasField('field_use_ticket_attendee_questions')) {
-      $values['field_use_ticket_attendee_questions'] = $template->get('field_use_ticket_attendee_questions')->value ? 1 : 0;
-    }
-    if ($template->hasField('field_attendee_questions') && !$template->get('field_attendee_questions')->isEmpty()) {
-      $refs = [];
-      foreach ($template->get('field_attendee_questions')->referencedEntities() as $paragraph) {
-        if (!$paragraph instanceof \Drupal\paragraphs\ParagraphInterface) {
-          continue;
-        }
-        $dup = $paragraph->createDuplicate();
-        $dup->save();
-        $refs[] = [
-          'target_id' => (int) $dup->id(),
-          'target_revision_id' => (int) $dup->getRevisionId(),
-        ];
-      }
-      if ($refs !== []) {
-        $values['field_attendee_questions'] = $refs;
-      }
-    }
-
-    $values['price'] = NULL;
-    $values['commerce_variation'] = NULL;
     $values['template_source'] = ['target_id' => (int) $template->id()];
+    $values['commerce_variation'] = NULL;
+    return $values;
+  }
 
-    return $this->persistNewTicketType($values);
+  /**
+   * Creates and attaches a fresh event ticket from a reusable setup.
+   *
+   * @param array<string, mixed> $overrides
+   */
+  public function cloneFromReusableTemplate(
+    TicketTypeInterface $template,
+    NodeInterface $event,
+    AccountInterface $account,
+    array $overrides = [],
+  ): TicketTypeInterface {
+    $values = $this->buildTicketValuesFromReusableTemplate($template, $event, $account, $overrides);
+    return $this->createAttachAndSync($event, $values);
+  }
+
+  /**
+   * @return array<string, mixed>
+   */
+  private function reusableTicketSetupValues(TicketTypeInterface $source, AccountInterface $account): array {
+    $kind = $source->getTicketKind();
+    $values = [
+      'title' => $source->getTitle(),
+      'ticket_kind' => $kind,
+      'vendor_id' => ['target_id' => (int) $account->id()],
+      'is_reusable' => TRUE,
+      'event' => NULL,
+      'status' => 0,
+      'lifecycle_status' => TicketTypeInterface::LIFECYCLE_ACTIVE,
+      'field_is_best_value' => 0,
+      'field_is_default_ticket' => 0,
+      'commerce_variation' => NULL,
+    ];
+    if ($source->hasField('short_description') && !$source->get('short_description')->isEmpty()) {
+      $values['short_description'] = (string) $source->get('short_description')->value;
+    }
+    if ($source->hasField('visibility_mode') && !$source->get('visibility_mode')->isEmpty()) {
+      $values['visibility_mode'] = (string) $source->get('visibility_mode')->value;
+    }
+    if ($source->hasField('hidden_label') && !$source->get('hidden_label')->isEmpty()) {
+      $values['hidden_label'] = (string) $source->get('hidden_label')->value;
+    }
+    if ($kind === 'paid') {
+      $price = $source->toPriceValue();
+      if ($price === NULL || (float) $price->getNumber() <= 0) {
+        throw new InvalidArgumentException('Paid ticket setups require a price greater than zero.');
+      }
+      $values['price'] = [
+        'number' => $price->getNumber(),
+        'currency_code' => $price->getCurrencyCode(),
+      ];
+    }
+    if ($kind === 'external') {
+      $uri = $source->getExternalUrlString();
+      if ($uri === NULL || $uri === '') {
+        throw new InvalidArgumentException('External ticket setups require a valid https URL.');
+      }
+      $values['external_url'] = $source->get('external_url')->getValue();
+    }
+    return $values;
+  }
+
+  /**
+   * @param array<string, mixed> $values
+   */
+  private function reusableTicketSetupMatches(TicketTypeInterface $setup, array $values): bool {
+    if ($setup->getTitle() !== (string) $values['title'] || $setup->getTicketKind() !== (string) $values['ticket_kind']) {
+      return FALSE;
+    }
+    $expectedVisibility = (string) ($values['visibility_mode'] ?? 'public');
+    $actualVisibility = $setup->hasField('visibility_mode') && !$setup->get('visibility_mode')->isEmpty()
+      ? (string) $setup->get('visibility_mode')->value
+      : 'public';
+    if ($actualVisibility !== $expectedVisibility) {
+      return FALSE;
+    }
+    $expectedDescription = (string) ($values['short_description'] ?? '');
+    $actualDescription = $setup->hasField('short_description') && !$setup->get('short_description')->isEmpty()
+      ? (string) $setup->get('short_description')->value
+      : '';
+    if ($actualDescription !== $expectedDescription) {
+      return FALSE;
+    }
+    if ($setup->getTicketKind() === 'paid') {
+      $actualPrice = $setup->toPriceValue();
+      $expectedPrice = $values['price'] ?? [];
+      return $actualPrice !== NULL
+        && number_format((float) $actualPrice->getNumber(), 6, '.', '')
+          === number_format((float) ($expectedPrice['number'] ?? 0), 6, '.', '')
+        && $actualPrice->getCurrencyCode() === (string) ($expectedPrice['currency_code'] ?? '');
+    }
+    if ($setup->getTicketKind() === 'external') {
+      $expectedUrl = (string) (($values['external_url'][0]['uri'] ?? $values['external_url']['uri'] ?? ''));
+      return $setup->getExternalUrlString() === $expectedUrl;
+    }
+    return TRUE;
   }
 
   /**

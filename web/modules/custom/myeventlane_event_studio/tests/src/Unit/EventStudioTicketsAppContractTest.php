@@ -99,6 +99,51 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringNotContainsString('requestSubmit()', $javascript);
   }
 
+  public function testReusableSetupsCopyConfigurationWithoutEventData(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $javascript = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+    $lifecycle = file_get_contents(dirname(__DIR__, 4) . '/myeventlane_event/src/Service/TicketTierLifecycleService.php');
+    $entity = file_get_contents(dirname(__DIR__, 4) . '/mel_ticket/src/Entity/TicketType.php');
+
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString('Save as a reusable ticket setup', $form);
+    $this->assertStringContainsString('Start from a saved setup', $form);
+    $this->assertStringContainsString('loadReusableTicketSetupsForAccount', $form);
+    $this->assertStringContainsString('loadReusableTicketSetupForAccount', $form);
+    $this->assertStringContainsString('updateAndSaveReusableTicketSetup', $form);
+    $this->assertStringContainsString('cloneFromReusableTemplate', $form);
+    $this->assertStringContainsString('Sales, capacity, attendees and orders are never copied.', $form);
+
+    $this->assertNotFalse($javascript);
+    $this->assertStringContainsString('function applySavedTicketSetup(select)', $javascript);
+    $this->assertStringContainsString("assign('[name=\"new_ticket[capacity]\"]', '', 'input')", $javascript);
+    $this->assertStringContainsString("hydrated.value = '1'", $javascript);
+    $this->assertStringContainsString('reusable_ticket_setup_selected', $javascript);
+
+    $this->assertNotFalse($lifecycle);
+    $this->assertStringContainsString('function saveReusableTicketSetupFromTicket', $lifecycle);
+    $this->assertStringContainsString('function buildTicketValuesFromReusableTemplate', $lifecycle);
+    $this->assertStringContainsString("\$values['template_source'] = ['target_id' => (int) \$template->id()]", $lifecycle);
+    $this->assertStringContainsString("'commerce_variation' => NULL", $lifecycle);
+    $this->assertStringContainsString("'event' => NULL", $lifecycle);
+
+    $saveStart = strpos($lifecycle, 'private function reusableTicketSetupValues');
+    $saveEnd = strpos($lifecycle, 'private function reusableTicketSetupMatches');
+    $this->assertNotFalse($saveStart);
+    $this->assertNotFalse($saveEnd);
+    $saveMethod = substr($lifecycle, $saveStart, $saveEnd - $saveStart);
+    $this->assertStringNotContainsString("get('capacity')", $saveMethod);
+    $this->assertStringNotContainsString("get('sale_start')", $saveMethod);
+    $this->assertStringNotContainsString("get('sale_end')", $saveMethod);
+    $this->assertStringNotContainsString("get('field_attendee_questions')", $saveMethod);
+
+    $this->assertNotFalse($entity);
+    $this->assertStringContainsString('Reusable ticket setups cannot be attached to an event.', $entity);
+    $this->assertStringContainsString("\$this->set('commerce_variation', NULL)", $entity);
+    $this->assertStringContainsString("\$this->set('status', FALSE)", $entity);
+    $this->assertStringNotContainsString('Paid tickets cannot be marked reusable', $entity);
+  }
+
   public function testOperationalTicketsFormUsesOrganiserLanguage(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $this->assertNotFalse($form);

@@ -276,6 +276,29 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     $tickets = $this->ticketTierLifecycle->loadOrderedTicketsForEvent($event);
+    $saved_setups = $this->ticketTierLifecycle->loadReusableTicketSetupsForAccount($this->currentUser);
+    $saved_setup_options = ['' => $this->t('Choose a saved setup')];
+    $saved_setup_client_data = [];
+    foreach ($saved_setups as $setup_id => $setup) {
+      $setup_price = $setup->toPriceValue();
+      $price_label = $setup->getTicketKind() === 'paid' && $setup_price !== NULL
+        ? $this->t('A$@amount', ['@amount' => number_format((float) $setup_price->getNumber(), 2, '.', '')])
+        : ($setup->getTicketKind() === 'rsvp' ? $this->t('Free RSVP') : $this->t('External'));
+      $saved_setup_options[(string) $setup_id] = $this->t('@name — @price', [
+        '@name' => $setup->getTitle(),
+        '@price' => $price_label,
+      ]);
+      $saved_setup_client_data[(string) $setup_id] = [
+        'title' => $setup->getTitle(),
+        'kind' => $setup->getTicketKind(),
+        'price' => $setup_price !== NULL ? number_format((float) $setup_price->getNumber(), 2, '.', '') : '',
+        'externalUrl' => $setup->getExternalUrlString() ?? '',
+        'visibility' => $setup->hasField('visibility_mode') && !$setup->get('visibility_mode')->isEmpty()
+          ? (string) $setup->get('visibility_mode')->value
+          : 'public',
+      ];
+    }
+    $form['#attached']['drupalSettings']['myeventlaneEventStudio']['ticketSetups'] = $saved_setup_client_data;
     $selected_ticket_id = $tickets !== [] ? (int) reset($tickets)->id() : 0;
     foreach (array_keys($form_state->getErrors()) as $error_name) {
       if (preg_match('/tickets\]\[(\d+)/', (string) $error_name, $matches) === 1) {
@@ -467,6 +490,36 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         ],
         'id' => 'mel-add-ticket',
       ],
+      'saved_setups' => [
+        '#type' => 'container',
+        '#access' => $saved_setups !== [],
+        '#attributes' => ['class' => ['mel-event-studio-saved-ticket-setups']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Start from a saved setup'),
+          '#attributes' => ['class' => ['mel-event-studio-saved-ticket-setups__title']],
+        ],
+        'copy' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Creates a fresh ticket for this event. Sales, capacity, attendees and orders are never copied.'),
+          '#attributes' => ['class' => ['mel-event-studio-saved-ticket-setups__copy']],
+        ],
+        'setup_id' => [
+          '#type' => 'select',
+          '#title' => $this->t('Saved ticket setup'),
+          '#options' => $saved_setup_options,
+          '#parents' => ['new_ticket', 'setup_id'],
+          '#attributes' => ['data-mel-saved-ticket-setup' => '1'],
+        ],
+      ],
+      'setup_hydrated' => [
+        '#type' => 'hidden',
+        '#default_value' => '0',
+        '#parents' => ['new_ticket', 'setup_hydrated'],
+        '#attributes' => ['data-mel-saved-ticket-setup-hydrated' => '1'],
+      ],
       'intro' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
@@ -598,6 +651,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         'archive' => !empty($row['archive']),
         'delete' => !empty($row['delete']),
       ]);
+      if (!empty($row['save_as_setup']) && $selected_actions !== []) {
+        $form_state->setErrorByName(
+          'tickets][' . $ticket_id . '][actions][save_as_setup',
+          $this->t('Save the reusable setup separately from Duplicate, Archive, or permanently delete.'),
+        );
+        continue;
+      }
       if (count($selected_actions) > 1) {
         $form_state->setErrorByName(
           'tickets][' . $ticket_id . '][actions',
@@ -645,7 +705,22 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
 
     $new = $form_state->getValue('new_ticket');
-    if (is_array($new) && $this->newTicketRowHasIntent($new)) {
+    if (is_array($new) && !empty($new['setup_id'])) {
+      $setup = $this->ticketTierLifecycle->loadReusableTicketSetupForAccount((int) $new['setup_id'], $this->currentUser);
+      if (!$setup instanceof TicketTypeInterface) {
+        $form_state->setErrorByName('new_ticket][setup_id', $this->t('That saved ticket setup is no longer available.'));
+      }
+      else {
+        try {
+          $overrides = !empty($new['setup_hydrated']) ? $new : [];
+          $this->ticketTierLifecycle->buildTicketValuesFromReusableTemplate($setup, $event, $this->currentUser, $overrides);
+        }
+        catch (\InvalidArgumentException $e) {
+          $form_state->setErrorByName('new_ticket][setup_id', $this->mapTicketInputExceptionMessage($e));
+        }
+      }
+    }
+    elseif (is_array($new) && $this->newTicketRowHasIntent($new)) {
       if (trim((string) ($new['title'] ?? '')) === '') {
         $form_state->setErrorByName('new_ticket][title', $this->t('Ticket name is required when adding a ticket.'));
       }
@@ -668,6 +743,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     }
     $this->assertCanManageEvent($event);
 
+    $saved_setup_count = 0;
     try {
       foreach ($this->submittedExistingTicketRows($form_state) as $ticket_id => $row) {
         $ticket = $this->ticketTierLifecycle->loadWritableTicketForEvent($event, $ticket_id, $this->currentUser);
@@ -709,14 +785,42 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           continue;
         }
 
-        $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
+        if (!empty($row['save_as_setup'])) {
+          $this->ticketTierLifecycle->updateAndSaveReusableTicketSetup(
+            $event,
+            $ticket,
+            $this->currentUser,
+            $values,
+          );
+          $saved_setup_count++;
+        }
+        else {
+          $this->ticketTierLifecycle->updateTicketType($ticket, $event, $values);
+        }
         $this->recordTicketAnalyticsEvent('ticket_updated', $event, (int) $ticket->id(), [
           'source' => 'workspace_tickets_save',
         ]);
       }
 
       $new = $form_state->getValue('new_ticket');
-      if (is_array($new) && $this->newTicketRowHasIntent($new) && trim((string) ($new['title'] ?? '')) !== '') {
+      if (is_array($new) && !empty($new['setup_id'])) {
+        $setup = $this->ticketTierLifecycle->loadReusableTicketSetupForAccount((int) $new['setup_id'], $this->currentUser);
+        if (!$setup instanceof TicketTypeInterface) {
+          throw new \InvalidArgumentException('That saved ticket setup is no longer available.');
+        }
+        $overrides = !empty($new['setup_hydrated']) ? $new : [];
+        $created = $this->ticketTierLifecycle->cloneFromReusableTemplate(
+          $setup,
+          $event,
+          $this->currentUser,
+          $overrides,
+        );
+        $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $created->id(), [
+          'source' => 'reusable_setup',
+          'setup_id' => (int) $setup->id(),
+        ]);
+      }
+      elseif (is_array($new) && $this->newTicketRowHasIntent($new) && trim((string) ($new['title'] ?? '')) !== '') {
         $values = $this->ticketTierLifecycle->buildTicketValuesFromInput($event, $this->currentUser, $new);
         $created = $this->ticketTierLifecycle->createAttachAndSync($event, $values);
         $this->recordTicketAnalyticsEvent('ticket_created', $event, (int) $created->id());
@@ -736,6 +840,13 @@ final class EventStudioOperationalTicketsForm extends FormBase {
     $this->persistDonationSettingsFromWorkspace($event);
 
     $this->messenger()->addStatus($this->t('Tickets saved and synced.'));
+    if ($saved_setup_count > 0) {
+      $this->messenger()->addStatus($this->formatPlural(
+        $saved_setup_count,
+        'Reusable ticket setup saved. It contains configuration only — no sales, capacity, attendee or order data.',
+        '@count reusable ticket setups saved. They contain configuration only — no sales, capacity, attendee or order data.',
+      ));
+    }
     $form_state->setRedirect('myeventlane_event_studio.workspace_tickets', [
       'node' => $event->id(),
     ]);
@@ -1135,6 +1246,19 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#parents' => ['tickets', $ticket_id, 'actions', 'ticket_kind'],
         ],
       ],
+      'reusable_setup' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__reusable-setup']],
+        'save_as_setup' => [
+          '#type' => 'checkbox',
+          '#title' => $this->t('Save as a reusable ticket setup'),
+          '#description' => $this->t('Copies configuration only. Sales, capacity, attendee and order data stay with this event.'),
+          '#default_value' => 0,
+          '#disabled' => $ticket->isArchived(),
+          '#attributes' => ['autocomplete' => 'off'],
+          '#parents' => ['tickets', $ticket_id, 'actions', 'save_as_setup'],
+        ],
+      ],
       'removal' => [
         '#type' => 'details',
         '#title' => $this->t('Remove ticket'),
@@ -1176,6 +1300,9 @@ final class EventStudioOperationalTicketsForm extends FormBase {
    * @param array<string, mixed> $new
    */
   private function newTicketRowHasIntent(array $new): bool {
+    if (!empty($new['setup_id'])) {
+      return TRUE;
+    }
     if (trim((string) ($new['title'] ?? '')) !== '') {
       return TRUE;
     }
@@ -1264,6 +1391,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $row['archive'] = !empty($row['actions']['archive']) ? 1 : 0;
         $row['duplicate'] = !empty($row['actions']['duplicate']) ? 1 : 0;
         $row['delete'] = !empty($row['actions']['delete']) ? 1 : 0;
+        $row['save_as_setup'] = !empty($row['actions']['save_as_setup']) ? 1 : 0;
       }
       $out[(int) $ticket_id] = $row;
     }
