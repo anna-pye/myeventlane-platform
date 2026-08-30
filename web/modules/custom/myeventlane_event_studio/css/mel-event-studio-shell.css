@@ -7849,8 +7849,11 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 /* Approved compact Ticketing workspace                                      */
 /* ========================================================================== */
 
-.mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-tickets-app {
+.mel-vendor .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-tickets-app {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  grid-template-columns: none;
   width: min(100%, 78rem);
   max-width: none;
   gap: 14px;
@@ -7977,6 +7980,12 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   grid-template-columns: minmax(0, 1fr) minmax(17rem, 0.38fr);
   align-items: start;
   gap: 18px;
+  width: 100%;
+  min-width: 0;
+}
+
+.mel-event-studio-ticket-workspace > * {
+  min-width: 0;
 }
 
 .mel-event-studio-ticket-workspace > .mel-event-ticket-preview {

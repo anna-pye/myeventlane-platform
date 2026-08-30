@@ -53,6 +53,27 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('.mel-event-studio-ticket-selector', $css);
   }
 
+  public function testCompactWorkspaceOverridesTheLegacyWideGrid(): void {
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
+    $theme_scss = file_get_contents(
+      dirname($this->moduleRoot(), 4) . '/web/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-ticket-hierarchy.scss',
+    );
+
+    $this->assertNotFalse($css);
+    $this->assertStringContainsString(
+      ".mel-vendor .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-tickets-app",
+      $css,
+    );
+    $this->assertStringContainsString('flex-direction: column;', $css);
+    $this->assertStringContainsString('grid-template-columns: none;', $css);
+    $this->assertStringContainsString('.mel-event-studio-ticket-workspace > *', $css);
+
+    $this->assertNotFalse($theme_scss);
+    $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
+    $this->assertStringContainsString('display: flex;', $theme_scss);
+    $this->assertStringContainsString('flex-direction: column;', $theme_scss);
+  }
+
   public function testQuickAddPresetsPopulateTheExistingTicketFormWithoutSaving(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
     $javascript = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
