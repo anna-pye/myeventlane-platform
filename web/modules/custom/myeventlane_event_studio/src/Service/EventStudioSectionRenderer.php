@@ -873,8 +873,8 @@ final class EventStudioSectionRenderer {
       $preview = $this->eventTicketPreviewBuilder->build($event);
       if ($preview !== []) {
         if ($uses_ticket_types) {
-          $build['ticket_workspace']['ticket_preview'] = $preview;
-          $build['ticket_workspace']['ticket_preview']['#weight'] = 10;
+          $build['ticket_workspace']['operational']['ticket_preview'] = $preview;
+          $build['ticket_workspace']['operational']['ticket_preview']['#weight'] = 90;
         }
         else {
           $build['ticket_preview'] = $preview;

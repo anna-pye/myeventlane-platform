@@ -28,7 +28,7 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString("'myeventlane_event_studio.workspace_extras'", $renderer);
     $this->assertStringContainsString('mel-event-studio-sales-navigation', $renderer);
     $this->assertStringContainsString('mel-event-studio-ticket-workspace', $renderer);
-    $this->assertStringContainsString("\$build['ticket_workspace']['ticket_preview'] = \$preview;", $renderer);
+    $this->assertStringContainsString("\$build['ticket_workspace']['operational']['ticket_preview'] = \$preview;", $renderer);
   }
 
   public function testMasterDetailKeepsEveryTicketControlInTheSubmittedForm(): void {
@@ -39,6 +39,11 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertNotFalse($form);
     $this->assertStringContainsString('data-mel-ticket-select', $form);
     $this->assertStringContainsString('data-mel-ticket-editor', $form);
+    $this->assertStringContainsString('data-mel-ticket-selector-name-label', $form);
+    $this->assertStringContainsString('data-mel-ticket-selector-price-label', $form);
+    $this->assertStringContainsString('data-mel-ticket-editor-heading', $form);
+    $this->assertStringContainsString("\$this->t('Price (AUD)')", $form);
+    $this->assertStringContainsString("number_format((float) \$price->getNumber(), 2, '.', '')", $form);
     $this->assertStringContainsString("\$form['tickets'][\$ticket_id]", $form);
     $this->assertStringContainsString("\$form['new_ticket']['quick_add'] = \$form['quick_add']", $form);
 
@@ -46,6 +51,8 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('function selectTicketEditor(form, ticketId, focusEditor)', $javascript);
     $this->assertStringContainsString("form.classList.add('is-master-detail-ready')", $javascript);
     $this->assertStringContainsString('function updateTicketSelector(form, field)', $javascript);
+    $this->assertStringContainsString("selector.querySelector('[data-mel-ticket-selector-name-label]')", $javascript);
+    $this->assertStringContainsString("card.querySelector('[data-mel-ticket-editor-heading]')", $javascript);
     $this->assertStringNotContainsString('removeChild', $javascript);
 
     $this->assertNotFalse($css);

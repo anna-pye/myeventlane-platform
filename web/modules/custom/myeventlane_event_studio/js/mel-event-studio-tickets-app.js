@@ -114,9 +114,24 @@
     const price = priceField instanceof HTMLInputElement && priceField.value !== ''
       ? '$' + Number(priceField.value).toFixed(2).replace(/\.00$/, '')
       : selector.dataset.melTicketSelectorPrice || Drupal.t('Free');
-    const labelParts = (selector.textContent || '').split('—');
-    const status = (labelParts.pop() || Drupal.t('Draft')).trim();
-    selector.textContent = name + ' — ' + price + ' — ' + status;
+    const nameLabel = selector.querySelector('[data-mel-ticket-selector-name-label]');
+    const priceLabel = selector.querySelector('[data-mel-ticket-selector-price-label]');
+    const editorHeading = card.querySelector('[data-mel-ticket-editor-heading]');
+    const status = selector.dataset.melTicketSelectorStatus || Drupal.t('Draft');
+    if (nameLabel instanceof HTMLElement) {
+      nameLabel.textContent = name;
+    }
+    if (priceLabel instanceof HTMLElement) {
+      priceLabel.textContent = price;
+    }
+    if (editorHeading instanceof HTMLElement) {
+      editorHeading.textContent = name;
+    }
+    selector.setAttribute('aria-label', Drupal.t('Edit @name, @price, @status', {
+      '@name': name,
+      '@price': price,
+      '@status': status,
+    }));
     selector.dataset.melTicketSelectorName = name;
     selector.dataset.melTicketSelectorPrice = price;
   }

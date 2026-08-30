@@ -338,6 +338,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         $ticket->isPublished() => $this->t('Selling now'),
         default => $this->t('Draft'),
       };
+      $sales_label = $this->buildTicketSalesSummary($ticket);
       $is_selected = $ticket_id === $selected_ticket_id;
       $form['ticket_selector']['items'][$ticket_id] = [
         '#type' => 'container',
@@ -348,11 +349,6 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         'button' => [
           '#type' => 'html_tag',
           '#tag' => 'button',
-          '#value' => $this->t('@name — @price — @status', [
-            '@name' => $ticket->getTitle(),
-            '@price' => $price_label,
-            '@status' => $status_label,
-          ]),
           '#attributes' => [
             'type' => 'button',
             'class' => array_filter([
@@ -362,8 +358,46 @@ final class EventStudioOperationalTicketsForm extends FormBase {
             'data-mel-ticket-select' => (string) $ticket_id,
             'data-mel-ticket-selector-name' => $ticket->getTitle(),
             'data-mel-ticket-selector-price' => (string) $price_label,
+            'data-mel-ticket-selector-status' => (string) $status_label,
             'aria-controls' => 'mel-ticket-editor-' . $ticket_id,
             'aria-pressed' => $is_selected ? 'true' : 'false',
+            'aria-label' => (string) $this->t('Edit @name, @price, @status', [
+              '@name' => $ticket->getTitle(),
+              '@price' => $price_label,
+              '@status' => $status_label,
+            ]),
+          ],
+          'copy' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#attributes' => ['class' => ['mel-event-studio-ticket-selector__copy']],
+            'name' => [
+              '#type' => 'html_tag',
+              '#tag' => 'span',
+              '#value' => $ticket->getTitle(),
+              '#attributes' => [
+                'class' => ['mel-event-studio-ticket-selector__name'],
+                'data-mel-ticket-selector-name-label' => '1',
+              ],
+            ],
+            'meta' => [
+              '#type' => 'html_tag',
+              '#tag' => 'span',
+              '#value' => $this->t('@status · @sales', [
+                '@status' => $status_label,
+                '@sales' => $sales_label,
+              ]),
+              '#attributes' => ['class' => ['mel-event-studio-ticket-selector__meta']],
+            ],
+          ],
+          'price' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => $price_label,
+            '#attributes' => [
+              'class' => ['mel-event-studio-ticket-selector__price'],
+              'data-mel-ticket-selector-price-label' => '1',
+            ],
           ],
         ],
       ];
@@ -767,7 +801,31 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         ]),
         'id' => 'mel-ticket-editor-' . $ticket_id,
         'data-mel-ticket-editor' => (string) $ticket_id,
+        'aria-labelledby' => 'mel-ticket-editor-title-' . $ticket_id,
         'role' => 'listitem',
+      ],
+      'editor_heading' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-card__editor-heading']],
+        'copy' => [
+          '#type' => 'container',
+          'eyebrow' => [
+            '#type' => 'html_tag',
+            '#tag' => 'p',
+            '#value' => $this->t('Editing ticket'),
+            '#attributes' => ['class' => ['mel-event-studio-ticket-card__editor-eyebrow']],
+          ],
+          'title' => [
+            '#type' => 'html_tag',
+            '#tag' => 'h3',
+            '#value' => $ticket->getTitle(),
+            '#attributes' => [
+              'id' => 'mel-ticket-editor-title-' . $ticket_id,
+              'class' => ['mel-event-studio-ticket-card__editor-title'],
+              'data-mel-ticket-editor-heading' => '1',
+            ],
+          ],
+        ],
       ],
       'header' => [
         '#type' => 'container',
@@ -823,10 +881,12 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#attributes' => ['class' => ['mel-event-studio-ticket-card__pricing']],
           'price_amount' => [
             '#type' => 'number',
-            '#title' => $this->t('Price'),
+            '#title' => $this->t('Price (AUD)'),
             '#min' => 0,
             '#step' => 0.01,
-            '#default_value' => $price?->getNumber() ?? '',
+            '#default_value' => $price !== NULL
+              ? number_format((float) $price->getNumber(), 2, '.', '')
+              : '',
             '#disabled' => $kind !== 'paid',
             '#parents' => ['tickets', $ticket_id, 'price_amount'],
           ],
