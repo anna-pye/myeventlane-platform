@@ -23,6 +23,7 @@ Day-to-day Git / worktree / DDEV workflow automation lives in [`dev/`](dev/). Se
 | `rebuild-scss.sh` | Clears theme caches, reinstalls npm deps, rebuilds theme assets | Local DDEV | No (removes theme `node_modules`/`dist`) | None |
 | `myeventlane-audit-collector.sh` | Collects git/composer/drush audit snapshot into `_myeventlane_audit/` | Local | No | None |
 | `backup-build-and-db.sh` | Exports DB + optional DDEV snapshot and code tarball to `backups/` | Local DDEV | No | None |
+| `maintenance/mel-update-drupal.sh` | Plans or applies guarded Drupal core/contrib Composer updates, with local DB backup and post-update gates | Local DDEV update branch | Applies package and database updates in `--apply` mode | Clean non-main branch, explicit scope, typed confirmation |
 | `create-staging-backup.sh` | Exports and sanitises a staging-ready DB dump | Local DDEV | No | Review sanitisation output before sharing dump |
 | `check-mel-hero-variants.mjs` | Enforces locked hero SCSS variant (used by `npm run mel:hero-check`) | CI / local; run via theme npm script | No | None |
 | `check-attendee-matching.sh` | Diagnoses attendee ↔ user email matching for local test user | Local DDEV | No | None |
@@ -179,6 +180,7 @@ ddev drush php:script scripts/dangerous/delete-events.php
 | `deploy/` | Staging/production deploy and readiness verification |
 | `dev/` | Local-only entity/bootstrap helpers |
 | `governance/` | Architecture and template parity audits |
+| `maintenance/` | Guarded local dependency maintenance; never deployment |
 
 Governance inputs (`mel-*.json`) currently remain at repository root pending owner review — see [`docs/audits/repository-root-cleanup.md`](../docs/audits/repository-root-cleanup.md).
 
