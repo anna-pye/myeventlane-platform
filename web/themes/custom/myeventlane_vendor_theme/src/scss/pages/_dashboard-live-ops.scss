@@ -1524,8 +1524,8 @@ $mel-dash-attention-danger: #D64545;
   align-items: start;
 
   &--has-outcome {
-    @include respond-to(xl) {
-      grid-template-columns: minmax(0, 1fr) minmax(17rem, 20rem);
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
       grid-template-areas:
         'identity identity'
         'guidance outcome'
@@ -1846,6 +1846,16 @@ $mel-dash-attention-danger: #D64545;
     }
   }
 
+  &--has-outcome &__event-list {
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    @include respond-to(2xl) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
   &__group {
     --portfolio-group-accent: #{$primary};
     --portfolio-group-wash: #{rgba($primary, 0.06)};
@@ -1913,7 +1923,6 @@ $mel-dash-attention-danger: #D64545;
     display: grid;
     gap: $spacing-4;
     align-content: space-between;
-    min-height: 14.5rem;
     padding: $spacing-5;
     border: 1px solid rgba($mel-shell-border, 0.58);
     border-top: 4px solid var(--portfolio-group-accent);
@@ -2017,7 +2026,7 @@ $mel-dash-attention-danger: #D64545;
     background: $bg-primary;
     box-shadow: 0 12px 30px rgba(41, 50, 65, 0.05);
 
-    @include respond-to(xl) {
+    @include respond-to(lg) {
       position: sticky;
       top: $spacing-20;
     }
@@ -2041,7 +2050,7 @@ $mel-dash-attention-danger: #D64545;
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
-    @include respond-to(xl) {
+    @include respond-to(lg) {
       grid-template-columns: minmax(0, 1fr);
     }
 

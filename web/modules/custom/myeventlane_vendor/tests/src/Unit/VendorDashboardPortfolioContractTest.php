@@ -152,4 +152,16 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     $this->assertStringContainsString("size: 'hero'", $this->template);
   }
 
+  public function testPortfolioRailAndCardsShareTheLaptopBreakpoint(): void {
+    $this->assertStringContainsString(
+      'grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);',
+      $this->styles,
+    );
+    $this->assertStringContainsString(
+      '&--has-outcome &__event-list',
+      $this->styles,
+    );
+    $this->assertStringNotContainsString('min-height: 14.5rem;', $this->styles);
+  }
+
 }
