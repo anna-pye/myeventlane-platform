@@ -62,6 +62,66 @@
   }
 
   /**
+   * Shows one ticket editor while keeping every form control in the document.
+   */
+  function selectTicketEditor(form, ticketId, focusEditor) {
+    const selectors = form.querySelectorAll('[data-mel-ticket-select]');
+    const editors = form.querySelectorAll('[data-mel-ticket-editor]');
+    let selectedEditor = null;
+
+    selectors.forEach((button) => {
+      const selected = button.dataset.melTicketSelect === ticketId;
+      button.classList.toggle('is-selected', selected);
+      button.setAttribute('aria-pressed', selected ? 'true' : 'false');
+    });
+    editors.forEach((editor) => {
+      const selected = editor.dataset.melTicketEditor === ticketId;
+      editor.classList.toggle('is-selected', selected);
+      editor.setAttribute('aria-hidden', selected ? 'false' : 'true');
+      if (selected) {
+        selectedEditor = editor;
+      }
+    });
+
+    form.classList.add('is-master-detail-ready');
+    if (focusEditor && selectedEditor instanceof HTMLElement) {
+      const heading = selectedEditor.querySelector('input[name$="[title]"]');
+      if (heading instanceof HTMLElement) {
+        heading.focus({ preventScroll: true });
+      }
+    }
+  }
+
+  /**
+   * Keeps the compact ticket list in sync with unsaved name and price edits.
+   */
+  function updateTicketSelector(form, field) {
+    const card = field.closest('[data-mel-ticket-editor]');
+    if (!(card instanceof HTMLElement)) {
+      return;
+    }
+    const ticketId = card.dataset.melTicketEditor || '';
+    const selector = form.querySelector('[data-mel-ticket-select="' + ticketId + '"]');
+    if (!(selector instanceof HTMLElement)) {
+      return;
+    }
+
+    const nameField = card.querySelector('input[name$="[title]"]');
+    const priceField = card.querySelector('input[name$="[price_amount]"]');
+    const name = nameField instanceof HTMLInputElement && nameField.value.trim()
+      ? nameField.value.trim()
+      : Drupal.t('Untitled ticket');
+    const price = priceField instanceof HTMLInputElement && priceField.value !== ''
+      ? '$' + Number(priceField.value).toFixed(2).replace(/\.00$/, '')
+      : selector.dataset.melTicketSelectorPrice || Drupal.t('Free');
+    const labelParts = (selector.textContent || '').split('—');
+    const status = (labelParts.pop() || Drupal.t('Draft')).trim();
+    selector.textContent = name + ' — ' + price + ' — ' + status;
+    selector.dataset.melTicketSelectorName = name;
+    selector.dataset.melTicketSelectorPrice = price;
+  }
+
+  /**
    * Clears one ticket card's sales window without submitting the form.
    */
   function resetSalesWindow(button) {
@@ -134,6 +194,38 @@
           }
           event.preventDefault();
           openAddTicketPanel(details);
+        });
+      });
+
+      once('mel-ticket-add', '[data-mel-ticket-add]', context).forEach((link) => {
+        link.addEventListener('click', (event) => {
+          const details = document.getElementById('mel-add-ticket');
+          if (!(details instanceof HTMLDetailsElement)) {
+            return;
+          }
+          event.preventDefault();
+          openAddTicketPanel(details);
+        });
+      });
+
+      once('mel-ticket-master-detail', '.mel-event-studio-operational-tickets', context).forEach((form) => {
+        const selected = form.querySelector('[data-mel-ticket-select][aria-pressed="true"]')
+          || form.querySelector('[data-mel-ticket-select]');
+        if (selected instanceof HTMLElement) {
+          selectTicketEditor(form, selected.dataset.melTicketSelect || '', false);
+        }
+
+        form.querySelectorAll('[data-mel-ticket-select]').forEach((button) => {
+          button.addEventListener('click', () => {
+            selectTicketEditor(form, button.dataset.melTicketSelect || '', true);
+            emitAnalytics('ticket_editor_selected', {
+              ticket_id: button.dataset.melTicketSelect || null,
+            });
+          });
+        });
+
+        form.querySelectorAll('input[name$="[title]"], input[name$="[price_amount]"]').forEach((field) => {
+          field.addEventListener('input', () => updateTicketSelector(form, field));
         });
       });
 

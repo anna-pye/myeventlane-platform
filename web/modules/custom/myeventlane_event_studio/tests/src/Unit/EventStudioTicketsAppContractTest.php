@@ -26,7 +26,31 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('mel-event-studio-tickets-app', $renderer);
     $this->assertStringContainsString('Merchandise & add-ons', $renderer);
     $this->assertStringContainsString("'myeventlane_event_studio.workspace_extras'", $renderer);
-    $this->assertStringContainsString('remain inside Event Studio', $renderer);
+    $this->assertStringContainsString('mel-event-studio-sales-navigation', $renderer);
+    $this->assertStringContainsString('mel-event-studio-ticket-workspace', $renderer);
+    $this->assertStringContainsString("\$build['ticket_workspace']['ticket_preview'] = \$preview;", $renderer);
+  }
+
+  public function testMasterDetailKeepsEveryTicketControlInTheSubmittedForm(): void {
+    $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $javascript = file_get_contents($this->moduleRoot() . '/js/mel-event-studio-tickets-app.js');
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
+
+    $this->assertNotFalse($form);
+    $this->assertStringContainsString('data-mel-ticket-select', $form);
+    $this->assertStringContainsString('data-mel-ticket-editor', $form);
+    $this->assertStringContainsString("\$form['tickets'][\$ticket_id]", $form);
+    $this->assertStringContainsString("\$form['new_ticket']['quick_add'] = \$form['quick_add']", $form);
+
+    $this->assertNotFalse($javascript);
+    $this->assertStringContainsString('function selectTicketEditor(form, ticketId, focusEditor)', $javascript);
+    $this->assertStringContainsString("form.classList.add('is-master-detail-ready')", $javascript);
+    $this->assertStringContainsString('function updateTicketSelector(form, field)', $javascript);
+    $this->assertStringNotContainsString('removeChild', $javascript);
+
+    $this->assertNotFalse($css);
+    $this->assertStringContainsString('.is-master-detail-ready [data-mel-ticket-editor]:not(.is-selected)', $css);
+    $this->assertStringContainsString('.mel-event-studio-ticket-selector', $css);
   }
 
   public function testQuickAddPresetsPopulateTheExistingTicketFormWithoutSaving(): void {

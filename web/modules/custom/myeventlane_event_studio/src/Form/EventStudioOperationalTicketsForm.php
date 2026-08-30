@@ -275,6 +275,49 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ];
     }
 
+    $tickets = $this->ticketTierLifecycle->loadOrderedTicketsForEvent($event);
+    $selected_ticket_id = $tickets !== [] ? (int) reset($tickets)->id() : 0;
+    foreach (array_keys($form_state->getErrors()) as $error_name) {
+      if (preg_match('/tickets\]\[(\d+)/', (string) $error_name, $matches) === 1) {
+        $selected_ticket_id = (int) $matches[1];
+        break;
+      }
+    }
+
+    $form['ticket_selector'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-event-studio-ticket-selector'],
+        'aria-labelledby' => 'mel-ticket-selector-title',
+      ],
+      'header' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-selector__header']],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h4',
+          '#value' => $this->t('Your tickets'),
+          '#attributes' => [
+            'id' => 'mel-ticket-selector-title',
+            'class' => ['mel-event-studio-ticket-selector__title'],
+          ],
+        ],
+        'hint' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Choose one to edit.'),
+          '#attributes' => ['class' => ['mel-event-studio-ticket-selector__hint']],
+        ],
+      ],
+      'items' => [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-selector__items'],
+          'role' => 'list',
+        ],
+      ],
+    ];
+
     $form['tickets'] = [
       '#type' => 'container',
       '#tree' => TRUE,
@@ -284,11 +327,59 @@ final class EventStudioOperationalTicketsForm extends FormBase {
       ],
     ];
 
-    $tickets = $this->ticketTierLifecycle->loadOrderedTicketsForEvent($event);
     foreach ($tickets as $ticket) {
       $ticket_id = (int) $ticket->id();
-      $form['tickets'][$ticket_id] = $this->buildExistingTicketRow($ticket, $form_state);
+      $price = $ticket->toPriceValue();
+      $price_label = $ticket->getTicketKind() === 'paid' && $price !== NULL
+        ? $this->t('$@amount', ['@amount' => rtrim(rtrim(number_format((float) $price->getNumber(), 2), '0'), '.')])
+        : $this->t('Free');
+      $status_label = match (TRUE) {
+        $ticket->isArchived() => $this->t('Archived'),
+        $ticket->isPublished() => $this->t('Selling now'),
+        default => $this->t('Draft'),
+      };
+      $is_selected = $ticket_id === $selected_ticket_id;
+      $form['ticket_selector']['items'][$ticket_id] = [
+        '#type' => 'container',
+        '#attributes' => [
+          'class' => ['mel-event-studio-ticket-selector__item'],
+          'role' => 'listitem',
+        ],
+        'button' => [
+          '#type' => 'html_tag',
+          '#tag' => 'button',
+          '#value' => $this->t('@name — @price — @status', [
+            '@name' => $ticket->getTitle(),
+            '@price' => $price_label,
+            '@status' => $status_label,
+          ]),
+          '#attributes' => [
+            'type' => 'button',
+            'class' => array_filter([
+              'mel-event-studio-ticket-selector__button',
+              $is_selected ? 'is-selected' : NULL,
+            ]),
+            'data-mel-ticket-select' => (string) $ticket_id,
+            'data-mel-ticket-selector-name' => $ticket->getTitle(),
+            'data-mel-ticket-selector-price' => (string) $price_label,
+            'aria-controls' => 'mel-ticket-editor-' . $ticket_id,
+            'aria-pressed' => $is_selected ? 'true' : 'false',
+          ],
+        ],
+      ];
+      $form['tickets'][$ticket_id] = $this->buildExistingTicketRow($ticket, $form_state, $is_selected);
     }
+
+    $form['ticket_selector']['add'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'a',
+      '#value' => $this->t('Add ticket'),
+      '#attributes' => [
+        'href' => '#mel-add-ticket',
+        'class' => ['mel-event-studio-ticket-selector__add'],
+        'data-mel-ticket-add' => '1',
+      ],
+    ];
 
     if ($tickets === []) {
       $form['tickets']['empty'] = [
@@ -414,6 +505,10 @@ final class EventStudioOperationalTicketsForm extends FormBase {
         '#description' => $this->t('Optional. Use only when one offer should be gently highlighted.'),
       ],
     ];
+
+    // Keep visual presets available without occupying the everyday workspace.
+    $form['new_ticket']['quick_add'] = $form['quick_add'];
+    unset($form['quick_add']);
 
     $form['sticky_add'] = [
       '#type' => 'container',
@@ -615,7 +710,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
   /**
    * @return array<string, mixed>
    */
-  private function buildExistingTicketRow(TicketTypeInterface $ticket, FormStateInterface $form_state): array {
+  private function buildExistingTicketRow(TicketTypeInterface $ticket, FormStateInterface $form_state, bool $is_selected = FALSE): array {
     $ticket_id = (int) $ticket->id();
     $kind = $ticket->getTicketKind();
     $price = $ticket->toPriceValue();
@@ -668,7 +763,10 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           'mel-event-studio-ticket-card',
           $ticket->isArchived() ? 'is-archived' : ($ticket->isPublished() ? 'is-active' : 'is-inactive'),
           $ticket->isBestValueTicket() ? 'is-best-value' : NULL,
+          $is_selected ? 'is-selected' : NULL,
         ]),
+        'id' => 'mel-ticket-editor-' . $ticket_id,
+        'data-mel-ticket-editor' => (string) $ticket_id,
         'role' => 'listitem',
       ],
       'header' => [

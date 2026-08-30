@@ -824,68 +824,62 @@ final class EventStudioSectionRenderer {
         'data-mel-tickets-app' => '1',
       ],
       'mode' => $this->formBuilder->getForm(EventStudioTicketsForm::class, $event),
-      'other_sales' => [
+      'sales_navigation' => [
         '#type' => 'container',
         '#attributes' => [
-          'class' => ['mel-event-studio-ticketing-companion'],
-          'role' => 'region',
-          'aria-labelledby' => 'mel-ticketing-companion-title',
+          'class' => ['mel-event-studio-sales-navigation'],
+          'role' => 'navigation',
+          'aria-label' => (string) $this->t('Event sales tools'),
         ],
-        'icon' => [
+        'tickets' => [
           '#type' => 'html_tag',
           '#tag' => 'span',
-          '#value' => '＋',
+          '#value' => $this->t('Tickets'),
           '#attributes' => [
-            'class' => ['mel-event-studio-ticketing-companion__icon'],
-            'aria-hidden' => 'true',
+            'class' => ['mel-event-studio-sales-navigation__item', 'is-active'],
+            'aria-current' => 'page',
           ],
         ],
-        'copy' => [
-          '#type' => 'container',
-          '#attributes' => ['class' => ['mel-event-studio-ticketing-companion__copy']],
-          'eyebrow' => [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $this->t('Other event sales'),
-            '#attributes' => ['class' => ['mel-event-studio-ticketing-companion__eyebrow']],
-          ],
-          'title' => [
-            '#type' => 'html_tag',
-            '#tag' => 'h3',
-            '#value' => $this->t('Merchandise & add-ons'),
-            '#attributes' => [
-              'id' => 'mel-ticketing-companion-title',
-              'class' => ['mel-event-studio-ticketing-companion__title'],
-            ],
-          ],
-          'description' => [
-            '#type' => 'html_tag',
-            '#tag' => 'p',
-            '#value' => $this->t('Sell merchandise, parking, meals, camping, transport or VIP extras for this event. These stay separate from ticket types and remain inside Event Studio.'),
-            '#attributes' => ['class' => ['mel-event-studio-ticketing-companion__description']],
-          ],
-        ],
-        'action' => [
+        'extras' => [
           '#type' => 'link',
-          '#title' => $this->t('Manage merchandise & add-ons'),
+          '#title' => $this->t('Merchandise & add-ons'),
           '#url' => Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $event->id()]),
-          '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-event-studio-ticketing-companion__action']],
+          '#attributes' => ['class' => ['mel-event-studio-sales-navigation__item']],
+        ],
+        'advanced' => [
+          '#type' => 'html_tag',
+          '#tag' => 'a',
+          '#value' => $this->t('Groups & advanced'),
+          '#attributes' => [
+            'href' => '#mel-advanced-ticket-tools',
+            'class' => ['mel-event-studio-sales-navigation__item'],
+          ],
         ],
       ],
     ];
 
-    $build['other_sales']['#weight'] = 2;
+    $build['sales_navigation']['#weight'] = 2;
 
     if ($uses_ticket_types) {
-      $build['operational'] = $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event);
-      $build['operational']['#weight'] = 5;
+      $build['ticket_workspace'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-event-studio-ticket-workspace']],
+        '#weight' => 5,
+        'operational' => $this->formBuilder->getForm(EventStudioOperationalTicketsForm::class, $event),
+      ];
     }
 
     if ($preview_ready && $this->eventTicketPreviewBuilder instanceof EventTicketPreviewBuilder) {
       $preview = $this->eventTicketPreviewBuilder->build($event);
       if ($preview !== []) {
-        $build['ticket_preview'] = $preview;
-        $build['ticket_preview']['#weight'] = 10;
+        if ($uses_ticket_types) {
+          $build['ticket_workspace']['ticket_preview'] = $preview;
+          $build['ticket_workspace']['ticket_preview']['#weight'] = 10;
+        }
+        else {
+          $build['ticket_preview'] = $preview;
+          $build['ticket_preview']['#weight'] = 10;
+        }
       }
     }
 
@@ -941,6 +935,7 @@ final class EventStudioSectionRenderer {
       '#open' => FALSE,
       '#attributes' => [
         'class' => ['mel-es-card', 'mel-event-studio-advanced-tools'],
+        'id' => 'mel-advanced-ticket-tools',
         'data-mel-analytics-event' => 'advanced_tools_opened',
         'data-mel-event-id' => (string) $event_id,
       ],
