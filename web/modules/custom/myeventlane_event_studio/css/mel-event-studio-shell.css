@@ -8550,6 +8550,10 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
     order: 3;
   }
 
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets > .mel-event-ticket-preview {
+    order: 4;
+  }
+
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-sticky-add {
     order: 4;
   }

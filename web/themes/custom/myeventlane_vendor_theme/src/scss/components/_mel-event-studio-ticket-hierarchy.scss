@@ -508,6 +508,12 @@
 
   .mel-event-studio--workspace
     .mel-event-studio-operational-tickets
+    > .mel-event-ticket-preview {
+    order: 4;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-operational-tickets
     > .form-actions {
     order: 5;
   }
