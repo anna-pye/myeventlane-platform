@@ -2089,6 +2089,299 @@ $mel-dash-attention-danger: #D64545;
   }
 }
 
+// ---------------------------------------------------------------------------
+// Approved organiser-home composition.
+// The dashboard is a short portfolio summary; the Events route remains the
+// complete lifecycle catalogue and every row still opens its event workspace.
+// ---------------------------------------------------------------------------
+
+.mel-vendor-portfolio[data-mel-dashboard-slice='approved-mockup'] {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    'identity'
+    'dashboard';
+  gap: $spacing-6;
+
+  .mel-vendor-portfolio__identity {
+    grid-area: identity;
+    grid-template-columns: minmax(0, 1fr);
+    padding: $spacing-5 0 0;
+  }
+
+  .mel-vendor-portfolio__identity-copy {
+    max-width: 54rem;
+  }
+
+  .mel-vendor-portfolio__title {
+    font-size: clamp(2rem, 4vw, 2.75rem);
+  }
+
+  .mel-vendor-portfolio__dashboard-grid {
+    grid-area: dashboard;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-5;
+    min-width: 0;
+
+    @include respond-to(lg) {
+      grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);
+      align-items: start;
+    }
+  }
+
+  .mel-vendor-portfolio__primary,
+  .mel-vendor-portfolio__rail {
+    display: grid;
+    gap: $spacing-5;
+    min-width: 0;
+  }
+
+  .mel-vendor-portfolio__guidance,
+  .mel-vendor-portfolio__work,
+  .mel-vendor-portfolio__outcome {
+    grid-area: auto;
+    border-radius: 20px;
+  }
+
+  .mel-vendor-portfolio__guidance {
+    padding: $spacing-5;
+    border: 1px solid rgba(#76a9e8, 0.32);
+    background: rgba($mel-ws-soft-sky, 0.88);
+    box-shadow: none;
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
+
+    &::after {
+      display: none;
+    }
+  }
+
+  .mel-vendor-portfolio__priority {
+    gap: $spacing-5;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+  }
+
+  .mel-vendor-portfolio__priority-copy {
+    gap: $spacing-2;
+
+    h2 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: clamp(1.35rem, 3vw, 1.7rem);
+      line-height: $line-height-tight;
+    }
+  }
+
+  .mel-vendor-portfolio__all-clear {
+    display: grid;
+    gap: $spacing-2;
+    padding: 0;
+
+    h2 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-xl;
+    }
+  }
+
+  .mel-vendor-portfolio__secondary-guidance {
+    margin-top: $spacing-4;
+  }
+
+  .mel-vendor-portfolio__work,
+  .mel-vendor-portfolio__outcome {
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.68);
+    background: rgba(#fff, 0.94);
+    box-shadow: none;
+
+    @include respond-to(md) {
+      padding: $spacing-6;
+    }
+  }
+
+  .mel-vendor-portfolio__section-heading {
+    margin-bottom: $spacing-4;
+    align-items: start;
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.35rem, 3vw, 1.7rem);
+    }
+
+    > a {
+      min-height: 44px;
+      align-items: center;
+    }
+  }
+
+  .mel-vendor-portfolio__event-list {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    border-top: 1px solid rgba($mel-shell-border, 0.62);
+  }
+
+  .mel-vendor-portfolio__event-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-4;
+    align-items: center;
+    padding: $spacing-4 0;
+    border: 0;
+    border-bottom: 1px solid rgba($mel-shell-border, 0.62);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    transform: none;
+
+    @include respond-to(md) {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    &:hover {
+      border-color: rgba($mel-shell-border, 0.62);
+      box-shadow: none;
+      transform: none;
+    }
+
+    &:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+  }
+
+  .mel-vendor-portfolio__event-identity {
+    gap: $spacing-3;
+
+    .mel-event-card-thumb {
+      width: 56px;
+      height: 56px;
+      border-radius: $radius-md;
+    }
+
+    h3 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-base;
+      line-height: $line-height-tight;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .mel-vendor-portfolio__event-signals {
+    margin-top: $spacing-1;
+  }
+
+  .mel-vendor-portfolio__open {
+    width: 100%;
+    min-width: 0;
+    background: #fff;
+
+    @include respond-to(md) {
+      width: auto;
+      min-width: 9.5rem;
+    }
+  }
+
+  .mel-vendor-portfolio__outcome {
+    position: static;
+    top: auto;
+  }
+
+  .mel-vendor-portfolio__metrics {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: $spacing-3;
+
+    @include respond-to(sm) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    > div {
+      gap: $spacing-2;
+      padding: $spacing-4;
+      border: 0;
+      border-radius: $radius-lg;
+      background: #f8f4f1;
+    }
+
+    dd {
+      font-size: clamp(1.35rem, 4vw, 1.8rem);
+    }
+  }
+
+  .mel-vendor-portfolio__rail {
+    align-content: start;
+
+    @include respond-to(lg) {
+      position: sticky;
+      top: $spacing-20;
+    }
+  }
+
+  .mel-vendor-portfolio__rail-card {
+    display: grid;
+    gap: $spacing-3;
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.7);
+    border-radius: 18px;
+    background: rgba(#fff, 0.94);
+
+    h2 {
+      margin: 0;
+      color: $mel-ws-navy;
+      font-size: $font-size-xl;
+      line-height: $line-height-tight;
+    }
+
+    p {
+      margin: 0;
+      color: $text-secondary;
+      line-height: $line-height-relaxed;
+    }
+
+    .mel-btn {
+      width: 100%;
+      min-height: 44px;
+      justify-content: center;
+    }
+  }
+
+  .mel-vendor-portfolio__today-list {
+    display: grid;
+    gap: $spacing-2;
+    margin: 0;
+
+    > div {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: $spacing-2;
+      align-items: baseline;
+    }
+
+    dt {
+      grid-column: 2;
+      color: $text-secondary;
+      font-size: $font-size-sm;
+    }
+
+    dd {
+      grid-column: 1;
+      grid-row: 1;
+      margin: 0;
+      color: $mel-ws-navy;
+      font-weight: $font-weight-bold;
+      font-variant-numeric: tabular-nums;
+    }
+  }
+}
+
 .mel-vendor-dashboard .mel-live-ops__chip[href] {
   cursor: pointer;
   text-decoration: none;

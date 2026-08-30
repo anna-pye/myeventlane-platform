@@ -30,7 +30,8 @@
   <div class="mel-vendor-shell__main mel-vendor-console__main">
     {% include '@myeventlane_vendor_theme/includes/vendor-shell-header.html.twig' with {
       page: page,
-      hide_shell_title: is_dashboard_route,
+      hide_shell_title: false,
+      is_dashboard_route: is_dashboard_route,
     } only %}
 
     {% if page.vendor_alert is defined %}

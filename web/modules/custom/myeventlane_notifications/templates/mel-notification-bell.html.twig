@@ -18,6 +18,9 @@
         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
       </svg>
     </span>
+    {% if bell_context == 'business' %}
+      <span class="mel-notif-bell__trigger-label">{{ 'Updates'|t }}</span>
+    {% endif %}
     <span class="mel-notif-bell__badge mel-notif-bell__badge--empty"
           data-mel-notif-bell-badge
           aria-live="polite"

@@ -443,7 +443,10 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
 
   // Settings route (Profile): subsection tabs + shell title — was VendorSettingsController theme wrapper.
   $variables['page']['mel_vendor_route_tabs'] = NULL;
-  if (str_starts_with($current_path, '/vendor/support')) {
+  if ($route_name === 'myeventlane_vendor.console.dashboard') {
+    $variables['page']['shell_page_title'] = t('Organiser home');
+  }
+  elseif (str_starts_with($current_path, '/vendor/support')) {
     $variables['page']['shell_page_title'] = t('Support');
   }
   elseif (in_array($route_name, [
@@ -653,6 +656,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
   $vendor_alert = _myeventlane_vendor_theme_get_vendor_alert($current_user);
   $has_page_level_payment_health = str_starts_with($current_path, '/vendor/support')
     || in_array($route_name, [
+    'myeventlane_vendor.console.dashboard',
     'myeventlane_vendor.console.payments',
     'myeventlane_vendor.console.payouts',
     'myeventlane_analytics.dashboard',

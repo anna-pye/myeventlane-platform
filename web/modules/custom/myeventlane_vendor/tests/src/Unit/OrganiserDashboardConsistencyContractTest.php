@@ -21,6 +21,7 @@ final class OrganiserDashboardConsistencyContractTest extends TestCase {
     self::assertIsString($theme);
 
     foreach ([
+      'myeventlane_vendor.console.dashboard' => 'Organiser home',
       'myeventlane_vendor.console.events' => 'Events',
       'myeventlane_checkout_flow.vendor_attendees' => 'Attendees',
       'myeventlane_vendor.console.messages' => 'Messages',
@@ -34,6 +35,21 @@ final class OrganiserDashboardConsistencyContractTest extends TestCase {
       "str_starts_with(\$current_path, '/vendor/support')",
       $theme,
     );
+  }
+
+  /**
+   * The approved dashboard integrates payment health instead of duplicating it.
+   */
+  public function testDashboardOwnsItsPaymentAndHeaderHierarchy(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $theme = (string) file_get_contents($webRoot . '/themes/custom/myeventlane_vendor_theme/myeventlane_vendor_theme.theme');
+    $layout = (string) file_get_contents($webRoot . '/themes/custom/myeventlane_vendor_theme/templates/layout/page.html.twig');
+    $bell = (string) file_get_contents($webRoot . '/modules/custom/myeventlane_notifications/templates/mel-notification-bell.html.twig');
+
+    self::assertStringContainsString("'myeventlane_vendor.console.dashboard',", $theme);
+    self::assertStringContainsString('hide_shell_title: false', $layout);
+    self::assertStringContainsString('is_dashboard_route: is_dashboard_route', $layout);
+    self::assertStringContainsString("{{ 'Updates'|t }}", $bell);
   }
 
   /**
