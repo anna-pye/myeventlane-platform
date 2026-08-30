@@ -20,6 +20,7 @@
 {% set portfolio_total = event_portfolio.total|default(events|length) %}
 {% set empty_state = model.empty_state|default({}) %}
 {% set kpis = model.kpis|default([]) %}
+{% set has_outcome = kpis is iterable and kpis|length > 0 %}
 {% set pro_membership = pro_status|default({}) %}
 {% set create_action = organiser_actions|filter(item => item.key|default('') == 'create')|first|default(null) %}
 {% set create_url = create_action.url|default(empty_state.url|default(null)) %}
@@ -38,9 +39,9 @@
 {% set archived_events = events|filter(event => event.lifecycle_state|default('') == 'archived') %}
 
 <main
-  class="mel-vendor-dashboard mel-vendor-portfolio mel-layout--dashboard{% if events_empty %} mel-vendor-portfolio--empty{% endif %}"
+  class="mel-vendor-dashboard mel-vendor-portfolio mel-layout--dashboard{% if events_empty %} mel-vendor-portfolio--empty{% endif %}{% if has_outcome %} mel-vendor-portfolio--has-outcome{% endif %}"
   data-mel-vendor-dashboard
-  data-mel-dashboard-slice="portfolio-foundation"
+  data-mel-dashboard-slice="portfolio-composition"
 >
   {# Identity — establish whose organiser home this is. #}
   <header class="mel-vendor-portfolio__identity" aria-labelledby="mel-dashboard-title">
@@ -259,7 +260,8 @@
                   <article class="mel-vendor-portfolio__event-summary{% if event.lifecycle_state|default('') in ['ended', 'cancelled', 'archived'] %} mel-vendor-portfolio__event-summary--quiet{% endif %}" role="listitem">
                     <div class="mel-vendor-portfolio__event-identity">
                       {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with {
-                        image: image
+                        image: image,
+                        size: 'hero'
                       } only %}
                       <div>
                         <h4>{{ event.title|default('Untitled event'|t) }}</h4>
@@ -295,7 +297,7 @@
     </section>
 
     {# Outcome — quiet orientation using existing canonical metrics only. #}
-    {% if kpis is iterable and kpis|length > 0 %}
+    {% if has_outcome %}
       <section class="mel-vendor-portfolio__outcome" aria-labelledby="mel-outcome-title">
         <div class="mel-vendor-portfolio__section-heading">
           <div>

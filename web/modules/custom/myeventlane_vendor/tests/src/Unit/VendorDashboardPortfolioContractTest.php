@@ -124,6 +124,7 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
 
   public function testApprovedDashboardHierarchyIsPresentationOnly(): void {
     $this->assertStringContainsString("grid-template-areas:", $this->styles);
+    $this->assertStringContainsString('&--has-outcome', $this->styles);
     $this->assertStringContainsString("'identity identity'", $this->styles);
     $this->assertStringContainsString("'guidance outcome'", $this->styles);
     $this->assertStringContainsString("'work outcome'", $this->styles);
@@ -133,6 +134,22 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     $this->assertStringContainsString('model.priority_action|default(null)', $this->template);
     $this->assertStringContainsString('model.events|default([])', $this->template);
     $this->assertStringContainsString('model.kpis|default([])', $this->template);
+  }
+
+  public function testPortfolioDoesNotReserveAnEmptyOutcomeRail(): void {
+    $this->assertStringContainsString(
+      'has_outcome = kpis is iterable and kpis|length > 0',
+      $this->template,
+    );
+    $this->assertStringContainsString(
+      'mel-vendor-portfolio--has-outcome',
+      $this->template,
+    );
+    $this->assertStringContainsString(
+      "grid-template-columns: repeat(2, minmax(0, 1fr));",
+      $this->styles,
+    );
+    $this->assertStringContainsString("size: 'hero'", $this->template);
   }
 
 }

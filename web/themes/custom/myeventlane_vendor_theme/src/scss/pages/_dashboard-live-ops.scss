@@ -1523,14 +1523,16 @@ $mel-dash-attention-danger: #D64545;
   gap: $spacing-6;
   align-items: start;
 
-  @include respond-to(xl) {
-    grid-template-columns: minmax(0, 1fr) minmax(17rem, 20rem);
-    grid-template-areas:
-      'identity identity'
-      'guidance outcome'
-      'work outcome';
-    column-gap: $spacing-6;
-    row-gap: $spacing-6;
+  &--has-outcome {
+    @include respond-to(xl) {
+      grid-template-columns: minmax(0, 1fr) minmax(17rem, 20rem);
+      grid-template-areas:
+        'identity identity'
+        'guidance outcome'
+        'work outcome';
+      column-gap: $spacing-6;
+      row-gap: $spacing-6;
+    }
   }
 
   &--empty {
@@ -1696,6 +1698,28 @@ $mel-dash-attention-danger: #D64545;
     }
   }
 
+  &__guidance {
+    position: relative;
+    overflow: hidden;
+
+    &::after {
+      position: absolute;
+      top: -4.5rem;
+      right: -3rem;
+      width: 12rem;
+      height: 12rem;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba($mel-dash-lavender, 0.18), transparent 68%);
+      content: '';
+      pointer-events: none;
+    }
+
+    > * {
+      position: relative;
+      z-index: 1;
+    }
+  }
+
   &__priority,
   &__first-event {
     display: grid;
@@ -1797,35 +1821,62 @@ $mel-dash-attention-danger: #D64545;
 
   &__work {
     grid-area: work;
-    padding: $spacing-5;
-    border: 1px solid var(--portfolio-border);
-    border-radius: 20px;
-    background: $bg-primary;
-    box-shadow: 0 14px 34px rgba(41, 50, 65, 0.06);
+    padding: $spacing-6;
+    border: 1px solid rgba($mel-shell-border, 0.48);
+    border-radius: 24px;
+    background: rgba(#fffdfb, 0.9);
+    box-shadow: 0 18px 42px rgba(41, 50, 65, 0.07);
 
     @include respond-to(md) {
-      padding: $spacing-6;
+      padding: $spacing-8;
     }
   }
 
-  &__groups,
+  &__groups {
+    display: grid;
+    gap: $spacing-8;
+  }
+
   &__event-list {
     display: grid;
     gap: $spacing-4;
+
+    @include respond-to(lg) {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
   }
 
   &__group {
+    --portfolio-group-accent: #{$primary};
+    --portfolio-group-wash: #{rgba($primary, 0.06)};
+
     display: grid;
-    gap: $spacing-3;
-    padding-top: $spacing-5;
-    border-top: 1px solid var(--portfolio-border);
+    gap: $spacing-4;
+    padding-top: $spacing-8;
+    border-top: 1px solid rgba($mel-shell-border, 0.5);
 
     &--attention {
-      border-top-color: rgba($warning, 0.55);
+      --portfolio-group-accent: #{$warning};
+      --portfolio-group-wash: #{rgba($warning, 0.08)};
+      border-top-color: rgba($warning, 0.5);
     }
 
-    &--past {
-      margin-top: $spacing-2;
+    &--live {
+      --portfolio-group-accent: #{$success};
+      --portfolio-group-wash: #{rgba($success, 0.07)};
+    }
+
+    &--draft,
+    &--upcoming {
+      --portfolio-group-accent: #{$mel-dash-lavender};
+      --portfolio-group-wash: #{rgba($mel-dash-lavender, 0.07)};
+    }
+
+    &--completed,
+    &--cancelled,
+    &--archived {
+      --portfolio-group-accent: #{$text-muted};
+      --portfolio-group-wash: #{rgba($text-muted, 0.05)};
     }
 
     &:first-child {
@@ -1836,13 +1887,21 @@ $mel-dash-attention-danger: #D64545;
 
   &__group-heading {
     display: grid;
-    gap: $spacing-1;
+    gap: $spacing-2;
+    padding-left: $spacing-4;
+    border-left: 4px solid var(--portfolio-group-accent);
 
     h3 {
       margin: 0;
       color: $mel-ws-navy;
-      font-size: $font-size-lg;
+      font-size: $font-size-xl;
       line-height: $line-height-tight;
+
+      span {
+        color: $text-secondary;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-semibold;
+      }
     }
 
     p {
@@ -1853,16 +1912,18 @@ $mel-dash-attention-danger: #D64545;
   &__event-summary {
     display: grid;
     gap: $spacing-4;
-    align-items: center;
-    padding: $spacing-4;
-    border: 1px solid var(--portfolio-border);
-    border-radius: $radius-lg;
-    background: #fffdfb;
-    box-shadow: 0 5px 16px rgba(41, 50, 65, 0.04);
+    align-content: space-between;
+    min-height: 14.5rem;
+    padding: $spacing-5;
+    border: 1px solid rgba($mel-shell-border, 0.58);
+    border-top: 4px solid var(--portfolio-group-accent);
+    border-radius: 18px;
+    background: linear-gradient(155deg, var(--portfolio-group-wash) 0%, #fffdfb 38%);
+    box-shadow: 0 8px 22px rgba(41, 50, 65, 0.055);
+    transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
 
-    @include respond-to(md) {
-      grid-template-columns: minmax(0, 1fr) auto;
-      padding: $spacing-5;
+    @media (prefers-reduced-motion: reduce) {
+      transition: none;
     }
 
     &:focus-within {
@@ -1872,12 +1933,14 @@ $mel-dash-attention-danger: #D64545;
 
     &:hover {
       border-color: rgba($primary, 0.35);
-      box-shadow: 0 9px 22px rgba(41, 50, 65, 0.07);
+      border-top-color: var(--portfolio-group-accent);
+      box-shadow: 0 14px 28px rgba(41, 50, 65, 0.09);
+      transform: translateY(-2px);
     }
 
     &--quiet {
-      background: rgba($bg-primary, 0.68);
-      opacity: 0.88;
+      background: rgba($bg-primary, 0.72);
+      box-shadow: none;
     }
   }
 
@@ -1888,6 +1951,12 @@ $mel-dash-attention-danger: #D64545;
     align-items: start;
     min-width: 0;
 
+    .mel-event-card-thumb {
+      width: 80px;
+      height: 80px;
+      border-radius: $radius-lg;
+    }
+
     > div:last-child {
       display: grid;
       gap: $spacing-1;
@@ -1897,7 +1966,7 @@ $mel-dash-attention-danger: #D64545;
     h4 {
       margin: 0;
       color: $mel-ws-navy;
-      font-size: $font-size-base;
+      font-size: $font-size-lg;
       line-height: $line-height-tight;
       overflow-wrap: anywhere;
     }
@@ -1936,11 +2005,8 @@ $mel-dash-attention-danger: #D64545;
   &__open {
     width: 100%;
     justify-content: center;
-
-    @include respond-to(md) {
-      width: auto;
-      min-width: 10rem;
-    }
+    border-color: rgba($primary, 0.28);
+    background: rgba(#fff, 0.86);
   }
 
   &__outcome {
