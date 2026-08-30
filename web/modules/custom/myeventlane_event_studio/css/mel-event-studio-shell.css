@@ -2113,10 +2113,11 @@
 }
 
 .mel-event-studio-sidebar__heading {
-  margin-bottom: 6px;
-  font-size: 0.7rem;
-  letter-spacing: 0.04em;
-  text-transform: none;
+  margin-bottom: 8px;
+  color: #687386;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .mel-event-studio-topbar__primary {
@@ -2499,7 +2500,8 @@
 }
 
 .mel-event-studio-sidebar__group + .mel-event-studio-sidebar__group {
-  padding-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
 }
 
 .mel-event-studio-sidebar__list {
@@ -2599,12 +2601,22 @@
   }
 
   .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open .mel-event-studio-sidebar__inner {
-    gap: 4px;
+    gap: 12px;
     padding: 0;
     border: 0;
     border-radius: 0;
     background: transparent;
     box-shadow: none;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open .mel-event-studio-sidebar__group + .mel-event-studio-sidebar__group {
+    padding-top: 12px;
+    border-top-color: #eadfd5;
+  }
+
+  .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open .mel-event-studio-sidebar__heading {
+    padding-inline: 10px;
+    color: #697381;
   }
 
   .mel-vendor-shell--studio-focus .mel-sidebar__item--studio-open .mel-event-studio-sidebar__link {

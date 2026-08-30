@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'content',
   title: 'Content',
-  group: 'Workspace',
+  group: 'Set up',
   routeName: 'myeventlane_event_studio.workspace_content',
   section_state: 'active',
-  weight: 35,
+  weight: 50,
   icon: 'content',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventContentForm',
   writable: TRUE,

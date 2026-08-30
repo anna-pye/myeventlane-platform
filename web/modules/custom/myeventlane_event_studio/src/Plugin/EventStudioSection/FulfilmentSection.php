@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'fulfilment',
   title: 'Collection',
-  group: 'Workspace',
+  group: 'Sales',
   routeName: 'myeventlane_event_studio.workspace_fulfilment',
   section_state: 'active',
-  weight: 130,
+  weight: 30,
   icon: 'fulfilment',
   renderTarget: 'form:Drupal\myeventlane_event_studio\Form\EventStudioOperationalCapabilityForm',
   writable: TRUE,
@@ -24,6 +24,6 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
   empty_state_type: 'none',
   mobile_priority: 180,
   operationalArea: 'fulfilment',
-  navigationVisible: FALSE,
+  navigationVisible: TRUE,
 )]
 final class FulfilmentSection extends EventStudioSectionBase {}

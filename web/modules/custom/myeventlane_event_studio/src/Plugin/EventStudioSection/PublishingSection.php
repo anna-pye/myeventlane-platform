@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'publishing',
   title: 'Publishing',
-  group: 'Workspace',
+  group: 'Set up',
   routeName: 'myeventlane_event_studio.workspace_publishing',
   section_state: 'active',
-  weight: 110,
+  weight: 60,
   icon: 'publishing',
   renderTarget: 'publishing_hub',
   writable: TRUE,

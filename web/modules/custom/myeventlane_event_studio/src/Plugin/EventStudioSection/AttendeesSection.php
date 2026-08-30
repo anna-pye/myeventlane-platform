@@ -12,10 +12,10 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'attendees',
   title: 'Attendees',
-  group: 'Workspace',
+  group: 'Run the event',
   routeName: 'myeventlane_event_studio.workspace_attendees',
   section_state: 'active',
-  weight: 60,
+  weight: 10,
   icon: 'attendees',
   renderTarget: 'attendees_stack',
   writable: FALSE,

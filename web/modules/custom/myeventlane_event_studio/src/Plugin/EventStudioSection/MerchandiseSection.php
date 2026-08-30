@@ -12,7 +12,7 @@ use Drupal\myeventlane_event_studio\Attribute\EventStudioSection;
 #[EventStudioSection(
   id: 'merchandise',
   title: 'Merchandise',
-  group: 'Tickets & sales',
+  group: 'Sales',
   routeName: 'myeventlane_event_studio.workspace_merchandise',
   section_state: 'active',
   weight: 130,
