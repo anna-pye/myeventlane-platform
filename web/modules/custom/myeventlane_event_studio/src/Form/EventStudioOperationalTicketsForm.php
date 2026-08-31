@@ -1347,7 +1347,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#type' => 'checkbox',
           '#title' => $this->t('Duplicate ticket'),
           '#disabled' => $ticket->isArchived(),
-          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox', 'mel-event-studio-ticket-card__action']],
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox', 'mel-event-studio-ticket-card__action', 'mel-event-studio-ticket-card__action--duplicate']],
           '#parents' => ['tickets', $ticket_id, 'actions', 'duplicate'],
         ],
         'archive' => [
@@ -1355,7 +1355,7 @@ final class EventStudioOperationalTicketsForm extends FormBase {
           '#title' => $this->t('Archive ticket'),
           '#description' => $this->t('Stops new checkout sales. Past orders stay intact.'),
           '#disabled' => $ticket->isArchived(),
-          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox', 'mel-event-studio-ticket-card__action']],
+          '#wrapper_attributes' => ['class' => ['mel-event-studio-ticket-card__checkbox', 'mel-event-studio-ticket-card__action', 'mel-event-studio-ticket-card__action--archive']],
           '#parents' => ['tickets', $ticket_id, 'actions', 'archive'],
         ],
       ],

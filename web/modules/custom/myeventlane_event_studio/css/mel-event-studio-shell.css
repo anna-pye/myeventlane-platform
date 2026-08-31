@@ -8319,6 +8319,68 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   padding-top: 0;
 }
 
+/* Ticket actions are choices, not parallel form columns. */
+.mel-event-studio details.mel-event-studio-ticket-card__quick-actions[open] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.mel-event-studio
+  .mel-event-studio-ticket-card__quick-actions
+  .mel-event-studio-ticket-card__action {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 3px 10px;
+  width: 100%;
+  min-width: 0;
+  min-height: 0;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 12px 14px;
+}
+
+.mel-event-studio
+  .mel-event-studio-ticket-card__quick-actions
+  .mel-event-studio-ticket-card__action
+  input[type='checkbox'] {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 2px 0 0;
+}
+
+.mel-event-studio
+  .mel-event-studio-ticket-card__quick-actions
+  .mel-event-studio-ticket-card__action
+  label {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  margin: 0;
+  color: #293241;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.mel-event-studio
+  .mel-event-studio-ticket-card__quick-actions
+  .mel-event-studio-ticket-card__action
+  .description {
+  grid-column: 2;
+  min-width: 0;
+  margin: 0;
+  color: #64748b;
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.mel-event-studio
+  .mel-event-studio-ticket-card__quick-actions
+  .mel-event-studio-ticket-card__action--archive {
+  border-color: rgba(242, 109, 91, 0.24);
+  background: #fffaf6;
+}
+
 .mel-event-studio .mel-event-studio-ticket-card > :is(
   .mel-event-studio-ticket-card__body,
   .mel-event-studio-ticket-card__quick-actions,

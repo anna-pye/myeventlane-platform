@@ -80,8 +80,8 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('order: 5;', $css);
 
     $this->assertNotFalse($libraries);
-    $this->assertStringContainsString("mel_event_studio:\n  version: 1.29", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.18", $libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.30", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.19", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
@@ -388,8 +388,14 @@ final class EventStudioTicketsAppContractTest extends TestCase {
 
   public function testTicketActionsAreMutuallyExclusive(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
     $this->assertNotFalse($form);
+    $this->assertNotFalse($css);
     $this->assertStringContainsString('Choose only one ticket action: Duplicate, Archive, or permanently delete.', $form);
+    $this->assertStringContainsString('mel-event-studio-ticket-card__action--duplicate', $form);
+    $this->assertStringContainsString('mel-event-studio-ticket-card__action--archive', $form);
+    $this->assertStringContainsString('.mel-event-studio-ticket-card__action {', $css);
+    $this->assertStringContainsString('grid-template-columns: auto minmax(0, 1fr);', $css);
     $this->assertStringContainsString("'delete' => !empty(\$row['delete'])", $form);
     $this->assertStringContainsString('if (count($selected_actions) > 1)', $form);
     $this->assertStringContainsString("!empty(\$row['archive']) && empty(\$row['duplicate'])", $form);
