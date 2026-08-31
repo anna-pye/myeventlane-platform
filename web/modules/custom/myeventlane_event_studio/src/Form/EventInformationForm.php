@@ -142,7 +142,7 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['start_date'] ?? NULL,
       '#date_increment' => 15,
       '#attributes' => ['class' => ['mel-input']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--timing" id="mel-es-schedule" aria-labelledby="mel-es-timing-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-timing-title">' . $this->t('Timing') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Keep date and time controls together so the public schedule is easy to review.') . '</p></header><div class="mel-es-field-group__body mel-es-field-group__body--datetime">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--timing" id="mel-es-schedule" aria-labelledby="mel-es-timing-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-timing-title">' . $this->t('Schedule') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Keep date and time controls together so the public schedule is easy to review.') . '</p></header><div class="mel-es-field-group__body mel-es-field-group__body--datetime">',
     ];
 
     $form['mel']['end_date'] = [

@@ -134,6 +134,8 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
     $this->assertStringContainsString('id="mel-es-details"', $form);
     $this->assertStringContainsString('id="mel-es-schedule"', $form);
     $this->assertStringContainsString('id="mel-es-venue-location"', $form);
+    $this->assertStringContainsString("\$this->t('Schedule')", $form);
+    $this->assertStringNotContainsString("\$this->t('Timing')", $form);
     $this->assertStringContainsString("'fragment' => \$this->resolveStayFragment(\$stay_route)", $form);
     $this->assertStringContainsString("\$this->t('Venue/Location')", $form);
 
