@@ -140,3 +140,126 @@
 .mel-refund-form-history {
   margin-bottom: 1rem;
 }
+
+.mel-sales-ops__eyebrow {
+  color: #f26d5b;
+  font-size: .75rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.mel-refund-requests .mel-sales-ops__help-link {
+  flex: 0 0 auto;
+  color: #d84f40;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.mel-refund-requests__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1.25rem;
+  border: 1px solid #eadfd8;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.mel-refund-requests__hero h2,
+.mel-refund-requests__hero p { margin: .25rem 0 0; }
+
+.mel-sales-ops__nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  margin: 0 0 1rem;
+}
+
+.mel-sales-ops__nav-item {
+  display: flex;
+  flex-direction: column;
+  gap: .2rem;
+  padding: .85rem 1rem;
+  border: 1px solid #eadfd8;
+  border-radius: .85rem;
+  background: #fff;
+  color: #293241;
+  text-decoration: none;
+}
+
+.mel-sales-ops__nav-item small { color: #69758a; line-height: 1.35; }
+.mel-sales-ops__nav-item.is-active { border-color: #f26d5b; background: #fff2ee; }
+
+.mel-refund-requests .mel-sales-ops__guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  margin-bottom: 1rem;
+  padding: 1.1rem 1.25rem;
+  border-radius: 1rem;
+  background: #eaf4ff;
+}
+
+.mel-refund-requests .mel-sales-ops__guide > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: .25rem;
+  padding: .75rem;
+  border: 1px solid #d8e5f2;
+  border-radius: .75rem;
+  background: #fff;
+}
+
+.mel-refund-requests .mel-sales-ops__guide span {
+  color: #69758a;
+  font-size: .86rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.mel-refund-requests__empty,
+.mel-refund-request-card,
+.mel-refund-decision-form {
+  padding: 1.25rem;
+  border: 1px solid #eadfd8;
+  border-radius: 1rem;
+  background: #fff;
+}
+
+.mel-refund-request-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+
+.mel-refund-request-card h3,
+.mel-refund-request-card p { margin: .15rem 0 0; }
+.mel-refund-request-card__label { color: #69758a; font-size: .78rem; font-weight: 700; text-transform: uppercase; }
+.mel-refund-request-card__amount { display: flex; flex-direction: column; text-align: right; }
+.mel-refund-request-card__actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: .5rem; }
+
+.mel-refund-form-help {
+  margin: 0 0 1rem;
+  padding: 1rem;
+  border: 1px solid #cfe0f2;
+  border-radius: .85rem;
+  background: #eaf4ff;
+  line-height: 1.5;
+}
+
+.mel-refund-form-help h2,
+.mel-refund-form-help p { margin: 0; }
+.mel-refund-form-help h2 + p { margin-top: .35rem; }
+
+@media (max-width: 48rem) {
+  .mel-refund-requests__hero { flex-direction: column; }
+  .mel-sales-ops__nav,
+  .mel-refund-requests .mel-sales-ops__guide { grid-template-columns: 1fr; }
+  .mel-refund-request-card { grid-template-columns: 1fr; }
+  .mel-refund-request-card__amount { text-align: left; }
+  .mel-refund-request-card__actions .mel-button { width: 100%; text-align: center; }
+}

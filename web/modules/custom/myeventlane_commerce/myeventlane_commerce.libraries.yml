@@ -45,7 +45,7 @@ operational_addon_guidance:
     - core/drupal
 
 vendor_operational_addon_orders:
-  version: 1.0
+  version: 1.1
   css:
     theme:
       css/mel-vendor-operational-addon-orders.css: {}

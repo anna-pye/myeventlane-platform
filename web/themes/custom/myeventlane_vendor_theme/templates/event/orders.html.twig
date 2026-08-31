@@ -4,7 +4,7 @@
   purchaser_name, purchaser_email, ticket_count, net_sales, fees, total,
   status, view_link, resend_link).
 #}
-<div class="mel-live-operations mel-vendor-console-stack{% if studio %} mel-studio-orders{% endif %}">
+<div class="mel-live-operations mel-vendor-console-stack mel-studio-orders mel-sales-ops">
 {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
   <div class="mel-contextual-help mel-contextual-help--vendor-console">
     {{ mel_vendor_contextual_help }}
@@ -18,29 +18,68 @@
       <h2 id="mel-orders-console-title" class="mel-live-ops__panel-title">{{ 'Orders'|t }}</h2>
       <p class="mel-studio-orders__intro">{{ 'Review completed purchases for this event and help guests with their booking.'|t }}</p>
     </div>
+    {% if help_url %}
+      <a class="mel-sales-ops__help-link" href="{{ help_url }}">{{ 'How to manage event sales'|t }}</a>
+    {% endif %}
   </div>
 
+  <nav class="mel-sales-ops__nav" aria-label="{{ 'Event sales tools'|t }}">
+    <span class="mel-sales-ops__nav-item is-active" aria-current="page">
+      <strong>{{ 'Orders'|t }}</strong>
+      <small>{{ 'Purchases, confirmations and payment status.'|t }}</small>
+    </span>
+    {% if addon_orders_url %}
+      <a class="mel-sales-ops__nav-item" href="{{ addon_orders_url }}">
+        <strong>{{ 'Add-on orders'|t }}</strong>
+        <small>{{ 'Items to prepare, collect or hand over.'|t }}</small>
+      </a>
+    {% endif %}
+    {% if refunds_url %}
+      <a class="mel-sales-ops__nav-item" href="{{ refunds_url }}">
+        <strong>{{ 'Refunds'|t }}</strong>
+        <small>{{ 'Buyer requests waiting for a decision.'|t }}</small>
+      </a>
+    {% endif %}
+  </nav>
+
+  <aside class="mel-sales-ops__guide" aria-label="{{ 'How to use orders'|t }}">
+    <div>
+      <strong>{{ 'Start with the order'|t }}</strong>
+      <span>{{ 'Open it to check the purchaser, ticket holders, totals and refund history.'|t }}</span>
+    </div>
+    <div>
+      <strong>{{ 'Help the guest'|t }}</strong>
+      <span>{{ 'Resend the booking confirmation when they cannot find their email.'|t }}</span>
+    </div>
+    <div>
+      <strong>{{ 'Keep sales separate'|t }}</strong>
+      <span>{{ 'Ticket, add-on and refund records stay attached to this event.'|t }}</span>
+    </div>
+  </aside>
+
   {% if orders|length > 0 %}
-    {% if studio %}
-      <div class="mel-studio-orders__summary" aria-label="{{ 'Order summary'|t }}">
+    <div class="mel-studio-orders__summary" aria-label="{{ 'Order summary'|t }}">
         <article class="mel-studio-orders__metric">
           <span>{{ 'Orders'|t }}</span>
           <strong>{{ orders|length }}</strong>
+          <small>{{ 'Completed purchases shown below.'|t }}</small>
         </article>
         <article class="mel-studio-orders__metric">
           <span>{{ 'Items sold'|t }}</span>
           <strong>{{ totals.ticket_count }}</strong>
+          <small>{{ 'All event-linked ticket and extra items.'|t }}</small>
         </article>
         <article class="mel-studio-orders__metric">
           <span>{{ 'Gross sales'|t }}</span>
           <strong>{{ totals.net_sales }}</strong>
+          <small>{{ 'Sales before event-level fees and refunds.'|t }}</small>
         </article>
         <article class="mel-studio-orders__metric mel-studio-orders__metric--accent">
           <span>{{ 'Net proceeds'|t }}</span>
           <strong>{{ totals.total }}</strong>
+          <small>{{ 'Event sales after the fees shown here.'|t }}</small>
         </article>
       </div>
-    {% endif %}
     <div class="mel-table mel-table--striped mel-studio-orders__table">
       <div class="mel-table__head">
         <div>{{ 'Order'|t }}</div>
@@ -120,6 +159,9 @@
       <div class="mel-empty__description">
         {{ 'Completed purchases will appear here. Share your event when you are ready to welcome your first booking.'|t }}
       </div>
+      {% if help_url %}
+        <a class="mel-sales-ops__empty-link" href="{{ help_url }}">{{ 'Learn how event sales work'|t }}</a>
+      {% endif %}
     </div>
   {% endif %}
 </section>

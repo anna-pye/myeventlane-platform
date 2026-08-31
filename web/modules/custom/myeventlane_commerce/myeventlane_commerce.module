@@ -351,6 +351,11 @@ function myeventlane_commerce_theme(): array {
     'mel_vendor_operational_addon_orders' => [
       'variables' => [
         'document' => [],
+        'event' => NULL,
+        'help_url' => NULL,
+        'orders_url' => NULL,
+        'refunds_url' => NULL,
+        'extras_url' => NULL,
       ],
       'template' => 'mel-vendor-operational-addon-orders',
     ],

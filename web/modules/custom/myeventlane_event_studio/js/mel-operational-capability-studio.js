@@ -150,8 +150,8 @@
         const m = ac.value.match(/\((\d+)\)\s*$/);
         const editor = ac.closest('.mel-operational-capability-editor');
         const num = editor && editor.querySelector('[data-cap-field="commerce_linkage.product_id"]');
-        if (m && num) {
-          num.value = m[1];
+        if (num) {
+          num.value = m ? m[1] : '0';
           num.dispatchEvent(new Event('change', { bubbles: true }));
         }
       });
@@ -166,10 +166,20 @@
           panel.classList.add('is-open');
         }
         root.querySelectorAll('.mel-operational-capability-editor').forEach((el) => {
-          el.classList.toggle('is-active', el === editor);
+          const active = el === editor;
+          el.classList.toggle('is-active', active);
+          el.setAttribute('aria-hidden', active ? 'false' : 'true');
+        });
+        root.querySelectorAll('.js-mel-capability-configure').forEach((candidate) => {
+          candidate.setAttribute('aria-expanded', candidate === button ? 'true' : 'false');
         });
         if (editor) {
           editor.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          const heading = editor.querySelector('.mel-operational-capability-editor__title');
+          if (heading) {
+            heading.setAttribute('tabindex', '-1');
+            heading.focus({ preventScroll: true });
+          }
         }
       });
     });

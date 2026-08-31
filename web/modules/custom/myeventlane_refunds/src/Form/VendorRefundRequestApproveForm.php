@@ -89,6 +89,8 @@ final class VendorRefundRequestApproveForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
+    $form['#attributes']['class'][] = 'mel-refund-decision-form';
     $req = $this->getRefundRequest();
     if (!$req || $req['status'] !== RefundRequestStorage::STATUS_REQUESTED) {
       $form['error'] = [
@@ -121,6 +123,10 @@ final class VendorRefundRequestApproveForm extends FormBase {
     $form['summary'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('Refund decision'),
+    ];
+    $form['summary']['help'] = [
+      '#weight' => -20,
+      '#markup' => '<p class="mel-refund-form-help">' . $this->t('Check the request against the order, then select only the tickets that should be refunded. Approval is the step that can return money through the original payment method.') . '</p>',
     ];
     $form['summary']['request_amount'] = [
       '#type' => 'markup',

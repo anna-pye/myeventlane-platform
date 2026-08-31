@@ -88,6 +88,8 @@ final class VendorRefundForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?OrderInterface $commerce_order = NULL, ?NodeInterface $node = NULL): array {
+    $form['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
+    $form['#attributes']['class'][] = 'mel-refund-decision-form';
     $form_state->set('event_id', (int) $this->getRequest()->query->get('event', 0));
     $form_state->set('order_id', (int) $this->getRequest()->query->get('order', 0));
     $order = $commerce_order;
@@ -138,6 +140,14 @@ final class VendorRefundForm extends FormBase {
 
     $form['#order'] = $order;
     $form['#event'] = $event;
+
+    $form['guidance'] = [
+      '#type' => 'container',
+      '#weight' => -30,
+      '#attributes' => ['class' => ['mel-refund-form-help']],
+      'title' => ['#markup' => '<h2>' . $this->t('Refund this order') . '</h2>'],
+      'copy' => ['#markup' => '<p>' . $this->t('Choose the exact scope and check the refundable amount before continuing. Processing a confirmed refund can return money through the original payment method and cancel the selected tickets.') . '</p>'],
+    ];
 
     $timelineRows = $this->refundProcessor->getRefundTimelineForOrder((int) $order->id());
     $forEvent = array_values(array_filter(
@@ -297,7 +307,7 @@ final class VendorRefundForm extends FormBase {
 
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Refund Now'),
+      '#value' => $this->t('Process refund'),
       '#button_type' => 'primary',
       '#submit' => ['::submitForm'],
     ];
@@ -305,7 +315,7 @@ final class VendorRefundForm extends FormBase {
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
-      '#url' => Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $eventId]),
+      '#url' => Url::fromRoute('myeventlane_event_studio.workspace_orders', ['node' => $eventId]),
       '#attributes' => ['class' => ['button']],
     ];
 
@@ -425,7 +435,7 @@ final class VendorRefundForm extends FormBase {
           $this->messenger()->addStatus($this->t('Refund in progress — this usually takes a few minutes.'));
           break;
       }
-      $form_state->setRedirect('myeventlane_vendor.console.event_orders', ['event' => $event->id()]);
+      $form_state->setRedirect('myeventlane_event_studio.workspace_orders', ['node' => $event->id()]);
     }
     catch (\Throwable $e) {
       $this->messenger()->addError($this->t('Refund failed — no money has been returned. You can retry safely.'));

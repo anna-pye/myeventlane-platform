@@ -181,6 +181,32 @@ help_articles:
     cta_link: /vendor/refunds
     alias: /help/handling-refunds-organiser
     featured: true
+  managing_event_sales_operations:
+    seed_key: managing_event_sales_operations
+    title: 'Managing event orders, add-ons and refunds'
+    summary: 'Create sale items, use event sales records and manage buyer requests safely.'
+    body: '<h2>Set up what you sell</h2><p>Create ticket types inside Event Studio Ticketing. Create merchandise, parking, meals, camping, transport or other extras from Merchandise &amp; add-ons. Each ticket and extra stays connected to its event, so orders, quantities and attendees are not mixed between events.</p><h2>Use the Orders page</h2><p>Open an order to check the purchaser, ticket holders, event items, payment totals and refund history. The purchaser paid for the order; attendees are the people named on its tickets. Use Resend confirmation when a guest cannot find their booking email.</p><h2>Prepare add-on orders</h2><p>Open Add-on orders to see merchandise and extras guests have bought. Check the quantity, option, collection group and preparation note. Open the full order if you need purchaser or attendee details. This list is read-only: edit the products offered for future sales in Event Studio.</p><h2>Manage refund requests</h2><p>Open the original order before deciding. If you approve a request, select only the exact refundable tickets and check the calculated amount before confirming. If you decline, give the buyer a clear reason. A confirmed approval can return money through the original payment method. The refund is funded from your connected Stripe account, and a request is not complete until its status says completed. If a refund fails, no money has been returned; review the message and use the safe retry option once the cause is resolved.</p><h2>Keep good records</h2><p>Use the event-specific Orders, Add-on orders and Refunds pages when answering guests or reconciling sales. Do not use screenshots as the source of truth: the live order and refund status are the current record.</p>'
+    audience: [Organisers]
+    topic: 'Event operations'
+    article_type: Guide
+    keywords: 'event orders, add-on orders, merchandise sales, refund requests, resend confirmation'
+    cta_label: 'Open organiser dashboard'
+    cta_link: /vendor/dashboard
+    alias: /help/organisers/managing-event-sales-orders-add-ons-and-refunds
+    featured: true
+  managing_event_collection:
+    seed_key: managing_event_collection
+    title: 'Setting up and managing event collection'
+    summary: 'Connect tickets and add-ons to clear entry, collection and redemption instructions.'
+    body: '<h2>What the Collection page does</h2><p>Collection helps you explain how guests enter, collect an item or redeem an inclusion. It stores the rules and guest-facing expectations for this event. It does not mark an item as collected, track shipping or replace your event-day checklist.</p><h2>1. Create what guests receive</h2><p>Create ticket types in Event Studio Ticketing. Create merchandise, meals, parking, hospitality or other extras in Merchandise &amp; add-ons. Finish the sale item first so you can connect the correct product and options.</p><h2>2. Choose only the capabilities you need</h2><p>Open Collection and set up only the cards that apply to this event. Choose the fulfilment method, what the guest is reserving, whether a time window is required, when guests see the instructions and where the handoff happens. Online-first is the safe connection setting unless your event-day process has been tested for offline use.</p><h2>3. Connect the ticket or add-on</h2><p>Search for the product guests buy. Apply the capability to every option or select only the relevant sizes, sessions or packages. Check the guest preview, then save the collection settings.</p><h2>4. Prepare for the event</h2><p>Use Add-on orders to see purchased quantities, options, collection groups and preparation notes. Use Attendees and your check-in tools for guest entry. The Collection page sets expectations; Add-on orders and event-day tools are where your team does the work.</p><h2>Changing or removing a setup</h2><p>Edit the capability when future guests need different instructions. Turn it off only when the event no longer offers that experience. Edit the underlying ticket or extra in its own Event Studio page. Existing order records remain attached to the sale that was completed, so check live Orders and Add-on orders rather than relying on an old screenshot.</p>'
+    audience: [Organisers]
+    topic: 'Event operations'
+    article_type: Guide
+    keywords: 'event collection, redemption, merchandise pickup, add-on fulfilment, guest instructions'
+    cta_label: 'Open organiser dashboard'
+    cta_link: /vendor/dashboard
+    alias: /help/organisers/setting-up-and-managing-event-collection
+    featured: true
   cancelling_an_event:
     seed_key: cancelling_an_event
     title: 'What happens if I cancel an event?'

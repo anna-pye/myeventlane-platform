@@ -6,6 +6,68 @@
   width: 100%;
 }
 
+.mel-sales-ops__help-link,
+.mel-sales-ops__empty-link {
+  color: $mel-ws-coral;
+  font-weight: $font-weight-bold;
+}
+
+.mel-sales-ops__nav {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-3;
+  margin-bottom: $spacing-5;
+}
+
+.mel-sales-ops__nav-item {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: $spacing-1;
+  padding: $spacing-3 $spacing-4;
+  border: 1px solid rgba(45, 55, 72, 0.12);
+  border-radius: 14px;
+  background: $bg-primary;
+  color: $text-primary;
+  text-decoration: none;
+}
+
+.mel-sales-ops__nav-item small {
+  color: $text-secondary;
+  line-height: 1.35;
+}
+
+.mel-sales-ops__nav-item.is-active {
+  border-color: rgba(255, 107, 74, 0.5);
+  background: rgba(255, 107, 74, 0.08);
+}
+
+.mel-studio-orders .mel-sales-ops__guide {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: $spacing-3;
+  margin-bottom: $spacing-5;
+  padding: $spacing-4;
+  border-radius: 16px;
+  background: #eaf4ff;
+}
+
+.mel-studio-orders .mel-sales-ops__guide > div {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-1;
+  padding: $spacing-3;
+  border: 1px solid rgba(45, 55, 72, 0.1);
+  border-radius: 12px;
+  background: $bg-primary;
+}
+
+.mel-studio-orders .mel-sales-ops__guide span {
+  color: $text-secondary;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
 .mel-studio-orders .mel-orders-console {
   overflow: hidden;
   padding: clamp(20px, 2.5vw, 32px);
@@ -66,6 +128,41 @@
   color: $text-primary;
   font-size: clamp(1.25rem, 2vw, 1.65rem);
   line-height: 1;
+}
+
+.mel-studio-orders__metric small {
+  color: $text-secondary;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+
+.mel-order-view__header-help,
+.mel-order-view__card-help,
+.mel-order-view__section-help {
+  color: $text-secondary;
+  line-height: 1.45;
+}
+
+.mel-order-view__header-help {
+  display: flex;
+  justify-content: space-between;
+  gap: $spacing-3;
+  padding: 0 $spacing-5 $spacing-4;
+}
+
+.mel-order-view__header-help a {
+  color: $mel-ws-coral;
+  font-weight: $font-weight-bold;
+  white-space: nowrap;
+}
+
+.mel-order-view__card-help {
+  margin: $spacing-1 0 0;
+  font-size: 0.875rem;
+}
+
+.mel-order-view__section-help {
+  margin: -#{$spacing-2} 0 $spacing-4;
 }
 
 .mel-studio-orders__metric--accent {
@@ -144,6 +241,16 @@
 }
 
 @media (max-width: 640px) {
+  .mel-studio-orders__heading,
+  .mel-order-view__header-help {
+    flex-direction: column;
+  }
+
+  .mel-sales-ops__nav,
+  .mel-studio-orders .mel-sales-ops__guide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .mel-studio-orders .mel-orders-console {
     padding: $spacing-4;
     border-radius: 18px;

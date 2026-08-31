@@ -32,7 +32,7 @@ myeventlane_refunds.vendor_refund_requests:
 myeventlane_refunds.vendor_refund_request_approve:
   path: '/vendor/events/{node}/refund-requests/{refund_request}/approve'
   defaults:
-    _form: '\Drupal\myeventlane_refunds\Form\VendorRefundRequestApproveForm'
+    _controller: '\Drupal\myeventlane_refunds\Controller\VendorRefundWorkspaceController::approve'
     _title: 'Approve Refund Request'
   requirements:
     _permission: 'manage_refunds'
@@ -49,7 +49,7 @@ myeventlane_refunds.vendor_refund_request_approve:
 myeventlane_refunds.vendor_refund_request_reject:
   path: '/vendor/events/{node}/refund-requests/{refund_request}/reject'
   defaults:
-    _form: '\Drupal\myeventlane_refunds\Form\VendorRefundRequestRejectForm'
+    _controller: '\Drupal\myeventlane_refunds\Controller\VendorRefundWorkspaceController::reject'
     _title: 'Reject Refund Request'
   requirements:
     _permission: 'manage_refunds'
@@ -66,7 +66,7 @@ myeventlane_refunds.vendor_refund_request_reject:
 myeventlane_refunds.vendor_refund:
   path: '/vendor/orders/{commerce_order}/refund'
   defaults:
-    _form: '\Drupal\myeventlane_refunds\Form\VendorRefundForm'
+    _controller: '\Drupal\myeventlane_refunds\Controller\VendorRefundWorkspaceController::refund'
     _title: 'Refund Order'
   requirements:
     _permission: 'manage_refunds'
