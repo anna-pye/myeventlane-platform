@@ -15,7 +15,15 @@
 {% set billing = hub.billing|default({}) %}
 {% set support = hub.support|default({}) %}
 
-<div class="mel-payments-hub" data-mel-payments-hub data-mel-analytics-event="payments_hub_opened" data-mel-payment-health="{{ health.state|default('unknown') }}">
+<div class="mel-payments-hub mel-organiser-page" data-mel-payments-hub data-mel-analytics-event="payments_hub_opened" data-mel-payment-health="{{ health.state|default('unknown') }}">
+
+  <header class="mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Your money'|t }}</span>
+      <h1 class="mel-organiser-page__title">{{ 'Payments'|t }}</h1>
+      <p class="mel-organiser-page__description">{{ 'See what is ready, what is on the way and anything that needs your attention.'|t }}</p>
+    </div>
+  </header>
 
   {# ── Payment health (trust card) ── #}
   <section class="mel-payments-hub__health mel-card mel-card--status mel-payments-hub__health--{{ health.tone|default('muted') }}" id="payment-health" aria-labelledby="mel-payments-health-heading">
@@ -41,21 +49,21 @@
 
   {# ── Overview earnings ── #}
   <section class="mel-payments-hub__overview" id="overview" aria-labelledby="mel-payments-overview-heading">
-    <h2 id="mel-payments-overview-heading" class="mel-payments-hub__section-title">{{ 'Overview'|t }}</h2>
-    <div class="mel-payments-hub__kpi-row" role="list">
-      <div class="mel-payments-hub__kpi" role="listitem">
-        <span class="mel-payments-hub__kpi-label">{{ 'Available'|t }}</span>
-        <span class="mel-payments-hub__kpi-value" aria-label="{{ 'Available balance'|t }} {{ earnings.available }}">{{ earnings.available }}</span>
+    <h2 id="mel-payments-overview-heading" class="mel-payments-hub__section-title mel-organiser-page__section-title">{{ 'At a glance'|t }}</h2>
+    <div class="mel-payments-hub__kpi-row mel-organiser-page__metrics mel-organiser-page__metrics--three" role="list">
+      <div class="mel-payments-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-payments-hub__kpi-label mel-organiser-page__metric-label">{{ 'Available'|t }}</span>
+        <span class="mel-payments-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Available balance'|t }} {{ earnings.available }}">{{ earnings.available }}</span>
         <span class="mel-payments-hub__kpi-help">{{ earnings.available_help }}</span>
       </div>
-      <div class="mel-payments-hub__kpi" role="listitem">
-        <span class="mel-payments-hub__kpi-label">{{ 'Pending'|t }}</span>
-        <span class="mel-payments-hub__kpi-value" aria-label="{{ 'Pending balance'|t }} {{ earnings.pending }}">{{ earnings.pending }}</span>
+      <div class="mel-payments-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-payments-hub__kpi-label mel-organiser-page__metric-label">{{ 'Pending'|t }}</span>
+        <span class="mel-payments-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Pending balance'|t }} {{ earnings.pending }}">{{ earnings.pending }}</span>
         <span class="mel-payments-hub__kpi-help">{{ earnings.pending_help }}</span>
       </div>
-      <div class="mel-payments-hub__kpi" role="listitem">
-        <span class="mel-payments-hub__kpi-label">{{ 'Net earnings'|t }}</span>
-        <span class="mel-payments-hub__kpi-value" aria-label="{{ 'Net earnings'|t }} {{ earnings.net }}">{{ earnings.net }}</span>
+      <div class="mel-payments-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-payments-hub__kpi-label mel-organiser-page__metric-label">{{ 'Net earnings'|t }}</span>
+        <span class="mel-payments-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Net earnings'|t }} {{ earnings.net }}">{{ earnings.net }}</span>
         <span class="mel-payments-hub__kpi-help">{{ earnings.net_help }}</span>
       </div>
     </div>

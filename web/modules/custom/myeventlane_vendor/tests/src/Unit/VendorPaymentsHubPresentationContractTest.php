@@ -30,6 +30,20 @@ final class VendorPaymentsHubPresentationContractTest extends TestCase {
     $this->assertSame(1, substr_count($healthMarkup, '<a class="mel-button'));
   }
 
+  public function testHubUsesSharedOrganiserHierarchyWithoutLosingPaymentActions(): void {
+    $template = file_get_contents($this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/templates/payments-hub.html.twig');
+    $controller = file_get_contents($this->repositoryRoot() . '/web/modules/custom/myeventlane_vendor/src/Controller/VendorPaymentsHubController.php');
+    $this->assertIsString($template);
+    $this->assertIsString($controller);
+    $this->assertStringContainsString('mel-payments-hub mel-organiser-page', $template);
+    $this->assertStringContainsString("{{ 'Your money'|t }}", $template);
+    $this->assertStringContainsString('mel-organiser-page__metrics--three', $template);
+    $this->assertStringContainsString('health.cta_url', $template);
+    $this->assertStringContainsString('payouts.history_url', $template);
+    $this->assertStringContainsString('refunds.review_url', $template);
+    $this->assertStringContainsString("'title' => NULL", $controller);
+  }
+
   public function testBuilderExplainsBalancesAndUsesPayoutAwareEmptyStates(): void {
     $builder = file_get_contents($this->repositoryRoot() . '/web/modules/custom/myeventlane_vendor/src/Service/VendorPaymentsHubBuilder.php');
     $template = file_get_contents($this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/templates/payments-hub.html.twig');

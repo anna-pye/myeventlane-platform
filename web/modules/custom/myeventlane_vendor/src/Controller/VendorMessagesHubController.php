@@ -47,7 +47,9 @@ final class VendorMessagesHubController extends VendorConsoleBaseController impl
     $hub = $this->hubBuilder->build();
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => (string) $this->t('Messages'),
+      // The hub owns the organiser-facing page heading so it can use the
+      // shared Dashboard hierarchy without rendering a second H1.
+      'title' => NULL,
       'body' => [
         '#theme' => 'myeventlane_vendor_messages_hub',
         '#hub' => $hub,
