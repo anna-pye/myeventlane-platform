@@ -10,11 +10,7 @@
 @use '../tokens/breakpoints' as *;
 
 .mel-payments-hub {
-  display: flex;
-  flex-direction: column;
-  gap: var(--mel-space-5, 1.5rem);
-  max-width: var(--mel-layout-dashboard, 1280px);
-  width: 100%;
+  min-width: 0;
 }
 
 .mel-payments-hub__eyebrow {
@@ -119,20 +115,31 @@
 }
 
 .mel-payments-hub__kpi-row {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--mel-space-3, 0.75rem);
-
-  @media (min-width: 640px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   &--compact .mel-payments-hub__kpi-value {
     font-size: 1.25rem;
+  }
+
+  &--compact {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--mel-space-3, 0.75rem);
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 }
 
 .mel-payments-hub__kpi {
+  min-height: 8.5rem;
+}
+
+.mel-payments-hub__kpi.mel-organiser-page__metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.mel-payments-hub__kpi-row--compact .mel-payments-hub__kpi {
   display: flex;
   flex-direction: column;
   gap: var(--mel-space-1, 0.25rem);
@@ -140,18 +147,19 @@
   border: 1px solid var(--mel-color-border, #e5e7eb);
   border-radius: var(--mel-radius-md, 12px);
   background: var(--mel-color-bg, #fff);
-  min-height: 8.5rem;
 }
 
-.mel-payments-hub__kpi-label {
+.mel-payments-hub__kpi-row--compact .mel-payments-hub__kpi-label {
   font-size: 0.875rem;
   color: var(--mel-color-text-secondary, #5b6470);
 }
 
 .mel-payments-hub__kpi-value {
-  font-size: 1.5rem;
-  font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+.mel-payments-hub__kpi-row--compact .mel-payments-hub__kpi-value {
+  font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--mel-color-text, #111827);
   line-height: 1.2;
@@ -215,6 +223,19 @@
     color: var(--mel-color-text, #111827);
     font-variant-numeric: tabular-nums;
   }
+}
+
+.mel-payments-hub__account-id {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.375rem;
+  background: var(--mel-color-surface-subtle, #f7f5f3);
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  user-select: all;
 }
 
 .mel-payments-hub__actions {

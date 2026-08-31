@@ -13,6 +13,22 @@ use PHPUnit\Framework\TestCase;
  */
 final class VendorEventsPresentationContractTest extends TestCase {
 
+  public function testEventIndexUsesSharedOrganiserPageHierarchy(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/templates/myeventlane-vendor-events-grid.html.twig',
+    );
+    $styles = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/pages/_organiser-pages.scss',
+    );
+
+    self::assertStringContainsString('mel-organiser-page', $template);
+    self::assertStringContainsString('mel-organiser-page__eyebrow', $template);
+    self::assertStringContainsString("{{ 'Your work'|t }}", $template);
+    self::assertStringContainsString('.mel-organiser-page__intro', $styles);
+    self::assertStringContainsString('.mel-organiser-page__metrics', $styles);
+  }
+
   public function testEventCardsLeadToWorkspaceAndDiscloseSecondaryActions(): void {
     $webRoot = dirname(__DIR__, 6);
     $template = (string) file_get_contents(

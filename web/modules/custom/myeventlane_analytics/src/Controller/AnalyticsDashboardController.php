@@ -96,7 +96,7 @@ final class AnalyticsDashboardController extends VendorConsoleBaseController imp
     }
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => $analyticsModel['title'] ?? 'Analytics',
+      'title' => NULL,
       'body' => [
         '#theme' => 'myeventlane_analytics_dashboard',
         '#analytics_model' => $analyticsModel,

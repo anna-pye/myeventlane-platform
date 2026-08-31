@@ -17,15 +17,14 @@
 {% set upgrade_url = pro.cta_url|default(pro_upgrade_url|default(null)) %}
 {% set top_events = model.top_events|default([]) %}
 
-<div class="mel-analytics-hub" data-mel-analytics-hub data-mel-analytics-event="analytics_viewed" data-mel-analytics-pro="{{ is_pro ? '1' : '0' }}">
+<div class="mel-analytics-hub mel-organiser-page" data-mel-analytics-hub data-mel-analytics-event="analytics_viewed" data-mel-analytics-pro="{{ is_pro ? '1' : '0' }}">
 
-  <header class="mel-analytics-hub__header">
-    {% if model.eyebrow %}
-      <p class="mel-analytics-hub__eyebrow">{{ model.eyebrow }}</p>
-    {% endif %}
-    {% if model.subtitle %}
-      <p class="mel-analytics-hub__subtitle">{{ model.subtitle }}</p>
-    {% endif %}
+  <header class="mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ model.eyebrow|default('Understand your events'|t) }}</span>
+      <h1 class="mel-organiser-page__title">{{ model.title|default('Analytics'|t) }}</h1>
+      <p class="mel-organiser-page__description">{{ model.subtitle|default('See how your events are performing and what to do next.'|t) }}</p>
+    </div>
   </header>
 
   {# Empty CTA is additive — do not hide Business Health / Launch / Pro when the organiser has no events. #}

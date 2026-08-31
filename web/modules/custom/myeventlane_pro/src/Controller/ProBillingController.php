@@ -140,6 +140,7 @@ final class ProBillingController implements ContainerInjectionInterface {
 
     return [
       '#theme' => 'vendor_pro_manage',
+      '#title' => NULL,
       '#subscription_status' => $statusLabel,
       '#started_date' => $startedDate,
       '#next_billing_date' => $nextBilling,

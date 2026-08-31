@@ -49,7 +49,7 @@ final class VendorMarketingHubController extends VendorConsoleBaseController imp
     $hub = $this->hubBuilder->build();
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => (string) $this->t('Marketing'),
+      'title' => NULL,
       'body' => [
         '#theme' => 'myeventlane_vendor_marketing_hub',
         '#hub' => $hub,

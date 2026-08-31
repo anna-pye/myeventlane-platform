@@ -16,7 +16,15 @@
 {% set branding = hub.branding|default({}) %}
 {% set support = hub.support|default({}) %}
 
-<div class="mel-messages-hub" data-mel-messages-hub data-mel-analytics-event="messages_hub_opened">
+<div class="mel-messages-hub mel-organiser-page" data-mel-messages-hub data-mel-analytics-event="messages_hub_opened">
+
+  <header class="mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Stay connected'|t }}</span>
+      <h1 class="mel-organiser-page__title">{{ 'Messages'|t }}</h1>
+      <p class="mel-organiser-page__description">{{ 'Send useful updates to guests and see what has already gone out.'|t }}</p>
+    </div>
+  </header>
 
   <nav class="mel-messages-hub__jump" aria-label="{{ 'Messages sections'|t }}">
     <a class="mel-messages-hub__jump-link" href="#compose">{{ 'Send a message'|t }}</a>
@@ -27,7 +35,7 @@
 
   <section class="mel-messages-hub__health mel-card mel-card--status mel-messages-hub__health--{{ health.tone|default('muted') }}" id="messages-status" aria-labelledby="mel-messages-health-heading">
     <div class="mel-messages-hub__health-header">
-      <p class="mel-messages-hub__eyebrow">{{ 'Messages'|t }}</p>
+      <p class="mel-messages-hub__eyebrow">{{ 'Next best action'|t }}</p>
       <h2 id="mel-messages-health-heading" class="mel-messages-hub__health-title">{{ health.headline }}</h2>
       <p class="mel-messages-hub__health-summary">{{ health.summary }}</p>
     </div>
@@ -42,23 +50,23 @@
   </section>
 
   <section class="mel-messages-hub__overview" id="overview" aria-labelledby="mel-messages-overview-heading">
-    <h2 id="mel-messages-overview-heading" class="mel-messages-hub__section-title">{{ 'Overview'|t }}</h2>
-    <div class="mel-messages-hub__kpi-row" role="list">
-      <div class="mel-messages-hub__kpi" role="listitem">
-        <span class="mel-messages-hub__kpi-label">{{ 'Events'|t }}</span>
-        <span class="mel-messages-hub__kpi-value" aria-label="{{ 'Events you can message'|t }} {{ overview.events|default(0) }}">{{ overview.events|default(0) }}</span>
+    <h2 id="mel-messages-overview-heading" class="mel-messages-hub__section-title mel-organiser-page__section-title">{{ 'Across your events'|t }}</h2>
+    <div class="mel-messages-hub__kpi-row mel-organiser-page__metrics" role="list">
+      <div class="mel-messages-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-messages-hub__kpi-label mel-organiser-page__metric-label">{{ 'Events'|t }}</span>
+        <span class="mel-messages-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Events you can message'|t }} {{ overview.events|default(0) }}">{{ overview.events|default(0) }}</span>
       </div>
-      <div class="mel-messages-hub__kpi" role="listitem">
-        <span class="mel-messages-hub__kpi-label">{{ 'Sent'|t }}</span>
-        <span class="mel-messages-hub__kpi-value" aria-label="{{ 'Messages sent'|t }} {{ overview.sent|default(0) }}">{{ overview.sent|default(0) }}</span>
+      <div class="mel-messages-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-messages-hub__kpi-label mel-organiser-page__metric-label">{{ 'Sent'|t }}</span>
+        <span class="mel-messages-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Messages sent'|t }} {{ overview.sent|default(0) }}">{{ overview.sent|default(0) }}</span>
       </div>
-      <div class="mel-messages-hub__kpi" role="listitem">
-        <span class="mel-messages-hub__kpi-label">{{ 'Sending'|t }}</span>
-        <span class="mel-messages-hub__kpi-value" aria-label="{{ 'Messages sending'|t }} {{ overview.sending|default(0) }}">{{ overview.sending|default(0) }}</span>
+      <div class="mel-messages-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-messages-hub__kpi-label mel-organiser-page__metric-label">{{ 'Sending'|t }}</span>
+        <span class="mel-messages-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Messages sending'|t }} {{ overview.sending|default(0) }}">{{ overview.sending|default(0) }}</span>
       </div>
-      <div class="mel-messages-hub__kpi" role="listitem">
-        <span class="mel-messages-hub__kpi-label">{{ 'Needs attention'|t }}</span>
-        <span class="mel-messages-hub__kpi-value" aria-label="{{ 'Failed messages'|t }} {{ overview.failed|default(0) }}">{{ overview.failed|default(0) }}</span>
+      <div class="mel-messages-hub__kpi mel-organiser-page__metric" role="listitem">
+        <span class="mel-messages-hub__kpi-label mel-organiser-page__metric-label">{{ 'Needs attention'|t }}</span>
+        <span class="mel-messages-hub__kpi-value mel-organiser-page__metric-value" aria-label="{{ 'Failed messages'|t }} {{ overview.failed|default(0) }}">{{ overview.failed|default(0) }}</span>
       </div>
     </div>
   </section>

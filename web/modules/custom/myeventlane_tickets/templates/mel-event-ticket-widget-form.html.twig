@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * Add/edit form for a ticket widget belonging to one selected event.
+ */
+#}
+<div class="mel-ticket-widget-editor">
+  <header class="mel-ticket-widgets__hero">
+    <div>
+      <span class="mel-ticket-widgets__eyebrow">{{ 'Selected event tool'|t }}</span>
+      <h1>{{ is_edit ? ('Edit ticket widget'|t) : ('Add ticket widget'|t) }}</h1>
+      <p>{{ is_edit ? ('Change how this event is promoted on your website.'|t) : ('Create a booking button or event card for this event.'|t) }}</p>
+    </div>
+    <div class="mel-ticket-widgets__hero-actions">
+      <a class="mel-ticket-widget-button mel-ticket-widget-button--secondary" href="{{ list_url }}">{{ 'Back to widgets'|t }}</a>
+      <a class="mel-ticket-widget-button mel-ticket-widget-button--text" href="{{ ticketing_url }}">{{ 'Event Studio Ticketing'|t }}</a>
+    </div>
+  </header>
+
+  <div class="mel-ticket-widget-editor__layout">
+    <section class="mel-ticket-widget-editor__form-card" aria-labelledby="mel-ticket-widget-editor-title">
+      <div class="mel-ticket-widget-editor__heading">
+        <span class="mel-ticket-widgets__eyebrow">{{ is_edit ? ('Widget settings'|t) : ('Choose the presentation'|t) }}</span>
+        <h2 id="mel-ticket-widget-editor-title">{{ is_edit and widget_label ? widget_label : ('New ticket widget'|t) }}</h2>
+      </div>
+      {{ form }}
+    </section>
+
+    <aside class="mel-ticket-widget-editor__help" aria-labelledby="mel-ticket-widget-before-title">
+      <span class="mel-ticket-widgets__eyebrow">{{ 'Before you start'|t }}</span>
+      <h2 id="mel-ticket-widget-before-title">{{ 'Tickets stay in Event Studio'|t }}</h2>
+      <p>{{ 'This widget promotes the selected event. Prices, capacity, ticket sales and checkout still come from Event Studio Ticketing.'|t }}</p>
+      <a href="{{ ticketing_url }}">{{ 'Review ticket setup'|t }}</a>
+    </aside>
+  </div>
+
+  {% if is_edit and embed_code %}
+    <section class="mel-ticket-widget-editor__embed" aria-labelledby="mel-ticket-widget-embed-title">
+      <div>
+        <span class="mel-ticket-widgets__eyebrow">{{ 'Ready to publish'|t }}</span>
+        <h2 id="mel-ticket-widget-embed-title">{{ 'Add it to your website'|t }}</h2>
+        <p>{{ 'Copy this code and paste it into an HTML or embed block on your website.'|t }}</p>
+      </div>
+      <label for="mel-ticket-widget-editor-code">{{ 'Embed code'|t }}</label>
+      <textarea id="mel-ticket-widget-editor-code" class="mel-ticket-widget-card__code" rows="3" readonly>{{ embed_code }}</textarea>
+      <div class="mel-ticket-widget-card__copy-row">
+        <button class="mel-ticket-widget-button mel-ticket-widget-button--primary" type="button" data-mel-copy-target="mel-ticket-widget-editor-code">{{ 'Copy code'|t }}</button>
+        <span class="mel-ticket-widget-card__copy-status" role="status" aria-live="polite"></span>
+      </div>
+    </section>
+  {% endif %}
+</div>

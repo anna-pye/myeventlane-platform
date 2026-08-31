@@ -82,4 +82,20 @@ final class OrganiserDashboardConsistencyContractTest extends TestCase {
     );
   }
 
+  /**
+   * Support uses the shared organiser hierarchy without losing its tools.
+   */
+  public function testSupportUsesTheSharedOrganiserPresentation(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $template = file_get_contents($webRoot . '/themes/custom/myeventlane_vendor_theme/templates/support-hub.html.twig');
+    $controller = file_get_contents($webRoot . '/modules/custom/myeventlane_escalations_portal/src/Controller/VendorEscalationController.php');
+    self::assertIsString($template);
+    self::assertIsString($controller);
+    self::assertStringContainsString('mel-support-hub mel-organiser-page', $template);
+    self::assertStringContainsString('mel-support-hub__tools-grid', $template);
+    self::assertStringContainsString('mel-support-hub__reference-grid', $template);
+    self::assertStringContainsString('#requests_table', $controller);
+    self::assertStringContainsString("'#title' => NULL", $controller);
+  }
+
 }

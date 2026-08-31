@@ -7,18 +7,18 @@
  */
 #}
 {% if ticket_tabs %}
-  <div class="mel-workspace-tickets-sidebar">
-    <h2 class="mel-workspace-tickets-sidebar__heading">{{ 'Ticket tools'|t }}</h2>
-    <ul class="mel-workspace-tickets-sidebar__list">
+  <nav class="mel-workspace-ticket-tools" aria-label="{{ 'Ticket tools'|t }}">
+    <h2 class="mel-workspace-ticket-tools__heading">{{ 'Ticket tools'|t }}</h2>
+    <ul class="mel-workspace-ticket-tools__list">
       {% for tab in ticket_tabs %}
-        <li class="mel-workspace-tickets-sidebar__item">
+        <li class="mel-workspace-ticket-tools__item">
           <a
             href="{{ tab.url }}"
-            class="mel-workspace-tickets-sidebar__link{% if tab.active %} is-active{% endif %}"
+            class="mel-workspace-ticket-tools__link{% if tab.active %} is-active{% endif %}"
             {% if tab.active %}aria-current="page"{% endif %}
           >{{ tab.label }}</a>
         </li>
       {% endfor %}
     </ul>
-  </div>
+  </nav>
 {% endif %}

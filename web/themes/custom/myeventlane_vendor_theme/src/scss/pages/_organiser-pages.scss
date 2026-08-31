@@ -1,0 +1,159 @@
+/**
+ * @file
+ * Shared presentation for top-level organiser routes.
+ *
+ * Dashboard and Event Studio remain the visual source of truth. These
+ * primitives deliberately style page hierarchy only; route data, forms,
+ * permissions and actions remain owned by their existing modules.
+ */
+
+@use '../tokens/colors' as *;
+@use '../tokens/spacing' as *;
+@use '../tokens/typography' as *;
+@use '../tokens/radii' as *;
+@use '../tokens/shadows' as *;
+
+.mel-organiser-page {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-6;
+  width: 100%;
+  min-width: 0;
+  max-width: $mel-layout-dashboard;
+  margin-inline: auto;
+  padding-bottom: $spacing-8;
+}
+
+.mel-organiser-page__intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: $spacing-4;
+  padding: $spacing-3 0 $spacing-2;
+}
+
+.mel-organiser-page__intro-copy {
+  min-width: 0;
+  max-width: $mel-layout-reading;
+}
+
+.mel-organiser-page__eyebrow {
+  display: block;
+  margin: 0 0 $spacing-2;
+  color: $primary;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-bold;
+  letter-spacing: 0.1em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.mel-organiser-page__title {
+  margin: 0;
+  color: $text-primary;
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-weight: $font-weight-bold;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+
+.mel-organiser-page__description {
+  max-width: 48rem;
+  margin: $spacing-2 0 0;
+  color: $text-secondary;
+  font-size: $font-size-body;
+  line-height: $line-height-relaxed;
+}
+
+.mel-organiser-page__section-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: $spacing-3;
+  margin-bottom: $spacing-4;
+}
+
+.mel-organiser-page__section-title {
+  margin: 0;
+  color: $text-primary;
+  font-size: $font-size-xl;
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+}
+
+.mel-organiser-page__section-description {
+  margin: $spacing-1 0 0;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  line-height: $line-height-relaxed;
+}
+
+.mel-organiser-page__metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: $spacing-3;
+  margin: 0;
+  padding: $spacing-3;
+  border: 1px solid $border-color-light;
+  border-radius: $radius-workspace-card;
+  background: $bg-primary;
+  box-shadow: $shadow-xs;
+}
+
+.mel-organiser-page__metric {
+  min-width: 0;
+  padding: $spacing-4;
+  border-radius: $radius-lg;
+  background: $ml-vendor-bg;
+}
+
+.mel-organiser-page__metric-label {
+  display: block;
+  margin-bottom: $spacing-1;
+  color: $text-secondary;
+  font-size: $font-size-sm;
+  line-height: 1.3;
+}
+
+.mel-organiser-page__metric-value {
+  display: block;
+  overflow-wrap: anywhere;
+  color: $text-primary;
+  font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+  font-weight: $font-weight-bold;
+  line-height: $line-height-tight;
+}
+
+@media (min-width: 768px) {
+  .mel-organiser-page__metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .mel-organiser-page__metrics--three {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 479px) {
+  .mel-organiser-page {
+    gap: $spacing-5;
+    padding-bottom: $spacing-6;
+  }
+
+  .mel-organiser-page__intro {
+    align-items: flex-start;
+    padding-top: 0;
+  }
+
+  .mel-organiser-page__metrics {
+    gap: $spacing-2;
+    padding: $spacing-2;
+  }
+
+  .mel-organiser-page__metric {
+    padding: $spacing-3;
+  }
+}

@@ -1328,6 +1328,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'content' => NULL,
         'tabs' => [],
         'sidebar' => NULL,
+        'ticket_tools' => NULL,
         'actions' => [],
         'meta' => NULL,
         'event_type_label' => NULL,

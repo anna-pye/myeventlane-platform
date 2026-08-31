@@ -80,9 +80,6 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
     'myeventlane_tickets.event_tickets_access_codes',
     'myeventlane_tickets.event_tickets_access_codes_add',
     'myeventlane_tickets.event_tickets_access_codes_edit',
-    'myeventlane_tickets.event_tickets_widgets',
-    'myeventlane_tickets.event_tickets_widgets_add',
-    'myeventlane_tickets.event_tickets_widgets_edit',
     'myeventlane_tickets.event_ticket_type_edit',
   ];
 
@@ -282,9 +279,6 @@ final class VendorLegacyWizardRedirectSubscriber implements EventSubscriberInter
       'myeventlane_tickets.event_tickets_access_codes',
       'myeventlane_tickets.event_tickets_access_codes_add',
       'myeventlane_tickets.event_tickets_access_codes_edit',
-      'myeventlane_tickets.event_tickets_widgets',
-      'myeventlane_tickets.event_tickets_widgets_add',
-      'myeventlane_tickets.event_tickets_widgets_edit',
       'myeventlane_tickets.event_ticket_type_edit' => 'myeventlane_event_studio.workspace_tickets',
       'myeventlane_event.wizard.details',
       'myeventlane_event.wizard.review',

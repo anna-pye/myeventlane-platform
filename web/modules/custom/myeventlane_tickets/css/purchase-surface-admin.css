@@ -1,0 +1,520 @@
+.mel-ticket-widgets,
+.mel-ticket-widget-editor {
+  --mel-widget-coral: #f26d5b;
+  --mel-widget-coral-dark: #c94033;
+  --mel-widget-ink: #293241;
+  --mel-widget-muted: #68768a;
+  --mel-widget-cream: #fffaf6;
+  --mel-widget-blue: #eef6ff;
+  --mel-widget-border: #eadfd7;
+  --mel-widget-radius: 20px;
+  display: grid;
+  gap: 24px;
+  width: 100%;
+  min-width: 0;
+  color: var(--mel-widget-ink);
+}
+
+.mel-ticket-widgets *,
+.mel-ticket-widget-editor * {
+  box-sizing: border-box;
+}
+
+.mel-ticket-widgets h1,
+.mel-ticket-widgets h2,
+.mel-ticket-widgets h3,
+.mel-ticket-widget-editor h1,
+.mel-ticket-widget-editor h2 {
+  margin: 0;
+  color: var(--mel-widget-ink);
+  line-height: 1.16;
+}
+
+.mel-ticket-widgets p,
+.mel-ticket-widget-editor p {
+  margin: 0;
+  color: var(--mel-widget-muted);
+  line-height: 1.55;
+}
+
+.mel-ticket-widgets__hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 28px;
+  border: 1px solid var(--mel-widget-border);
+  border-radius: var(--mel-widget-radius);
+  background: linear-gradient(135deg, #fff 0%, #fff7f1 100%);
+  box-shadow: 0 14px 34px rgba(41, 50, 65, 0.06);
+}
+
+.mel-ticket-widgets__hero > div:first-child {
+  max-width: 720px;
+}
+
+.mel-ticket-widgets__hero h1 {
+  margin-top: 6px;
+  font-size: clamp(28px, 4vw, 40px);
+}
+
+.mel-ticket-widgets__hero p {
+  max-width: 680px;
+  margin-top: 10px;
+  font-size: 17px;
+}
+
+.mel-ticket-widgets__eyebrow {
+  display: block;
+  color: var(--mel-widget-coral);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.mel-ticket-widgets__hero-actions,
+.mel-ticket-widget-card__actions,
+.mel-ticket-widget-card__copy-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mel-ticket-widgets__hero-actions {
+  justify-content: flex-end;
+}
+
+.mel-ticket-widget-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 10px 17px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  font-weight: 800;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease;
+}
+
+.mel-ticket-widget-button:hover,
+.mel-ticket-widget-button:focus-visible {
+  transform: translateY(-1px);
+}
+
+.mel-ticket-widget-button:focus-visible {
+  outline: 3px solid rgba(242, 109, 91, 0.3);
+  outline-offset: 2px;
+}
+
+.mel-ticket-widget-button--primary {
+  background: var(--mel-widget-coral);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(242, 109, 91, 0.2);
+}
+
+.mel-ticket-widget-button--primary:hover,
+.mel-ticket-widget-button--primary:focus-visible {
+  background: #df5b4b;
+  color: #fff;
+}
+
+.mel-ticket-widget-button--secondary {
+  border-color: var(--mel-widget-border);
+  background: #fff;
+  color: var(--mel-widget-ink);
+}
+
+.mel-ticket-widget-button--text {
+  color: var(--mel-widget-coral-dark);
+}
+
+.mel-ticket-widgets__guide {
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.5fr);
+  gap: 28px;
+  padding: 26px;
+  border: 1px solid #cfe1f5;
+  border-radius: var(--mel-widget-radius);
+  background: var(--mel-widget-blue);
+}
+
+.mel-ticket-widgets__guide h2,
+.mel-ticket-widgets__collection h2,
+.mel-ticket-widget-editor__heading h2,
+.mel-ticket-widget-editor__help h2,
+.mel-ticket-widget-editor__embed h2 {
+  margin-top: 6px;
+  font-size: 24px;
+}
+
+.mel-ticket-widgets__guide p {
+  margin-top: 10px;
+}
+
+.mel-ticket-widgets__steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-ticket-widgets__steps li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr);
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid rgba(93, 128, 166, 0.18);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.mel-ticket-widgets__steps li > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--mel-widget-coral);
+  color: #fff;
+  font-weight: 800;
+}
+
+.mel-ticket-widgets__steps strong,
+.mel-ticket-widgets__steps small {
+  display: block;
+}
+
+.mel-ticket-widgets__steps small {
+  margin-top: 5px;
+  color: var(--mel-widget-muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.mel-ticket-widgets__collection,
+.mel-ticket-widget-editor__form-card,
+.mel-ticket-widget-editor__help,
+.mel-ticket-widget-editor__embed {
+  padding: 26px;
+  border: 1px solid var(--mel-widget-border);
+  border-radius: var(--mel-widget-radius);
+  background: #fff;
+  box-shadow: 0 14px 34px rgba(41, 50, 65, 0.05);
+}
+
+.mel-ticket-widgets__section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.mel-ticket-widgets__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding-inline: 10px;
+  border-radius: 999px;
+  background: #fff0eb;
+  color: var(--mel-widget-coral-dark);
+  font-weight: 800;
+}
+
+.mel-ticket-widgets__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.mel-ticket-widget-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid var(--mel-widget-border);
+  border-top: 4px solid var(--mel-widget-coral);
+  border-radius: 17px;
+  background: var(--mel-widget-cream);
+}
+
+.mel-ticket-widget-card.is-paused {
+  border-top-color: #8792a2;
+  background: #f8f9fb;
+}
+
+.mel-ticket-widget-card__topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mel-ticket-widget-card__type,
+.mel-ticket-widget-card__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--mel-widget-muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.mel-ticket-widget-card__status.is-active {
+  background: #e6f8ec;
+  color: #23683a;
+}
+
+.mel-ticket-widget-card h3 {
+  margin-top: 16px;
+  font-size: 22px;
+}
+
+.mel-ticket-widget-card > p {
+  min-height: 48px;
+  margin-top: 6px;
+}
+
+.mel-ticket-widget-card label,
+.mel-ticket-widget-editor__embed label {
+  margin-top: 18px;
+  margin-bottom: 6px;
+  color: var(--mel-widget-ink);
+  font-weight: 800;
+}
+
+.mel-ticket-widget-card__code {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #d9dfe7;
+  border-radius: 12px;
+  background: #fff;
+  color: #3e4a5e;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.45;
+  resize: vertical;
+}
+
+.mel-ticket-widget-card__copy-row {
+  margin-top: 10px;
+}
+
+.mel-ticket-widget-card__copy-status {
+  color: #23683a;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.mel-ticket-widget-card__actions {
+  justify-content: space-between;
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.mel-ticket-widgets__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  max-width: 680px;
+  padding: 26px;
+  border: 1px dashed #efb9ae;
+  border-radius: 17px;
+  background: var(--mel-widget-cream);
+}
+
+.mel-ticket-widgets__empty > span {
+  color: var(--mel-widget-coral);
+  font-size: 28px;
+}
+
+.mel-ticket-widgets__empty h3 {
+  margin-top: 8px;
+}
+
+.mel-ticket-widgets__empty p {
+  margin: 7px 0 16px;
+}
+
+.mel-ticket-widget-editor__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(260px, 0.7fr);
+  align-items: start;
+  gap: 20px;
+}
+
+.mel-ticket-widget-editor__heading {
+  padding-bottom: 18px;
+  border-bottom: 1px solid #edf0f3;
+}
+
+.mel-ticket-widget-editor__form-card .mel-form,
+.mel-ticket-widget-editor__form-card form {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+.mel-ticket-widget-editor__form-card .form-item {
+  margin-block: 20px;
+}
+
+.mel-ticket-widget-editor__form-card label {
+  display: block;
+  margin-bottom: 7px;
+  color: var(--mel-widget-ink);
+  font-weight: 800;
+}
+
+.mel-ticket-widget-editor__form-card input[type="text"],
+.mel-ticket-widget-editor__form-card select {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 13px;
+  border: 1px solid #d9dfe7;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.mel-ticket-widget-editor__form-card .description {
+  margin-top: 7px;
+  color: var(--mel-widget-muted);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.mel-ticket-widget-editor__form-card .form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #edf0f3;
+}
+
+.mel-ticket-widget-editor__form-card .form-submit {
+  min-height: 48px;
+  padding: 11px 20px;
+  border: 0;
+  border-radius: 14px;
+  background: var(--mel-widget-coral);
+  color: #fff;
+  font-weight: 800;
+}
+
+.mel-ticket-widget-editor__help {
+  position: sticky;
+  top: 24px;
+  background: var(--mel-widget-blue);
+  border-color: #cfe1f5;
+}
+
+.mel-ticket-widget-editor__help p,
+.mel-ticket-widget-editor__embed p {
+  margin-top: 10px;
+}
+
+.mel-ticket-widget-editor__help a {
+  display: inline-flex;
+  margin-top: 14px;
+  color: var(--mel-widget-coral-dark);
+  font-weight: 800;
+}
+
+.mel-ticket-widget-editor__embed {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.7fr) minmax(0, 1.3fr);
+  gap: 12px 20px;
+  align-items: end;
+}
+
+.mel-ticket-widget-editor__embed > div:first-child {
+  grid-row: span 3;
+  align-self: start;
+}
+
+.mel-ticket-widget-editor__embed label {
+  margin-top: 0;
+}
+
+@media (max-width: 980px) {
+  .mel-ticket-widgets__hero,
+  .mel-ticket-widgets__guide {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-ticket-widgets__hero {
+    flex-direction: column;
+  }
+
+  .mel-ticket-widgets__hero-actions {
+    justify-content: flex-start;
+  }
+
+  .mel-ticket-widgets__guide,
+  .mel-ticket-widget-editor__layout,
+  .mel-ticket-widget-editor__embed {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-ticket-widget-editor__help {
+    position: static;
+  }
+
+  .mel-ticket-widget-editor__embed > div:first-child {
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 700px) {
+  .mel-ticket-widgets,
+  .mel-ticket-widget-editor {
+    gap: 16px;
+  }
+
+  .mel-ticket-widgets__hero,
+  .mel-ticket-widgets__guide,
+  .mel-ticket-widgets__collection,
+  .mel-ticket-widget-editor__form-card,
+  .mel-ticket-widget-editor__help,
+  .mel-ticket-widget-editor__embed {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  .mel-ticket-widgets__steps,
+  .mel-ticket-widgets__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-ticket-widgets__hero-actions,
+  .mel-ticket-widget-card__actions,
+  .mel-ticket-widget-editor__form-card .form-actions {
+    width: 100%;
+  }
+
+  .mel-ticket-widgets__hero-actions .mel-ticket-widget-button,
+  .mel-ticket-widget-card__actions .mel-ticket-widget-button,
+  .mel-ticket-widget-editor__form-card .form-submit {
+    width: 100%;
+  }
+
+  .mel-ticket-widget-card > p {
+    min-height: 0;
+  }
+}

@@ -6,12 +6,12 @@
 #}
 {% set status = pro_status|default({}) %}
 
-<div class="mel-pro-manage">
-  <header class="mel-pro-manage__hero">
-    <div>
-      <p class="mel-pro-manage__eyebrow"><span class="mel-pro-badge">PRO</span> {{ 'Your organiser plan'|t }}</p>
-      <h1 class="mel-pro-manage__title">{{ 'MEL Pro'|t }}</h1>
-      <p class="mel-pro-manage__intro">{{ 'More insight, stronger branding and reusable messaging tools for organisers who run events regularly.'|t }}</p>
+<div class="mel-pro-manage mel-organiser-page">
+  <header class="mel-pro-manage__hero mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <p class="mel-pro-manage__eyebrow mel-organiser-page__eyebrow"><span class="mel-pro-badge">PRO</span> {{ 'Your organiser plan'|t }}</p>
+      <h1 class="mel-pro-manage__title mel-organiser-page__title">{{ 'MEL Pro'|t }}</h1>
+      <p class="mel-pro-manage__intro mel-organiser-page__description">{{ 'More insight, stronger branding and reusable messaging tools for organisers who run events regularly.'|t }}</p>
     </div>
     <div class="mel-pro-manage__status mel-pro-manage__status--{{ status.state|default('inactive') }}">
       <span>{{ status.status_label|default(subscription_status) }}</span>

@@ -121,7 +121,7 @@ final class VendorEscalationController extends ControllerBase {
       '#theme' => 'myeventlane_vendor_support_hub',
       '#hub' => $hub,
       '#requests_table' => $table,
-      '#title' => $this->t('Support'),
+      '#title' => NULL,
       '#attached' => [
         'library' => [
           'myeventlane_vendor_theme/global-styling',

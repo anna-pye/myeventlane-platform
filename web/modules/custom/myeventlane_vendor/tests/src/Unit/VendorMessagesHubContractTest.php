@@ -41,6 +41,19 @@ final class VendorMessagesHubContractTest extends TestCase {
     $this->assertStringNotContainsString('<summary>{{ audience.title }}</summary>', $template);
   }
 
+  public function testHubUsesSharedOrganiserHierarchyWithoutLosingMessageActions(): void {
+    $template = file_get_contents($this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/templates/messages-hub.html.twig');
+    $controller = file_get_contents($this->repositoryRoot() . '/web/modules/custom/myeventlane_vendor/src/Controller/VendorMessagesHubController.php');
+    $this->assertIsString($template);
+    $this->assertIsString($controller);
+    $this->assertStringContainsString('mel-messages-hub mel-organiser-page', $template);
+    $this->assertStringContainsString("{{ 'Stay connected'|t }}", $template);
+    $this->assertStringContainsString('mel-organiser-page__metrics', $template);
+    $this->assertStringContainsString('event.compose_url', $template);
+    $this->assertStringContainsString('event.hub_url', $template);
+    $this->assertStringContainsString("'title' => NULL", $controller);
+  }
+
   public function testHubSearchUsesDrupalBehaviour(): void {
     $script = file_get_contents($this->repositoryRoot() . '/web/themes/custom/myeventlane_vendor_theme/js/mel-messages-hub.js');
     $this->assertIsString($script);

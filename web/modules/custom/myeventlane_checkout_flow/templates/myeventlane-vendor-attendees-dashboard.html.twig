@@ -14,13 +14,16 @@
  */
 #}
 
-<div class="mel-attendees-page mel-vendor-attendees-dashboard mel-attendee-operations">
-  <div class="mel-page-header">
-    <h1 class="mel-page-title">{{ title }}</h1>
-    <p class="mel-page-description">
+<div class="mel-attendees-page mel-vendor-attendees-dashboard mel-attendee-operations mel-organiser-page">
+  <header class="mel-page-header mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Across your events'|t }}</span>
+      <h1 class="mel-page-title mel-organiser-page__title">{{ title }}</h1>
+      <p class="mel-page-description mel-organiser-page__description">
       {{ 'View attendees and sales for your events.'|t }}
-    </p>
-  </div>
+      </p>
+    </div>
+  </header>
 
   {% if mel_vendor_contextual_help is defined and mel_vendor_contextual_help %}
     <div class="mel-contextual-help mel-contextual-help--vendor-console">
@@ -37,22 +40,29 @@
       </div>
     </section>
   {% elseif mel_cards is not empty %}
-    <div class="mel-attendees-kpi-bar">
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Events'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">{{ mel_kpis.events }}</span>
+    <div class="mel-attendees-kpi-bar mel-organiser-page__metrics" aria-label="{{ 'Attendee portfolio summary'|t }}">
+      <div class="mel-attendees-kpi-bar__kpi mel-organiser-page__metric">
+        <span class="mel-attendees-kpi-bar__label mel-organiser-page__metric-label">{{ 'Events'|t }}</span>
+        <span class="mel-attendees-kpi-bar__value mel-organiser-page__metric-value">{{ mel_kpis.events }}</span>
       </div>
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Tickets Sold'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">{{ mel_kpis.tickets_sold }}</span>
+      <div class="mel-attendees-kpi-bar__kpi mel-organiser-page__metric">
+        <span class="mel-attendees-kpi-bar__label mel-organiser-page__metric-label">{{ 'Tickets sold'|t }}</span>
+        <span class="mel-attendees-kpi-bar__value mel-organiser-page__metric-value">{{ mel_kpis.tickets_sold }}</span>
       </div>
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Revenue'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">${{ mel_kpis.revenue }}</span>
+      <div class="mel-attendees-kpi-bar__kpi mel-organiser-page__metric">
+        <span class="mel-attendees-kpi-bar__label mel-organiser-page__metric-label">{{ 'Revenue'|t }}</span>
+        <span class="mel-attendees-kpi-bar__value mel-organiser-page__metric-value">${{ mel_kpis.revenue }}</span>
       </div>
-      <div class="mel-attendees-kpi-bar__kpi">
-        <span class="mel-attendees-kpi-bar__label">{{ 'Upcoming'|t }}</span>
-        <span class="mel-attendees-kpi-bar__value">{{ mel_kpis.upcoming }}</span>
+      <div class="mel-attendees-kpi-bar__kpi mel-organiser-page__metric">
+        <span class="mel-attendees-kpi-bar__label mel-organiser-page__metric-label">{{ 'Upcoming'|t }}</span>
+        <span class="mel-attendees-kpi-bar__value mel-organiser-page__metric-value">{{ mel_kpis.upcoming }}</span>
+      </div>
+    </div>
+
+    <div class="mel-organiser-page__section-heading">
+      <div>
+        <h2 class="mel-organiser-page__section-title">{{ 'Choose an event'|t }}</h2>
+        <p class="mel-organiser-page__section-description">{{ 'Open its guest list, door tools or export.'|t }}</p>
       </div>
     </div>
 

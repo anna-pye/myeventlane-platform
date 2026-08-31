@@ -170,17 +170,27 @@
   }
 }
 
-.mel-workspace-tickets-sidebar {
+.mel-workspace-ticket-quality {
+  width: 100%;
+  min-width: 0;
+
+  .mel-intelligence,
+  .mel-insights-empty {
+    margin-bottom: 0;
+  }
+}
+
+.mel-workspace-ticket-tools {
   position: static;
-  top: auto;
+  width: 100%;
   padding: $spacing-4;
   background: $bg-primary;
-  border-radius: $radius-workspace-card;
   border: 1px solid $mel-ws-border-soft;
+  border-radius: $radius-workspace-card;
   box-shadow: $shadow-workspace-surface;
 }
 
-.mel-workspace-tickets-sidebar__heading {
+.mel-workspace-ticket-tools__heading {
   margin: 0 0 $spacing-2;
   font-size: $font-size-xs;
   font-weight: $font-weight-bold;
@@ -189,43 +199,77 @@
   color: $text-muted;
 }
 
-.mel-workspace-tickets-sidebar__list {
+.mel-workspace-ticket-tools__list {
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.mel-workspace-tickets-sidebar__item + .mel-workspace-tickets-sidebar__item {
+.mel-workspace-ticket-tools__item + .mel-workspace-ticket-tools__item {
   margin-top: $spacing-1;
 }
 
-.mel-workspace-tickets-sidebar__link {
-  display: block;
+.mel-workspace-ticket-tools__link {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
   padding: $spacing-2 $spacing-3;
+  border: 1px solid transparent;
   border-radius: $radius-full;
   text-decoration: none;
-  color: inherit;
+  color: $mel-ws-navy;
   font-size: $font-size-sm;
-  font-weight: $font-weight-medium;
+  font-weight: $font-weight-semibold;
   transition:
     background 0.18s ease,
+    border-color 0.18s ease,
     box-shadow 0.18s ease,
-    transform 0.18s ease;
+    color 0.18s ease;
 
-  &:hover {
-    background: $gray-100;
-    text-decoration: none;
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background: rgba($mel-ws-purple, 0.06);
+      border-color: rgba($mel-ws-purple, 0.12);
+      text-decoration: none;
+    }
   }
 
   &.is-active {
     background: $mel-ws-purple-tint;
+    border-color: $mel-ws-purple-border;
     color: $mel-ws-purple;
-    font-weight: $font-weight-semibold;
+    font-weight: $font-weight-bold;
   }
 
   &:focus-visible {
     outline: none;
     box-shadow: $shadow-focus;
+  }
+}
+
+@media (max-width: 767px) {
+  .mel-workspace-ticket-tools {
+    padding: $spacing-3;
+  }
+
+  .mel-workspace-ticket-tools__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: $spacing-1;
+  }
+
+  .mel-workspace-ticket-tools__item + .mel-workspace-ticket-tools__item {
+    margin-top: 0;
+  }
+
+  .mel-workspace-ticket-tools__link {
+    height: 100%;
+  }
+
+  @media (max-width: 420px) {
+    .mel-workspace-ticket-tools__list {
+      grid-template-columns: 1fr;
+    }
   }
 }
 
@@ -719,4 +763,3 @@
     }
   }
 }
-

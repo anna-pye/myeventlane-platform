@@ -39,13 +39,11 @@ $mel-focus: #7c83fd;
   align-items: flex-start;
   justify-content: space-between;
   gap: sp.$spacing-4;
-  padding: sp.$spacing-5 sp.$spacing-6;
+  padding: sp.$spacing-3 0 sp.$spacing-2;
 }
 
 .mel-vendor-events-v2__title {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 700;
   color: c.$ml-vendor-text-dark;
 }
 

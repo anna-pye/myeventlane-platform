@@ -10,10 +10,13 @@ use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_event\Service\TicketTierLifecycleService;
+use Drupal\myeventlane_tickets\Entity\PurchaseSurface;
 use Drupal\myeventlane_tickets\Service\EventAccess;
+use Drupal\myeventlane_tickets\Service\PurchaseSurfaceEmbedCodeBuilder;
 use Drupal\myeventlane_vendor\Form\EventTicketManagerForm;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
@@ -25,14 +28,23 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 /**
  * Controller for Tickets workspace pages.
  *
- * All methods render inside the vendor event workspace with tickets sub-navigation.
+ * All methods render inside the vendor event workspace with ticket navigation.
  */
 final class EventTicketsController extends VendorEventTicketsBaseController implements ContainerInjectionInterface {
 
+  /**
+   * The entity type manager.
+   */
   protected EntityTypeManagerInterface $entityTypeManager;
 
+  /**
+   * The entity form builder.
+   */
   protected EntityFormBuilderInterface $entityFormBuilder;
 
+  /**
+   * The form builder.
+   */
   protected FormBuilderInterface $formBuilder;
 
   public function __construct(
@@ -45,6 +57,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     EntityFormBuilderInterface $entityFormBuilder,
     FormBuilderInterface $formBuilder,
     private readonly TicketTierLifecycleService $ticketTierLifecycle,
+    private readonly PurchaseSurfaceEmbedCodeBuilder $embedCodeBuilder,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger, $eventTabsService);
     $this->entityTypeManager = $entityTypeManager;
@@ -66,6 +79,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
       $container->get('entity.form_builder'),
       $container->get('form_builder'),
       $container->get('myeventlane_event.ticket_tier_lifecycle'),
+      $container->get('myeventlane_tickets.purchase_surface_embed_code_builder'),
     );
   }
 
@@ -82,8 +96,8 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   /**
    * Tickets overview: Commerce-backed manager inside the workspace shell.
    *
-   * Some environments still register this as the route controller; the canonical
-   * route uses \Drupal\myeventlane_vendor\Form\EventTicketManagerForm directly.
+   * Some environments still register this as the route controller. The
+   * canonical route uses EventTicketManagerForm directly.
    */
   public function overview(NodeInterface $event): array {
     $this->assertEventOwnership($event);
@@ -100,7 +114,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
   }
 
   /**
-   * Entity edit form for a tier attached to this event (no Commerce variation UI).
+   * Entity edit form for a tier attached to this event.
    */
   public function editTicketType(NodeInterface $event, TicketTypeInterface $mel_ticket_type): array {
     $this->assertEventOwnership($event);
@@ -206,7 +220,7 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
     $entity = $storage->create(['event' => $event->id()]);
     $form = $this->entityFormBuilder->getForm($entity, 'add');
 
-    return $this->buildTicketsPage($event, $form, 'widgets');
+    return $this->buildTicketsPage($event, $this->buildWidgetFormPage($event, $form), 'widgets');
   }
 
   /**
@@ -224,7 +238,26 @@ final class EventTicketsController extends VendorEventTicketsBaseController impl
 
     $form = $this->entityFormBuilder->getForm($entity, 'default');
 
-    return $this->buildTicketsPage($event, $form, 'widgets');
+    return $this->buildTicketsPage($event, $this->buildWidgetFormPage($event, $form, $entity), 'widgets');
+  }
+
+  /**
+   * Wraps the entity form in the selected-event widget experience.
+   */
+  private function buildWidgetFormPage(NodeInterface $event, array $form, ?PurchaseSurface $widget = NULL): array {
+    return [
+      '#theme' => 'mel_event_ticket_widget_form',
+      '#event' => $event,
+      '#form' => $form,
+      '#is_edit' => $widget instanceof PurchaseSurface,
+      '#widget_label' => $widget instanceof PurchaseSurface ? $widget->getLabel() : '',
+      '#embed_code' => $widget instanceof PurchaseSurface ? $this->embedCodeBuilder->build($widget) : '',
+      '#list_url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets', ['event' => $event->id()])->toString(),
+      '#ticketing_url' => Url::fromRoute('myeventlane_event_studio.workspace_tickets', ['node' => $event->id()])->toString(),
+      '#attached' => [
+        'library' => ['myeventlane_tickets/purchase_surface_admin'],
+      ],
+    ];
   }
 
 }

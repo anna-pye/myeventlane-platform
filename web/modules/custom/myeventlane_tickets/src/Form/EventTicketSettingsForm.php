@@ -36,6 +36,21 @@ final class EventTicketSettingsForm extends ContentEntityForm {
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
 
+    // Boolean settings must allow either choice. A required checkbox is
+    // interpreted by browsers as "must be checked", which prevents organisers
+    // from deliberately turning the setting off.
+    foreach ([
+      'show_tickets_left',
+      'show_prices_before_tax',
+      'enable_unique_answers',
+      'status',
+    ] as $optional_boolean_field) {
+      if (isset($form[$optional_boolean_field]['widget']['value'])) {
+        $form[$optional_boolean_field]['widget']['value']['#required'] = FALSE;
+        unset($form[$optional_boolean_field]['widget']['value']['#attributes']['required']);
+      }
+    }
+
     // Pre-populate event if not set (from route parameter).
     /** @var \Drupal\myeventlane_tickets\Entity\EventTicketSettings $entity */
     $entity = $this->entity;
