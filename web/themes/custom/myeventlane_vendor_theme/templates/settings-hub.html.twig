@@ -10,11 +10,14 @@
 {% set health = hub.health|default({}) %}
 {% set sections = hub.sections|default([]) %}
 
-<div class="mel-settings-hub mel-layout--form" data-mel-settings-hub data-mel-analytics-event="settings_hub_opened">
+<div class="mel-settings-hub mel-organiser-page" data-mel-settings-hub data-mel-analytics-event="settings_hub_opened">
 
-  <header class="mel-settings-hub__intro">
-    <p class="mel-settings-hub__eyebrow">{{ 'Your organiser account'|t }}</p>
-    <p class="mel-settings-hub__lede">{{ hub.lede }}</p>
+  <header class="mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Your organiser account'|t }}</span>
+      <h1 class="mel-organiser-page__title">{{ 'Account settings'|t }}</h1>
+      <p class="mel-organiser-page__description">{{ hub.lede }}</p>
+    </div>
   </header>
 
   <nav class="mel-settings-hub__jump" aria-label="{{ 'Settings sections'|t }}">

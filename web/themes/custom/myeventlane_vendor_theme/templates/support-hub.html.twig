@@ -18,17 +18,19 @@
 {% set status_placeholder = hub.status_placeholder|default({}) %}
 {% set settings_link = hub.settings_link|default({}) %}
 
-<div class="mel-support-hub mel-layout--reading" data-mel-support-hub data-mel-analytics-event="support_hub_opened">
+<div class="mel-support-hub mel-organiser-page" data-mel-support-hub data-mel-analytics-event="support_hub_opened">
 
-  <header class="mel-support-hub__intro">
-    <p class="mel-support-hub__eyebrow">{{ 'Help & Support'|t }}</p>
-    <h1 class="mel-support-hub__title">{{ hub.title|default('Support'|t) }}</h1>
-    <p class="mel-support-hub__lede">{{ hub.lede }}</p>
-    {% if settings_link.url %}
-      <p class="mel-support-hub__muted">
-        <a class="mel-support-hub__link" href="{{ settings_link.url }}">{{ settings_link.label }}</a>
-      </p>
-    {% endif %}
+  <header class="mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Help & support'|t }}</span>
+      <h1 class="mel-organiser-page__title">{{ hub.title|default('Support'|t) }}</h1>
+      <p class="mel-organiser-page__description">{{ hub.lede }}</p>
+      {% if settings_link.url %}
+        <p class="mel-support-hub__intro-link">
+          <a class="mel-support-hub__link" href="{{ settings_link.url }}">{{ settings_link.label }}</a>
+        </p>
+      {% endif %}
+    </div>
   </header>
 
   <nav class="mel-support-hub__jump" aria-label="{{ 'Support sections'|t }}">
@@ -42,6 +44,7 @@
 
   <section class="mel-support-hub__health mel-card mel-card--status mel-support-hub__health--{{ health.tone|default('muted') }}" id="support-health" aria-labelledby="mel-support-health-heading">
     <div class="mel-support-hub__health-header">
+      <p class="mel-support-hub__eyebrow">{{ 'Support status'|t }}</p>
       <h2 id="mel-support-health-heading" class="mel-support-hub__health-title">{{ health.headline }}</h2>
       <p class="mel-support-hub__health-summary">{{ health.summary }}</p>
     </div>
@@ -55,6 +58,7 @@
     </div>
   </section>
 
+  <div class="mel-support-hub__tools-grid">
   <section class="mel-card mel-support-hub__section" id="support-search" aria-labelledby="mel-support-search-heading">
     <h2 id="mel-support-search-heading" class="mel-card__title">{{ search.title }}</h2>
     <p class="mel-support-hub__muted">{{ search.body }}</p>
@@ -83,6 +87,7 @@
       <a class="mel-button mel-button--primary" href="{{ contact.cta_url }}">{{ contact.cta_label }}</a>
     {% endif %}
   </section>
+  </div>
 
   <section class="mel-card mel-support-hub__section" id="support-requests" aria-labelledby="mel-support-requests-heading">
     <h2 id="mel-support-requests-heading" class="mel-card__title">{{ requests.title }}</h2>
@@ -97,6 +102,7 @@
     {% endif %}
   </section>
 
+  <div class="mel-support-hub__reference-grid">
   <section class="mel-card mel-support-hub__section" id="support-policies" aria-labelledby="mel-support-policies-heading">
     <h2 id="mel-support-policies-heading" class="mel-card__title">{{ policies.title }}</h2>
     <p class="mel-support-hub__muted">{{ policies.body }}</p>
@@ -116,6 +122,7 @@
       <a class="mel-button mel-button--secondary" href="{{ payments_note.cta_url }}">{{ payments_note.cta_label }}</a>
     {% endif %}
   </section>
+  </div>
 
   {% if status_placeholder.future %}
     <section class="mel-card mel-support-hub__section mel-support-hub__section--future" id="support-status" aria-labelledby="mel-support-status-heading">

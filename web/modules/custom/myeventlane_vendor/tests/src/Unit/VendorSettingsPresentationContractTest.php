@@ -25,6 +25,12 @@ final class VendorSettingsPresentationContractTest extends TestCase {
     self::assertStringContainsString("'Help & account'|t", $template);
     self::assertStringContainsString("item.tone != 'success'", $template);
     self::assertStringContainsString('mel-settings-hub__groups', $template);
+    self::assertStringContainsString('mel-settings-hub mel-organiser-page', $template);
+    self::assertStringContainsString('mel-organiser-page__title', $template);
+
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/VendorSettingsHubController.php');
+    self::assertIsString($controller);
+    self::assertStringContainsString("'title' => NULL", $controller);
   }
 
   /**

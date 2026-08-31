@@ -12,7 +12,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--mel-space-5, 1.5rem);
-  max-width: var(--mel-layout-reading, 800px);
+  width: 100%;
+  max-width: var(--mel-layout-dashboard, 1280px);
 }
 
 .mel-support-hub__intro {
@@ -40,6 +41,10 @@
   margin: 0;
   color: var(--mel-color-text-secondary, #4b5563);
   line-height: 1.5;
+}
+
+.mel-support-hub__intro-link {
+  margin: var(--mel-space-3, 0.75rem) 0 0;
 }
 
 .mel-support-hub__jump {
@@ -110,6 +115,29 @@
 
 .mel-support-hub__section--future {
   border-style: dashed;
+}
+
+.mel-support-hub__tools-grid,
+.mel-support-hub__reference-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--mel-space-4, 1rem);
+
+  > .mel-card {
+    height: 100%;
+  }
+}
+
+@media (min-width: 760px) {
+  .mel-support-hub__reference-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1000px) {
+  .mel-support-hub__tools-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .mel-support-hub__actions {

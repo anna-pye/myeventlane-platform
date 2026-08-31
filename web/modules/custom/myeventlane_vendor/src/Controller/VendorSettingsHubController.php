@@ -47,7 +47,7 @@ final class VendorSettingsHubController extends VendorConsoleBaseController impl
     $hub = $this->hubBuilder->build();
 
     return $this->buildVendorPage('myeventlane_vendor_console_page', [
-      'title' => (string) $this->t('Account settings'),
+      'title' => NULL,
       'body' => [
         '#theme' => 'myeventlane_vendor_settings_hub',
         '#hub' => $hub,
