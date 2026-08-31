@@ -16,7 +16,15 @@
 {% set performance = hub.performance|default({}) %}
 {% set actions = hub.actions|default({}) %}
 
-<div class="mel-marketing-hub" data-mel-marketing-hub data-mel-analytics-event="marketing_opened">
+<div class="mel-marketing-hub mel-organiser-page" data-mel-marketing-hub data-mel-analytics-event="marketing_opened">
+
+  <header class="mel-organiser-page__intro">
+    <div class="mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Reach more people'|t }}</span>
+      <h1 class="mel-organiser-page__title">{{ 'Marketing'|t }}</h1>
+      <p class="mel-organiser-page__description">{{ 'Share your events, build your audience and see what is working.'|t }}</p>
+    </div>
+  </header>
 
   <nav class="mel-marketing-hub__jump" aria-label="{{ 'Marketing sections'|t }}">
     <a class="mel-marketing-hub__jump-link" href="#marketing-health">{{ 'Overview'|t }}</a>

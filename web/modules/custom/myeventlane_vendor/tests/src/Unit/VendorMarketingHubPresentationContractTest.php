@@ -23,6 +23,13 @@ final class VendorMarketingHubPresentationContractTest extends TestCase {
     self::assertStringContainsString('boost.eligible|slice(0, 5)', $template);
     self::assertStringContainsString('widgets.events|slice(0, 5)', $template);
     self::assertStringContainsString('mel-marketing-hub__tools-grid', $template);
+    self::assertStringContainsString('mel-marketing-hub mel-organiser-page', $template);
+    self::assertStringContainsString('mel-organiser-page__intro', $template);
+    self::assertStringContainsString("{{ 'Marketing'|t }}", $template);
+
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/VendorMarketingHubController.php');
+    self::assertIsString($controller);
+    self::assertStringContainsString("'title' => NULL", $controller);
   }
 
   public function testBuilderAvoidsWastefulAndMisleadingPortfolioRows(): void {

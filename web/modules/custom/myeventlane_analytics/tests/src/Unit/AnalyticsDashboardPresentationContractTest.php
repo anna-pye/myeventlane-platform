@@ -25,7 +25,13 @@ final class AnalyticsDashboardPresentationContractTest extends TestCase {
     self::assertStringContainsString('mel-analytics-hub__readiness-details', $template);
     self::assertStringContainsString("{{ 'Review checks'|t }}", $template);
     self::assertStringContainsString('mel-analytics-hub__tail-grid', $template);
-    self::assertStringNotContainsString('<h1 class="mel-analytics-hub__title">', $template);
+    self::assertStringContainsString('mel-analytics-hub mel-organiser-page', $template);
+    self::assertStringContainsString('mel-organiser-page__intro', $template);
+    self::assertStringContainsString('mel-organiser-page__title', $template);
+
+    $controller = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/AnalyticsDashboardController.php');
+    self::assertIsString($controller);
+    self::assertStringContainsString("'title' => NULL", $controller);
   }
 
 }
