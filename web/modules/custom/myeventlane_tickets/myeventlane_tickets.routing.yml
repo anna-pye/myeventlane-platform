@@ -255,6 +255,16 @@ entity.mel_purchase_surface.delete_form:
       mel_purchase_surface:
         type: entity:mel_purchase_surface
 
+myeventlane_tickets.purchase_surface_script:
+  path: '/mel-widget/tickets/{token}.js'
+  defaults:
+    _controller: '\Drupal\myeventlane_tickets\Controller\PurchaseSurfaceEmbedController::script'
+  requirements:
+    _permission: 'access content'
+    # New widgets use 64-character hex tokens. The wider safe character set
+    # keeps existing saved widgets usable while they are edited in place.
+    token: '[A-Za-z0-9 _-]{8,64}'
+
 myeventlane_tickets.event_ticket_type_edit:
   path: '/vendor/events/{event}/tickets/types/{mel_ticket_type}/edit'
   defaults:

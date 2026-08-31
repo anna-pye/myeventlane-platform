@@ -16,8 +16,8 @@ use Drupal\node\NodeInterface;
 /**
  * Defines the Purchase Surface entity.
  *
- * Purchase Surfaces are embedded widgets (popup, embedded checkout, collection)
- * that vendors can embed on external sites to sell tickets.
+ * Purchase Surfaces are buttons and event cards that organisers can embed on
+ * external sites. They send guests to the canonical event booking page.
  *
  * @ContentEntityType(
  *   id = "mel_purchase_surface",
@@ -37,7 +37,7 @@ use Drupal\node\NodeInterface;
  *       "default" = "Drupal\myeventlane_tickets\Form\PurchaseSurfaceForm",
  *       "add" = "Drupal\myeventlane_tickets\Form\PurchaseSurfaceForm",
  *       "edit" = "Drupal\myeventlane_tickets\Form\PurchaseSurfaceForm",
- *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm"
+ *       "delete" = "Drupal\myeventlane_tickets\Form\PurchaseSurfaceDeleteForm"
  *     }
  *   },
  *   base_table = "mel_purchase_surface",
@@ -129,9 +129,9 @@ final class PurchaseSurface extends ContentEntityBase implements EntityChangedIn
       ->setDefaultValue(self::TYPE_POPUP)
       ->setSettings([
         'allowed_values' => [
-          self::TYPE_POPUP => 'Popup',
-          self::TYPE_EMBEDDED_CHECKOUT => 'Embedded Checkout',
-          self::TYPE_COLLECTION => 'Collection',
+          self::TYPE_POPUP => 'Booking button',
+          self::TYPE_EMBEDDED_CHECKOUT => 'Event card',
+          self::TYPE_COLLECTION => 'Compact event card',
         ],
       ])
       ->setDisplayOptions('form', [

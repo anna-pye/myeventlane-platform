@@ -17,7 +17,7 @@ use Drupal\node\NodeInterface;
  *
  * Provides common functionality for all ticket management pages:
  * - Event ownership assertion
- * - Primary event tabs + tickets sub-navigation (sidebar)
+ * - Primary event tabs + consistent tickets sub-navigation
  * - MEL event workspace rendering.
  */
 abstract class VendorEventTicketsBaseController extends VendorConsoleBaseController {
@@ -35,7 +35,7 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
   }
 
   /**
-   * Builds a Tickets workspace page with event shell + ticket tools sidebar.
+   * Builds a Tickets workspace page with event shell + ticket tools navigation.
    *
    * @param \Drupal\node\NodeInterface $event
    *   The event node.
@@ -60,7 +60,7 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
     $event_tabs = $this->eventTabsService->getTabs($event, 'tickets');
     $ticket_tabs = $this->buildTicketsNavigation($event, $active_key);
 
-    $sidebar = [
+    $ticket_tools = [
       '#theme' => 'mel_workspace_ticket_sidebar',
       '#ticket_tabs' => $ticket_tabs,
       '#cache' => [
@@ -75,7 +75,8 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
       'content' => $body,
       'actions' => $header_actions ?? [],
       'meta' => NULL,
-      'sidebar' => $sidebar,
+      'sidebar' => NULL,
+      'ticket_tools' => $ticket_tools,
     ];
 
     return $this->buildVendorPage('mel_event_workspace', $page_vars);

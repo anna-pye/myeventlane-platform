@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_tickets\Form;
 
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -27,8 +28,6 @@ final class PurchaseSurfaceForm extends ContentEntityForm {
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state): array {
-    $form = parent::form($form, $form_state);
-
     // Pre-populate event if not set (from route parameter).
     /** @var \Drupal\myeventlane_tickets\Entity\PurchaseSurface $entity */
     $entity = $this->entity;
@@ -39,13 +38,57 @@ final class PurchaseSurfaceForm extends ContentEntityForm {
       }
     }
 
-    // Make embed_token read-only.
-    if (!$entity->isNew() && isset($form['embed_token'])) {
-      $form['embed_token']['#disabled'] = TRUE;
-      $form['embed_token']['#description'] = $this->t('This token is auto-generated and cannot be changed.');
+    $form = parent::form($form, $form_state);
+    $form['#attributes']['class'][] = 'mel-ticket-widget-entity-form';
+
+    // Event scope and public tokens are controlled by the selected route and
+    // the entity. Organisers should never need to edit those internals.
+    if (isset($form['event'])) {
+      $form['event']['#access'] = FALSE;
+    }
+    if (isset($form['embed_token'])) {
+      $form['embed_token']['#access'] = FALSE;
     }
 
+    if (isset($form['label']['widget'][0]['value'])) {
+      $form['label']['widget'][0]['value']['#title'] = $this->t('Widget name');
+      $form['label']['widget'][0]['value']['#description'] = $this->t('An internal name that helps you recognise this widget later.');
+    }
+    if (isset($form['surface_type']['widget'])) {
+      $form['surface_type']['widget']['#title'] = $this->t('Widget style');
+      $form['surface_type']['widget']['#description'] = $this->t('Choose how the link to this event should appear on your website.');
+      $form['surface_type']['widget']['#options'] = [
+        'popup' => $this->t('Booking button'),
+        'embedded_checkout' => $this->t('Event card'),
+        'collection' => $this->t('Compact event card'),
+      ];
+    }
+    if (isset($form['status']['widget']['value'])) {
+      $form['status']['widget']['value']['#title'] = $this->t('Make this widget active');
+      $form['status']['widget']['value']['#description'] = $this->t('Pause it to stop the widget loading without deleting its saved setup.');
+    }
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  protected function actions(array $form, FormStateInterface $form_state): array {
+    $actions = parent::actions($form, $form_state);
+    /** @var \Drupal\myeventlane_tickets\Entity\PurchaseSurface $entity */
+    $entity = $this->entity;
+
+    if (isset($actions['submit'])) {
+      $actions['submit']['#value'] = $entity->isNew() ? $this->t('Create widget') : $this->t('Save widget');
+    }
+    if (!$entity->isNew() && isset($actions['delete'])) {
+      $actions['delete']['#url'] = Url::fromRoute('entity.mel_purchase_surface.delete_form', [
+        'event' => $entity->getEventId(),
+        'mel_purchase_surface' => $entity->id(),
+      ]);
+    }
+
+    return $actions;
   }
 
   /**

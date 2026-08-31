@@ -1,0 +1,77 @@
+{#
+/**
+ * @file
+ * Ticket widgets belonging to one selected event.
+ */
+#}
+<div class="mel-ticket-widgets">
+  <header class="mel-ticket-widgets__hero">
+    <div>
+      <span class="mel-ticket-widgets__eyebrow">{{ 'Sell from your website'|t }}</span>
+      <h1>{{ 'Ticket widgets'|t }}</h1>
+      <p>{{ 'Add a booking button or event card to your own website. Guests open this event on MyEventLane to book securely.'|t }}</p>
+    </div>
+    <div class="mel-ticket-widgets__hero-actions">
+      <a class="mel-ticket-widget-button mel-ticket-widget-button--secondary" href="{{ ticketing_url }}">{{ 'Event Studio Ticketing'|t }}</a>
+      <a class="mel-ticket-widget-button mel-ticket-widget-button--primary" href="{{ add_url }}">{{ 'Add widget'|t }}</a>
+    </div>
+  </header>
+
+  <section class="mel-ticket-widgets__guide" aria-labelledby="mel-ticket-widget-guide-title">
+    <div class="mel-ticket-widgets__guide-copy">
+      <span class="mel-ticket-widgets__eyebrow">{{ 'How it works'|t }}</span>
+      <h2 id="mel-ticket-widget-guide-title">{{ 'Promote here. Keep booking secure.'|t }}</h2>
+      <p>{{ 'A widget helps people discover and open this event from another website. It does not create tickets or move checkout away from MyEventLane.'|t }}</p>
+    </div>
+    <ol class="mel-ticket-widgets__steps">
+      <li><span>1</span><div><strong>{{ 'Set up tickets'|t }}</strong><small>{{ 'Create prices and availability in Event Studio Ticketing.'|t }}</small></div></li>
+      <li><span>2</span><div><strong>{{ 'Choose a widget'|t }}</strong><small>{{ 'Create a button or card for this selected event.'|t }}</small></div></li>
+      <li><span>3</span><div><strong>{{ 'Copy the code'|t }}</strong><small>{{ 'Paste it into your website where you want the booking link to appear.'|t }}</small></div></li>
+    </ol>
+  </section>
+
+  <section class="mel-ticket-widgets__collection" aria-labelledby="mel-ticket-widgets-title">
+    <div class="mel-ticket-widgets__section-heading">
+      <div>
+        <span class="mel-ticket-widgets__eyebrow">{{ 'For this event'|t }}</span>
+        <h2 id="mel-ticket-widgets-title">{{ 'Your widgets'|t }}</h2>
+      </div>
+      <span class="mel-ticket-widgets__count">{{ widgets|length }}</span>
+    </div>
+
+    {% if widgets %}
+      <div class="mel-ticket-widgets__grid">
+        {% for widget in widgets %}
+          {% set code_id = 'mel-ticket-widget-code-' ~ widget.id %}
+          <article class="mel-ticket-widget-card{% if not widget.active %} is-paused{% endif %}">
+            <div class="mel-ticket-widget-card__topline">
+              <span class="mel-ticket-widget-card__type">{{ widget.type_label }}</span>
+              <span class="mel-ticket-widget-card__status{% if widget.active %} is-active{% endif %}">{{ widget.status_label }}</span>
+            </div>
+            <h3>{{ widget.label }}</h3>
+            <p>{{ widget.active ? ('Ready to use on your website.'|t) : ('This widget is paused and will not load until you make it active.'|t) }}</p>
+
+            <label for="{{ code_id }}">{{ 'Embed code'|t }}</label>
+            <textarea id="{{ code_id }}" class="mel-ticket-widget-card__code" rows="3" readonly>{{ widget.embed_code }}</textarea>
+            <div class="mel-ticket-widget-card__copy-row">
+              <button class="mel-ticket-widget-button mel-ticket-widget-button--primary" type="button" data-mel-copy-target="{{ code_id }}">{{ 'Copy code'|t }}</button>
+              <span class="mel-ticket-widget-card__copy-status" role="status" aria-live="polite"></span>
+            </div>
+
+            <div class="mel-ticket-widget-card__actions">
+              <a class="mel-ticket-widget-button mel-ticket-widget-button--secondary" href="{{ widget.edit_url }}">{{ 'Edit widget'|t }}</a>
+              <a class="mel-ticket-widget-button mel-ticket-widget-button--text" href="{{ widget.delete_url }}">{{ 'Delete'|t }}</a>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="mel-ticket-widgets__empty">
+        <span aria-hidden="true">↗</span>
+        <h3>{{ 'Bring this event to your own website'|t }}</h3>
+        <p>{{ 'Create your first widget, then copy one short line of code into your website.'|t }}</p>
+        <a class="mel-ticket-widget-button mel-ticket-widget-button--primary" href="{{ add_url }}">{{ 'Create first widget'|t }}</a>
+      </div>
+    {% endif %}
+  </section>
+</div>

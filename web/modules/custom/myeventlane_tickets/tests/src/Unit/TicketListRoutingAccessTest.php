@@ -14,12 +14,17 @@ use Symfony\Component\Yaml\Yaml;
  */
 final class TicketListRoutingAccessTest extends TestCase {
 
+  /**
+   * Ensures event list routes share the event-scoped access check.
+   */
   public function testListRoutesUseEventTicketsAccess(): void {
     $routes = Yaml::parseFile(dirname(__DIR__, 3) . '/myeventlane_tickets.routing.yml');
     foreach ([
       'myeventlane_tickets.event_tickets_groups',
       'myeventlane_tickets.event_tickets_access_codes',
       'myeventlane_tickets.event_tickets_widgets',
+      'myeventlane_tickets.event_tickets_widgets_add',
+      'myeventlane_tickets.event_tickets_widgets_edit',
     ] as $name) {
       $this->assertArrayHasKey($name, $routes);
       $this->assertSame(
@@ -31,6 +36,21 @@ final class TicketListRoutingAccessTest extends TestCase {
     }
   }
 
+  /**
+   * Ensures public widget scripts use safely constrained tokens.
+   */
+  public function testPublicWidgetScriptUsesAnOpaqueToken(): void {
+    $routes = Yaml::parseFile(dirname(__DIR__, 3) . '/myeventlane_tickets.routing.yml');
+    $route = $routes['myeventlane_tickets.purchase_surface_script'];
+
+    $this->assertSame('/mel-widget/tickets/{token}.js', $route['path'] ?? NULL);
+    $this->assertSame('access content', $route['requirements']['_permission'] ?? NULL);
+    $this->assertSame('[A-Za-z0-9 _-]{8,64}', $route['requirements']['token'] ?? NULL);
+  }
+
+  /**
+   * Ensures ticket resend remains protected from cross-event requests.
+   */
   public function testResendRequiresPermissionOwnershipAndCsrf(): void {
     $routes = Yaml::parseFile(dirname(__DIR__, 3) . '/myeventlane_tickets.routing.yml');
     $resend = $routes['myeventlane_tickets.ticket_resend'];

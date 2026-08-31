@@ -30,6 +30,27 @@ function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array
       ],
       'template' => 'mel-operational-fulfillment-execution-customer',
     ],
+    'mel_event_ticket_widgets' => [
+      'variables' => [
+        'event' => NULL,
+        'widgets' => [],
+        'add_url' => '',
+        'ticketing_url' => '',
+      ],
+      'template' => 'mel-event-ticket-widgets',
+    ],
+    'mel_event_ticket_widget_form' => [
+      'variables' => [
+        'event' => NULL,
+        'form' => NULL,
+        'is_edit' => FALSE,
+        'widget_label' => '',
+        'embed_code' => '',
+        'list_url' => '',
+        'ticketing_url' => '',
+      ],
+      'template' => 'mel-event-ticket-widget-form',
+    ],
     'ticket_pdf' => [
       'variables' => [
         'order_item' => NULL,

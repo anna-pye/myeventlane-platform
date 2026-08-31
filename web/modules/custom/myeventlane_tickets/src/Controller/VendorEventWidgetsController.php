@@ -10,6 +10,8 @@ use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_tickets\Entity\PurchaseSurface;
+use Drupal\myeventlane_tickets\Service\PurchaseSurfaceEmbedCodeBuilder;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -33,6 +35,7 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
     MessengerInterface $messenger,
     VendorEventTabsService $eventTabsService,
     EntityTypeManagerInterface $entityTypeManager,
+    private readonly PurchaseSurfaceEmbedCodeBuilder $embedCodeBuilder,
   ) {
     parent::__construct($domainDetector, $currentUser, $messenger, $eventTabsService);
     $this->entityTypeManager = $entityTypeManager;
@@ -48,6 +51,7 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
       $container->get('messenger'),
       $container->get('myeventlane_vendor.service.event_tabs'),
       $container->get('entity_type.manager'),
+      $container->get('myeventlane_tickets.purchase_surface_embed_code_builder'),
     );
   }
 
@@ -72,85 +76,57 @@ final class VendorEventWidgetsController extends VendorEventTicketsBaseControlle
     $widget_ids = $query->execute();
     $widgets = $widget_ids ? $storage->loadMultiple($widget_ids) : [];
 
-    // Build content render array.
-    $build = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-tickets-widgets-list']],
-    ];
+    $items = [];
+    foreach ($widgets as $widget) {
+      if (!$widget instanceof PurchaseSurface) {
+        continue;
+      }
+      $items[] = [
+        'id' => (int) $widget->id(),
+        'label' => $widget->getLabel(),
+        'type_label' => $this->surfaceTypeLabel($widget->getSurfaceType()),
+        'status_label' => $widget->get('status')->value ? $this->t('Active') : $this->t('Paused'),
+        'active' => (bool) $widget->get('status')->value,
+        'embed_code' => $this->embedCodeBuilder->build($widget),
+        'edit_url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets_edit', [
+          'event' => $event->id(),
+          'mel_purchase_surface' => $widget->id(),
+        ])->toString(),
+        'delete_url' => Url::fromRoute('entity.mel_purchase_surface.delete_form', [
+          'event' => $event->id(),
+          'mel_purchase_surface' => $widget->id(),
+        ])->toString(),
+      ];
+    }
 
-    // Add header action button.
-    $header_actions = [
-      [
-        'label' => $this->t('Add widget'),
-        'url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets_add', ['event' => $event->id()])->toString(),
-        'style' => 'primary',
+    $build = [
+      '#theme' => 'mel_event_ticket_widgets',
+      '#event' => $event,
+      '#widgets' => $items,
+      '#add_url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets_add', ['event' => $event->id()])->toString(),
+      '#ticketing_url' => Url::fromRoute('myeventlane_event_studio.workspace_tickets', ['node' => $event->id()])->toString(),
+      '#attached' => [
+        'library' => ['myeventlane_tickets/purchase_surface_admin'],
       ],
     ];
-
-    if (empty($widgets)) {
-      $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No embedded widgets have been created for this event.') . '</p>',
-      ];
-    }
-    else {
-      // Build table header.
-      $header = [
-        ['data' => $this->t('Label')],
-        ['data' => $this->t('Type')],
-        ['data' => $this->t('Status')],
-        ['data' => $this->t('Operations')],
-      ];
-
-      // Build table rows.
-      $rows = [];
-      foreach ($widgets as $widget) {
-        /** @var \Drupal\myeventlane_tickets\Entity\PurchaseSurface $widget */
-        $operations = [
-          'data' => [
-            '#type' => 'operations',
-            '#links' => [
-              'edit' => [
-                'title' => $this->t('Edit'),
-                'url' => Url::fromRoute('myeventlane_tickets.event_tickets_widgets_edit', [
-                  'event' => $event->id(),
-                  'mel_purchase_surface' => $widget->id(),
-                ]),
-              ],
-              'delete' => [
-                'title' => $this->t('Delete'),
-                'url' => Url::fromRoute('entity.mel_purchase_surface.delete_form', [
-                  'event' => $event->id(),
-                  'mel_purchase_surface' => $widget->id(),
-                ]),
-              ],
-            ],
-          ],
-        ];
-
-        $rows[] = [
-          'data' => [
-            $widget->getLabel(),
-            $widget->get('surface_type')->value,
-            $widget->get('status')->value ? $this->t('Active') : $this->t('Inactive'),
-            $operations,
-          ],
-        ];
-      }
-
-      $build['table'] = [
-        '#type' => 'table',
-        '#header' => $header,
-        '#rows' => $rows,
-        '#empty' => $this->t('No embedded widgets have been created for this event.'),
-      ];
-    }
 
     return $this->buildTicketsPage(
       $event,
       $build,
-      'widgets',
-      $header_actions
+      'widgets'
     );
+  }
+
+  /**
+   * Returns an honest organiser-facing label for the stored widget type.
+   */
+  private function surfaceTypeLabel(string $type): string {
+    return match ($type) {
+      PurchaseSurface::TYPE_POPUP => (string) $this->t('Booking button'),
+      PurchaseSurface::TYPE_EMBEDDED_CHECKOUT => (string) $this->t('Event card'),
+      PurchaseSurface::TYPE_COLLECTION => (string) $this->t('Compact event card'),
+      default => (string) $this->t('Ticket widget'),
+    };
   }
 
 }

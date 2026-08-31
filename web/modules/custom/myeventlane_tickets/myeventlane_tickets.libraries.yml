@@ -10,6 +10,17 @@ event_wizard:
     - core/drupalSettings
     - core/jquery
 
+purchase_surface_admin:
+  version: 1.x
+  css:
+    theme:
+      css/purchase-surface-admin.css: {}
+  js:
+    js/purchase-surface-admin.js: {}
+  dependencies:
+    - core/drupal
+    - core/once
+
 checkin_scanner:
   js:
     js/vendor/jsQR.min.js: {}

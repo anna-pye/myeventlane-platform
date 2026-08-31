@@ -1,4 +1,8 @@
 services:
+  myeventlane_tickets.purchase_surface_embed_code_builder:
+    class: Drupal\myeventlane_tickets\Service\PurchaseSurfaceEmbedCodeBuilder
+    arguments: ['@url_generator']
+
   myeventlane_tickets.ticket_code_generator:
     class: Drupal\myeventlane_tickets\Ticket\TicketCodeGenerator
     arguments: ['@entity_type.manager', '@uuid']
