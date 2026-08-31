@@ -1496,6 +1496,9 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'orders' => [],
         'totals' => NULL,
         'studio' => FALSE,
+        'help_url' => '',
+        'addon_orders_url' => NULL,
+        'refunds_url' => NULL,
       ],
       'template' => 'event/orders',
     ],
@@ -1510,6 +1513,10 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'attendees' => [],
         'order_view_url' => '',
         'refund_timeline' => NULL,
+        'help_url' => '',
+        'orders_url' => '',
+        'addon_orders_url' => NULL,
+        'refunds_url' => NULL,
       ],
       'template' => 'event/order-view',
     ],
@@ -1734,7 +1741,10 @@ function myeventlane_vendor_theme_preprocess_mel_event_workspace(array &$variabl
 
   // Live ops surfaces (operations hub + door mode) render their own identity hero.
   $content = $variables['content'] ?? NULL;
-  $content_theme = is_array($content) ? (string) ($content['#theme'] ?? '') : '';
+  $content_theme_value = is_array($content) ? ($content['#theme'] ?? '') : '';
+  $content_theme = is_string($content_theme_value)
+    ? $content_theme_value
+    : (is_array($content_theme_value) ? (string) reset($content_theme_value) : '');
   if ($content_theme === '') {
     $route_name = (string) \Drupal::routeMatch()->getRouteName();
     $content_theme = match ($route_name) {

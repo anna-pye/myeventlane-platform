@@ -61,6 +61,8 @@ final class VendorRefundRequestRejectForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state): array {
+    $form['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
+    $form['#attributes']['class'][] = 'mel-refund-decision-form';
     $node = $this->getRouteMatch()->getParameter('node');
     $refundRequestId = (int) $this->getRouteMatch()->getParameter('refund_request');
     $req = $this->refundRequestStorage->load($refundRequestId);
@@ -100,7 +102,7 @@ final class VendorRefundRequestRejectForm extends FormBase {
     $form_state->set('refund_request', $req);
 
     $form['info'] = [
-      '#markup' => '<p>' . $this->t('This request will be declined. The buyer will receive your message.') . '</p>',
+      '#markup' => '<div class="mel-refund-form-help"><h2>' . $this->t('Decline this request') . '</h2><p>' . $this->t('Explain the decision in plain language. The request will close and the buyer will receive your message. No money is moved when you decline.') . '</p></div>',
     ];
 
     $form['decision_reason'] = [
@@ -121,6 +123,13 @@ final class VendorRefundRequestRejectForm extends FormBase {
       '#attributes' => [
         'class' => ['mel-force-submit'],
       ],
+    ];
+
+    $form['actions']['cancel'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Cancel'),
+      '#url' => Url::fromRoute('myeventlane_refunds.vendor_refund_requests', ['node' => (int) $event->id()]),
+      '#attributes' => ['class' => ['button']],
     ];
 
     return $form;

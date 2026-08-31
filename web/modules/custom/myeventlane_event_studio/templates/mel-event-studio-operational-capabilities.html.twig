@@ -8,10 +8,10 @@
  * @var array readiness_preview
  */
 #}
-<div class="mel-operational-capability-studio" data-mel-capability-studio-preview>
+<div class="mel-operational-capability-studio" id="mel-operational-capability-cards" data-mel-capability-studio-preview>
   {% if readiness_preview.chips is defined and readiness_preview.chips|length %}
     <div class="mel-operational-capability-readiness" role="status" aria-live="polite">
-      <p class="mel-operational-capability-readiness__label">{{ 'Operational readiness'|t }}</p>
+      <p class="mel-operational-capability-readiness__label">{{ 'Setup status'|t }}</p>
       <ul class="mel-operational-capability-readiness__chips">
         {% for chip in readiness_preview.chips %}
           <li class="mel-operational-chip mel-operational-chip--{{ chip.tone|default('muted') }}">{{ chip.label }}</li>
@@ -36,6 +36,9 @@
                 {{ card.status_chip.label }}
               </span>
             </header>
+            {% if card.description %}
+              <p class="mel-operational-capability-card__help">{{ card.description }}</p>
+            {% endif %}
             <div class="mel-operational-capability-card__badges">
               {% if card.commerce_chip is defined %}
                 <span class="mel-operational-chip mel-operational-chip--{{ card.commerce_chip.tone|default('muted') }}">
@@ -69,8 +72,8 @@
               <p class="mel-operational-capability-card__summary">{{ card.preview_summary }}</p>
             {% endif %}
             <p class="mel-operational-capability-card__cta">
-              <button type="button" class="button button--small js-mel-capability-configure" data-capability-type="{{ card.capability_type }}">
-                {{ card.enabled ? 'Edit'|t : 'Configure'|t }}
+              <button type="button" class="button button--small js-mel-capability-configure" data-capability-type="{{ card.capability_type }}" aria-expanded="false">
+                {{ card.enabled ? 'Edit @label'|t({'@label': card.label}) : 'Set up @label'|t({'@label': card.label}) }}
               </button>
             </p>
           </article>

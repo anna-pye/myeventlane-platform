@@ -246,6 +246,32 @@ final class VendorNavBuilderTest extends UnitTestCase {
   }
 
   /**
+   * Event sales routes consistently highlight Orders.
+   *
+   * @covers ::resolveActiveSection
+   */
+  public function testResolveActiveSectionFromEventSalesPaths(): void {
+    $builder = $this->createBuilder(
+      routeName: 'myeventlane_refunds.vendor_refund_requests',
+      path: '/vendor/events/42/refund-requests',
+    );
+
+    $this->assertSame('orders', $builder->resolveActiveSection('myeventlane_refunds.vendor_refund_requests'));
+
+    $addonBuilder = $this->createBuilder(
+      routeName: 'myeventlane_vendor.console.event_operational_addon_orders',
+      path: '/vendor/events/42/addons',
+    );
+    $this->assertSame('orders', $addonBuilder->resolveActiveSection('myeventlane_vendor.console.event_operational_addon_orders'));
+
+    $ordersBuilder = $this->createBuilder(
+      routeName: 'myeventlane_event_studio.workspace_orders',
+      path: '/vendor/events/42/studio/orders',
+    );
+    $this->assertSame('orders', $ordersBuilder->resolveActiveSection('myeventlane_event_studio.workspace_orders'));
+  }
+
+  /**
    * Shell nav cache contexts include permissions and route.
    */
   public function testShellNavCacheContexts(): void {

@@ -56,7 +56,7 @@ mel_event_studio_ai_assist:
     - core/once
 
 mel_operational_capability_studio:
-  version: 1.0
+  version: 1.2
   css:
     theme:
       css/mel-operational-capability-studio.css: {}

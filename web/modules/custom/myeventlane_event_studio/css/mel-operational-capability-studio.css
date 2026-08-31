@@ -4,6 +4,85 @@
   gap: 1.25rem;
 }
 
+.mel-operational-capability-intro {
+  position: relative;
+}
+
+.mel-operational-capability-intro__help {
+  font-weight: 700;
+}
+
+.mel-operational-capability-workflow {
+  background: #eaf4ff;
+  border: 1px solid #cfe3f8;
+  border-radius: 1rem;
+  margin: 1rem 0 1.5rem;
+  padding: 1.25rem;
+}
+
+.mel-operational-capability-workflow > h3 {
+  font-size: 1.2rem;
+  margin: 0 0 1rem;
+}
+
+.mel-operational-capability-workflow__steps {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: 1fr;
+}
+
+.mel-operational-capability-workflow__link {
+  background: #fff;
+  border: 1px solid #dbe4ee;
+  border-radius: 0.875rem;
+  color: inherit;
+  display: block;
+  min-width: 0;
+  padding: 1rem;
+  text-decoration: none;
+}
+
+.mel-operational-capability-workflow__link:hover,
+.mel-operational-capability-workflow__link:focus-visible {
+  border-color: #f26d5b;
+  box-shadow: 0 4px 14px rgba(41, 50, 65, 0.08);
+}
+
+.mel-operational-capability-workflow__link-content {
+  align-items: flex-start;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.mel-operational-capability-workflow__link-content strong,
+.mel-operational-capability-workflow__link-content span {
+  display: block;
+}
+
+.mel-operational-capability-workflow__link-content span:not(.mel-operational-capability-workflow__number) {
+  color: #667085;
+  font-size: 0.875rem;
+  margin-top: 0.3rem;
+}
+
+.mel-operational-capability-workflow__number {
+  align-items: center;
+  background: #f26d5b;
+  border-radius: 999px;
+  color: #fff;
+  display: inline-flex;
+  flex: 0 0 1.75rem;
+  font-weight: 700;
+  height: 1.75rem;
+  justify-content: center;
+}
+
+@media (min-width: 780px) {
+  .mel-operational-capability-workflow__steps {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 .mel-operational-capability-readiness__label {
   font-size: 0.875rem;
   font-weight: 600;
@@ -120,6 +199,18 @@
   margin: 0.5rem 0 0.75rem;
 }
 
+.mel-operational-capability-card__help,
+.mel-operational-capability-editor__help {
+  color: #667085;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+}
+
+.mel-operational-capability-card__cta {
+  margin: 1rem 0 0;
+}
+
 .mel-operational-capability-preview__list {
   list-style: none;
   margin: 0.75rem 0 0;
@@ -145,11 +236,31 @@
 }
 
 .mel-operational-capability-editor {
+  display: none;
   background: #fff;
   border: 1px solid var(--mel-border-subtle, #e8e4ef);
   border-radius: 0.75rem;
   margin-top: 0.75rem;
   padding: 1rem;
+}
+
+.mel-operational-capability-editor.is-active {
+  display: block;
+}
+
+.mel-operational-capability-editor__title {
+  font-size: 1.25rem;
+  margin: 0 0 0.35rem;
+}
+
+.mel-operational-capability-editor .form-item {
+  margin-block: 1rem;
+}
+
+.mel-operational-capability-editor .description {
+  color: #667085;
+  line-height: 1.45;
+  margin-top: 0.35rem;
 }
 
 .mel-operational-commerce-chips {
@@ -178,4 +289,23 @@
   font-size: 0.9rem;
   font-weight: 600;
   margin: 0.75rem 0 0.25rem;
+}
+
+@media (max-width: 639px) {
+  .mel-operational-capability-workflow,
+  .mel-operational-capability-card,
+  .mel-operational-capability-editor {
+    border-radius: 0.75rem;
+    padding: 1rem;
+  }
+
+  .mel-operational-capability-card__header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .mel-operational-capability-card__cta .button {
+    min-height: 44px;
+    width: 100%;
+  }
 }

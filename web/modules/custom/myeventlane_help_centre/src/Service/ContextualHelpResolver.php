@@ -66,7 +66,7 @@ final class ContextualHelpResolver {
     'V005' => 'Payouts and fees',
     'V006' => 'Editing your event',
     'V007' => 'Event visibility and promotion',
-    'V008' => 'Handling refunds as an organiser',
+    'V008' => 'Managing event orders, add-ons and refunds',
   ];
 
   private ?bool $registerFieldExists = NULL;

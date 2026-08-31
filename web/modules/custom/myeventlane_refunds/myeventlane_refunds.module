@@ -94,5 +94,15 @@ function myeventlane_refunds_theme($existing, $type, $theme, $path): array {
       ],
       'template' => 'mel-refund-timeline',
     ],
+    'mel_vendor_refund_requests' => [
+      'variables' => [
+        'event' => NULL,
+        'requests' => [],
+        'help_url' => NULL,
+        'orders_url' => NULL,
+        'addon_orders_url' => NULL,
+      ],
+      'template' => 'mel-vendor-refund-requests',
+    ],
   ];
 }

@@ -2,11 +2,30 @@
   Order detail (Humanitix-style). Read-only.
   Variables: event, order_number, back_url, purchaser, payment, tickets, attendees, order_view_url, refund_timeline.
 #}
-<div class="mel-order-view">
+<div class="mel-order-view mel-sales-ops">
   {# 1. Back link #}
   <p class="mel-order-view__back">
     <a href="{{ back_url }}" class="mel-link mel-link--back">{{ '← Back to orders'|t }}</a>
   </p>
+
+  <nav class="mel-sales-ops__nav" aria-label="{{ 'Event sales tools'|t }}">
+    <a class="mel-sales-ops__nav-item is-active" href="{{ orders_url }}" aria-current="page">
+      <strong>{{ 'Orders'|t }}</strong>
+      <small>{{ 'Return to every completed purchase.'|t }}</small>
+    </a>
+    {% if addon_orders_url %}
+      <a class="mel-sales-ops__nav-item" href="{{ addon_orders_url }}">
+        <strong>{{ 'Add-on orders'|t }}</strong>
+        <small>{{ 'Prepare merchandise and extras.'|t }}</small>
+      </a>
+    {% endif %}
+    {% if refunds_url %}
+      <a class="mel-sales-ops__nav-item" href="{{ refunds_url }}">
+        <strong>{{ 'Refunds'|t }}</strong>
+        <small>{{ 'Review buyer refund requests.'|t }}</small>
+      </a>
+    {% endif %}
+  </nav>
 
   {# 2. Order header card #}
   <div class="mel-card mel-order-view__header">
@@ -17,12 +36,19 @@
       </div>
       <div class="mel-order-view__date">{{ purchaser.order_date }}</div>
     </div>
+    <div class="mel-order-view__header-help">
+      <span>{{ 'Use this record to answer a guest, check who the tickets belong to, or review previous refund activity.'|t }}</span>
+      {% if help_url %}<a href="{{ help_url }}">{{ 'Open the sales guide'|t }}</a>{% endif %}
+    </div>
   </div>
 
   {# 3. Purchaser summary card #}
   <div class="mel-card mel-order-view__card">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Purchaser'|t }}</div>
+      <div>
+        <div class="mel-card__title">{{ 'Purchaser'|t }}</div>
+        <p class="mel-order-view__card-help">{{ 'The person who placed and paid for the order. Ticket holders can be different people.'|t }}</p>
+      </div>
     </div>
     <div class="mel-card__body">
       <dl class="mel-order-view__dl">
@@ -37,7 +63,10 @@
   {# 4. Payment summary (subtotal, fees, refunds, total) #}
   <div class="mel-card mel-order-view__card">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Payment summary'|t }}</div>
+      <div>
+        <div class="mel-card__title">{{ 'Payment summary'|t }}</div>
+        <p class="mel-order-view__card-help">{{ 'Event-linked sales, fees and completed refunds are shown separately for easier reconciliation.'|t }}</p>
+      </div>
     </div>
     <div class="mel-card__body">
       <dl class="mel-order-view__dl mel-order-view__payment">
@@ -55,6 +84,12 @@
 
   {% if refund_timeline %}
     <div class="mel-card mel-order-view__card mel-order-view__refunds" aria-label="{{ 'Refunds'|t }}">
+      <div class="mel-card__header">
+        <div>
+          <div class="mel-card__title">{{ 'Refund history'|t }}</div>
+          <p class="mel-order-view__card-help">{{ 'A refund is not complete until its status says completed. Failed attempts can be retried safely from Orders.'|t }}</p>
+        </div>
+      </div>
       <div class="mel-card__body">
         {{ refund_timeline }}
       </div>
@@ -64,7 +99,10 @@
   {# 5. Tickets summary card #}
   <div class="mel-card mel-order-view__card">
     <div class="mel-card__header">
-      <div class="mel-card__title">{{ 'Tickets'|t }}</div>
+      <div>
+        <div class="mel-card__title">{{ 'Tickets and event items'|t }}</div>
+        <p class="mel-order-view__card-help">{{ 'This section shows the order lines that belong to this selected event.'|t }}</p>
+      </div>
     </div>
     <div class="mel-card__body">
       {% if tickets|length > 0 %}
@@ -95,6 +133,7 @@
   {# 6. Attendees list (cards) #}
   <div class="mel-order-view__attendees">
     <h3 class="mel-order-view__section-title">{{ 'Attendees'|t }}</h3>
+    <p class="mel-order-view__section-help">{{ 'These are the named ticket holders. Use their ticket code when helping with entry or a ticket-specific refund.'|t }}</p>
     {% if attendees|length > 0 %}
       <div class="mel-order-view__attendee-list">
         {% for a in attendees %}

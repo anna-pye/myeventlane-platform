@@ -22,6 +22,7 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Event order detail controller for vendor console.
@@ -33,6 +34,8 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  * and contain at least one item with field_target_event = event. Admin allowed.
  */
 final class VendorEventOrderViewController extends VendorConsoleBaseController {
+
+  private const SALES_HELP_PATH = '/help/organisers/managing-event-sales-orders-add-ons-and-refunds';
 
   /**
    * Constructs the controller.
@@ -93,7 +96,7 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
       'order' => $order->id(),
     ])->toString();
 
-    $backUrl = Url::fromRoute('myeventlane_vendor.console.event_orders', ['event' => $eventId])->toString();
+    $backUrl = Url::fromRoute('myeventlane_event_studio.workspace_orders', ['node' => $eventId])->toString();
 
     $tabs = $this->eventTabsService->getTabs($event, 'orders');
 
@@ -151,8 +154,27 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
         '#attendees' => $attendees,
         '#order_view_url' => $orderViewUrl,
         '#refund_timeline' => $refundTimeline,
+        '#help_url' => self::SALES_HELP_PATH,
+        '#orders_url' => $backUrl,
+        '#addon_orders_url' => $this->safeRouteUrl('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $eventId]),
+        '#refunds_url' => $this->safeRouteUrl('myeventlane_refunds.vendor_refund_requests', ['node' => $eventId]),
       ],
     ]);
+  }
+
+  /**
+   * Builds an optional sales-operation route without breaking order detail.
+   *
+   * @param array<string, mixed> $parameters
+   *   Route parameters.
+   */
+  private function safeRouteUrl(string $routeName, array $parameters): ?string {
+    try {
+      return Url::fromRoute($routeName, $parameters)->toString();
+    }
+    catch (RouteNotFoundException) {
+      return NULL;
+    }
   }
 
   /**

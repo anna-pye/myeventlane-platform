@@ -63,4 +63,17 @@ final class EventStudioOrdersPresentationContractTest extends TestCase {
     self::assertStringContainsString('min-height: 44px;', $styles);
   }
 
+  public function testStudioOrdersLinkTheCompleteSalesOperationsJourney(): void {
+    $root = dirname(__DIR__, 7);
+    $controller = (string) file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Controller/VendorEventOrdersController.php');
+    $template = (string) file_get_contents($root . '/web/themes/custom/myeventlane_vendor_theme/templates/event/orders.html.twig');
+
+    self::assertStringContainsString('managing-event-sales-orders-add-ons-and-refunds', $controller);
+    self::assertStringContainsString("{{ 'Add-on orders'|t }}", $template);
+    self::assertStringContainsString("{{ 'Refunds'|t }}", $template);
+    self::assertStringContainsString("{{ 'Resend the booking confirmation", $template);
+    self::assertStringContainsString('{{ row.view_link }}', $template);
+    self::assertStringContainsString('{{ row.resend_link }}', $template);
+  }
+
 }

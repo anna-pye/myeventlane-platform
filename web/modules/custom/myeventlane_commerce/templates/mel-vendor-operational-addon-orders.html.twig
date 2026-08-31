@@ -7,7 +7,28 @@
  */
 #}
 {% set doc = document|default({}) %}
-<div class="mel-vendor-addon-orders">
+<div class="mel-live-operations mel-vendor-console-stack mel-studio-orders mel-sales-ops">
+<section class="mel-live-ops__panel mel-orders-console mel-vendor-addon-orders" aria-labelledby="mel-addon-orders-title">
+  <header class="mel-studio-orders__heading">
+    <div>
+      <p class="mel-studio-orders__eyebrow">{{ 'Sales and bookings'|t }}</p>
+      <h2 id="mel-addon-orders-title" class="mel-live-ops__panel-title">{{ 'Add-on orders'|t }}</h2>
+      <p class="mel-studio-orders__intro">{{ 'See merchandise and extras guests have bought, grouped so your team can prepare them accurately.'|t }}</p>
+    </div>
+    <a class="mel-sales-ops__help-link" href="{{ help_url }}">{{ 'How to manage event sales'|t }}</a>
+  </header>
+
+  <nav class="mel-sales-ops__nav" aria-label="{{ 'Event sales tools'|t }}">
+    <a class="mel-sales-ops__nav-item" href="{{ orders_url }}"><strong>{{ 'Orders'|t }}</strong><small>{{ 'Purchasers, tickets and totals.'|t }}</small></a>
+    <span class="mel-sales-ops__nav-item is-active" aria-current="page"><strong>{{ 'Add-on orders'|t }}</strong><small>{{ 'Items to prepare or collect.'|t }}</small></span>
+    <a class="mel-sales-ops__nav-item" href="{{ refunds_url }}"><strong>{{ 'Refunds'|t }}</strong><small>{{ 'Review buyer requests safely.'|t }}</small></a>
+  </nav>
+
+  <aside class="mel-sales-ops__guide" aria-label="{{ 'How to use add-on orders'|t }}">
+    <div><strong>{{ 'Check quantities'|t }}</strong><span>{{ 'Confirm each item and option before the event.'|t }}</span></div>
+    <div><strong>{{ 'Prepare by group'|t }}</strong><span>{{ 'Use the collection headings and notes to organise fulfilment.'|t }}</span></div>
+    <div><strong>{{ 'Open the order'|t }}</strong><span>{{ 'Use the full order when you need purchaser or attendee details.'|t }}</span></div>
+  </aside>
   {% if doc.page_intro %}
     <p class="mel-vendor-addon-orders__intro">{{ doc.page_intro }}</p>
   {% endif %}
@@ -16,10 +37,11 @@
   {% endif %}
 
   {% if doc.empty %}
-    <div class="mel-vendor-addon-orders__empty mel-card">
-      <div class="mel-card-body">
+    <div class="mel-vendor-addon-orders__empty mel-empty">
+        <h3>{{ 'No add-on orders yet'|t }}</h3>
         <p class="mel-vendor-addon-orders__empty-text">{{ doc.empty_message|default('') }}</p>
-      </div>
+        <p>{{ 'Add merchandise, parking, meals or other extras in Event Studio. Purchases will appear here automatically.'|t }}</p>
+        <a class="mel-button mel-button--secondary" href="{{ extras_url }}">{{ 'Manage merchandise & add-ons'|t }}</a>
     </div>
   {% else %}
     {% set totals = doc.totals|default({}) %}
@@ -30,10 +52,12 @@
           <li class="mel-vendor-addon-orders__stat">
             <span class="mel-vendor-addon-orders__stat-label">{{ 'Orders with add-ons'|t }}</span>
             <span class="mel-vendor-addon-orders__stat-value">{{ totals.order_count|default(0) }}</span>
+            <small>{{ 'Completed orders containing at least one event extra.'|t }}</small>
           </li>
           <li class="mel-vendor-addon-orders__stat">
             <span class="mel-vendor-addon-orders__stat-label">{{ 'Add-on line items'|t }}</span>
             <span class="mel-vendor-addon-orders__stat-value">{{ totals.item_count|default(0) }}</span>
+            <small>{{ 'Separate add-on lines to prepare or fulfil.'|t }}</small>
           </li>
         </ul>
         {% set gc = totals.group_counts|default({}) %}
@@ -64,6 +88,7 @@
               </div>
               <div class="mel-vendor-addon-orders__customer">
                 <span class="mel-vendor-addon-orders__customer-label">{{ order.customer_display_label|default('') }}</span>
+                {% if order.order_url %}<a href="{{ order.order_url }}">{{ 'Open full order'|t }}</a>{% endif %}
               </div>
             </header>
 
@@ -114,4 +139,5 @@
       {% endfor %}
     </div>
   {% endif %}
+</section>
 </div>

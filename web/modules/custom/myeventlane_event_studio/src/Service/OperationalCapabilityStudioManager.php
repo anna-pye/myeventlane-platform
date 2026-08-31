@@ -74,9 +74,20 @@ final class OperationalCapabilityStudioManager {
    * @return array<string, string>
    */
   public function allowedReservationModeOptions(): array {
+    $labels = [
+      InventoryReservationGovernanceManager::TYPE_MERCH => 'Merchandise',
+      InventoryReservationGovernanceManager::TYPE_HOSPITALITY => 'Hospitality',
+      InventoryReservationGovernanceManager::TYPE_FOOD_DRINK => 'Food & drink',
+      InventoryReservationGovernanceManager::TYPE_PARKING => 'Parking',
+      InventoryReservationGovernanceManager::TYPE_VIP_PACKAGE => 'VIP package',
+      InventoryReservationGovernanceManager::TYPE_EQUIPMENT => 'Equipment',
+      InventoryReservationGovernanceManager::TYPE_CLOAKROOM => 'Cloakroom',
+      InventoryReservationGovernanceManager::TYPE_TIMED_PICKUP => 'Timed collection',
+      InventoryReservationGovernanceManager::TYPE_DIGITAL_REDEMPTION => 'Digital redemption',
+    ];
     $options = [];
     foreach ($this->allowedReservationModes() as $token) {
-      $options[$token] = $token;
+      $options[$token] = $labels[$token] ?? ucfirst(str_replace('_', ' ', $token));
     }
     return $options;
   }
@@ -109,6 +120,17 @@ final class OperationalCapabilityStudioManager {
       OperationalEntitlementCapabilityManager::TYPE_CLOAKROOM_RETRIEVAL => 'fulfilment',
       OperationalEntitlementCapabilityManager::TYPE_DIGITAL_REDEMPTION => 'fulfilment',
     ];
+    $descriptions = [
+      OperationalEntitlementCapabilityManager::TYPE_ADMISSION => 'Use this for entry tickets that staff check when a guest arrives.',
+      OperationalEntitlementCapabilityManager::TYPE_MERCH_PICKUP => 'Tell guests how and where to collect merchandise bought with this event.',
+      OperationalEntitlementCapabilityManager::TYPE_FOOD_DRINK_REDEMPTION => 'Explain how guests redeem prepaid food, drinks or meal packages.',
+      OperationalEntitlementCapabilityManager::TYPE_VIP_ACCESS => 'Set expectations for VIP areas, inclusions or hosted access.',
+      OperationalEntitlementCapabilityManager::TYPE_PARKING_ACCESS => 'Explain how prepaid or reserved parking is checked at the venue.',
+      OperationalEntitlementCapabilityManager::TYPE_HOSPITALITY_ACCESS => 'Use this for lounges, hosted areas or hospitality packages.',
+      OperationalEntitlementCapabilityManager::TYPE_TIMED_COLLECTION => 'Use this when guests must collect an item during a selected time window.',
+      OperationalEntitlementCapabilityManager::TYPE_CLOAKROOM_RETRIEVAL => 'Explain how guests collect stored belongings after the event.',
+      OperationalEntitlementCapabilityManager::TYPE_DIGITAL_REDEMPTION => 'Use this for a digital inclusion or benefit that a guest redeems once.',
+    ];
 
     $out = [];
     foreach ($this->allAuthoringCapabilityTypes() as $type) {
@@ -118,6 +140,7 @@ final class OperationalCapabilityStudioManager {
       $out[$type] = [
         'capability_type' => $type,
         'label' => $labels[$type] ?? $type,
+        'description' => $descriptions[$type] ?? 'Explain how guests use this event inclusion.',
         'group' => $groups[$type] ?? 'fulfilment',
         'default_fulfillment_mode' => (string) ($map['fulfilment_mode'] ?? 'none'),
         'default_gate_family' => (string) ($gate['gate_family'] ?? ''),

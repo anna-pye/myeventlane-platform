@@ -9,6 +9,7 @@ use Drupal\Core\Entity\Element\EntityAutocomplete;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\Url;
 use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\OperationalCapabilityCommerceLinkManager;
@@ -99,14 +100,56 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
       'title' => [
         '#type' => 'html_tag',
         '#tag' => 'h3',
-        '#value' => $this->t('Operational capabilities'),
+        '#value' => $this->t('Plan collection and redemption'),
         '#attributes' => ['class' => ['mel-es-card__title']],
       ],
       'hint' => [
         '#type' => 'html_tag',
         '#tag' => 'p',
-        '#value' => $this->t('Configure what guests can redeem or collect on site. This is authoring metadata only — scanners and fulfilment systems run your live operational rules at the venue.'),
+        '#value' => $this->t('Set clear expectations for entry, collection and redemption. This page does not mark an item as collected or replace your event-day process.'),
         '#attributes' => ['class' => ['mel-es-card__hint']],
+      ],
+      'help' => [
+        '#type' => 'link',
+        '#title' => $this->t('How collection works'),
+        '#url' => Url::fromUserInput('/help/organisers/setting-up-and-managing-event-collection'),
+        '#attributes' => ['class' => ['mel-operational-capability-intro__help']],
+      ],
+    ];
+
+    $form['workflow_guide'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-operational-capability-workflow'],
+        'aria-label' => $this->t('Collection workflow'),
+      ],
+      '#weight' => 5,
+      'title' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h3',
+        '#value' => $this->t('Use this page in three steps'),
+      ],
+      'steps' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-operational-capability-workflow__steps']],
+        'create' => $this->buildWorkflowLink(
+          '1',
+          $this->t('Create what guests receive'),
+          $this->t('Add merchandise, meals, parking or other extras before connecting collection rules.'),
+          Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $event->id()]),
+        ),
+        'configure' => $this->buildWorkflowLink(
+          '2',
+          $this->t('Set collection rules'),
+          $this->t('Choose only the capabilities this event needs, then check the guest preview.'),
+          Url::fromRoute('myeventlane_event_studio.workspace_fulfilment', ['node' => $event->id()], ['fragment' => 'mel-operational-capability-cards']),
+        ),
+        'prepare' => $this->buildWorkflowLink(
+          '3',
+          $this->t('Prepare purchased items'),
+          $this->t('Use Add-on orders to see quantities and what your team needs to prepare.'),
+          Url::fromRoute('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $event->id()]),
+        ),
       ],
     ];
 
@@ -148,11 +191,13 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
     foreach ($this->capabilityStudioManager->allAuthoringCapabilityTypes() as $type) {
       $row = is_array($capabilities[$type] ?? NULL) ? $capabilities[$type] : [];
       $label = (string) ($ui[$type]['label'] ?? $type);
+      $description = (string) ($ui[$type]['description'] ?? '');
       $form['capability_editors'][$type] = [
         '#type' => 'container',
         '#attributes' => [
           'class' => ['mel-operational-capability-editor'],
           'data-capability-type' => $type,
+          'aria-hidden' => 'true',
         ],
         'title' => [
           '#type' => 'html_tag',
@@ -160,30 +205,40 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
           '#value' => $label,
           '#attributes' => ['class' => ['mel-operational-capability-editor__title']],
         ],
+        'help' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $description,
+          '#attributes' => ['class' => ['mel-operational-capability-editor__help']],
+        ],
         'enabled' => [
           '#type' => 'checkbox',
           '#title' => $this->t('Enable @label', ['@label' => $label]),
           '#default_value' => !empty($row['enabled']),
+          '#description' => $this->t('Turn this on only when @label is part of this event.', ['@label' => $label]),
           '#attributes' => ['data-cap-field' => 'enabled'],
         ],
         'fulfillment_mode' => [
           '#type' => 'select',
-          '#title' => $this->t('Fulfillment style'),
+          '#title' => $this->t('Fulfilment method'),
           '#options' => $this->fulfillmentModeOptions(),
           '#default_value' => (string) ($row['fulfillment_mode'] ?? 'none'),
+          '#description' => $this->t('Choose whether a guest collects something, redeems an inclusion, or needs no handoff.'),
           '#attributes' => ['data-cap-field' => 'fulfillment_mode'],
         ],
         'reservation_mode' => [
           '#type' => 'select',
-          '#title' => $this->t('Reservation style'),
+          '#title' => $this->t('What the guest is reserving'),
           '#options' => $this->reservationModeOptions(),
           '#default_value' => (string) ($row['reservation_mode'] ?? 'digital_redemption'),
+          '#description' => $this->t('This label helps the platform apply the right collection or access expectations.'),
           '#attributes' => ['data-cap-field' => 'reservation_mode'],
         ],
         'timed_entry' => [
           '#type' => 'checkbox',
           '#title' => $this->t('Timed entry required'),
           '#default_value' => !empty($row['timed_entry']),
+          '#description' => $this->t('Use this only when the guest must arrive or collect during a selected time window.'),
           '#attributes' => ['data-cap-field' => 'timed_entry'],
         ],
         'customer_visibility' => [
@@ -195,20 +250,23 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
             'hidden' => $this->t('Hidden from guests'),
           ],
           '#default_value' => (string) ($row['customer_visibility'] ?? 'after_purchase'),
+          '#description' => $this->t('Choose when guests should see these instructions.'),
           '#attributes' => ['data-cap-field' => 'customer_visibility'],
         ],
         'pickup_mode' => [
           '#type' => 'select',
-          '#title' => $this->t('Pickup mode'),
+          '#title' => $this->t('Handoff point'),
           '#options' => $this->pickupModeOptions(),
           '#default_value' => (string) ($row['pickup_mode'] ?? 'none'),
+          '#description' => $this->t('Choose where staff hand over the item or confirm access.'),
           '#attributes' => ['data-cap-field' => 'pickup_mode'],
         ],
         'continuity_mode' => [
           '#type' => 'select',
-          '#title' => $this->t('Continuity mode'),
+          '#title' => $this->t('If the internet is unavailable'),
           '#options' => $this->continuityModeOptions(),
           '#default_value' => (string) ($row['continuity_mode'] ?? 'online'),
+          '#description' => $this->t('Online-first is the safe default. Use an offline option only when your event-day process supports it.'),
           '#attributes' => ['data-cap-field' => 'continuity_mode'],
         ],
       ];
@@ -232,50 +290,50 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
         $form['capability_editors'][$type]['commerce_heading'] = [
           '#type' => 'html_tag',
           '#tag' => 'p',
-          '#value' => $this->t('Commerce linkage'),
+          '#value' => $this->t('Connect this to a ticket or add-on'),
           '#attributes' => ['class' => ['mel-operational-capability-editor__commerce-title']],
         ];
         $form['capability_editors'][$type]['commerce_product'] = [
           '#type' => 'entity_autocomplete',
-          '#title' => $this->t('Find Commerce product'),
+          '#title' => $this->t('Ticket or add-on product'),
           '#target_type' => 'commerce_product',
           '#max_length' => 512,
           '#default_value' => $product_id > 0 ? $this->entityTypeManager->getStorage('commerce_product')->load($product_id) : NULL,
+          '#description' => $this->t('Search for the product guests buy. Leave this empty when the capability is not tied to a sale item.'),
           '#attributes' => ['class' => ['mel-cap-commerce-autocomplete']],
         ];
         $form['capability_editors'][$type]['commerce_product_id'] = [
-          '#type' => 'number',
-          '#title' => $this->t('Commerce product ID'),
-          '#min' => 0,
+          '#type' => 'hidden',
           '#default_value' => $product_id > 0 ? $product_id : NULL,
-          '#description' => $this->t('Required for autosave. The autocomplete fills this when you select a product.'),
           '#attributes' => ['data-cap-field' => 'commerce_linkage.product_id'],
         ];
         $form['capability_editors'][$type]['commerce_linkage_mode'] = [
           '#type' => 'select',
-          '#title' => $this->t('Variation linkage'),
+          '#title' => $this->t('What should this apply to?'),
           '#options' => [
-            OperationalCapabilityCommerceLinkManager::LINKAGE_NONE => $this->t('None'),
-            OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Whole product'),
-            OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Specific variations'),
+            OperationalCapabilityCommerceLinkManager::LINKAGE_NONE => $this->t('Do not connect a sale item'),
+            OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT => $this->t('Every option for this product'),
+            OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS => $this->t('Only selected options'),
           ],
           '#default_value' => in_array($link_mode, [
             OperationalCapabilityCommerceLinkManager::LINKAGE_NONE,
             OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
             OperationalCapabilityCommerceLinkManager::LINKAGE_VARIATIONS,
           ], TRUE) ? $link_mode : OperationalCapabilityCommerceLinkManager::LINKAGE_PRODUCT,
+          '#description' => $this->t('Use selected options when different sizes, sessions or packages have different collection rules.'),
           '#attributes' => ['data-cap-field' => 'commerce_linkage.linkage_mode'],
         ];
         $form['capability_editors'][$type]['commerce_variations'] = [
           '#type' => 'checkboxes',
-          '#title' => $this->t('Allowed variations'),
+          '#title' => $this->t('Ticket or add-on options'),
           '#options' => $this->buildVariationOptionsForProduct($product_id),
           '#default_value' => $var_defaults,
+          '#description' => $this->t('Select every option that uses this capability.'),
           '#attributes' => ['class' => ['mel-cap-commerce-variations']],
         ];
         $form['capability_editors'][$type]['commerce_link_visibility'] = [
           '#type' => 'select',
-          '#title' => $this->t('Linkage visibility'),
+          '#title' => $this->t('Guest visibility for this item'),
           '#options' => [
             'inherit' => $this->t('Inherit from capability'),
             'hidden' => $this->t('Hidden'),
@@ -283,6 +341,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
             'after_purchase' => $this->t('After purchase'),
           ],
           '#default_value' => (string) ($link['customer_visibility'] ?? 'inherit'),
+          '#description' => $this->t('Normally inherit the capability setting above. Override it only for this linked item.'),
           '#attributes' => ['data-cap-field' => 'commerce_linkage.customer_visibility'],
         ];
       }
@@ -292,7 +351,7 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
       '#type' => 'actions',
       'submit' => [
         '#type' => 'submit',
-        '#value' => $this->t('Save capabilities'),
+        '#value' => $this->t('Save collection settings'),
         '#button_type' => 'primary',
       ],
     ];
@@ -334,14 +393,14 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
       EventNodeRevisionSave::prepare($event, 'Event Studio operational capability authoring save.');
       $event->save();
       $this->autosaveService->clearDraft($event, 'fulfilment');
-      $this->messenger()->addStatus($this->t('Operational capabilities saved.'));
+      $this->messenger()->addStatus($this->t('Collection settings saved.'));
     }
     catch (\Throwable $e) {
       $this->logger->error('Operational capability save failed for event @nid: @message', [
         '@nid' => (string) $event->id(),
         '@message' => $e->getMessage(),
       ]);
-      $this->messenger()->addError($this->t('Could not save operational capabilities.'));
+      $this->messenger()->addError($this->t('Could not save the collection settings. Please try again.'));
     }
 
     $form_state->setRebuild(TRUE);
@@ -488,6 +547,40 @@ final class EventStudioOperationalCapabilityForm extends FormBase {
       $options[(string) $variation->id()] = $variation->label();
     }
     return $options;
+  }
+
+  /**
+   * Builds one plain-English workflow link without changing route behaviour.
+   */
+  private function buildWorkflowLink(string $number, string|\Stringable $title, string|\Stringable $description, Url $url): array {
+    return [
+      '#type' => 'link',
+      '#title' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-operational-capability-workflow__link-content']],
+        'number' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => $number,
+          '#attributes' => ['class' => ['mel-operational-capability-workflow__number'], 'aria-hidden' => 'true'],
+        ],
+        'copy' => [
+          '#type' => 'container',
+          'title' => [
+            '#type' => 'html_tag',
+            '#tag' => 'strong',
+            '#value' => (string) $title,
+          ],
+          'description' => [
+            '#type' => 'html_tag',
+            '#tag' => 'span',
+            '#value' => (string) $description,
+          ],
+        ],
+      ],
+      '#url' => $url,
+      '#attributes' => ['class' => ['mel-operational-capability-workflow__link']],
+    ];
   }
 
   private function getRouteEvent(?NodeInterface $node = NULL): NodeInterface {

@@ -111,6 +111,9 @@ final class VendorNavBuilder {
       || str_starts_with($path, '/vendor/audience')) {
       return 'marketing';
     }
+    if (preg_match('#^/vendor/events/\d+/(?:studio/orders|orders|addons|refund-requests)(?:/|$)#', $path) === 1) {
+      return 'orders';
+    }
     if (str_starts_with($path, '/vendor/payments')
       || str_starts_with($path, '/vendor/payouts')
       || str_starts_with($path, '/vendor/finance')
@@ -161,9 +164,11 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.event_settings' => 'events',
       'myeventlane_vendor.console.event_orders' => 'orders',
       'myeventlane_vendor.console.event_order_view' => 'orders',
-      'myeventlane_refunds.vendor_refund_requests' => 'payments',
-      'myeventlane_refunds.vendor_refund_request_approve' => 'payments',
-      'myeventlane_refunds.vendor_refund_request_reject' => 'payments',
+      'myeventlane_event_studio.workspace_orders' => 'orders',
+      'myeventlane_vendor.console.event_operational_addon_orders' => 'orders',
+      'myeventlane_refunds.vendor_refund_requests' => 'orders',
+      'myeventlane_refunds.vendor_refund_request_approve' => 'orders',
+      'myeventlane_refunds.vendor_refund_request_reject' => 'orders',
       'myeventlane_checkout_flow.vendor_attendees' => 'attendees',
       'myeventlane_event_attendees.vendor_list' => 'attendees',
       'myeventlane_vendor.console.event_rsvps' => 'attendees',

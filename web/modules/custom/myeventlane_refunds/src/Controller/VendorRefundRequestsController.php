@@ -6,7 +6,6 @@ namespace Drupal\myeventlane_refunds\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DateFormatterInterface;
-use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
@@ -17,6 +16,8 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  * Lists buyer-initiated refund requests for vendor approval.
  */
 final class VendorRefundRequestsController extends ControllerBase {
+
+  private const SALES_HELP_PATH = '/help/organisers/managing-event-sales-orders-add-ons-and-refunds';
 
   /**
    * Constructs VendorRefundRequestsController.
@@ -80,66 +81,31 @@ final class VendorRefundRequestsController extends ControllerBase {
         'node' => $node->id(),
         'refund_request' => $req['id'],
       ]);
-      $approveLink = Link::fromTextAndUrl(
-        $this->t('Approve'),
-        $approveUrl
-      )->toRenderable();
-      $approveLink['#attributes'] = ['class' => ['button', 'button--small']];
-      $rejectLink = Link::fromTextAndUrl(
-        $this->t('Reject'),
-        $rejectUrl
-      )->toRenderable();
-      $rejectLink['#attributes'] = ['class' => ['button', 'button--small']];
-      $actions = [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['mel-action-group']],
-        'approve' => $approveLink,
-        'reject' => $rejectLink,
-      ];
-
       $createdTs = is_numeric($req['created']) ? (int) $req['created'] : (int) strtotime((string) $req['created']);
 
       $rows[] = [
-        $req['id'],
-        $order ? $order->getOrderNumber() : '#' . $req['order_id'],
-        $buyer ? $buyer->getDisplayName() : $this->t('Unknown'),
-        $currency . ' ' . $amount,
-        $this->dateFormatter->format($createdTs, 'custom', 'M j, Y g:ia', 'UTC'),
-        ['data' => $actions],
+        'id' => (int) $req['id'],
+        'order_number' => $order ? $order->getOrderNumber() : '#' . $req['order_id'],
+        'buyer' => $buyer ? $buyer->getDisplayName() : $this->t('Unknown'),
+        'amount' => $currency . ' ' . $amount,
+        'requested' => $this->dateFormatter->format($createdTs, 'custom', 'M j, Y g:ia', 'UTC'),
+        'approve_url' => $approveUrl->toString(),
+        'reject_url' => $rejectUrl->toString(),
+        'order_url' => $order ? Url::fromRoute('myeventlane_vendor.console.event_order_view', [
+          'event' => $node->id(),
+          'order' => $order->id(),
+        ])->toString() : NULL,
       ];
     }
 
     $body = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['vendor-refund-requests']],
+      '#theme' => 'mel_vendor_refund_requests',
+      '#event' => $node,
+      '#requests' => $rows,
+      '#help_url' => self::SALES_HELP_PATH,
+      '#orders_url' => Url::fromRoute('myeventlane_event_studio.workspace_orders', ['node' => $node->id()])->toString(),
+      '#addon_orders_url' => Url::fromRoute('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $node->id()])->toString(),
     ];
-
-    $body['header'] = [
-      '#type' => 'markup',
-      '#markup' => '<h2>' . $this->t('Refund requests for @event', ['@event' => $node->label()]) . '</h2>',
-    ];
-
-    if (empty($rows)) {
-      $body['empty'] = [
-        '#type' => 'markup',
-        '#markup' => '<p>' . $this->t('No pending refund requests.') . '</p>',
-      ];
-    }
-    else {
-      $body['table'] = [
-        '#type' => 'table',
-        '#responsive' => FALSE,
-        '#header' => [
-          $this->t('ID'),
-          $this->t('Order'),
-          $this->t('Buyer'),
-          $this->t('Amount'),
-          $this->t('Requested'),
-          $this->t('Actions'),
-        ],
-        '#rows' => $rows,
-      ];
-    }
 
     $tabs = $this->eventTabsService->getTabs($node, 'refund_requests');
 
@@ -152,7 +118,10 @@ final class VendorRefundRequestsController extends ControllerBase {
       '#sidebar' => NULL,
       '#content' => $body,
       '#attached' => [
-        'library' => ['myeventlane_vendor_theme/global-styling'],
+        'library' => [
+          'myeventlane_vendor_theme/global-styling',
+          'myeventlane_refunds/mel_refund_ui',
+        ],
       ],
     ];
   }

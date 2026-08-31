@@ -1,0 +1,50 @@
+{# Organiser refund-request queue. #}
+<div class="mel-live-operations mel-vendor-console-stack mel-studio-orders mel-sales-ops">
+<section class="mel-live-ops__panel mel-orders-console mel-refund-requests" aria-labelledby="mel-refund-requests-title">
+  <header class="mel-studio-orders__heading">
+    <div>
+      <p class="mel-studio-orders__eyebrow">{{ 'Sales and bookings'|t }}</p>
+      <h2 id="mel-refund-requests-title" class="mel-live-ops__panel-title">{{ 'Refund requests'|t }}</h2>
+      <p class="mel-studio-orders__intro">{{ 'Review buyer requests carefully. Nothing is refunded until you open a request, choose a decision and confirm it.'|t }}</p>
+    </div>
+    <a class="mel-sales-ops__help-link" href="{{ help_url }}">{{ 'How refunds work'|t }}</a>
+  </header>
+
+  <nav class="mel-sales-ops__nav" aria-label="{{ 'Event sales tools'|t }}">
+    <a class="mel-sales-ops__nav-item" href="{{ orders_url }}"><strong>{{ 'Orders'|t }}</strong><small>{{ 'Purchasers, tickets and totals.'|t }}</small></a>
+    <a class="mel-sales-ops__nav-item" href="{{ addon_orders_url }}"><strong>{{ 'Add-on orders'|t }}</strong><small>{{ 'Items to prepare or collect.'|t }}</small></a>
+    <span class="mel-sales-ops__nav-item is-active" aria-current="page"><strong>{{ 'Refunds'|t }}</strong><small>{{ 'Review buyer requests safely.'|t }}</small></span>
+  </nav>
+
+  <aside class="mel-sales-ops__guide" aria-label="{{ 'Before you decide'|t }}">
+    <div><strong>{{ 'Open the order'|t }}</strong><span>{{ 'Confirm the purchaser, tickets and earlier refund activity.'|t }}</span></div>
+    <div><strong>{{ 'Review the request'|t }}</strong><span>{{ 'Approve only the exact refundable tickets, or explain why you decline.'|t }}</span></div>
+    <div><strong>{{ 'Confirm once'|t }}</strong><span>{{ 'A confirmed approval can return money through the original payment method.'|t }}</span></div>
+  </aside>
+
+  {% if requests is empty %}
+    <section class="mel-refund-requests__empty mel-empty">
+      <h3>{{ 'No refund requests need attention'|t }}</h3>
+      <p>{{ 'New buyer requests for this event will appear here. You do not need to do anything now.'|t }}</p>
+    </section>
+  {% else %}
+    <div class="mel-refund-requests__list">
+      {% for request in requests %}
+        <article class="mel-refund-request-card">
+          <div>
+            <span class="mel-refund-request-card__label">{{ 'Request @id'|t({'@id': request.id}) }}</span>
+            <h3>{{ request.order_number }}</h3>
+            <p>{{ request.buyer }} · {{ request.requested }}</p>
+          </div>
+          <div class="mel-refund-request-card__amount"><span>{{ 'Requested'|t }}</span><strong>{{ request.amount }}</strong></div>
+          <div class="mel-refund-request-card__actions">
+            {% if request.order_url %}<a class="mel-button mel-button--secondary" href="{{ request.order_url }}">{{ 'Open order'|t }}</a>{% endif %}
+            <a class="mel-button mel-button--primary" href="{{ request.approve_url }}">{{ 'Review approval'|t }}</a>
+            <a class="mel-button mel-button--secondary" href="{{ request.reject_url }}">{{ 'Review decline'|t }}</a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+</div>

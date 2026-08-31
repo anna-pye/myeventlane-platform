@@ -61,6 +61,7 @@ final class OperationalCapabilityStudioBuilder {
       $groups[$group_key]['cards'][] = [
         'capability_type' => $type,
         'label' => (string) ($meta['label'] ?? $type),
+        'description' => (string) ($meta['description'] ?? ''),
         'enabled' => $enabled,
         'status_chip' => $this->buildStatusChip($row),
         'fulfillment_badge' => $this->buildFulfillmentBadge($semantics),
@@ -99,7 +100,7 @@ final class OperationalCapabilityStudioBuilder {
   private function buildFulfillmentBadge(array $semantics): array {
     $mode = (string) ($semantics['fulfillment_mode'] ?? 'none');
     return [
-      'label' => (string) $this->t('Fulfillment: @mode', ['@mode' => $mode]),
+      'label' => (string) $this->t('Handoff: @mode', ['@mode' => $this->humaniseToken($mode)]),
       'tone' => $mode === 'none' ? 'muted' : 'info',
     ];
   }
@@ -110,7 +111,7 @@ final class OperationalCapabilityStudioBuilder {
   private function buildReservationBadge(array $semantics): array {
     $mode = (string) ($semantics['reservation_mode'] ?? '');
     return [
-      'label' => (string) $this->t('Reservation: @mode', ['@mode' => $mode !== '' ? $mode : 'n/a']),
+      'label' => (string) $this->t('Use: @mode', ['@mode' => $mode !== '' ? $this->humaniseToken($mode) : 'Not set']),
       'tone' => 'neutral',
     ];
   }
@@ -159,6 +160,10 @@ final class OperationalCapabilityStudioBuilder {
         'tone' => 'muted',
       ],
     };
+  }
+
+  private function humaniseToken(string $token): string {
+    return ucfirst(str_replace('_', ' ', $token));
   }
 
 }

@@ -26,6 +26,8 @@ use Psr\Log\LoggerInterface;
  */
 final class VendorEventOrdersController extends VendorConsoleBaseController {
 
+  private const SALES_HELP_PATH = '/help/organisers/managing-event-sales-orders-add-ons-and-refunds';
+
   /**
    * Route for resending order confirmation (myeventlane_messaging).
    */
@@ -101,6 +103,9 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       '#event' => $event,
       '#orders' => $data['rows'],
       '#totals' => $data['totals'],
+      '#help_url' => self::SALES_HELP_PATH,
+      '#addon_orders_url' => $this->salesRouteUrl('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $event->id()]),
+      '#refunds_url' => $this->salesRouteUrl('myeventlane_refunds.vendor_refund_requests', ['node' => $event->id()]),
     ];
     if ($this->refundProcessor) {
       $content['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
@@ -139,12 +144,28 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       '#orders' => $data['rows'],
       '#totals' => $data['totals'],
       '#studio' => TRUE,
+      '#help_url' => self::SALES_HELP_PATH,
+      '#addon_orders_url' => $this->salesRouteUrl('myeventlane_vendor.console.event_operational_addon_orders', ['event' => $event->id()]),
+      '#refunds_url' => $this->salesRouteUrl('myeventlane_refunds.vendor_refund_requests', ['node' => $event->id()]),
     ];
     if ($this->refundProcessor) {
       $content['#attached']['library'][] = 'myeventlane_refunds/mel_refund_ui';
     }
 
     return $content;
+  }
+
+  /**
+   * Builds a route URL only when its optional module route is registered.
+   *
+   * @param array<string, mixed> $parameters
+   *   Route parameters.
+   */
+  private function salesRouteUrl(string $routeName, array $parameters): ?string {
+    if (!$this->routeHelper->routeExists($routeName)) {
+      return NULL;
+    }
+    return Url::fromRoute($routeName, $parameters)->toString();
   }
 
   /**
@@ -540,7 +561,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
 
     $viewLink = [
       '#type' => 'link',
-      '#title' => $this->t('View'),
+      '#title' => $this->t('Open order'),
       '#url' => Url::fromRoute('myeventlane_vendor.console.event_order_view', [
         'event' => $eventId,
         'order' => $order->id(),
@@ -554,7 +575,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
     if ($this->isResendOrderConfirmationRouteRegistered()) {
       $resendLink = [
         '#type' => 'link',
-        '#title' => $this->t('Resend email'),
+        '#title' => $this->t('Resend confirmation'),
         '#url' => Url::fromRoute(
           self::ROUTE_RESEND_ORDER_CONFIRMATION,
           ['commerce_order' => $order->id()],
