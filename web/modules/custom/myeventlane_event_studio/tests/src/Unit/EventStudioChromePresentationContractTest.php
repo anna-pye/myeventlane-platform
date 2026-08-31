@@ -76,8 +76,8 @@ final class EventStudioChromePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('font-size: $font-size-sm;', $navigation);
 
     $this->assertIsString($libraries);
-    $this->assertStringContainsString("mel_event_studio:\n  version: 1.32", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.21", $libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.33", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.22", $libraries);
   }
 
 }

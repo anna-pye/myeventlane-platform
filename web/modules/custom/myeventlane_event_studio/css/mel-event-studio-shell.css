@@ -472,6 +472,12 @@
   outline-offset: 2px;
 }
 
+/* Keep anchored information groups clear of the sticky Event Workspace bar. */
+.mel-event-studio--workspace
+  :is(#mel-es-details, #mel-es-schedule, #mel-es-venue-location) {
+  scroll-margin-top: 8rem;
+}
+
 /* Table-style checkout questions workspace (Slice 1) */
 .mel-event-studio-questions--table .mel-event-studio-questions__table {
   display: flex;

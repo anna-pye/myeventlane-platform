@@ -751,7 +751,7 @@ final class EventStudioForm extends FormBase {
 
     $form['mel']['venue_mode'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Location'),
+      '#title' => $this->t('Venue/Location'),
       '#mel_option_cards' => TRUE,
       '#mel_option_descriptions' => [
         'saved' => $this->t('Pick from venues under your organizer account.'),

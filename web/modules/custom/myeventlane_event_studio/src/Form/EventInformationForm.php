@@ -71,6 +71,8 @@ final class EventInformationForm extends EventStudioBaseForm {
       if ($venue_id > 0) {
         $return_path = Url::fromRoute('myeventlane_event_studio.workspace_venue', [
           'node' => $saved->id(),
+        ], [
+          'fragment' => 'mel-es-venue-location',
         ])->toString();
         $this->messenger()->addStatus($this->t('Complete your new venue profile, then return to your event.'));
         $form_state->setRedirect('myeventlane_venue.vendor_venue_edit', [
@@ -84,7 +86,10 @@ final class EventInformationForm extends EventStudioBaseForm {
 
     // Schedule / Venue / Details share this form — stay on the nav section
     // the organiser opened instead of always bouncing to Details.
-    $form_state->setRedirect($this->resolveStayRouteName(), ['node' => $saved->id()]);
+    $stay_route = $this->resolveStayRouteName();
+    $form_state->setRedirect($stay_route, ['node' => $saved->id()], [
+      'fragment' => $this->resolveStayFragment($stay_route),
+    ]);
   }
 
   /**
@@ -100,6 +105,17 @@ final class EventInformationForm extends EventStudioBaseForm {
     };
   }
 
+  /**
+   * Returns the field-group anchor for the current shared information route.
+   */
+  private function resolveStayFragment(string $route): string {
+    return match ($route) {
+      'myeventlane_event_studio.workspace_schedule' => 'mel-es-schedule',
+      'myeventlane_event_studio.workspace_venue' => 'mel-es-venue-location',
+      default => 'mel-es-details',
+    };
+  }
+
   protected function buildWizardStepContent(array &$form, FormStateInterface $form_state, NodeInterface $node, array $melDefaults): void {
     $form['#attached']['library'][] = 'myeventlane_event_studio/mel_event_studio_workspace_location';
 
@@ -109,7 +125,7 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['title'] ?? $node->label(),
       '#required' => TRUE,
       '#attributes' => ['class' => ['mel-input']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--basics" aria-labelledby="mel-es-basics-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-basics-title">' . $this->t('Basics') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Give guests the core event details they need to recognise this listing.') . '</p></header><div class="mel-es-field-group__body">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--basics" id="mel-es-details" aria-labelledby="mel-es-basics-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-basics-title">' . $this->t('Basics') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Give guests the core event details they need to recognise this listing.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['summary'] = [
@@ -126,7 +142,7 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['start_date'] ?? NULL,
       '#date_increment' => 15,
       '#attributes' => ['class' => ['mel-input']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--timing" aria-labelledby="mel-es-timing-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-timing-title">' . $this->t('Timing') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Keep date and time controls together so the public schedule is easy to review.') . '</p></header><div class="mel-es-field-group__body mel-es-field-group__body--datetime">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--timing" id="mel-es-schedule" aria-labelledby="mel-es-timing-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-timing-title">' . $this->t('Timing') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Keep date and time controls together so the public schedule is easy to review.') . '</p></header><div class="mel-es-field-group__body mel-es-field-group__body--datetime">',
     ];
 
     $form['mel']['end_date'] = [
@@ -155,14 +171,14 @@ final class EventInformationForm extends EventStudioBaseForm {
 
     $form['mel']['venue_mode'] = [
       '#type' => 'radios',
-      '#title' => $this->t('Location'),
+      '#title' => $this->t('Venue/Location'),
       '#options' => [
         'saved' => $this->t('Use saved venue'),
         'create' => $this->t('Create new venue'),
         'one_off' => $this->t('One-off address'),
       ],
       '#default_value' => $melDefaults['venue_mode'] ?? 'one_off',
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--location" aria-labelledby="mel-es-location-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-location-title">' . $this->t('Location') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose a saved venue, create a venue, or add a one-off address for this event.') . '</p></header><div class="mel-es-field-group__body">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--location" id="mel-es-venue-location" aria-labelledby="mel-es-venue-location-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-venue-location-title">' . $this->t('Venue/Location') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Choose a saved venue, create a venue, or add a one-off address for this event.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $this->ensureInjectedServices();
