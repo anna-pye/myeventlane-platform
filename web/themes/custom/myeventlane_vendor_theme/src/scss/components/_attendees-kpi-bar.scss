@@ -12,26 +12,11 @@
 @use '../tokens/breakpoints' as *;
 
 .mel-attendees-kpi-bar {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-4;
-  margin-bottom: $spacing-8;
-
-  @include respond-to(md) {
-    grid-template-columns: repeat(4, 1fr);
-  }
+  margin-bottom: 0;
 }
 
 .mel-attendees-kpi-bar__kpi {
-  background: $ml-slate-50;
-  border-radius: $radius-lg;
-  padding: $spacing-5;
-  border: 1px solid $border-color-light;
-  transition: box-shadow 0.2s ease;
-
-  &:hover {
-    box-shadow: 0 4px 12px rgba(13, 21, 32, 0.06);
-  }
+  transition: background-color 0.2s ease;
 }
 
 .mel-attendees-kpi-bar__label {
@@ -53,9 +38,13 @@
 }
 
 .mel-attendees-event-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: $spacing-4;
+
+  @include respond-to(xl) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .mel-attendees-empty__body {

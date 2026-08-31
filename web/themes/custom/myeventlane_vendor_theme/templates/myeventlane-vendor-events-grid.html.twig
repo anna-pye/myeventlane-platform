@@ -20,12 +20,13 @@
 {% set selection = bulk_selection|default(null) %}
 {% set actions = bulk_actions|default(null) %}
 
-<div class="mel-vendor-events-v2" data-events-index data-events-index-url="{{ path('myeventlane_vendor.console.events') }}">
-  <header class="mel-vendor-events-v2__header mel-vendor-events-v2__surface">
-    <div class="mel-vendor-events-v2__header-text">
-      <h1 class="mel-vendor-events-v2__title">{{ model.title|default('Events'|t) }}</h1>
+<div class="mel-vendor-events-v2 mel-organiser-page" data-events-index data-events-index-url="{{ path('myeventlane_vendor.console.events') }}">
+  <header class="mel-vendor-events-v2__header mel-organiser-page__intro">
+    <div class="mel-vendor-events-v2__header-text mel-organiser-page__intro-copy">
+      <span class="mel-organiser-page__eyebrow">{{ 'Your work'|t }}</span>
+      <h1 class="mel-vendor-events-v2__title mel-organiser-page__title">{{ model.title|default('Events'|t) }}</h1>
       {% if model.subtitle %}
-        <p class="mel-vendor-events-v2__subtitle">{{ model.subtitle }}</p>
+        <p class="mel-vendor-events-v2__subtitle mel-organiser-page__description">{{ model.subtitle }}</p>
       {% endif %}
     </div>
     {% if events|length > 0 and actions %}

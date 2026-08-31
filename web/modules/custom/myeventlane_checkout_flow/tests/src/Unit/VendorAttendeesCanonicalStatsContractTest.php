@@ -33,4 +33,17 @@ final class VendorAttendeesCanonicalStatsContractTest extends TestCase {
     self::assertStringContainsString('Your event and attendee records are safe.', $template);
   }
 
+  public function testAttendeePortfolioUsesSharedOrganiserPageHierarchy(): void {
+    $template = file_get_contents($this->repositoryRoot() . '/web/modules/custom/myeventlane_checkout_flow/templates/myeventlane-vendor-attendees-dashboard.html.twig');
+    $cardTemplate = file_get_contents($this->repositoryRoot() . '/web/modules/custom/myeventlane_checkout_flow/templates/components/mel-attendees-event-card.html.twig');
+
+    self::assertIsString($template);
+    self::assertIsString($cardTemplate);
+    self::assertStringContainsString('mel-organiser-page', $template);
+    self::assertStringContainsString('mel-organiser-page__metrics', $template);
+    self::assertStringContainsString("{{ 'Across your events'|t }}", $template);
+    self::assertStringContainsString("{{ 'Choose an event'|t }}", $template);
+    self::assertStringContainsString('mel.attendees_url', $cardTemplate);
+  }
+
 }

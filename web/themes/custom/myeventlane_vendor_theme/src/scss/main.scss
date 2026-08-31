@@ -115,6 +115,7 @@
   @include meta.load-css('pages/dashboard');
   @include meta.load-css('pages/dashboard-live-ops');
   @include meta.load-css('pages/dashboard-mel-support');
+  @include meta.load-css('pages/organiser-pages');
   @include meta.load-css('pages/event-form');
   @include meta.load-css('pages/analytics');
   @include meta.load-css('pages/mel-dashboard');
