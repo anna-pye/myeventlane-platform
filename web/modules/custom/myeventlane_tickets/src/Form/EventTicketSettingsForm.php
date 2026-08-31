@@ -35,6 +35,7 @@ final class EventTicketSettingsForm extends ContentEntityForm {
    */
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
+    $form['#attributes']['class'][] = 'mel-ticket-tool-form';
 
     // Boolean settings must allow either choice. A required checkbox is
     // interpreted by browsers as "must be checked", which prevents organisers
@@ -59,6 +60,12 @@ final class EventTicketSettingsForm extends ContentEntityForm {
       if ($event && $event->id()) {
         $entity->set('event', $event->id());
       }
+    }
+
+    // The selected workspace event owns these settings and cannot be changed
+    // from this event-scoped route.
+    if (isset($form['event'])) {
+      $form['event']['#access'] = FALSE;
     }
 
     return $form;

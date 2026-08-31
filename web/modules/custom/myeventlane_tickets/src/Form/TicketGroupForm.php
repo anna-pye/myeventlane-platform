@@ -32,6 +32,7 @@ final class TicketGroupForm extends ContentEntityForm {
    */
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
+    $form['#attributes']['class'][] = 'mel-ticket-tool-form';
 
     // Pre-populate event if not set (from route parameter).
     /** @var \Drupal\myeventlane_tickets\Entity\TicketGroup $entity */
@@ -69,6 +70,12 @@ final class TicketGroupForm extends ContentEntityForm {
     }
     if (isset($form['ticket_products'])) {
       $form['ticket_products']['#access'] = FALSE;
+    }
+    if (isset($form['status']['widget']['value'])) {
+      // A required checkbox means "must be checked" in the browser, which
+      // conflicts with the supported option to keep a group hidden.
+      $form['status']['widget']['value']['#required'] = FALSE;
+      unset($form['status']['widget']['value']['#attributes']['required']);
     }
 
     $this->improveFieldCopy($form);
@@ -322,6 +329,9 @@ final class TicketGroupForm extends ContentEntityForm {
     return $entity;
   }
 
+  /**
+   * Gets the submitted section or bundle mode.
+   */
   private function submittedGroupMode(FormStateInterface $form_state, TicketGroup $entity): string {
     $value = $form_state->getValue('group_mode');
     $mode = is_array($value)
@@ -334,6 +344,8 @@ final class TicketGroupForm extends ContentEntityForm {
   }
 
   /**
+   * Gets the submitted ticket quantities for one bundle.
+   *
    * @return array<int, int>
    *   Ticket type ID => quantity in one bundle.
    */

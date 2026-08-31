@@ -21,6 +21,12 @@ purchase_surface_admin:
     - core/drupal
     - core/once
 
+ticket_tools_admin:
+  version: 1.x
+  css:
+    theme:
+      css/ticket-tools-admin.css: {}
+
 checkin_scanner:
   js:
     js/vendor/jsQR.min.js: {}

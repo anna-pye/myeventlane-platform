@@ -28,6 +28,7 @@ final class AccessCodeForm extends ContentEntityForm {
    */
   public function form(array $form, FormStateInterface $form_state): array {
     $form = parent::form($form, $form_state);
+    $form['#attributes']['class'][] = 'mel-ticket-tool-form';
 
     /** @var \Drupal\myeventlane_tickets\Entity\AccessCode $entity */
     $entity = $this->entity;
@@ -61,6 +62,11 @@ final class AccessCodeForm extends ContentEntityForm {
       }
     }
 
+    // Access codes always belong to the selected workspace event.
+    if (isset($form['event'])) {
+      $form['event']['#access'] = FALSE;
+    }
+
     return $form;
   }
 
@@ -89,7 +95,6 @@ final class AccessCodeForm extends ContentEntityForm {
   public function save(array $form, FormStateInterface $form_state): void {
     /** @var \Drupal\myeventlane_tickets\Entity\AccessCode $entity */
     $entity = $this->entity;
-    $is_new = $entity->isNew();
     $plaintext_code = $entity->getCode();
     $status = $entity->save();
 

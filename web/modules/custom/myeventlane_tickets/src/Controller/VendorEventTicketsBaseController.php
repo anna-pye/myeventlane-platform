@@ -77,6 +77,9 @@ abstract class VendorEventTicketsBaseController extends VendorConsoleBaseControl
       'meta' => NULL,
       'sidebar' => NULL,
       'ticket_tools' => $ticket_tools,
+      '#attached' => [
+        'library' => ['myeventlane_tickets/ticket_tools_admin'],
+      ],
     ];
 
     return $this->buildVendorPage('mel_event_workspace', $page_vars);

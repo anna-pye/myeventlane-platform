@@ -51,6 +51,30 @@ function myeventlane_tickets_theme(array $existing, $type, $theme, $path): array
       ],
       'template' => 'mel-event-ticket-widget-form',
     ],
+    'mel_event_ticket_tool_collection' => [
+      'variables' => [
+        'eyebrow' => '',
+        'title' => '',
+        'description' => '',
+        'guide_title' => '',
+        'guide_text' => '',
+        'content' => NULL,
+      ],
+      'template' => 'mel-event-ticket-tool-collection',
+    ],
+    'mel_event_ticket_tool_form' => [
+      'variables' => [
+        'eyebrow' => '',
+        'title' => '',
+        'description' => '',
+        'form' => NULL,
+        'help_title' => '',
+        'help_text' => '',
+        'back_url' => '',
+        'back_label' => '',
+      ],
+      'template' => 'mel-event-ticket-tool-form',
+    ],
     'ticket_pdf' => [
       'variables' => [
         'order_item' => NULL,
