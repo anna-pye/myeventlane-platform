@@ -7982,6 +7982,19 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   }
 }
 
+/*
+ * The shared MEL form system intentionally caps ordinary organiser forms at
+ * 50rem. Ticketing is a three-panel workspace, so it must use the full width
+ * made available by the Event Studio section instead of inheriting that cap.
+ */
+.mel-event-studio--workspace[data-current-section-id='tickets']
+  .mel-event-studio-wizard-form.mel-form {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  margin-inline: 0;
+}
+
 .mel-event-studio-ticket-workspace {
   display: block;
   width: 100%;
