@@ -18,13 +18,13 @@
   </header>
 
   <div class="mel-ticket-widget-editor__layout">
-    <main class="mel-ticket-widget-editor__form-card">
+    <section class="mel-ticket-widget-editor__form-card" aria-labelledby="mel-ticket-widget-editor-title">
       <div class="mel-ticket-widget-editor__heading">
         <span class="mel-ticket-widgets__eyebrow">{{ is_edit ? ('Widget settings'|t) : ('Choose the presentation'|t) }}</span>
-        <h2>{{ is_edit and widget_label ? widget_label : ('New ticket widget'|t) }}</h2>
+        <h2 id="mel-ticket-widget-editor-title">{{ is_edit and widget_label ? widget_label : ('New ticket widget'|t) }}</h2>
       </div>
       {{ form }}
-    </main>
+    </section>
 
     <aside class="mel-ticket-widget-editor__help" aria-labelledby="mel-ticket-widget-before-title">
       <span class="mel-ticket-widgets__eyebrow">{{ 'Before you start'|t }}</span>

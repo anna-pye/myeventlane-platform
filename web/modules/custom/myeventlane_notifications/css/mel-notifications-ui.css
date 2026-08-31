@@ -360,6 +360,7 @@
 /* —— Organiser Action Centre —— */
 .mel-action-centre {
   width: 100%;
+  max-width: 68rem;
   margin: 0 auto;
   padding: 0 0 3rem;
   color: #293241;
