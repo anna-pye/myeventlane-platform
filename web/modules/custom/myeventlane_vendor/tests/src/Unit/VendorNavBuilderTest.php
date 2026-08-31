@@ -269,6 +269,12 @@ final class VendorNavBuilderTest extends UnitTestCase {
       path: '/vendor/events/42/studio/orders',
     );
     $this->assertSame('orders', $ordersBuilder->resolveActiveSection('myeventlane_event_studio.workspace_orders'));
+
+    $refundBuilder = $this->createBuilder(
+      routeName: 'myeventlane_refunds.vendor_refund',
+      path: '/vendor/orders/123/refund',
+    );
+    $this->assertSame('orders', $refundBuilder->resolveActiveSection('myeventlane_refunds.vendor_refund'));
   }
 
   /**

@@ -21,7 +21,9 @@
   <nav class="mel-sales-ops__nav" aria-label="{{ 'Event sales tools'|t }}">
     <a class="mel-sales-ops__nav-item" href="{{ orders_url }}"><strong>{{ 'Orders'|t }}</strong><small>{{ 'Purchasers, tickets and totals.'|t }}</small></a>
     <span class="mel-sales-ops__nav-item is-active" aria-current="page"><strong>{{ 'Add-on orders'|t }}</strong><small>{{ 'Items to prepare or collect.'|t }}</small></span>
-    <a class="mel-sales-ops__nav-item" href="{{ refunds_url }}"><strong>{{ 'Refunds'|t }}</strong><small>{{ 'Review buyer requests safely.'|t }}</small></a>
+    {% if refunds_url %}
+      <a class="mel-sales-ops__nav-item" href="{{ refunds_url }}"><strong>{{ 'Refunds'|t }}</strong><small>{{ 'Review buyer requests safely.'|t }}</small></a>
+    {% endif %}
   </nav>
 
   <aside class="mel-sales-ops__guide" aria-label="{{ 'How to use add-on orders'|t }}">

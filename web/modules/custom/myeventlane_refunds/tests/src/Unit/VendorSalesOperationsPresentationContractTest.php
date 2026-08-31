@@ -42,7 +42,9 @@ final class VendorSalesOperationsPresentationContractTest extends TestCase {
 
     self::assertStringContainsString("buildForEvent(\$event, \$this->currentUser)", $controller);
     self::assertStringContainsString('$document[\'orders\'][$key][\'order_url\']', $controller);
+    self::assertStringContainsString("\$this->safeRouteUrl('myeventlane_refunds.vendor_refund_requests'", $controller);
     self::assertStringContainsString('order.order_url', $template);
+    self::assertStringContainsString('{% if refunds_url %}', $template);
     self::assertStringContainsString("aria-label=\"{{ 'How to use add-on orders'|t }}\"", $template);
     self::assertStringContainsString('mel-orders-console', $template);
     self::assertStringNotContainsString('<form', $template);

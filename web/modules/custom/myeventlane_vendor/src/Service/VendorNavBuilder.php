@@ -111,7 +111,8 @@ final class VendorNavBuilder {
       || str_starts_with($path, '/vendor/audience')) {
       return 'marketing';
     }
-    if (preg_match('#^/vendor/events/\d+/(?:studio/orders|orders|addons|refund-requests)(?:/|$)#', $path) === 1) {
+    if (preg_match('#^/vendor/events/\d+/(?:studio/orders|orders|addons|refund-requests)(?:/|$)#', $path) === 1
+      || preg_match('#^/vendor/orders/\d+/refund(?:/|$)#', $path) === 1) {
       return 'orders';
     }
     if (str_starts_with($path, '/vendor/payments')
@@ -166,6 +167,7 @@ final class VendorNavBuilder {
       'myeventlane_vendor.console.event_order_view' => 'orders',
       'myeventlane_event_studio.workspace_orders' => 'orders',
       'myeventlane_vendor.console.event_operational_addon_orders' => 'orders',
+      'myeventlane_refunds.vendor_refund' => 'orders',
       'myeventlane_refunds.vendor_refund_requests' => 'orders',
       'myeventlane_refunds.vendor_refund_request_approve' => 'orders',
       'myeventlane_refunds.vendor_refund_request_reject' => 'orders',

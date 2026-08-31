@@ -11,6 +11,7 @@ use Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_vendor\Service\VendorEventTabsService;
 use Drupal\node\NodeInterface;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Vendor console: operational add-on orders for an event (read-only).
@@ -55,7 +56,7 @@ final class VendorOperationalAddonOrdersController extends VendorConsoleBaseCont
       '#event' => $event,
       '#help_url' => self::SALES_HELP_PATH,
       '#orders_url' => Url::fromRoute('myeventlane_event_studio.workspace_orders', ['node' => $event->id()])->toString(),
-      '#refunds_url' => Url::fromRoute('myeventlane_refunds.vendor_refund_requests', ['node' => $event->id()])->toString(),
+      '#refunds_url' => $this->safeRouteUrl('myeventlane_refunds.vendor_refund_requests', ['node' => $event->id()]),
       '#extras_url' => Url::fromRoute('myeventlane_event_studio.workspace_extras', ['node' => $event->id()])->toString(),
       '#attached' => [
         'library' => ['myeventlane_commerce/vendor_operational_addon_orders'],
@@ -76,6 +77,21 @@ final class VendorOperationalAddonOrdersController extends VendorConsoleBaseCont
       'sidebar' => NULL,
       'content' => $content,
     ]);
+  }
+
+  /**
+   * Builds an optional sales-operation route without breaking add-on orders.
+   *
+   * @param array<string, mixed> $parameters
+   *   Route parameters.
+   */
+  private function safeRouteUrl(string $routeName, array $parameters): ?string {
+    try {
+      return Url::fromRoute($routeName, $parameters)->toString();
+    }
+    catch (RouteNotFoundException) {
+      return NULL;
+    }
   }
 
 }
