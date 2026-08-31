@@ -374,6 +374,104 @@
   }
 }
 
+/*
+ * Event-scoped navigation is rendered inside the organiser sidebar, outside
+ * the main `.mel-event-studio` wrapper. Give it the same compact toolbar
+ * language as its parent instead of allowing generic heading/link styles to
+ * make it look like a separate page menu.
+ */
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__inner {
+  gap: 12px;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__group
+  + .mel-event-studio-sidebar__group {
+  padding-top: 12px;
+  border-top: 1px solid #eadfd5;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__heading {
+  margin: 0;
+  padding: 0 12px 4px;
+  color: #697381;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__list {
+  gap: 4px;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 40px;
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 12px;
+  background: transparent;
+  color: #4d5968;
+  box-shadow: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.35;
+  text-decoration: none;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link:link,
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link:visited {
+  color: #4d5968;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link:hover,
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link:focus-visible {
+  border-color: transparent;
+  background: #eef6ff;
+  color: #293241;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link.is-active,
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link[aria-current='page'] {
+  border-color: #f4c7bd;
+  background: #fff0ec;
+  color: #293241;
+  box-shadow: inset 3px 0 0 #f26d5b;
+  font-weight: 700;
+}
+
+.mel-vendor-console.mel-vendor-shell--studio-focus
+  .mel-sidebar__item--studio-open
+  .mel-event-studio-sidebar__link:focus-visible {
+  outline: 2px solid #7c83fd;
+  outline-offset: 2px;
+}
+
 /* Table-style checkout questions workspace (Slice 1) */
 .mel-event-studio-questions--table .mel-event-studio-questions__table {
   display: flex;
