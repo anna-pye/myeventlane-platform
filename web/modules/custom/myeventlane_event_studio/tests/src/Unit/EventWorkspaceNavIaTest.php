@@ -22,7 +22,7 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
       'overview' => ['Home', 'Set up', 0],
       'information' => ['Details', 'Set up', 10],
       'schedule' => ['Schedule', 'Set up', 20],
-      'venue' => ['Venue', 'Set up', 30],
+      'venue' => ['Venue/Location', 'Set up', 30],
       'branding' => ['Branding', 'Set up', 40],
       'content' => ['Content', 'Set up', 50],
       'publishing' => ['Publishing', 'Set up', 60],
@@ -112,6 +112,42 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
     $this->assertStringContainsString('has_group_heading', $sidebar);
     $this->assertStringContainsString('Event Workspace', $controller);
     $this->assertStringNotContainsString("'Event Studio'|t", $topbar);
+  }
+
+  /**
+   * Confirms shared information routes land on their matching field groups.
+   */
+  public function testSharedInformationRoutesUseStableFieldGroupBookmarks(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $manager = file_get_contents($moduleRoot . '/src/EventStudioSectionManager.php');
+    $form = file_get_contents($moduleRoot . '/src/Form/EventInformationForm.php');
+    $legacyForm = file_get_contents($moduleRoot . '/src/Form/EventStudioForm.php');
+    $css = file_get_contents($moduleRoot . '/css/mel-event-studio-shell.css');
+
+    $this->assertIsString($manager);
+    $this->assertStringContainsString("'information' => 'mel-es-details'", $manager);
+    $this->assertStringContainsString("'schedule' => 'mel-es-schedule'", $manager);
+    $this->assertStringContainsString("'venue' => 'mel-es-venue-location'", $manager);
+    $this->assertStringContainsString("\$url_options['fragment']", $manager);
+
+    $this->assertIsString($form);
+    $this->assertStringContainsString('id="mel-es-details"', $form);
+    $this->assertStringContainsString('id="mel-es-schedule"', $form);
+    $this->assertStringContainsString('id="mel-es-venue-location"', $form);
+    $this->assertStringContainsString("\$this->t('Schedule')", $form);
+    $this->assertStringNotContainsString("\$this->t('Timing')", $form);
+    $this->assertStringContainsString("'fragment' => \$this->resolveStayFragment(\$stay_route)", $form);
+    $this->assertStringContainsString("\$this->t('Venue/Location')", $form);
+
+    $this->assertIsString($legacyForm);
+    $this->assertStringContainsString("\$this->t('Venue/Location')", $legacyForm);
+
+    $this->assertIsString($css);
+    $this->assertStringContainsString(
+      ':is(#mel-es-details, #mel-es-schedule, #mel-es-venue-location)',
+      $css,
+    );
+    $this->assertStringContainsString('scroll-margin-top: 8rem;', $css);
   }
 
   /**

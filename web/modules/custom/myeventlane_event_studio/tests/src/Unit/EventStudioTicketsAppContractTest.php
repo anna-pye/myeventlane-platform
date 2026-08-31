@@ -80,14 +80,74 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('order: 5;', $css);
 
     $this->assertNotFalse($libraries);
-    $this->assertStringContainsString("mel_event_studio:\n  version: 1.25", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.14", $libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.33", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.22", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
     $this->assertStringContainsString('display: flex;', $theme_scss);
     $this->assertStringContainsString('flex-direction: column;', $theme_scss);
     $this->assertStringContainsString('@media (max-width: 1199px)', $theme_scss);
+  }
+
+  public function testTicketEditorUsesTheAvailableCanvasWithoutCrushingFields(): void {
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
+    $theme_scss = file_get_contents(
+      dirname($this->moduleRoot(), 4) . '/web/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-ticket-hierarchy.scss',
+    );
+
+    $this->assertNotFalse($css);
+    $this->assertStringContainsString('--mel-es-content-width: 76rem;', $css);
+    $this->assertStringContainsString("'identity identity'", $css);
+    $this->assertStringContainsString('.mel-event-studio-ticket-card__identity,', $css);
+    $this->assertStringContainsString('width: 100%;', $css);
+    $this->assertStringContainsString("input[type='text']", $css);
+    $this->assertStringContainsString('inline-size: 100% !important;', $css);
+    $this->assertStringContainsString('minmax(30rem, 1.7fr)', $css);
+    $this->assertStringContainsString(
+      ".mel-event-studio--workspace[data-current-section-id='tickets']\n  .mel-form",
+      $css,
+    );
+    $this->assertStringNotContainsString(
+      ".mel-event-studio--workspace[data-current-section-id='tickets']\n  .mel-event-studio-wizard-form.mel-form",
+      $css,
+    );
+    $this->assertStringContainsString('max-width: none;', $css);
+
+    $this->assertNotFalse($theme_scss);
+    $this->assertStringContainsString('--mel-es-content-width: 76rem;', $theme_scss);
+    $this->assertStringContainsString("'identity identity'", $theme_scss);
+    $this->assertStringContainsString('inline-size: 100% !important;', $theme_scss);
+    $this->assertStringNotContainsString(
+      'grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.42fr) minmax(9rem, 0.48fr);',
+      $theme_scss,
+    );
+  }
+
+  public function testMobileTicketEditorUsesOneRealColumnAndFullWidthControls(): void {
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
+    $theme_scss = file_get_contents(
+      dirname($this->moduleRoot(), 4) . '/web/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-ticket-hierarchy.scss',
+    );
+
+    $this->assertNotFalse($css);
+    $this->assertStringContainsString('@media (max-width: 760px)', $css);
+    $this->assertStringContainsString(
+      "grid-template-areas:\n      'identity'\n      'pricing'\n      'capacity'\n      'badges';",
+      $css,
+    );
+    $this->assertStringContainsString(':is(.form-item, input, select)', $css);
+    $this->assertStringContainsString('min-height: 46px;', $css);
+    $this->assertStringContainsString('font-size: 1rem;', $css);
+    $this->assertStringContainsString('min-height: 48px;', $css);
+
+    $this->assertNotFalse($theme_scss);
+    $this->assertStringContainsString('@media (max-width: 767px)', $theme_scss);
+    $this->assertStringContainsString(
+      "grid-template-areas:\n      'identity'\n      'pricing'\n      'capacity'\n      'badges';",
+      $theme_scss,
+    );
+    $this->assertStringContainsString(':is(.form-item, input, select)', $theme_scss);
   }
 
   public function testQuickAddPresetsPopulateTheExistingTicketFormWithoutSaving(): void {
@@ -354,8 +414,14 @@ final class EventStudioTicketsAppContractTest extends TestCase {
 
   public function testTicketActionsAreMutuallyExclusive(): void {
     $form = file_get_contents($this->moduleRoot() . '/src/Form/EventStudioOperationalTicketsForm.php');
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
     $this->assertNotFalse($form);
+    $this->assertNotFalse($css);
     $this->assertStringContainsString('Choose only one ticket action: Duplicate, Archive, or permanently delete.', $form);
+    $this->assertStringContainsString('mel-event-studio-ticket-card__action--duplicate', $form);
+    $this->assertStringContainsString('mel-event-studio-ticket-card__action--archive', $form);
+    $this->assertStringContainsString('.mel-event-studio-ticket-card__action {', $css);
+    $this->assertStringContainsString('grid-template-columns: auto minmax(0, 1fr);', $css);
     $this->assertStringContainsString("'delete' => !empty(\$row['delete'])", $form);
     $this->assertStringContainsString('if (count($selected_actions) > 1)', $form);
     $this->assertStringContainsString("!empty(\$row['archive']) && empty(\$row['duplicate'])", $form);

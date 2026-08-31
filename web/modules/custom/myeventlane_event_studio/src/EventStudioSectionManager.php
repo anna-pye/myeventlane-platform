@@ -22,6 +22,15 @@ use Drupal\node\NodeInterface;
 final class EventStudioSectionManager extends DefaultPluginManager {
 
   /**
+   * Anchors for the three routes that share EventInformationForm.
+   */
+  private const SHARED_INFORMATION_ANCHORS = [
+    'information' => 'mel-es-details',
+    'schedule' => 'mel-es-schedule',
+    'venue' => 'mel-es-venue-location',
+  ];
+
+  /**
    * Constructs the section plugin manager.
    */
   public function __construct(\Traversable $namespaces, ModuleHandlerInterface $module_handler, CacheBackendInterface $cache_backend) {
@@ -135,8 +144,12 @@ final class EventStudioSectionManager extends DefaultPluginManager {
       $group = $section->group();
       $groups[$group] ??= [];
       $metadata = $this->sectionMetadata($section);
+      $url_options = [];
+      if (isset(self::SHARED_INFORMATION_ANCHORS[$section_id])) {
+        $url_options['fragment'] = self::SHARED_INFORMATION_ANCHORS[$section_id];
+      }
       $groups[$group][] = $metadata + [
-        'url' => Url::fromRoute($section->routeName(), ['node' => $event->id()])->toString(),
+        'url' => Url::fromRoute($section->routeName(), ['node' => $event->id()], $url_options)->toString(),
         'active' => $section_id === $current_section,
       ];
     }

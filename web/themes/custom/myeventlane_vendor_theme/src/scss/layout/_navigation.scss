@@ -854,6 +854,75 @@
   }
 
   &.mel-vendor-shell--studio-focus {
+    .mel-sidebar__item--studio-open .mel-event-studio-sidebar__inner {
+      gap: $spacing-3;
+    }
+
+    .mel-sidebar__item--studio-open
+      .mel-event-studio-sidebar__group
+      + .mel-event-studio-sidebar__group {
+      padding-top: $spacing-3;
+      border-top: 1px solid #eadfd5;
+    }
+
+    .mel-sidebar__item--studio-open .mel-event-studio-sidebar__heading {
+      margin: 0;
+      padding: 0 $spacing-3 $spacing-1;
+      color: #697381;
+      font-size: 0.75rem;
+      font-weight: $font-weight-bold;
+      line-height: 1.3;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .mel-sidebar__item--studio-open .mel-event-studio-sidebar__list {
+      gap: $spacing-1;
+    }
+
+    .mel-sidebar__item--studio-open .mel-event-studio-sidebar__link {
+      box-sizing: border-box;
+      width: 100%;
+      min-height: 40px;
+      padding: $spacing-2 $spacing-3;
+      border: 1px solid transparent;
+      border-radius: $radius-md;
+      background: transparent;
+      color: #4d5968;
+      box-shadow: none;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-semibold;
+      line-height: 1.35;
+      text-decoration: none;
+      transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+      &:link,
+      &:visited {
+        color: #4d5968;
+      }
+
+      &:hover,
+      &:focus-visible {
+        border-color: transparent;
+        background: #eef6ff;
+        color: #293241;
+      }
+
+      &.is-active,
+      &[aria-current='page'] {
+        border-color: #f4c7bd;
+        background: #fff0ec;
+        color: #293241;
+        box-shadow: inset 3px 0 0 #f26d5b;
+        font-weight: $font-weight-bold;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #7c83fd;
+        outline-offset: 2px;
+      }
+    }
+
     @include respond-to(md) {
       grid-template-columns: 280px minmax(0, 1fr);
 
