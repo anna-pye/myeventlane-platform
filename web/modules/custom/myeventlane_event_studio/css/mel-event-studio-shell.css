@@ -7988,7 +7988,7 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
  * made available by the Event Studio section instead of inheriting that cap.
  */
 .mel-event-studio--workspace[data-current-section-id='tickets']
-  .mel-event-studio-wizard-form.mel-form {
+  .mel-form {
   width: 100%;
   min-width: 0;
   max-width: none;

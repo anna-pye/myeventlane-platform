@@ -80,8 +80,8 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('order: 5;', $css);
 
     $this->assertNotFalse($libraries);
-    $this->assertStringContainsString("mel_event_studio:\n  version: 1.28", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.17", $libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.29", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.18", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
@@ -104,7 +104,14 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString("input[type='text']", $css);
     $this->assertStringContainsString('inline-size: 100% !important;', $css);
     $this->assertStringContainsString('minmax(30rem, 1.7fr)', $css);
-    $this->assertStringContainsString(".mel-event-studio-wizard-form.mel-form", $css);
+    $this->assertStringContainsString(
+      ".mel-event-studio--workspace[data-current-section-id='tickets']\n  .mel-form",
+      $css,
+    );
+    $this->assertStringNotContainsString(
+      ".mel-event-studio--workspace[data-current-section-id='tickets']\n  .mel-event-studio-wizard-form.mel-form",
+      $css,
+    );
     $this->assertStringContainsString('max-width: none;', $css);
 
     $this->assertNotFalse($theme_scss);

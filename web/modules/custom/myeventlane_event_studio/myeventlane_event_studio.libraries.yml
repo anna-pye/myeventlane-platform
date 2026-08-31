@@ -1,5 +1,5 @@
 mel_event_studio:
-  version: 1.28
+  version: 1.29
   css:
     theme:
       css/mel-event-studio.css: {}
@@ -177,7 +177,7 @@ mel_ticket_preview:
 
 # Reuse Event Studio layout shell (sidebar + main) without wizard JS — onboarding, etc.
 mel_event_studio_shell_only:
-  version: 1.17
+  version: 1.18
   css:
     theme:
       css/mel-event-studio-nav.css: {}
