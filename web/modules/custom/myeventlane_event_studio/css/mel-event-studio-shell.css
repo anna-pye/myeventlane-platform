@@ -7975,6 +7975,13 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   outline-offset: -3px;
 }
 
+@media (min-width: 1200px) {
+  .mel-vendor-shell--studio-focus
+    .mel-event-studio[data-current-section-id='tickets'] {
+    --mel-es-content-width: 76rem;
+  }
+}
+
 .mel-event-studio-ticket-workspace {
   display: block;
   width: 100%;
@@ -8229,6 +8236,31 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 
 .mel-event-studio .mel-event-studio-ticket-card__capacity {
   grid-area: capacity;
+}
+
+.mel-event-studio[data-current-section-id='tickets']
+  :is(
+    .mel-event-studio-ticket-card__identity,
+    .mel-event-studio-ticket-card__pricing,
+    .mel-event-studio-ticket-card__capacity
+  ),
+.mel-event-studio[data-current-section-id='tickets']
+  :is(
+    .mel-event-studio-ticket-card__identity,
+    .mel-event-studio-ticket-card__pricing,
+    .mel-event-studio-ticket-card__capacity
+  )
+  .form-item,
+.mel-event-studio[data-current-section-id='tickets']
+  :is(
+    .mel-event-studio-ticket-card__identity,
+    .mel-event-studio-ticket-card__pricing,
+    .mel-event-studio-ticket-card__capacity
+  )
+  input {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
 }
 
 .mel-event-studio .mel-event-studio-ticket-card__badges {

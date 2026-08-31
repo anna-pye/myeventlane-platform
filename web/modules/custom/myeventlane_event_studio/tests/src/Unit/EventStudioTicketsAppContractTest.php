@@ -80,14 +80,35 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('order: 5;', $css);
 
     $this->assertNotFalse($libraries);
-    $this->assertStringContainsString("mel_event_studio:\n  version: 1.25", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.14", $libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.26", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.15", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
     $this->assertStringContainsString('display: flex;', $theme_scss);
     $this->assertStringContainsString('flex-direction: column;', $theme_scss);
     $this->assertStringContainsString('@media (max-width: 1199px)', $theme_scss);
+  }
+
+  public function testTicketEditorUsesTheAvailableCanvasWithoutCrushingFields(): void {
+    $css = file_get_contents($this->moduleRoot() . '/css/mel-event-studio-shell.css');
+    $theme_scss = file_get_contents(
+      dirname($this->moduleRoot(), 4) . '/web/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-event-studio-ticket-hierarchy.scss',
+    );
+
+    $this->assertNotFalse($css);
+    $this->assertStringContainsString('--mel-es-content-width: 76rem;', $css);
+    $this->assertStringContainsString("'identity identity'", $css);
+    $this->assertStringContainsString('.mel-event-studio-ticket-card__identity,', $css);
+    $this->assertStringContainsString('width: 100%;', $css);
+
+    $this->assertNotFalse($theme_scss);
+    $this->assertStringContainsString('--mel-es-content-width: 76rem;', $theme_scss);
+    $this->assertStringContainsString("'identity identity'", $theme_scss);
+    $this->assertStringNotContainsString(
+      'grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.42fr) minmax(9rem, 0.48fr);',
+      $theme_scss,
+    );
   }
 
   public function testQuickAddPresetsPopulateTheExistingTicketFormWithoutSaving(): void {
