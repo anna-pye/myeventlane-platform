@@ -8727,15 +8727,90 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 }
 
 @media (max-width: 760px) {
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-workspace {
+    border-radius: 16px;
+  }
+
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-selector,
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-cards {
     padding: 14px;
   }
 
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-selector__items,
-  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__header,
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-saved-ticket-manager__item {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-selector__button {
+    min-height: 64px;
+    padding: 10px 12px;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__editor-heading {
+    display: block;
+    padding-bottom: 12px;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__editor-title {
+    overflow-wrap: anywhere;
+    font-size: 1.05rem;
+    line-height: 1.3;
+  }
+
+  /*
+   * Replace the desktop named areas as well as its columns. Leaving the
+   * two-cell area names in place creates an implicit second track and crushes
+   * the ticket fields on a phone.
+   */
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__header {
+    grid-template-areas:
+      'identity'
+      'pricing'
+      'capacity'
+      'badges';
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets']
+    :is(
+      .mel-event-studio-ticket-card__identity,
+      .mel-event-studio-ticket-card__pricing,
+      .mel-event-studio-ticket-card__capacity,
+      .mel-event-studio-ticket-card__badges
+    ) {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets']
+    :is(
+      .mel-event-studio-ticket-card__identity,
+      .mel-event-studio-ticket-card__pricing,
+      .mel-event-studio-ticket-card__capacity
+    )
+    :is(.form-item, input, select) {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets']
+    :is(
+      .mel-event-studio-ticket-card__identity,
+      .mel-event-studio-ticket-card__pricing,
+      .mel-event-studio-ticket-card__capacity
+    )
+    :is(input, select) {
+    min-height: 46px;
+    font-size: 1rem;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-ticket-card,
@@ -8752,9 +8827,18 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   }
 
   .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets > .form-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
     position: static;
     width: 100%;
     margin: 0;
     padding: 12px 14px;
+  }
+
+  .mel-event-studio[data-current-section-id='tickets'] .mel-event-studio-operational-tickets > .form-actions .button {
+    width: 100%;
+    min-height: 48px;
+    margin: 0;
   }
 }
