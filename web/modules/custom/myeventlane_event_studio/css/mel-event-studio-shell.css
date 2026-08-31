@@ -8703,7 +8703,7 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   margin: 0;
 }
 
-@container (max-width: 56rem) {
+@container (max-width: 62rem) {
   .mel-event-studio .mel-event-studio-operational-tickets:has(> .mel-event-ticket-preview) {
     grid-template-areas:
       'selector editors'
