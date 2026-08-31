@@ -25,6 +25,9 @@ final class TicketListRoutingAccessTest extends TestCase {
       'myeventlane_tickets.event_tickets_widgets',
       'myeventlane_tickets.event_tickets_widgets_add',
       'myeventlane_tickets.event_tickets_widgets_edit',
+      'entity.mel_ticket_group.delete_form',
+      'entity.mel_access_code.delete_form',
+      'entity.mel_purchase_surface.delete_form',
     ] as $name) {
       $this->assertArrayHasKey($name, $routes);
       $this->assertSame(

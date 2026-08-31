@@ -126,7 +126,7 @@ myeventlane_tickets.event_tickets_groups_edit:
 entity.mel_ticket_group.delete_form:
   path: '/vendor/events/{event}/tickets/groups/{mel_ticket_group}/delete'
   defaults:
-    _entity_form: 'mel_ticket_group.delete'
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::groupsDelete'
     _title: 'Delete ticket group'
   requirements:
     _custom_access: 'myeventlane_tickets.access.event_tickets:access'
@@ -184,7 +184,7 @@ myeventlane_tickets.event_tickets_access_codes_edit:
 entity.mel_access_code.delete_form:
   path: '/vendor/events/{event}/tickets/access-codes/{mel_access_code}/delete'
   defaults:
-    _entity_form: 'mel_access_code.delete'
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::accessCodesDelete'
     _title: 'Delete access code'
   requirements:
     _custom_access: 'myeventlane_tickets.access.event_tickets:access'
@@ -242,7 +242,7 @@ myeventlane_tickets.event_tickets_widgets_edit:
 entity.mel_purchase_surface.delete_form:
   path: '/vendor/events/{event}/tickets/widgets/{mel_purchase_surface}/delete'
   defaults:
-    _entity_form: 'mel_purchase_surface.delete'
+    _controller: '\Drupal\myeventlane_tickets\Controller\EventTicketsController::widgetsDelete'
     _title: 'Delete widget'
   requirements:
     _custom_access: 'myeventlane_tickets.access.event_tickets:access'

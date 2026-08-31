@@ -35,7 +35,7 @@ use Drupal\node\NodeInterface;
  *       "default" = "Drupal\myeventlane_tickets\Form\TicketGroupForm",
  *       "add" = "Drupal\myeventlane_tickets\Form\TicketGroupForm",
  *       "edit" = "Drupal\myeventlane_tickets\Form\TicketGroupForm",
- *       "delete" = "Drupal\Core\Entity\ContentEntityDeleteForm"
+ *       "delete" = "Drupal\myeventlane_tickets\Form\TicketGroupDeleteForm"
  *     }
  *   },
  *   base_table = "mel_ticket_group",

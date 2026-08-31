@@ -75,7 +75,7 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
     // Build content render array.
     $build = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-tickets-access-codes-list']],
+      '#attributes' => ['class' => ['mel-ticket-tool-collection', 'mel-tickets-access-codes-list']],
     ];
 
     // Add header action button.
@@ -89,8 +89,30 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
 
     if (empty($codes)) {
       $build['empty'] = [
-        '#markup' => '<div class="mel-empty-state"><p>' . $this->t('No access codes have been created for this event.') . '</p>'
-          . '<a class="mel-btn mel-btn--primary" href="' . Url::fromRoute('myeventlane_tickets.event_tickets_access_codes_add', ['event' => $event->id()])->toString() . '">' . $this->t('Create access code') . '</a></div>',
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-tool-empty']],
+        'icon' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => '◌',
+          '#attributes' => ['aria-hidden' => 'true'],
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('No private access codes yet'),
+        ],
+        'description' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Create a code when selected guests need access to particular ticket choices for this event.'),
+        ],
+        'action' => [
+          '#type' => 'link',
+          '#title' => $this->t('Create access code'),
+          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_access_codes_add', ['event' => $event->id()]),
+          '#attributes' => ['class' => ['mel-ticket-tool-button', 'mel-ticket-tool-button--primary']],
+        ],
       ];
     }
     else {
@@ -142,27 +164,55 @@ final class VendorEventAccessCodesController extends VendorEventTicketsBaseContr
           ],
         ];
 
+        $status = (string) $code->get('status')->value;
+        $status_label = match ($status) {
+          'active' => $this->t('Active'),
+          'expired' => $this->t('Expired'),
+          default => $this->t('Inactive'),
+        };
+
         $rows[] = [
           'data' => [
             $masked,
-            $code->get('status')->value,
+            [
+              'data' => [
+                '#type' => 'html_tag',
+                '#tag' => 'span',
+                '#value' => $status_label,
+                '#attributes' => ['class' => ['mel-ticket-tool-status', 'is-' . $status]],
+              ],
+            ],
             $usage_text,
             $operations,
           ],
         ];
       }
 
-      $build['table'] = [
-        '#type' => 'table',
-        '#header' => $header,
-        '#rows' => $rows,
-        '#empty' => $this->t('No access codes have been created for this event.'),
+      $build['table_wrap'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-tool-table-scroll']],
+        'table' => [
+          '#type' => 'table',
+          '#header' => $header,
+          '#rows' => $rows,
+          '#empty' => $this->t('No access codes have been created for this event.'),
+        ],
       ];
     }
 
+    $page = [
+      '#theme' => 'mel_event_ticket_tool_collection',
+      '#eyebrow' => $this->t('Private ticket access'),
+      '#title' => $this->t('Access codes'),
+      '#description' => $this->t('Create and manage private codes for selected ticket choices in this event.'),
+      '#guide_title' => $this->t('Use codes for controlled access'),
+      '#guide_text' => $this->t('Set an optional usage limit or expiry, then share the code privately. The full code is shown once when it is created.'),
+      '#content' => $build,
+    ];
+
     return $this->buildTicketsPage(
       $event,
-      $build,
+      $page,
       'access_codes',
       $header_actions
     );

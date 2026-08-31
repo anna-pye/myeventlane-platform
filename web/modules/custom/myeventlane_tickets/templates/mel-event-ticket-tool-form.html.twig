@@ -1,0 +1,28 @@
+{#
+/**
+ * @file
+ * Shared add/edit/delete form layout for event Ticketing tools.
+ */
+#}
+<div class="mel-ticket-tool-page mel-ticket-tool-page--form">
+  <header class="mel-ticket-tool-hero">
+    <span class="mel-ticket-tool-eyebrow">{{ eyebrow }}</span>
+    <h1>{{ title }}</h1>
+    <p>{{ description }}</p>
+  </header>
+
+  <div class="mel-ticket-tool-form-layout">
+    <main class="mel-ticket-tool-card mel-ticket-tool-card--form">
+      {{ form }}
+    </main>
+
+    <aside class="mel-ticket-tool-help" aria-label="{{ 'About this setting'|t }}">
+      <span class="mel-ticket-tool-eyebrow">{{ 'Good to know'|t }}</span>
+      <h2>{{ help_title }}</h2>
+      <p>{{ help_text }}</p>
+      {% if back_url %}
+        <a class="mel-ticket-tool-button mel-ticket-tool-button--secondary" href="{{ back_url }}">{{ back_label }}</a>
+      {% endif %}
+    </aside>
+  </div>
+</div>

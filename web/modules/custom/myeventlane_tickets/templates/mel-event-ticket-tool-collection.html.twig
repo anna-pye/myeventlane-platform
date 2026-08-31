@@ -1,0 +1,27 @@
+{#
+/**
+ * @file
+ * Shared collection layout for an event's Ticketing tools.
+ */
+#}
+<div class="mel-ticket-tool-page">
+  <header class="mel-ticket-tool-hero">
+    <span class="mel-ticket-tool-eyebrow">{{ eyebrow }}</span>
+    <h1>{{ title }}</h1>
+    <p>{{ description }}</p>
+  </header>
+
+  {% if guide_title or guide_text %}
+    <section class="mel-ticket-tool-guide" aria-label="{{ 'How this tool works'|t }}">
+      <span class="mel-ticket-tool-guide__icon" aria-hidden="true">→</span>
+      <div>
+        {% if guide_title %}<h2>{{ guide_title }}</h2>{% endif %}
+        {% if guide_text %}<p>{{ guide_text }}</p>{% endif %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="mel-ticket-tool-card">
+    {{ content }}
+  </section>
+</div>

@@ -73,24 +73,10 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
     $group_ids = $query->execute();
     $groups = $group_ids ? $storage->loadMultiple($group_ids) : [];
 
-    // Build content render array.
+    // Build collection content without changing group operations.
     $build = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mel-tickets-groups-list']],
-    ];
-    $build['intro'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['mel-alert', 'mel-alert--info']],
-      'title' => [
-        '#type' => 'html_tag',
-        '#tag' => 'strong',
-        '#value' => $this->t('Create clear ticket sections or sell several tickets as one bundle.'),
-      ],
-      'detail' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => $this->t('For a bundle, choose the included event tickets, set the quantity of each, then enter one total price. Ticket and event capacity still apply.'),
-      ],
+      '#attributes' => ['class' => ['mel-ticket-tool-collection', 'mel-tickets-groups-list']],
     ];
 
     // Add header action button.
@@ -104,7 +90,30 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
 
     if (empty($groups)) {
       $build['empty'] = [
-        '#markup' => '<p>' . $this->t('No groups yet. Your tickets will continue to appear as one list until you add a group.') . '</p>',
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-tool-empty']],
+        'icon' => [
+          '#type' => 'html_tag',
+          '#tag' => 'span',
+          '#value' => '≡',
+          '#attributes' => ['aria-hidden' => 'true'],
+        ],
+        'title' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h3',
+          '#value' => $this->t('Your tickets are currently one list'),
+        ],
+        'description' => [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => $this->t('Add a section to organise the booking page, or create a bundle that sells fixed ticket quantities together.'),
+        ],
+        'action' => [
+          '#type' => 'link',
+          '#title' => $this->t('Add section or bundle'),
+          '#url' => Url::fromRoute('myeventlane_tickets.event_tickets_groups_add', ['event' => $event->id()]),
+          '#attributes' => ['class' => ['mel-ticket-tool-button', 'mel-ticket-tool-button--primary']],
+        ],
       ];
     }
     else {
@@ -166,17 +175,31 @@ final class VendorEventTicketGroupsController extends VendorEventTicketsBaseCont
         ];
       }
 
-      $build['table'] = [
-        '#type' => 'table',
-        '#header' => $header,
-        '#rows' => $rows,
-        '#empty' => $this->t('No ticket groups have been created for this event.'),
+      $build['table_wrap'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['mel-ticket-tool-table-scroll']],
+        'table' => [
+          '#type' => 'table',
+          '#header' => $header,
+          '#rows' => $rows,
+          '#empty' => $this->t('No ticket groups have been created for this event.'),
+        ],
       ];
     }
 
+    $page = [
+      '#theme' => 'mel_event_ticket_tool_collection',
+      '#eyebrow' => $this->t('Shape the booking page'),
+      '#title' => $this->t('Ticket groups'),
+      '#description' => $this->t('Organise choices under clear headings or sell a fixed mix of tickets as one bundle.'),
+      '#guide_title' => $this->t('Sections organise. Bundles sell together.'),
+      '#guide_text' => $this->t('A section keeps tickets individually priced. A bundle includes set quantities for one total price. Ticket capacity and checkout remain attached to this event.'),
+      '#content' => $build,
+    ];
+
     return $this->buildTicketsPage(
       $event,
-      $build,
+      $page,
       'groups',
       $header_actions
     );
