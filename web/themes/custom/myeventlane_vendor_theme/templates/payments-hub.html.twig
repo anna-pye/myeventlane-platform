@@ -155,9 +155,15 @@
               <dd>{{ health.connected ? 'Connected'|t : 'Not connected'|t }}</dd>
             </div>
             <div class="mel-payments-hub__fact">
-              <dt>{{ 'Account'|t }}</dt>
+              <dt>{{ 'Store'|t }}</dt>
               <dd>{{ health.account_label|default('—'|t) }}</dd>
             </div>
+            {% if health.account_id %}
+              <div class="mel-payments-hub__fact">
+                <dt>{{ 'Stripe account ID'|t }}</dt>
+                <dd><code class="mel-payments-hub__account-id">{{ health.account_id }}</code></dd>
+              </div>
+            {% endif %}
             <div class="mel-payments-hub__fact">
               <dt>{{ 'Charges'|t }}</dt>
               <dd>{{ health.charges_enabled ? 'Enabled'|t : 'Not enabled'|t }}</dd>

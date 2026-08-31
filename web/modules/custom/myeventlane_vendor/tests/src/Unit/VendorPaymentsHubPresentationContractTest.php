@@ -58,6 +58,19 @@ final class VendorPaymentsHubPresentationContractTest extends TestCase {
     $this->assertStringContainsString("'Last Stripe payout'|t", $template);
   }
 
+  public function testStripeAccountDetailsExposeTheCurrentStoresConnectedAccountId(): void {
+    $root = $this->repositoryRoot();
+    $health = file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Service/VendorPaymentsHealthService.php');
+    $template = file_get_contents($root . '/web/themes/custom/myeventlane_vendor_theme/templates/payments-hub.html.twig');
+    $this->assertIsString($health);
+    $this->assertIsString($template);
+    $this->assertStringContainsString("field_stripe_account_id", $health);
+    $this->assertStringContainsString("\$base['account_id'] = \$hasAccount ? \$accountId : NULL;", $health);
+    $this->assertStringContainsString("{{ 'Store'|t }}", $template);
+    $this->assertStringContainsString("{{ 'Stripe account ID'|t }}", $template);
+    $this->assertStringContainsString('{% if health.account_id %}', $template);
+  }
+
   public function testRefundReviewActionTargetsAnAccessibleEventQueue(): void {
     $builder = file_get_contents(
       $this->repositoryRoot() . '/web/modules/custom/myeventlane_vendor/src/Service/VendorPaymentsHubBuilder.php',

@@ -225,6 +225,19 @@
   }
 }
 
+.mel-payments-hub__account-id {
+  display: inline-block;
+  max-width: 100%;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.375rem;
+  background: var(--mel-color-surface-subtle, #f7f5f3);
+  color: inherit;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
 .mel-payments-hub__actions {
   display: flex;
   flex-wrap: wrap;

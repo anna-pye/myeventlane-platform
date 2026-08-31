@@ -61,6 +61,7 @@ final class VendorPaymentsHealthService {
       'payouts_enabled' => FALSE,
       'verification_status' => (string) $this->t('Not connected'),
       'account_label' => NULL,
+      'account_id' => NULL,
       'account_id_present' => FALSE,
       // No Stripe sync timestamp field exists; never use store changed time.
       'last_verified_label' => NULL,
@@ -98,6 +99,7 @@ final class VendorPaymentsHealthService {
     }
 
     $base['account_label'] = $store->label() ?: NULL;
+    $base['account_id'] = $hasAccount ? $accountId : NULL;
     $base['account_id_present'] = $hasAccount;
     $base['charges_enabled'] = $charges;
     $base['payouts_enabled'] = $payouts;

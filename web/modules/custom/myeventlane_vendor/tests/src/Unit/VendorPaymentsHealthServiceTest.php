@@ -36,6 +36,7 @@ final class VendorPaymentsHealthServiceTest extends UnitTestCase {
     $this->assertNull($health['secondary_cta_url']);
     $this->assertNull($health['secondary_cta_label']);
     $this->assertNull($health['last_verified_label']);
+    $this->assertNull($health['account_id']);
     $this->assertStringNotContainsString('Gateway', $health['headline']);
     $this->assertStringNotContainsString('Commerce', $health['summary']);
     $this->assertStringNotContainsString('Store', $health['summary']);
