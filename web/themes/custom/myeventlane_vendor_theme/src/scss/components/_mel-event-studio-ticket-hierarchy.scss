@@ -411,6 +411,24 @@
   }
 
   .mel-event-studio--workspace
+    .mel-event-studio-ticket-card__identity
+    .form-item {
+    display: block !important;
+    inline-size: 100% !important;
+    min-inline-size: 0 !important;
+    max-inline-size: none !important;
+  }
+
+  .mel-event-studio--workspace
+    .mel-event-studio-ticket-card__identity
+    input[type='text'] {
+    display: block !important;
+    inline-size: 100% !important;
+    min-inline-size: 0 !important;
+    max-inline-size: none !important;
+  }
+
+  .mel-event-studio--workspace
     .mel-event-studio-ticket-card__body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: $spacing-6;

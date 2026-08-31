@@ -8047,7 +8047,7 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
     'selector editors preview'
     'selector add preview'
     'actions actions actions';
-  grid-template-columns: minmax(14rem, 0.72fr) minmax(26rem, 1.28fr) minmax(15.5rem, 0.72fr);
+  grid-template-columns: minmax(14.5rem, 0.75fr) minmax(30rem, 1.7fr) minmax(17.5rem, 0.85fr);
 }
 
 .mel-event-studio .mel-event-studio-ticket-intro.mel-es-card {
@@ -8111,6 +8111,7 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: start;
   gap: 10px;
+  overflow: hidden;
   min-height: 76px;
   padding: 12px;
 }
@@ -8120,6 +8121,10 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 .mel-event-studio-ticket-selector__meta {
   display: block;
   min-width: 0;
+}
+
+.mel-event-studio-ticket-selector__copy {
+  overflow: hidden;
 }
 
 .mel-event-studio-ticket-selector__name {
@@ -8138,6 +8143,8 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 }
 
 .mel-event-studio-ticket-selector__price {
+  justify-self: end;
+  max-width: 100%;
   color: #293241;
   font-size: 0.88rem;
   font-weight: 800;
@@ -8263,6 +8270,29 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   max-width: none;
 }
 
+/*
+ * Gin can render compact text fields as intrinsic-width grid items. Keep the
+ * ticket identity control on the full editor row regardless of admin-theme
+ * form defaults or a field's generated size attribute.
+ */
+.mel-event-studio[data-current-section-id='tickets']
+  .mel-event-studio-ticket-card__identity
+  .form-item {
+  display: block !important;
+  inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  max-inline-size: none !important;
+}
+
+.mel-event-studio[data-current-section-id='tickets']
+  .mel-event-studio-ticket-card__identity
+  input[type='text'] {
+  display: block !important;
+  inline-size: 100% !important;
+  min-inline-size: 0 !important;
+  max-inline-size: none !important;
+}
+
 .mel-event-studio .mel-event-studio-ticket-card__badges {
   grid-area: badges;
 }
@@ -8315,6 +8345,23 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 }
 
 .mel-event-studio .mel-event-studio-ticket-card__reusable-setup .form-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 3px 9px;
+  margin: 0;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__reusable-setup input[type='checkbox'] {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 2px 0 0;
+}
+
+.mel-event-studio .mel-event-studio-ticket-card__reusable-setup label {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
   margin: 0;
 }
 
@@ -8325,6 +8372,7 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
 }
 
 .mel-event-studio .mel-event-studio-ticket-card__reusable-setup .description {
+  grid-column: 2;
   margin-top: 3px;
   color: #625ca0;
   font-size: 0.76rem;
@@ -8492,7 +8540,7 @@ body.mel-vendor:has(.mel-event-studio--workspace) .mel-vendor-console.mel-vendor
   }
 }
 
-@container (max-width: 40rem) {
+@container (max-width: 56rem) {
   .mel-event-studio .mel-event-studio-saved-ticket-manager__item {
     grid-template-columns: minmax(0, 1fr);
     align-items: start;

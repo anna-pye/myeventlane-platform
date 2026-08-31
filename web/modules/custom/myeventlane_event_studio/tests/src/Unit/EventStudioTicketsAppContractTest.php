@@ -80,8 +80,8 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString('order: 5;', $css);
 
     $this->assertNotFalse($libraries);
-    $this->assertStringContainsString("mel_event_studio:\n  version: 1.26", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.15", $libraries);
+    $this->assertStringContainsString("mel_event_studio:\n  version: 1.27", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.16", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);
@@ -101,10 +101,14 @@ final class EventStudioTicketsAppContractTest extends TestCase {
     $this->assertStringContainsString("'identity identity'", $css);
     $this->assertStringContainsString('.mel-event-studio-ticket-card__identity,', $css);
     $this->assertStringContainsString('width: 100%;', $css);
+    $this->assertStringContainsString("input[type='text']", $css);
+    $this->assertStringContainsString('inline-size: 100% !important;', $css);
+    $this->assertStringContainsString('minmax(30rem, 1.7fr)', $css);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('--mel-es-content-width: 76rem;', $theme_scss);
     $this->assertStringContainsString("'identity identity'", $theme_scss);
+    $this->assertStringContainsString('inline-size: 100% !important;', $theme_scss);
     $this->assertStringNotContainsString(
       'grid-template-columns: minmax(0, 1fr) minmax(8rem, 0.42fr) minmax(9rem, 0.48fr);',
       $theme_scss,
