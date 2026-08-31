@@ -173,9 +173,11 @@ final class EventStudioWorkspaceStateMatrixTest extends UnitTestCase {
     $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventInformationForm.php');
     $this->assertIsString($form);
     $this->assertStringContainsString('resolveStayRouteName', $form);
+    $this->assertStringContainsString('resolveStayFragment', $form);
     $this->assertStringContainsString('workspace_schedule', $form);
     $this->assertStringContainsString('workspace_venue', $form);
-    $this->assertStringContainsString('setRedirect($this->resolveStayRouteName()', $form);
+    $this->assertStringContainsString('setRedirect($stay_route', $form);
+    $this->assertStringContainsString("'fragment' => \$this->resolveStayFragment(\$stay_route)", $form);
   }
 
   public function testStripChecklistNeverOmitsBlockingErrorsPastSoftCap(): void {
