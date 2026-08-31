@@ -4,12 +4,12 @@
  * MEL Pro overview and upgrade page.
  */
 #}
-<div class="mel-pro-overview">
-  <header class="mel-pro-overview__hero">
-    <div class="mel-pro-overview__hero-copy">
-      <p class="mel-pro-overview__eyebrow"><span class="mel-pro-badge">PRO</span> {{ 'For regular organisers'|t }}</p>
-      <h1 class="mel-pro-overview__title">{{ 'Grow your events without losing the personal touch.'|t }}</h1>
-      <p class="mel-pro-overview__subtitle">{{ 'MEL Pro adds deeper insight, reusable communications and stronger organiser branding to the tools you already use.'|t }}</p>
+<div class="mel-pro-overview mel-organiser-page">
+  <header class="mel-pro-overview__hero mel-organiser-page__intro">
+    <div class="mel-pro-overview__hero-copy mel-organiser-page__intro-copy">
+      <p class="mel-pro-overview__eyebrow mel-organiser-page__eyebrow"><span class="mel-pro-badge">PRO</span> {{ 'For regular organisers'|t }}</p>
+      <h1 class="mel-pro-overview__title mel-organiser-page__title">{{ 'Grow your events without losing the personal touch.'|t }}</h1>
+      <p class="mel-pro-overview__subtitle mel-organiser-page__description">{{ 'MEL Pro adds deeper insight, reusable communications and stronger organiser branding to the tools you already use.'|t }}</p>
       {% if not is_pro and subscribe_form %}
         <div class="mel-pro-overview__hero-cta" id="mel-pro-upgrade">
           {{ subscribe_form }}

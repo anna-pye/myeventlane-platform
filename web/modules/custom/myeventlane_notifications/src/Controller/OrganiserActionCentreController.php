@@ -120,6 +120,7 @@ final class OrganiserActionCentreController extends ControllerBase {
 
     return [
       '#theme' => 'mel_organiser_action_centre',
+      '#title' => $event === NULL ? NULL : $this->t('Event updates'),
       '#event' => $event ? [
         'id' => (int) $event->id(),
         'label' => (string) $event->label(),

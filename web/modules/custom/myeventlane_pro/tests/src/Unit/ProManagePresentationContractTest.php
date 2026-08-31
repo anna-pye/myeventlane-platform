@@ -28,6 +28,26 @@ final class ProManagePresentationContractTest extends TestCase {
     self::assertStringContainsString("'Invoices and receipts'|t", $template);
     self::assertStringContainsString("'Update payment method'|t", $template);
     self::assertStringContainsString("'Retry payment'|t", $template);
+    self::assertStringContainsString('mel-pro-manage mel-organiser-page', $template);
+  }
+
+  public function testProPagesUseSharedOrganiserHierarchyWithoutChangingBillingOwnership(): void {
+    $overview = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-overview.html.twig');
+    $manage = file_get_contents(dirname(__DIR__, 3) . '/templates/vendor-pro-manage.html.twig');
+    $overviewController = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProOverviewController.php');
+    $billingController = file_get_contents(dirname(__DIR__, 3) . '/src/Controller/ProBillingController.php');
+    self::assertIsString($overview);
+    self::assertIsString($manage);
+    self::assertIsString($overviewController);
+    self::assertIsString($billingController);
+
+    self::assertStringContainsString('mel-pro-overview mel-organiser-page', $overview);
+    self::assertStringContainsString('mel-organiser-page__intro', $overview);
+    self::assertStringContainsString('mel-organiser-page__intro', $manage);
+    self::assertStringContainsString("'#title' => NULL", $overviewController);
+    self::assertStringContainsString("'#title' => NULL", $billingController);
+    self::assertStringContainsString('$this->statusService->getStatusForUser($user)', $billingController);
+    self::assertStringContainsString('$this->loadLatestSubscription', $billingController);
   }
 
   public function testPaymentRecoveryRoutesUseDedicatedRecurringFlow(): void {

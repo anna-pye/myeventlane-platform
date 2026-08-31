@@ -99,6 +99,7 @@ final class ProOverviewController implements ContainerInjectionInterface {
 
     return [
       '#theme' => 'vendor_pro_overview',
+      '#title' => NULL,
       '#is_pro' => $isPro,
       '#pro_price' => $formattedPrice,
       '#subscribe_form' => $subscribeForm,

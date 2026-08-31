@@ -4,12 +4,12 @@
  * Organiser Action Centre: actionable work, activity, and platform updates.
  */
 #}
-<div class="mel-action-centre">
-  <header class="mel-action-centre__header">
-    <div>
-      <p class="mel-action-centre__eyebrow">{{ event ? 'Event updates'|t : 'Organiser updates'|t }}</p>
-      <h1>{{ event ? event.label : 'Action Centre'|t }}</h1>
-      <p>{{ event
+<div class="mel-action-centre{% if not event %} mel-organiser-page{% endif %}">
+  <header class="mel-action-centre__header{% if not event %} mel-organiser-page__intro{% endif %}">
+    <div{% if not event %} class="mel-organiser-page__intro-copy"{% endif %}>
+      <p class="mel-action-centre__eyebrow{% if not event %} mel-organiser-page__eyebrow{% endif %}">{{ event ? 'Event updates'|t : 'Organiser updates'|t }}</p>
+      <h1{% if not event %} class="mel-organiser-page__title"{% endif %}>{{ event ? event.label : 'Updates'|t }}</h1>
+      <p{% if not event %} class="mel-organiser-page__description"{% endif %}>{{ event
         ? 'Updates linked to this event. Messages you send to guests still live in Messages.'|t
         : 'See what needs a response, what has happened, and important MyEventLane updates.'|t
       }}</p>

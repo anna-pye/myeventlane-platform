@@ -58,6 +58,21 @@ final class OrganiserActionCentreContractTest extends TestCase {
     self::assertStringContainsString('.mel-notif-bell__mark-all[hidden]', $css);
     self::assertStringContainsString('white-space: normal;', $css);
     self::assertStringContainsString('overflow-wrap: anywhere;', $css);
+    self::assertStringContainsString(".mel-notif-bell[data-mel-bell-context='business'] .mel-notif-bell__badge", $css);
+    self::assertStringContainsString('position: static;', $css);
+  }
+
+  /**
+   * Ensures the portfolio Updates page uses the shared organiser hierarchy.
+   */
+  public function testPortfolioUpdatesUsesSharedOrganiserPresentation(): void {
+    $template = (string) file_get_contents(dirname(__DIR__, 3) . '/templates/mel-organiser-action-centre.html.twig');
+    $controller = (string) file_get_contents(dirname(__DIR__, 3) . '/src/Controller/OrganiserActionCentreController.php');
+
+    self::assertStringContainsString("{% if not event %} mel-organiser-page{% endif %}", $template);
+    self::assertStringContainsString("event ? event.label : 'Updates'|t", $template);
+    self::assertStringContainsString("'#title' => \$event === NULL ? NULL", $controller);
+    self::assertStringContainsString('MarkDeliveryHandledForm::class', $controller);
   }
 
   /**
