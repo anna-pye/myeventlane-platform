@@ -21,7 +21,7 @@
   <div class="mel-venues-header">
     <h2 class="mel-venues-title">{{ 'Your Venues'|t }}</h2>
     <div class="mel-venues-actions">
-      <a href="{{ add_url }}" class="mel-btn mel-btn--primary">
+      <a href="{{ add_url }}" class="use-ajax mel-btn mel-btn--primary" data-dialog-type="modal">
         <span class="mel-btn__icon">+</span>
         {{ 'Add venue'|t }}
       </a>
@@ -35,7 +35,7 @@
       <p class="mel-empty-state__text">
         {{ 'Create your first venue to easily reuse locations across your events.'|t }}
       </p>
-      <a href="{{ add_url }}" class="mel-btn mel-btn--primary">
+      <a href="{{ add_url }}" class="use-ajax mel-btn mel-btn--primary" data-dialog-type="modal">
         {{ 'Create your first venue'|t }}
       </a>
     </div>

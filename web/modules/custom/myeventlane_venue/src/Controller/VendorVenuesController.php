@@ -85,7 +85,7 @@ class VendorVenuesController extends ControllerBase {
     $build = [
       '#theme' => 'myeventlane_venue_vendor_list',
       '#venues' => $rows,
-      '#add_url' => Url::fromRoute('myeventlane_venue.vendor_venue_add'),
+      '#add_url' => Url::fromRoute('myeventlane_venue.quick_create'),
       '#attached' => [
         'library' => ['myeventlane_venue/vendor_venues'],
       ],

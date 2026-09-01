@@ -779,6 +779,23 @@ final class EventStudioForm extends FormBase {
       ],
     ];
 
+    $form['mel']['location_search'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Search address'),
+      '#attributes' => [
+        'class' => ['mel-location-search', 'mel-input'],
+        'data-mel-location' => 'true',
+      ],
+      '#states' => [
+        'visible' => [
+          'or' => [
+            [':input[name="mel[venue_mode]"]' => ['value' => 'one_off']],
+            [':input[name="mel[venue_mode]"]' => ['value' => 'create']],
+          ],
+        ],
+      ],
+    ];
+
     $form['mel']['venue_create_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Venue name'),
@@ -803,23 +820,6 @@ final class EventStudioForm extends FormBase {
         ],
         'required' => [
           ':input[name="mel[venue_mode]"]' => ['value' => 'one_off'],
-        ],
-      ],
-    ];
-
-    $form['mel']['location_search'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Search address'),
-      '#attributes' => [
-        'class' => ['mel-location-search', 'mel-input'],
-        'data-mel-location' => 'true',
-      ],
-      '#states' => [
-        'visible' => [
-          'or' => [
-            [':input[name="mel[venue_mode]"]' => ['value' => 'one_off']],
-            [':input[name="mel[venue_mode]"]' => ['value' => 'create']],
-          ],
         ],
       ],
     ];

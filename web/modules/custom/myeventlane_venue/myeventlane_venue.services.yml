@@ -20,6 +20,30 @@ services:
       - '@myeventlane_venue.access_resolver'
       - '@logger.channel.myeventlane_venue'
 
+  myeventlane_venue.candidate_scorer:
+    class: Drupal\myeventlane_venue\Service\VenueCandidateScorer
+
+  myeventlane_venue.overture_repository:
+    class: Drupal\myeventlane_venue\Service\OverturePlaceRepository
+    arguments:
+      - '@database'
+      - '@myeventlane_venue.candidate_scorer'
+
+  myeventlane_venue.suggestion_service:
+    class: Drupal\myeventlane_venue\Service\VenueSuggestionService
+    arguments:
+      - '@myeventlane_venue.access_resolver'
+      - '@myeventlane_venue.manager'
+      - '@myeventlane_venue.overture_repository'
+      - '@myeventlane_venue.candidate_scorer'
+
+  myeventlane_venue.overture_importer:
+    class: Drupal\myeventlane_venue\Service\OverturePlaceImporter
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@myeventlane_venue.candidate_scorer'
+
   # Share token generator.
   myeventlane_venue.share_token_generator:
     class: Drupal\myeventlane_venue\Service\ShareTokenGenerator

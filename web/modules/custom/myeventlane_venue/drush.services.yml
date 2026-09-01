@@ -1,0 +1,7 @@
+services:
+  myeventlane_venue.commands.venue_enrichment:
+    class: Drupal\myeventlane_venue\Commands\VenueEnrichmentCommands
+    arguments:
+      - '@myeventlane_venue.overture_importer'
+    tags:
+      - { name: drush.command }

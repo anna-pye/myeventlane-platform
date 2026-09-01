@@ -427,6 +427,25 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
       ->setDisplayConfigurable('form', TRUE)
       ->setDisplayConfigurable('view', TRUE);
 
+    // Provider provenance for organiser-reviewed venue enrichment. These
+    // fields are deliberately hidden from ordinary forms and public displays.
+    $fields['enrichment_source'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Venue enrichment source'))
+      ->setSettings(['max_length' => 32]);
+
+    $fields['enrichment_source_id'] = BaseFieldDefinition::create('string')
+      ->setLabel(new TranslatableMarkup('Venue enrichment source ID'))
+      ->setSettings(['max_length' => 128]);
+
+    $fields['enrichment_checked'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(new TranslatableMarkup('Venue enrichment checked'));
+
+    $fields['enrichment_accepted_fields'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Accepted venue enrichment fields'));
+
+    $fields['organiser_verified'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(new TranslatableMarkup('Venue details verified by organiser'));
+
     // Created timestamp.
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(new TranslatableMarkup('Created'))

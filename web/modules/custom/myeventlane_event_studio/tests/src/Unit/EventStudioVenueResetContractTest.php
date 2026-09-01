@@ -4,13 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 
 /**
  * Protects the Event Studio venue replacement contract.
- *
- * @group myeventlane_event_studio
  */
+#[Group('myeventlane_event_studio')]
 final class EventStudioVenueResetContractTest extends TestCase {
 
   /**
@@ -27,6 +27,25 @@ final class EventStudioVenueResetContractTest extends TestCase {
       self::assertStringContainsString("'type' => 'button'", $form);
     }
     self::assertStringContainsString('mel_event_studio_workspace_location', $legacy_form);
+  }
+
+  /**
+   * Address search appears before the editable venue name in both forms.
+   */
+  public function testAddressSearchAppearsBeforeVenueName(): void {
+    $module_root = dirname(__DIR__, 3);
+    $forms = [
+      (string) file_get_contents($module_root . '/src/Form/EventInformationForm.php'),
+      (string) file_get_contents($module_root . '/src/Form/EventStudioForm.php'),
+    ];
+
+    foreach ($forms as $form) {
+      $address_position = strpos($form, "\$form['mel']['location_search'] = [");
+      $name_position = strpos($form, "\$form['mel']['venue_create_name'] = [");
+      self::assertIsInt($address_position);
+      self::assertIsInt($name_position);
+      self::assertLessThan($name_position, $address_position);
+    }
   }
 
   /**
