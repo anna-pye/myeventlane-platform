@@ -46,6 +46,8 @@ final class VenueEnrichmentArchitectureContractTest extends TestCase {
     self::assertStringContainsString("this.button(Drupal.t('Use'))", $javascript);
     self::assertStringContainsString("'data-mel-address' => 'field_location'", $form);
     self::assertStringContainsString('data-overture-accepted-fields', $form);
+    self::assertStringContainsString('$this->setRequestStack($request_stack);', $form);
+    self::assertStringNotContainsString('protected RequestStack $requestStack', $form);
     self::assertStringNotContainsString("['image',", $javascript);
     self::assertStringNotContainsString("['description',", $javascript);
     self::assertIsString($controller);
