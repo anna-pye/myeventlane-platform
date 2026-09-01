@@ -8,6 +8,120 @@
 declare(strict_types=1);
 
 /**
+ * Implements hook_schema().
+ */
+function myeventlane_venue_schema(): array {
+  $schema['myeventlane_venue_overture_place'] = [
+    'description' => 'Local, saveable Overture Maps venue suggestions.',
+    'fields' => [
+      'gers_id' => [
+        'description' => 'Overture Global Entity Reference System identifier.',
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'name_normalized' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'address' => [
+        'type' => 'varchar',
+        'length' => 500,
+        'not null' => FALSE,
+      ],
+      'locality' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'postcode' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => FALSE,
+      ],
+      'region' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => FALSE,
+      ],
+      'country' => [
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => TRUE,
+        'default' => 'AU',
+      ],
+      'latitude' => [
+        'type' => 'numeric',
+        'precision' => 10,
+        'scale' => 7,
+        'not null' => TRUE,
+      ],
+      'longitude' => [
+        'type' => 'numeric',
+        'precision' => 11,
+        'scale' => 7,
+        'not null' => TRUE,
+      ],
+      'website' => [
+        'type' => 'varchar',
+        'length' => 2048,
+        'not null' => FALSE,
+      ],
+      'phone' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+      'email' => [
+        'type' => 'varchar',
+        'length' => 254,
+        'not null' => FALSE,
+      ],
+      'socials' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+      'confidence' => [
+        'type' => 'numeric',
+        'precision' => 5,
+        'scale' => 4,
+        'not null' => FALSE,
+      ],
+      'source_dataset' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'source_updated' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+      ],
+      'imported' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['gers_id'],
+    'indexes' => [
+      'name_normalized' => [['name_normalized', 191]],
+      'coordinates' => ['latitude', 'longitude'],
+      'country' => ['country'],
+    ],
+  ];
+
+  return $schema;
+}
+
+/**
  * Implements hook_install().
  */
 function myeventlane_venue_install(): void {
@@ -219,4 +333,41 @@ function myeventlane_venue_update_10002(array &$sandbox): string {
     $sandbox['reused'],
     $sandbox['skipped'],
   );
+}
+
+/**
+ * Adds the Overture suggestion catalogue and venue enrichment provenance.
+ */
+function myeventlane_venue_update_10003(): string {
+  $database_schema = \Drupal::database()->schema();
+  $table = 'myeventlane_venue_overture_place';
+  if (!$database_schema->tableExists($table)) {
+    $module_schema = myeventlane_venue_schema();
+    $database_schema->createTable($table, $module_schema[$table]);
+  }
+
+  $entity_type_id = 'myeventlane_venue';
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $definitions = \Drupal\myeventlane_venue\Entity\Venue::baseFieldDefinitions($entity_type);
+  $field_names = [
+    'enrichment_source',
+    'enrichment_source_id',
+    'enrichment_checked',
+    'enrichment_accepted_fields',
+    'organiser_verified',
+  ];
+
+  foreach ($field_names as $field_name) {
+    if (!$update_manager->getFieldStorageDefinition($field_name, $entity_type_id)) {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        $entity_type_id,
+        'myeventlane_venue',
+        $definitions[$field_name],
+      );
+    }
+  }
+
+  return 'Installed the Overture venue catalogue and organiser-reviewed enrichment fields.';
 }

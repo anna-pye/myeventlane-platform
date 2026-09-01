@@ -85,8 +85,129 @@
   border: 1px solid #e0e0e0;
 }
 
+/* Existing-venue and public-data review. */
+.mel-venue-suggestions {
+  margin: 1rem 0;
+}
+
+.mel-venue-suggestions__prompt,
+.mel-venue-suggestions__help,
+.mel-venue-suggestions__attribution,
+.mel-venue-suggestions__message {
+  color: #5b6472;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mel-venue-suggestions__section {
+  background: #fffaf4;
+  border: 1px solid #f2d9c9;
+  border-radius: 12px;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.mel-venue-suggestions__section h3 {
+  color: #293241;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.mel-venue-suggestion {
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid #e3e6eb;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.875rem;
+}
+
+.mel-venue-suggestion > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.mel-venue-suggestion > div:first-child span {
+  color: #5b6472;
+  font-size: 0.875rem;
+}
+
+.mel-venue-suggestion__fields {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  width: 100%;
+}
+
+.mel-venue-suggestion__field {
+  border-top: 1px solid #edf0f3;
+  display: grid;
+  gap: 0.25rem;
+  padding-top: 0.75rem;
+}
+
+.mel-venue-suggestion__field dt {
+  color: #5b6472;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mel-venue-suggestion__field dd {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin: 0;
+  min-width: 0;
+}
+
+.mel-venue-suggestion__field dd span {
+  overflow-wrap: anywhere;
+}
+
+.mel-venue-suggestion .mel-btn--small {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.8rem;
+}
+
+.mel-venue-suggestions__message {
+  background: #f7f8fa;
+  border-radius: 10px;
+  margin: 1rem 0;
+  padding: 0.875rem;
+}
+
+.mel-venue-suggestions__message--warning {
+  background: #fff5e5;
+  color: #704700;
+}
+
+.mel-venue-suggestions__message--loading {
+  background: #f1f2ff;
+  color: #3d478f;
+}
+
+.mel-venue-contact-details {
+  background: #fff;
+}
+
+@media (width >= 576px) {
+  .mel-venue-suggestion--existing {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
 /* Google Places autocomplete dropdown styling */
 .pac-container {
+  /* stylelint-disable-next-line declaration-no-important -- Keep the provider dropdown above Drupal dialogs. */
   z-index: 10000 !important;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);

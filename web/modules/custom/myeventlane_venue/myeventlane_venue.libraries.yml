@@ -7,6 +7,8 @@ vendor_venues:
     js/vendor-venues.js: {}
   dependencies:
     - core/drupal
+    - core/drupal.ajax
+    - core/drupal.dialog.ajax
     - core/jquery
     - myeventlane_location/mel_location
 
@@ -19,6 +21,7 @@ quick_create:
     js/quick-create.js: {}
   dependencies:
     - core/drupal
+    - core/drupalSettings
     - core/jquery
     - core/once
     - core/drupal.ajax

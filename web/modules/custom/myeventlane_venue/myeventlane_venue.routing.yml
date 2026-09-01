@@ -170,6 +170,14 @@ myeventlane_venue.quick_create:
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 
+# Read-only suggestions for the quick-create venue review step.
+myeventlane_venue.suggestions:
+  path: '/vendor/venues/suggestions'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VenueSuggestionsController::suggest'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+
 # ==============================================================================
 # Share-by-link routes
 # ==============================================================================

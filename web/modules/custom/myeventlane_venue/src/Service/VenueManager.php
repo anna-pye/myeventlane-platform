@@ -106,12 +106,33 @@ class VenueManager {
    */
   public function createVenueWithLocation(array $venueData, array $locationData, int $ownerId): Venue {
     // Create venue.
-    $venue = Venue::create([
+    $venue_values = [
       'name' => $venueData['name'],
       'visibility' => $venueData['visibility'] ?? Venue::VISIBILITY_SHARED,
       'description' => $venueData['description'] ?? '',
       'uid' => $ownerId,
-    ]);
+    ];
+    foreach ([
+      'website',
+      'phone',
+      'email',
+      'facebook',
+      'instagram',
+      'twitter',
+      'linkedin',
+      'youtube',
+      'tiktok',
+      'enrichment_source',
+      'enrichment_source_id',
+      'enrichment_checked',
+      'enrichment_accepted_fields',
+      'organiser_verified',
+    ] as $field_name) {
+      if (array_key_exists($field_name, $venueData) && $venueData[$field_name] !== '') {
+        $venue_values[$field_name] = $venueData[$field_name];
+      }
+    }
+    $venue = Venue::create($venue_values);
     $venue->save();
 
     $this->logger->info('Created venue @name (ID: @id) for user @uid', [
