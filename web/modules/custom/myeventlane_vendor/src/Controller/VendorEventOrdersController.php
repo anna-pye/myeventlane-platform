@@ -117,6 +117,7 @@ final class VendorEventOrdersController extends VendorConsoleBaseController {
       'actions' => [],
       'meta' => NULL,
       'sidebar' => NULL,
+      'workspace_chrome_after_content' => TRUE,
       'content' => $content,
     ]);
   }

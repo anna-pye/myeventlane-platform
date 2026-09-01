@@ -63,6 +63,10 @@
   margin-top: -$mel-spacing-sm;
 }
 
+.mel-workspace__tab-bar--after-content {
+  margin-top: 0;
+}
+
 .mel-tabs--horizontal {
   display: flex;
   flex-direction: row;
@@ -178,6 +182,10 @@
   .mel-insights-empty {
     margin-bottom: 0;
   }
+}
+
+.mel-workspace-ticket-quality--after-content {
+  margin-top: $spacing-2;
 }
 
 .mel-workspace-ticket-tools {

@@ -116,6 +116,7 @@ final class VendorRefundRequestsController extends ControllerBase {
       '#actions' => [],
       '#meta' => NULL,
       '#sidebar' => NULL,
+      '#workspace_chrome_after_content' => TRUE,
       '#content' => $body,
       '#attached' => [
         'library' => [

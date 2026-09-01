@@ -137,6 +137,7 @@ final class VendorEventOrderViewController extends VendorConsoleBaseController {
       'actions' => [],
       'meta' => NULL,
       'sidebar' => NULL,
+      'workspace_chrome_after_content' => TRUE,
       'content' => [
         '#theme' => 'myeventlane_vendor_event_order_view',
         '#event' => $event,

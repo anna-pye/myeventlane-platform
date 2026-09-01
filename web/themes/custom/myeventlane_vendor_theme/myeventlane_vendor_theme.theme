@@ -1346,6 +1346,7 @@ function myeventlane_vendor_theme_theme($existing, $type, $theme, $path): array 
         'extras_sales_panel' => NULL,
         'manage_event_back' => NULL,
         'show_workspace_tabs' => TRUE,
+        'workspace_chrome_after_content' => FALSE,
       ],
       'template' => 'mel-event/mel-event-workspace',
     ],
