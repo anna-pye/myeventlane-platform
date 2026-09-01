@@ -45,13 +45,14 @@ class VenueQuickCreateForm extends FormBase {
    */
   public function __construct(
     VenueManager $venue_manager,
-    protected RequestStack $requestStack,
+    RequestStack $request_stack,
     LoggerInterface $logger,
     protected OverturePlaceRepository $overtureRepository,
     protected TimeInterface $time,
     protected LocationProviderManager $locationProviderManager,
   ) {
     $this->venueManager = $venue_manager;
+    $this->setRequestStack($request_stack);
     $this->logger = $logger;
   }
 
