@@ -86,6 +86,7 @@ final class VendorRefundWorkspaceController extends ControllerBase {
       '#actions' => [],
       '#meta' => NULL,
       '#sidebar' => NULL,
+      '#workspace_chrome_after_content' => TRUE,
       '#content' => $form,
       '#attached' => [
         'library' => [

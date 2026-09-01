@@ -327,7 +327,7 @@
     </div>
   {% endif %}
 
-  {% if show_workspace_tabs|default(true) and not has_ws_model and tabs and not ticket_tools %}
+  {% if show_workspace_tabs|default(true) and not has_ws_model and tabs and not ticket_tools and not workspace_chrome_after_content|default(false) %}
     <div class="mel-workspace__tab-bar">
       <nav class="mel-tabs mel-tabs--horizontal" aria-label="{{ 'Event sections'|t }}">
         {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' %}
@@ -354,13 +354,29 @@
           } only %}
         {% endif %}
 
-        {% if not has_ws_model and not ticket_tools and not suppress_workspace_header|default(false) %}
+        {% if not has_ws_model and not ticket_tools and not suppress_workspace_header|default(false) and not workspace_chrome_after_content|default(false) %}
           {% include '@myeventlane_vendor_theme/components/workspace/workspace-event-guidance.html.twig' with {
             insights: insights
           } only %}
         {% endif %}
 
         {{ content }}
+
+        {% if not has_ws_model and not ticket_tools and not suppress_workspace_header|default(false) and workspace_chrome_after_content|default(false) %}
+          <div class="mel-workspace-ticket-quality mel-workspace-ticket-quality--after-content">
+            {% include '@myeventlane_vendor_theme/components/workspace/workspace-event-guidance.html.twig' with {
+              insights: insights
+            } only %}
+          </div>
+        {% endif %}
+
+        {% if show_workspace_tabs|default(true) and not has_ws_model and tabs and not ticket_tools and workspace_chrome_after_content|default(false) %}
+          <div class="mel-workspace__tab-bar mel-workspace__tab-bar--after-content">
+            <nav class="mel-tabs mel-tabs--horizontal" aria-label="{{ 'Event sections'|t }}">
+              {% include '@myeventlane_vendor_theme/components/workspace/workspace-tabs.html.twig' %}
+            </nav>
+          </div>
+        {% endif %}
       </main>
     </div>
   </div>

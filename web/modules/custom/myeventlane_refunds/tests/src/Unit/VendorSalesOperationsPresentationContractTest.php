@@ -63,6 +63,26 @@ final class VendorSalesOperationsPresentationContractTest extends TestCase {
     self::assertStringContainsString('.mel-studio-orders .mel-sales-ops__guide {', $ordersScss);
   }
 
+  public function testLegacySalesRoutesRenderTheConsoleBeforeSharedWorkspaceChrome(): void {
+    $root = dirname(__DIR__, 7);
+    $workspace = (string) file_get_contents($root . '/web/themes/custom/myeventlane_vendor_theme/templates/mel-event/mel-event-workspace.html.twig');
+    $addonController = (string) file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Controller/VendorOperationalAddonOrdersController.php');
+    $orderController = (string) file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Controller/VendorEventOrdersController.php');
+    $orderViewController = (string) file_get_contents($root . '/web/modules/custom/myeventlane_vendor/src/Controller/VendorEventOrderViewController.php');
+    $refundQueue = (string) file_get_contents($root . '/web/modules/custom/myeventlane_refunds/src/Controller/VendorRefundRequestsController.php');
+    $refundWorkspace = (string) file_get_contents($root . '/web/modules/custom/myeventlane_refunds/src/Controller/VendorRefundWorkspaceController.php');
+
+    self::assertStringContainsString('mel-workspace-ticket-quality--after-content', $workspace);
+    self::assertStringContainsString('mel-workspace__tab-bar--after-content', $workspace);
+    self::assertGreaterThan(strpos($workspace, '{{ content }}'), strpos($workspace, 'mel-workspace-ticket-quality--after-content'));
+    self::assertGreaterThan(strpos($workspace, '{{ content }}'), strpos($workspace, 'mel-workspace__tab-bar--after-content'));
+    self::assertStringContainsString("'workspace_chrome_after_content' => TRUE", $addonController);
+    self::assertStringContainsString("'workspace_chrome_after_content' => TRUE", $orderController);
+    self::assertStringContainsString("'workspace_chrome_after_content' => TRUE", $orderViewController);
+    self::assertStringContainsString("'#workspace_chrome_after_content' => TRUE", $refundQueue);
+    self::assertStringContainsString("'#workspace_chrome_after_content' => TRUE", $refundWorkspace);
+  }
+
   public function testDecisionFormsRetainConfirmationAndSafeNavigation(): void {
     $root = dirname(__DIR__, 7);
     $approve = (string) file_get_contents($root . '/web/modules/custom/myeventlane_refunds/src/Form/VendorRefundRequestApproveForm.php');
