@@ -16,12 +16,27 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Drupal\myeventlane_commerce\Plugin\Commerce\PaymentGateway\PlatformStripe;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
+
+/**
+ * Implements hook_commerce_payment_gateway_info_alter().
+ *
+ * The Stripe PHP SDK stores its API key and connected-account selection in
+ * process-wide static state. MEL has separate platform, Connect, and Pro
+ * gateways, so the platform gateway must re-enter its own account context at
+ * every server-side payment operation.
+ */
+function myeventlane_commerce_commerce_payment_gateway_info_alter(array &$definitions): void {
+  if (isset($definitions['stripe'])) {
+    $definitions['stripe']['class'] = PlatformStripe::class;
+  }
+}
 
 /**
  * Helper: find the quantity number element in ATC form (various widget shapes).
