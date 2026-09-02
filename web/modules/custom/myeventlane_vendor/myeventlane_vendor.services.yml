@@ -10,6 +10,7 @@ services:
       - '@entity_type.manager'
       - '@module_handler'
       - '@logger.channel.myeventlane_vendor'
+      - '@request_stack'
 
   logger.channel.myeventlane_vendor:
     parent: logger.channel_base

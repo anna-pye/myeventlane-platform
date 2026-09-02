@@ -13,6 +13,24 @@ use PHPUnit\Framework\TestCase;
  */
 final class PublicEventBodyTemplateContractTest extends TestCase {
 
+  public function testShareLinksUseAPlainCanonicalUrlString(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/node--event--full.html.twig',
+    );
+    $theme = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/myeventlane_theme.theme',
+    );
+
+    self::assertStringContainsString('$canonicalUrl = Url::fromRoute(', $theme);
+    self::assertStringContainsString(')->toString(TRUE);', $theme);
+    self::assertStringContainsString("\$variables['mel_canonical_url'] = \$canonicalUrl->getGeneratedUrl();", $theme);
+    self::assertStringContainsString('->addCacheableDependency($canonicalUrl)', $theme);
+    self::assertStringContainsString("{% set canonical_url = mel_canonical_url|default('') %}", $template);
+    self::assertStringNotContainsString("{% set canonical_url = url('entity.node.canonical'", $template);
+  }
+
   public function testBodyIsRenderedOnceAndReusedForOutput(): void {
     $moduleRoot = dirname(__DIR__, 3);
     $webRoot = dirname($moduleRoot, 3);

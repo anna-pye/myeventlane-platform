@@ -849,7 +849,7 @@ final class EventStudioSectionRenderer {
         'advanced' => [
           '#type' => 'html_tag',
           '#tag' => 'a',
-          '#value' => $this->t('Groups & advanced'),
+          '#value' => $this->t('Ticket groups & settings'),
           '#attributes' => [
             'href' => '#mel-advanced-ticket-tools',
             'class' => ['mel-event-studio-sales-navigation__item'],

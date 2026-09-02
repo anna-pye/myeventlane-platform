@@ -1528,7 +1528,7 @@ final class EventStudioForm extends FormBase {
         $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Only one ticket can be marked as best value.'));
       }
       if ($event->id() !== NULL && $active_count === 0 && !$this->eventHasPaidTicketTypesOnField($event)) {
-        $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Paid events need at least one ticket with a name and price. Add a ticket row below or use Advanced ticket tools.'));
+        $form_state->setErrorByName('mel][tickets_section][tickets][tickets', $this->t('Paid events need at least one ticket with a name and price. Add a ticket row below or use Ticket settings.'));
       }
 
       $needs_active_paid = FALSE;

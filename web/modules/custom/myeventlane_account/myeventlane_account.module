@@ -108,8 +108,11 @@ function myeventlane_account_preprocess_myeventlane_my_account_dashboard(array &
       $inbox = \Drupal::service('myeventlane_notifications.user_inbox');
       /** @var \Drupal\myeventlane_notifications\Service\NotificationViewBuilder $viewBuilder */
       $viewBuilder = \Drupal::service('myeventlane_notifications.view_builder');
-      $ids = $inbox->getUnreadDeliveryIds($uid, 3, \Drupal\myeventlane_notifications\NotificationContext::publicBellContexts());
-      $variables['notifications_preview'] = $viewBuilder->buildRowsForDeliveries($ids, $uid);
+      // Fetch enough rows to collapse repeated reminders before applying the
+      // three-item dashboard preview limit. Underlying deliveries are kept.
+      $ids = $inbox->getUnreadDeliveryIds($uid, 12, \Drupal\myeventlane_notifications\NotificationContext::publicBellContexts());
+      $rows = $viewBuilder->buildRowsForDeliveries($ids, $uid);
+      $variables['notifications_preview'] = array_slice($viewBuilder->collapseActionCentreRows($rows), 0, 3);
     }
     catch (\Throwable) {
       $variables['notifications_preview'] = [];

@@ -15,6 +15,7 @@ use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
@@ -2109,7 +2110,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['footer_context'] = [
       'store_name' => NULL,
       'payout_balance' => '$0.00',
-      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'environment' => '',
       'open_tickets' => 0,
       'is_vendor' => FALSE,
       'is_admin' => FALSE,
@@ -5252,6 +5253,18 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
 function myeventlane_theme_preprocess_node__event__full(array &$variables): void {
   $node = $variables['node'] ?? NULL;
   if ($node instanceof NodeInterface) {
+    // Pass Twig a plain URL string. Drupal's Twig url() helper returns a
+    // render array so it can bubble cache metadata; URL-encoding that array
+    // leaks keys such as #theme and #markup into share links.
+    $canonicalUrl = Url::fromRoute(
+      'entity.node.canonical',
+      ['node' => (int) $node->id()],
+      ['absolute' => TRUE],
+    )->toString(TRUE);
+    $variables['mel_canonical_url'] = $canonicalUrl->getGeneratedUrl();
+    CacheableMetadata::createFromRenderArray($variables)
+      ->addCacheableDependency($canonicalUrl)
+      ->applyTo($variables);
     _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
     _myeventlane_theme_apply_event_location_variables($variables, $node);
   }

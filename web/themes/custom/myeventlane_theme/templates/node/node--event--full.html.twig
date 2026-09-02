@@ -13,7 +13,7 @@
  */
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
-{% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
+{% set canonical_url = mel_canonical_url|default('') %}
 {# Event Information map uses the provider selected by myeventlane_location. #}
 {% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
 {% if mel_booking_action_label is defined and mel_booking_action_label %}

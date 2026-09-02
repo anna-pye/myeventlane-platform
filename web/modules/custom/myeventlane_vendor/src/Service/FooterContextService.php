@@ -9,6 +9,7 @@ use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Provides footer context data for authenticated vendor/admin users.
@@ -27,6 +28,7 @@ final class FooterContextService {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LoggerInterface $logger,
+    private readonly RequestStack $requestStack,
   ) {}
 
   /**
@@ -45,7 +47,7 @@ final class FooterContextService {
     $context = [
       'store_name' => NULL,
       'payout_balance' => NULL,
-      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'environment' => $this->getEnvironmentLabel(),
       'open_tickets' => 0,
       'is_vendor' => $this->currentUser->hasRole('vendor'),
       'is_admin' => $this->currentUser->hasRole('administrator'),
@@ -65,6 +67,37 @@ final class FooterContextService {
     }
 
     return $context;
+  }
+
+  /**
+   * Returns a truthful short label for the current runtime environment.
+   */
+  private function getEnvironmentLabel(): string {
+    $host = strtolower($this->requestStack->getCurrentRequest()?->getHost() ?? '');
+    if ($host === 'staging.myeventlane.com.au' || str_contains($host, '.staging.')) {
+      return 'Staging';
+    }
+    if ($host === 'localhost' || str_ends_with($host, '.ddev.site')) {
+      return 'Local';
+    }
+
+    $configured = trim((string) (getenv('SITE_ENV') ?: getenv('APP_ENV') ?: ''));
+    if ($configured !== '') {
+      return match (strtolower($configured)) {
+        'prod', 'production' => 'Production',
+        'stage', 'staging' => 'Staging',
+        'dev', 'development', 'local' => 'Local',
+        default => ucfirst($configured),
+      };
+    }
+
+    if ($host === 'myeventlane.com.au' || $host === 'www.myeventlane.com.au') {
+      return 'Production';
+    }
+
+    // An absent label is safer than incorrectly claiming an unknown host is
+    // production.
+    return '';
   }
 
   /**

@@ -153,4 +153,15 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     $this->assertStringNotContainsString('min-height: 14.5rem;', $this->styles);
   }
 
+  public function testDashboardLeadsWithTheOrganiserIdentity(): void {
+    $this->assertStringContainsString(
+      "organiser_display_name = vendor.label|default(account_summary.display_name|default(''))",
+      $this->template,
+    );
+    $this->assertStringNotContainsString(
+      "organiser_display_name = account_summary.display_name|default(vendor.label|default(''))",
+      $this->template,
+    );
+  }
+
 }

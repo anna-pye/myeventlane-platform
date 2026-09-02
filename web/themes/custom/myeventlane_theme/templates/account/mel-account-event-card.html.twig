@@ -14,7 +14,7 @@
   <div class="mel-account-event-card__row">
     <div class="mel-card__image mel-account-event-card__media{% if not event.image_url %} mel-card__image--placeholder{% endif %}">
       {% if event.image_url %}
-        <img src="{{ event.image_url }}" alt="" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('mel-card__image--placeholder');" />
+        <img src="{{ event.image_url }}" alt="" loading="lazy" />
       {% endif %}
     </div>
     <div class="mel-card__body mel-account-event-card__content">

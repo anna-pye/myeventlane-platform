@@ -234,7 +234,7 @@ function myeventlane_vendor_theme_preprocess_page(array &$variables): void {
     $variables['footer_context'] = [
       'store_name' => NULL,
       'payout_balance' => '$0.00',
-      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'environment' => '',
       'open_tickets' => 0,
       'is_vendor' => FALSE,
       'is_admin' => FALSE,

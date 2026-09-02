@@ -70,4 +70,30 @@ final class StripeRuntimeSafetyContractTest extends TestCase {
     }
   }
 
+  /**
+   * Tests that an unknown runtime is never presented as production.
+   */
+  public function testFooterEnvironmentLabelUsesConfigurationOrHost(): void {
+    $custom = dirname(__DIR__, 4);
+    $footer = (string) file_get_contents($custom . '/myeventlane_vendor/src/Service/FooterContextService.php');
+    $services = (string) file_get_contents($custom . '/myeventlane_vendor/myeventlane_vendor.services.yml');
+    $web = dirname(dirname(__DIR__, 4), 2);
+
+    self::assertStringContainsString("getenv('APP_ENV')", $footer);
+    self::assertStringContainsString("'staging.myeventlane.com.au'", $footer);
+    self::assertStringContainsString("return 'Staging';", $footer);
+    self::assertStringNotContainsString("getenv('SITE_ENV') ?: 'Production'", $footer);
+    self::assertStringContainsString("- '@request_stack'", $services);
+
+    foreach ([
+      $web . '/themes/custom/myeventlane_theme/templates/layout/footer-internal.html.twig',
+      $web . '/themes/custom/myeventlane_vendor_theme/templates/includes/footer-internal.html.twig',
+      $web . '/themes/custom/myeventlane_vendor_theme/templates/includes/footer-dashboard-light.html.twig',
+    ] as $templatePath) {
+      $template = (string) file_get_contents($templatePath);
+      self::assertStringContainsString("environment: ''", $template);
+      self::assertStringNotContainsString("environment: 'Production'", $template);
+    }
+  }
+
 }
