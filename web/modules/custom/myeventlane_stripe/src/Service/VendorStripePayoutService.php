@@ -104,17 +104,11 @@ final class VendorStripePayoutService {
       ];
     }
     catch (ApiErrorException $e) {
-      $this->logger->error('Stripe API error in hasRecentPayout for store @id: @m', [
-        '@id' => $store->id(),
-        '@m' => $e->getMessage(),
-      ]);
+      $this->logApiFailure('recent payout lookup', $store, $e);
       return NULL;
     }
     catch (\Throwable $e) {
-      $this->logger->error('Unexpected error in hasRecentPayout for store @id: @m', [
-        '@id' => $store->id(),
-        '@m' => $e->getMessage(),
-      ]);
+      $this->logUnexpectedFailure('recent payout lookup', $store, $e);
       return NULL;
     }
   }
@@ -146,8 +140,8 @@ final class VendorStripePayoutService {
     $balance = $this->retrieveBalance($store);
     if ($balance === NULL) {
       return [
-        'available' => '$0.00',
-        'pending' => '$0.00',
+        'available' => 'Unavailable',
+        'pending' => 'Unavailable',
       ];
     }
 
@@ -210,17 +204,11 @@ final class VendorStripePayoutService {
       ];
     }
     catch (ApiErrorException $e) {
-      $this->logger->error('Stripe API error in getLatestPayoutSummary for store @id: @m', [
-        '@id' => $store->id(),
-        '@m' => $e->getMessage(),
-      ]);
+      $this->logApiFailure('latest payout lookup', $store, $e);
       return NULL;
     }
     catch (\Throwable $e) {
-      $this->logger->error('Unexpected error in getLatestPayoutSummary for store @id: @m', [
-        '@id' => $store->id(),
-        '@m' => $e->getMessage(),
-      ]);
+      $this->logUnexpectedFailure('latest payout lookup', $store, $e);
       return NULL;
     }
   }
@@ -256,21 +244,55 @@ final class VendorStripePayoutService {
       return $balance;
     }
     catch (ApiErrorException $e) {
-      $this->logger->error('Stripe balance fetch failed for store @id: @m', [
-        '@id' => $store->id(),
-        '@m' => $e->getMessage(),
-      ]);
+      $this->logApiFailure('balance lookup', $store, $e);
       $this->balanceCache[$cacheKey] = NULL;
       return NULL;
     }
     catch (\Throwable $e) {
-      $this->logger->error('Stripe balance fetch failed for store @id: @m', [
-        '@id' => $store->id(),
-        '@m' => $e->getMessage(),
-      ]);
+      $this->logUnexpectedFailure('balance lookup', $store, $e);
       $this->balanceCache[$cacheKey] = NULL;
       return NULL;
     }
+  }
+
+  /**
+   * Logs Stripe API failures without copying sensitive exception text.
+   */
+  private function logApiFailure(
+    string $operation,
+    StoreInterface $store,
+    ApiErrorException $exception,
+  ): void {
+    $status = (int) ($exception->getHttpStatus() ?? 0);
+    $context = [
+      '@operation' => $operation,
+      '@id' => (string) $store->id(),
+      '@status' => $status > 0 ? (string) $status : 'unknown',
+      '@code' => (string) ($exception->getStripeCode() ?? 'unknown'),
+    ];
+    $message = 'Stripe @operation unavailable for store @id (HTTP @status, code @code).';
+
+    if (in_array($status, [401, 403], TRUE)) {
+      $this->logger->warning($message, $context);
+      return;
+    }
+
+    $this->logger->error($message, $context);
+  }
+
+  /**
+   * Logs unexpected failures without exposing exception messages.
+   */
+  private function logUnexpectedFailure(
+    string $operation,
+    StoreInterface $store,
+    \Throwable $exception,
+  ): void {
+    $this->logger->error('Unexpected Stripe @operation failure for store @id (@exception).', [
+      '@operation' => $operation,
+      '@id' => (string) $store->id(),
+      '@exception' => $exception::class,
+    ]);
   }
 
   /**

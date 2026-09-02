@@ -102,8 +102,8 @@ final class VendorPaymentsHubBuilder {
         }
       }
       catch (\Throwable $e) {
-        $this->logger->warning('Payments hub could not load Stripe balances: @message', [
-          '@message' => $e->getMessage(),
+        $this->logger->warning('Payments hub could not load Stripe balances (@exception).', [
+          '@exception' => $e::class,
         ]);
       }
     }
