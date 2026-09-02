@@ -482,6 +482,7 @@ services:
     arguments:
       - '@tempstore.private'
       - '@logger.channel.myeventlane_event_studio'
+      - '@entity_type.manager'
 
   myeventlane_event_studio.governance_refresh_controller:
     class: Drupal\myeventlane_event_studio\Controller\EventStudioGovernanceRefreshController
