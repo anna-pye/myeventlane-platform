@@ -37,10 +37,21 @@ final class VenueSuggestionsController extends ControllerBase {
     $address = mb_substr(trim((string) $request->query->get('address', '')), 0, 500);
     $latitude = $this->coordinate($request->query->get('lat'), -90.0, 90.0);
     $longitude = $this->coordinate($request->query->get('lng'), -180.0, 180.0);
+    $exclude_venue_id = filter_var(
+      $request->query->get('exclude_venue_id'),
+      FILTER_VALIDATE_INT,
+      ['options' => ['min_range' => 1]],
+    ) ?: NULL;
 
     $payload = ['existing' => [], 'overture' => [], 'attribution' => ''];
     if (mb_strlen($name) >= 2 || ($latitude !== NULL && $longitude !== NULL)) {
-      $payload = $this->suggestionService->suggest($name, $address, $latitude, $longitude);
+      $payload = $this->suggestionService->suggest(
+        $name,
+        $address,
+        $latitude,
+        $longitude,
+        $exclude_venue_id,
+      );
       $payload['attribution'] = $payload['overture'] === [] ? '' : 'Data from Overture Maps Foundation';
     }
 

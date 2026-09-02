@@ -110,6 +110,7 @@ class VenueManager {
       'name' => $venueData['name'],
       'visibility' => $venueData['visibility'] ?? Venue::VISIBILITY_SHARED,
       'description' => $venueData['description'] ?? '',
+      'primary_address' => trim((string) ($locationData['address_text'] ?? '')),
       'uid' => $ownerId,
     ];
     foreach ([
@@ -159,6 +160,49 @@ class VenueManager {
     ]);
 
     return $venue;
+  }
+
+  /**
+   * Keeps the venue profile address and canonical primary location aligned.
+   */
+  public function syncPrimaryLocation(
+    Venue $venue,
+    string $address,
+    ?float $latitude = NULL,
+    ?float $longitude = NULL,
+  ): void {
+    $address = trim($address);
+    if ($address === '') {
+      return;
+    }
+
+    $location = $this->getPrimaryLocation($venue);
+    if (!$location instanceof VenueLocation) {
+      $location = VenueLocation::create([
+        'venue_id' => $venue->id(),
+        'title' => $venue->getName(),
+        'address_text' => $address,
+        'lat' => $latitude,
+        'lng' => $longitude,
+        'is_primary' => TRUE,
+      ]);
+      $location->save();
+      return;
+    }
+
+    $address_changed = trim($location->getAddressText()) !== $address;
+    $location->set('address_text', $address);
+    if ($latitude !== NULL && $longitude !== NULL) {
+      $location->set('lat', $latitude);
+      $location->set('lng', $longitude);
+    }
+    elseif ($address_changed) {
+      // Do not retain coordinates for an address the organiser changed by
+      // hand. A subsequent provider selection can safely restore them.
+      $location->set('lat', NULL);
+      $location->set('lng', NULL);
+    }
+    $location->save();
   }
 
   /**

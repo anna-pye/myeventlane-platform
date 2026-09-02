@@ -88,7 +88,7 @@ class VenueQuickCreateForm extends FormBase {
     $prefillLat = $request?->query->get('lat', '') ?? '';
     $prefillLng = $request?->query->get('lng', '') ?? '';
 
-    $form['#prefix'] = '<div id="venue-quick-create-form-wrapper" class="mel-venue-quick-create">';
+    $form['#prefix'] = '<div id="venue-quick-create-form-wrapper" class="mel-venue-quick-create mel-venue-enrichment-form">';
     $form['#suffix'] = '</div>';
 
     // Attach libraries for dialog and location autocomplete.

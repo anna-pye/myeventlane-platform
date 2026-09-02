@@ -27,7 +27,7 @@
       }
 
       // Initialize place selection handling for quick create forms.
-      var formWrappers = once('venue-quick-create-place', '.mel-venue-quick-create', context);
+      var formWrappers = once('venue-quick-create-place', '.mel-venue-enrichment-form', context);
       formWrappers.forEach(function (wrapper) {
         Drupal.behaviors.venueQuickCreate.initPlaceSelection(wrapper);
       });
@@ -201,6 +201,9 @@
       url.searchParams.set('address', addressField ? addressField.value : '');
       url.searchParams.set('lat', detail.lat !== undefined ? detail.lat : (latField ? latField.value : ''));
       url.searchParams.set('lng', detail.lng !== undefined ? detail.lng : (lngField ? lngField.value : ''));
+      if (settings.currentVenueId) {
+        url.searchParams.set('exclude_venue_id', settings.currentVenueId);
+      }
 
       container.replaceChildren(this.message(Drupal.t('Checking MyEventLane and public venue data…'), 'loading'));
       var self = this;

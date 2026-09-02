@@ -371,3 +371,45 @@ function myeventlane_venue_update_10003(): string {
 
   return 'Installed the Overture venue catalogue and organiser-reviewed enrichment fields.';
 }
+
+/**
+ * Backfills venue profile addresses from their canonical primary locations.
+ */
+function myeventlane_venue_update_10004(array &$sandbox): string {
+  $venue_storage = \Drupal::entityTypeManager()->getStorage('myeventlane_venue');
+  if (!isset($sandbox['ids'])) {
+    $sandbox['ids'] = array_values($venue_storage->getQuery()
+      ->accessCheck(FALSE)
+      ->sort('id')
+      ->execute());
+    $sandbox['index'] = 0;
+    $sandbox['backfilled'] = 0;
+  }
+
+  $ids = $sandbox['ids'];
+  $total = count($ids);
+  $limit = min($sandbox['index'] + 50, $total);
+  $venue_manager = \Drupal::service('myeventlane_venue.manager');
+
+  while ($sandbox['index'] < $limit) {
+    $venue = $venue_storage->load((int) $ids[$sandbox['index']]);
+    if ($venue instanceof \Drupal\myeventlane_venue\Entity\Venue
+      && $venue->get('primary_address')->isEmpty()) {
+      $location = $venue_manager->getPrimaryLocation($venue);
+      $address = $location?->getAddressText() ?? '';
+      if (trim($address) !== '') {
+        $venue->set('primary_address', trim($address));
+        $venue->save();
+        $sandbox['backfilled']++;
+      }
+    }
+    $sandbox['index']++;
+  }
+
+  $sandbox['#finished'] = $total === 0 ? 1 : $sandbox['index'] / $total;
+  if ($sandbox['#finished'] < 1) {
+    return sprintf('Checked %d of %d venue profiles for primary addresses.', $sandbox['index'], $total);
+  }
+
+  return sprintf('Backfilled %d venue profile primary addresses.', $sandbox['backfilled']);
+}
