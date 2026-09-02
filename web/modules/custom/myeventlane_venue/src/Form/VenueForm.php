@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_venue\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Entity\ContentEntityForm;
 use Drupal\Core\Entity\EntityRepositoryInterface;
 use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\Core\Url;
 use Drupal\media\MediaInterface;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
+use Drupal\myeventlane_venue\Controller\VenueWebsiteMetadataController;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\OverturePlaceRepository;
 use Drupal\myeventlane_venue\Service\VenueManager;
@@ -31,6 +36,9 @@ class VenueForm extends ContentEntityForm {
     protected VenueManager $venueManager,
     protected OverturePlaceRepository $overtureRepository,
     protected LocationProviderManager $locationProviderManager,
+    protected PrivateTempStoreFactory $tempStoreFactory,
+    protected CsrfTokenGenerator $csrfToken,
+    protected AccountProxyInterface $account,
   ) {
     parent::__construct($entity_repository, $entity_type_bundle_info, $time);
   }
@@ -47,6 +55,9 @@ class VenueForm extends ContentEntityForm {
       $container->get('myeventlane_venue.manager'),
       $container->get('myeventlane_venue.overture_repository'),
       $container->get('myeventlane_location.provider_manager'),
+      $container->get('tempstore.private'),
+      $container->get('csrf_token'),
+      $container->get('current_user'),
     );
   }
 
@@ -65,7 +76,33 @@ class VenueForm extends ContentEntityForm {
       'suggestionsUrl' => Url::fromRoute('myeventlane_venue.suggestions')->toString(),
       'currentVenueId' => $this->entity->isNew() ? NULL : (int) $this->entity->id(),
     ];
+    if (!$this->entity->isNew()) {
+      $form['#attached']['drupalSettings']['myeventlaneVenueWebsite'] = [
+        'previewUrl' => Url::fromRoute('myeventlane_venue.website_metadata_preview', [
+          'myeventlane_venue' => (int) $this->entity->id(),
+        ])->toString(),
+        'importImageUrl' => Url::fromRoute('myeventlane_venue.website_metadata_import_image', [
+          'myeventlane_venue' => (int) $this->entity->id(),
+        ])->toString(),
+        'csrfToken' => $this->csrfToken->get(CsrfRequestHeaderAccessCheck::TOKEN_KEY),
+      ];
+    }
     $form['#attached']['drupalSettings']['myeventlaneLocation'] = $this->locationProviderManager->getFrontendSettings();
+
+    $form['venue_page_header'] = [
+      '#type' => 'container',
+      '#weight' => -40,
+      '#attributes' => ['class' => ['mel-venue-form__header']],
+      'eyebrow' => [
+        '#markup' => '<p class="mel-venue-form__eyebrow">' . $this->t('Settings · Venues') . '</p>',
+      ],
+      'title' => [
+        '#markup' => '<h1 class="mel-venue-form__title">' . ($this->entity->isNew() ? $this->t('Add venue') : $this->t('Edit venue')) . '</h1>',
+      ],
+      'intro' => [
+        '#markup' => '<p class="mel-venue-form__intro">' . $this->t('Keep the venue listing accurate so event guests know where they are going.') . '</p>',
+      ],
+    ];
 
     $form['venue_lookup'] = [
       '#type' => 'container',
@@ -88,7 +125,38 @@ class VenueForm extends ContentEntityForm {
     $this->addWidgetClass($form, 'name', 'myeventlane-venue-name-field');
     $this->addWidgetClass($form, 'primary_address', 'mel-venue-address-field');
     foreach (['website', 'phone', 'email', 'facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'] as $field_name) {
+      $this->addWidgetClass($form, $field_name, 'mel-input');
       $this->addWidgetAttribute($form, $field_name, 'data-enrichment-field', $field_name);
+    }
+    $this->addWidgetClass($form, 'name', 'mel-input');
+    $this->addWidgetClass($form, 'primary_address', 'mel-input');
+
+    if (isset($form['uid'])) {
+      $form['uid']['#access'] = $this->account->hasPermission('administer myeventlane venues');
+    }
+    if (isset($form['image_media'])) {
+      $form['venue_lookup']['#prefix'] = $this->sectionOpen(
+        'venue-details',
+        $this->t('Venue details'),
+        $this->t('Set the public name, visibility, description and main image.'),
+      );
+      $form['image_media']['#suffix'] = ($form['image_media']['#suffix'] ?? '') . '</div></section>';
+    }
+    if (isset($form['primary_address'], $form['email'])) {
+      $form['primary_address']['#prefix'] = $this->sectionOpen(
+        'location-contact',
+        $this->t('Location and contact'),
+        $this->t('Add the address and the best official ways for guests to contact the venue.'),
+      );
+      $form['email']['#suffix'] = ($form['email']['#suffix'] ?? '') . '</div></section>';
+    }
+    if (isset($form['facebook'], $form['tiktok'])) {
+      $form['facebook']['#prefix'] = $this->sectionOpen(
+        'social-links',
+        $this->t('Social links'),
+        $this->t('Optional public profiles that help guests learn more about the venue.'),
+      );
+      $form['tiktok']['#suffix'] = ($form['tiktok']['#suffix'] ?? '') . '</div></section>';
     }
 
     $primary_location = $this->entity instanceof Venue && !$this->entity->isNew()
@@ -123,6 +191,43 @@ class VenueForm extends ContentEntityForm {
     $form['venue_suggestions']['prompt'] = [
       '#markup' => '<p class="mel-venue-suggestions__prompt">' . $this->t('Search for this venue to check for public details you can review.') . '</p>',
     ];
+    if (!$this->entity->isNew()) {
+      $form['website_metadata_review'] = [
+        '#type' => 'container',
+        '#weight' => 10.5,
+        '#attributes' => [
+          'class' => ['mel-venue-website-review'],
+          'data-venue-website-review' => 'true',
+        ],
+        'title' => [
+          '#markup' => '<h3 class="mel-venue-website-review__title">' . $this->t('Website details') . '</h3>',
+        ],
+        'help' => [
+          '#markup' => '<p class="mel-venue-website-review__help">' . $this->t('Preview the official website’s description and image. Nothing is copied until you choose what to use.') . '</p>',
+        ],
+        'preview' => [
+          '#type' => 'html_tag',
+          '#tag' => 'button',
+          '#value' => $this->t('Preview website details'),
+          '#attributes' => [
+            'type' => 'button',
+            'class' => ['mel-btn', 'mel-btn--secondary'],
+            'data-venue-website-preview' => 'true',
+          ],
+        ],
+        'status' => [
+          '#markup' => '<div class="mel-venue-website-review__status" data-venue-website-status aria-live="polite"></div>',
+        ],
+        'candidate' => [
+          '#markup' => '<div class="mel-venue-website-review__candidate" data-venue-website-candidate hidden></div>',
+        ],
+      ];
+      $form['website_metadata_accept_description'] = [
+        '#type' => 'hidden',
+        '#default_value' => '0',
+        '#attributes' => ['data-website-metadata-accept-description' => 'true'],
+      ];
+    }
     $form['overture_source_id'] = [
       '#type' => 'hidden',
       '#attributes' => ['data-overture-source-id' => 'true'],
@@ -182,6 +287,7 @@ class VenueForm extends ContentEntityForm {
 
     $actions['submit']['#attributes']['class'][] = 'mel-btn';
     $actions['submit']['#attributes']['class'][] = 'mel-btn--primary';
+    $actions['#attributes']['class'][] = 'mel-venue-form__actions';
 
     // Add cancel link - use entity collection as safe fallback.
     $cancel_url = $this->getCancelUrl();
@@ -221,6 +327,7 @@ class VenueForm extends ContentEntityForm {
     $entity = $this->entity;
     assert($entity instanceof Venue);
     $this->applyEnrichmentProvenance($entity, $form_state);
+    $this->applyWebsiteDescriptionProvenance($entity, $form_state);
     $status = parent::save($form, $form_state);
 
     $address = trim((string) ($entity->get('primary_address')->value ?? ''));
@@ -264,6 +371,68 @@ class VenueForm extends ContentEntityForm {
     if (isset($form[$field_name]['widget'][0]['value'])) {
       $form[$field_name]['widget'][0]['value']['#attributes'][$attribute] = $value;
     }
+  }
+
+  /**
+   * Opens a visual form card without changing Drupal field value parents.
+   */
+  private function sectionOpen(string $modifier, mixed $title, mixed $description): string {
+    return sprintf(
+      '<section class="mel-venue-form__section mel-venue-form__section--%s"><header class="mel-venue-form__section-header"><h2 class="mel-venue-form__section-title">%s</h2><p class="mel-venue-form__section-intro">%s</p></header><div class="mel-venue-form__section-body">',
+      $modifier,
+      $title,
+      $description,
+    );
+  }
+
+  /**
+   * Records description provenance only when the approved preview is unchanged.
+   */
+  private function applyWebsiteDescriptionProvenance(Venue $venue, FormStateInterface $form_state): void {
+    if ((string) $form_state->getValue('website_metadata_accept_description') !== '1'
+      || $venue->isNew()
+      || !$venue->hasField('website_metadata_accepted_fields')) {
+      return;
+    }
+
+    $candidate = $this->tempStoreFactory
+      ->get(VenueWebsiteMetadataController::TEMPSTORE_COLLECTION)
+      ->get('venue:' . (int) $venue->id());
+    if (!is_array($candidate)) {
+      return;
+    }
+    $fetched = (int) ($candidate['fetched_at'] ?? 0);
+    $website = trim((string) $venue->get('website')->value);
+    $candidate_website = trim((string) ($candidate['website'] ?? ''));
+    $candidate_description = $this->normaliseDescription((string) ($candidate['description'] ?? ''));
+    $venue_description = $this->normaliseDescription((string) ($venue->get('description')->value ?? ''));
+    if ($fetched <= 0
+      || ($this->time->getRequestTime() - $fetched) > VenueWebsiteMetadataController::PREVIEW_TTL
+      || $website === ''
+      || !hash_equals($website, $candidate_website)
+      || $candidate_description === ''
+      || !hash_equals($candidate_description, $venue_description)) {
+      return;
+    }
+
+    $accepted = json_decode((string) $venue->get('website_metadata_accepted_fields')->value, TRUE);
+    $accepted = is_array($accepted) ? $accepted : [];
+    $accepted['description'] = [
+      'source' => (string) ($candidate['source_url'] ?? $website),
+      'hash' => hash('sha256', $candidate_description),
+      'accepted' => $this->time->getRequestTime(),
+    ];
+    $venue->set('website_metadata_source_url', (string) ($candidate['source_url'] ?? $website));
+    $venue->set('website_metadata_checked', $fetched);
+    $venue->set('website_metadata_accepted_fields', json_encode($accepted, JSON_THROW_ON_ERROR));
+  }
+
+  /**
+   * Normalises rich-text storage for comparison with plain website metadata.
+   */
+  private function normaliseDescription(string $value): string {
+    $value = html_entity_decode(strip_tags($value), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return trim((string) preg_replace('/\s+/u', ' ', $value));
   }
 
   /**

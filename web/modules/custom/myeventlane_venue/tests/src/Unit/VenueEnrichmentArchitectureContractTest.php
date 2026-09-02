@@ -27,9 +27,11 @@ final class VenueEnrichmentArchitectureContractTest extends TestCase {
     self::assertStringContainsString("_custom_access: 'myeventlane_vendor.access.vendor_console:access'", $routing);
     self::assertIsString($services);
     self::assertStringContainsString("'@database'", $services);
-    self::assertStringNotContainsString("'@http_client'", $services);
+    self::assertStringContainsString('myeventlane_venue.overture_repository:', $services);
+    self::assertStringContainsString("'@http_client'", $services);
     self::assertIsString($repository);
     self::assertStringContainsString('Queries the locally imported', $repository);
+    self::assertStringNotContainsString('ClientInterface', $repository);
   }
 
   /**

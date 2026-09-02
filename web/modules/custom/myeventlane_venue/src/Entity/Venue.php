@@ -446,6 +446,20 @@ class Venue extends ContentEntityBase implements EntityChangedInterface, EntityO
     $fields['organiser_verified'] = BaseFieldDefinition::create('timestamp')
       ->setLabel(new TranslatableMarkup('Venue details verified by organiser'));
 
+    // Source records for organiser-approved website metadata. These fields are
+    // hidden from ordinary forms and public displays.
+    $fields['website_metadata_source_url'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Venue website metadata source'));
+
+    $fields['website_metadata_image_source_url'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Venue website image source'));
+
+    $fields['website_metadata_checked'] = BaseFieldDefinition::create('timestamp')
+      ->setLabel(new TranslatableMarkup('Venue website metadata checked'));
+
+    $fields['website_metadata_accepted_fields'] = BaseFieldDefinition::create('string_long')
+      ->setLabel(new TranslatableMarkup('Accepted venue website metadata'));
+
     // Created timestamp.
     $fields['created'] = BaseFieldDefinition::create('created')
       ->setLabel(new TranslatableMarkup('Created'))

@@ -43,6 +43,189 @@
           }
         });
       });
+
+      once('venue-website-review', '[data-venue-website-review]', context).forEach(function (panel) {
+        Drupal.behaviors.venueQuickCreate.initWebsiteReview(panel);
+      });
+    },
+
+    /**
+     * Initializes approval-gated website metadata controls.
+     */
+    initWebsiteReview: function (panel) {
+      var settings = drupalSettings.myeventlaneVenueWebsite || {};
+      var previewButton = panel.querySelector('[data-venue-website-preview]');
+      var status = panel.querySelector('[data-venue-website-status]');
+      var candidate = panel.querySelector('[data-venue-website-candidate]');
+      if (!settings.previewUrl || !settings.importImageUrl || !previewButton || !status || !candidate) {
+        return;
+      }
+
+      previewButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        previewButton.disabled = true;
+        status.textContent = Drupal.t('Reading the saved official website…');
+        status.className = 'mel-venue-website-review__status is-loading';
+        candidate.hidden = true;
+        candidate.replaceChildren();
+
+        this.websiteRequest(settings.previewUrl, settings.csrfToken)
+          .then(function (payload) {
+            this.renderWebsiteCandidate(panel, candidate, status, payload, settings);
+          }.bind(this))
+          .catch(function (error) {
+            status.textContent = error.message || Drupal.t('We could not preview that website safely.');
+            status.className = 'mel-venue-website-review__status is-error';
+          })
+          .finally(function () {
+            previewButton.disabled = false;
+          });
+      }.bind(this));
+    },
+
+    /**
+     * Renders metadata with text nodes and organiser-controlled actions.
+     */
+    renderWebsiteCandidate: function (panel, container, status, payload, settings) {
+      container.replaceChildren();
+
+      var source = document.createElement('p');
+      source.className = 'mel-venue-website-review__source';
+      source.textContent = Drupal.t('Preview from @source', { '@source': payload.sourceUrl || Drupal.t('saved website') });
+      container.appendChild(source);
+
+      if (payload.description) {
+        var description = document.createElement('div');
+        description.className = 'mel-venue-website-review__description';
+        var descriptionTitle = document.createElement('h4');
+        descriptionTitle.textContent = Drupal.t('Suggested description');
+        var descriptionText = document.createElement('p');
+        descriptionText.textContent = payload.description;
+        description.appendChild(descriptionTitle);
+        description.appendChild(descriptionText);
+        container.appendChild(description);
+      }
+
+      if (payload.imageUrl) {
+        var imageFigure = document.createElement('figure');
+        imageFigure.className = 'mel-venue-website-review__image';
+        var image = document.createElement('img');
+        image.src = payload.imageUrl;
+        image.alt = payload.title || Drupal.t('Website image preview');
+        image.loading = 'lazy';
+        image.referrerPolicy = 'no-referrer';
+        imageFigure.appendChild(image);
+        container.appendChild(imageFigure);
+      }
+
+      var confirmation = document.createElement('label');
+      confirmation.className = 'mel-venue-website-review__confirmation';
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      var confirmationText = document.createElement('span');
+      confirmationText.textContent = Drupal.t('I confirm I have permission to reuse the selected website content.');
+      confirmation.appendChild(checkbox);
+      confirmation.appendChild(confirmationText);
+      container.appendChild(confirmation);
+
+      var actions = document.createElement('div');
+      actions.className = 'mel-venue-website-review__actions';
+      var descriptionButton = null;
+      if (payload.description) {
+        descriptionButton = this.button(Drupal.t('Use description'));
+        descriptionButton.disabled = true;
+        descriptionButton.addEventListener('click', function () {
+          this.useWebsiteDescription(panel.closest('form'), payload.description, descriptionButton, status);
+        }.bind(this));
+        actions.appendChild(descriptionButton);
+      }
+
+      var imageButton = null;
+      if (payload.imageUrl) {
+        imageButton = this.button(Drupal.t('Save image to venue'));
+        imageButton.disabled = true;
+        imageButton.addEventListener('click', function () {
+          if (!window.confirm(Drupal.t('This saves the image now and reloads the page. Save any other form changes first. Continue?'))) {
+            return;
+          }
+          imageButton.disabled = true;
+          status.textContent = Drupal.t('Saving the approved image to your Media Library…');
+          status.className = 'mel-venue-website-review__status is-loading';
+          this.websiteRequest(settings.importImageUrl, settings.csrfToken, { confirmRights: true })
+            .then(function (response) {
+              status.textContent = response.message;
+              status.className = 'mel-venue-website-review__status is-success';
+              window.location.reload();
+            })
+            .catch(function (error) {
+              status.textContent = error.message || Drupal.t('The image could not be saved safely.');
+              status.className = 'mel-venue-website-review__status is-error';
+              imageButton.disabled = !checkbox.checked;
+            });
+        }.bind(this));
+        actions.appendChild(imageButton);
+      }
+      container.appendChild(actions);
+
+      checkbox.addEventListener('change', function () {
+        if (descriptionButton) descriptionButton.disabled = !checkbox.checked;
+        if (imageButton) imageButton.disabled = !checkbox.checked;
+      });
+
+      container.hidden = false;
+      status.textContent = Drupal.t('Review each item before choosing what to use.');
+      status.className = 'mel-venue-website-review__status is-success';
+    },
+
+    /**
+     * Places an approved description into the editable Drupal field.
+     */
+    useWebsiteDescription: function (form, description, button, status) {
+      if (!form) return;
+      var textarea = form.querySelector('textarea[name="description[0][value]"]');
+      var accepted = form.querySelector('[data-website-metadata-accept-description]');
+      if (!textarea || !accepted) return;
+
+      var editorId = textarea.dataset.ckeditor5Id;
+      var editor = Drupal.CKEditor5Instances && editorId
+        ? Drupal.CKEditor5Instances.get(editorId)
+        : null;
+      if (editor) {
+        var safe = document.createElement('div');
+        safe.textContent = description;
+        editor.setData('<p>' + safe.innerHTML + '</p>');
+      }
+      textarea.value = description;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      accepted.value = '1';
+      button.textContent = Drupal.t('Description added');
+      button.disabled = true;
+      status.textContent = Drupal.t('The description is ready to edit. It is not saved until you save the venue.');
+      status.className = 'mel-venue-website-review__status is-success';
+    },
+
+    /**
+     * Makes a same-origin JSON request protected by Drupal's CSRF token.
+     */
+    websiteRequest: function (url, token, payload) {
+      return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': token
+        },
+        body: payload ? JSON.stringify(payload) : '{}'
+      }).then(function (response) {
+        return response.json().catch(function () { return {}; }).then(function (body) {
+          if (!response.ok) {
+            throw new Error(body.message || Drupal.t('The website request could not be completed.'));
+          }
+          return body;
+        });
+      });
     },
 
     /**

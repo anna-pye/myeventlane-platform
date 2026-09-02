@@ -44,6 +44,32 @@ services:
       - '@datetime.time'
       - '@myeventlane_venue.candidate_scorer'
 
+  # Explicit, approval-gated website metadata enrichment. These services are
+  # separate from the local Overture catalogue and never run on page load.
+  myeventlane_venue.public_remote_url_guard:
+    class: Drupal\myeventlane_venue\Service\PublicRemoteUrlGuard
+
+  myeventlane_venue.safe_remote_content_fetcher:
+    class: Drupal\myeventlane_venue\Service\SafeRemoteContentFetcher
+    arguments:
+      - '@http_client'
+      - '@myeventlane_venue.public_remote_url_guard'
+
+  myeventlane_venue.website_metadata_fetcher:
+    class: Drupal\myeventlane_venue\Service\VenueWebsiteMetadataFetcher
+    arguments:
+      - '@myeventlane_venue.safe_remote_content_fetcher'
+      - '@myeventlane_venue.public_remote_url_guard'
+
+  myeventlane_venue.website_image_importer:
+    class: Drupal\myeventlane_venue\Service\VenueWebsiteImageImporter
+    arguments:
+      - '@myeventlane_venue.safe_remote_content_fetcher'
+      - '@file.repository'
+      - '@file_system'
+      - '@entity_type.manager'
+      - '@datetime.time'
+
   # Share token generator.
   myeventlane_venue.share_token_generator:
     class: Drupal\myeventlane_venue\Service\ShareTokenGenerator
@@ -54,3 +80,14 @@ services:
     arguments:
       - '@myeventlane_venue.access_resolver'
       - '@myeventlane_venue.manager'
+
+  myeventlane_venue.controller.website_metadata:
+    class: Drupal\myeventlane_venue\Controller\VenueWebsiteMetadataController
+    arguments:
+      - '@myeventlane_venue.website_metadata_fetcher'
+      - '@myeventlane_venue.website_image_importer'
+      - '@tempstore.private'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_venue'
+      - '@flood'
+      - '@current_user'
