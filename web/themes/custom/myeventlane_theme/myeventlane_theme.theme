@@ -15,6 +15,7 @@ use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -4865,10 +4866,29 @@ function _myeventlane_theme_apply_event_page_style_theme_variables(array &$varia
 }
 
 /**
- * Sets mel_venue, mel_address, mel_suburb, mel_lat, mel_lng for event templates.
+ * Sets public event location variables for event templates.
  */
 function _myeventlane_theme_apply_event_location_variables(array &$variables, NodeInterface $node): void {
   $variables['mel_venue'] = _myeventlane_theme_event_primary_location_label($node);
+  $variables['mel_venue_url'] = NULL;
+
+  if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+    $venue = $node->get('field_venue')->entity;
+    if ($venue instanceof FieldableEntityInterface) {
+      $variables['#cache']['tags'] = Cache::mergeTags(
+        $variables['#cache']['tags'] ?? [],
+        $venue->getCacheTags(),
+      );
+
+      // Shared venues must remain plain text on public event pages. Their
+      // canonical pages are intentionally unavailable to anonymous visitors.
+      $is_public = $venue->hasField('visibility')
+        && (string) $venue->get('visibility')->value === 'public';
+      if ($is_public && $venue->hasLinkTemplate('canonical')) {
+        $variables['mel_venue_url'] = $venue->toUrl('canonical')->toString();
+      }
+    }
+  }
 
   $address_parts = [];
   $variables['mel_suburb'] = NULL;
