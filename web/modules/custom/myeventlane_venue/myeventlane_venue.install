@@ -413,3 +413,32 @@ function myeventlane_venue_update_10004(array &$sandbox): string {
 
   return sprintf('Backfilled %d venue profile primary addresses.', $sandbox['backfilled']);
 }
+
+/**
+ * Adds provenance fields for organiser-approved website metadata.
+ */
+function myeventlane_venue_update_10005(): string {
+  $entity_type_id = 'myeventlane_venue';
+  $update_manager = \Drupal::entityDefinitionUpdateManager();
+  $entity_type = \Drupal::entityTypeManager()->getDefinition($entity_type_id);
+  $definitions = \Drupal\myeventlane_venue\Entity\Venue::baseFieldDefinitions($entity_type);
+  $field_names = [
+    'website_metadata_source_url',
+    'website_metadata_image_source_url',
+    'website_metadata_checked',
+    'website_metadata_accepted_fields',
+  ];
+
+  foreach ($field_names as $field_name) {
+    if (!$update_manager->getFieldStorageDefinition($field_name, $entity_type_id)) {
+      $update_manager->installFieldStorageDefinition(
+        $field_name,
+        $entity_type_id,
+        'myeventlane_venue',
+        $definitions[$field_name],
+      );
+    }
+  }
+
+  return 'Installed provenance fields for organiser-approved venue website metadata.';
+}
