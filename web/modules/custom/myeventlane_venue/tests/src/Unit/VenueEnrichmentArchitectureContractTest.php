@@ -56,4 +56,33 @@ final class VenueEnrichmentArchitectureContractTest extends TestCase {
     self::assertStringContainsString('class="use-ajax mel-btn mel-btn--primary"', $template);
   }
 
+  /**
+   * Tests Event Studio venue profiles converge with canonical locations.
+   */
+  public function testVenueProfilePrefillsAddressAndOffersReviewedDetails(): void {
+    $root = dirname(__DIR__, 3);
+    $form = file_get_contents($root . '/src/Form/VenueForm.php');
+    $manager = file_get_contents($root . '/src/Service/VenueManager.php');
+    $install = file_get_contents($root . '/myeventlane_venue.install');
+    $javascript = file_get_contents($root . '/js/quick-create.js');
+
+    self::assertIsString($form);
+    self::assertStringContainsString("'#title' => \$this->t('Search address')", $form);
+    self::assertStringContainsString("'currentVenueId' =>", $form);
+    self::assertStringContainsString("'data-overture-accepted-fields' => 'true'", $form);
+    self::assertStringContainsString('applyEnrichmentProvenance', $form);
+    self::assertStringContainsString('syncPrimaryLocation', $form);
+
+    self::assertIsString($manager);
+    self::assertStringContainsString("'primary_address' => trim((string) (\$locationData['address_text'] ?? ''))", $manager);
+    self::assertStringContainsString('public function syncPrimaryLocation(', $manager);
+
+    self::assertIsString($install);
+    self::assertStringContainsString('function myeventlane_venue_update_10004', $install);
+    self::assertStringContainsString("\$venue->set('primary_address', trim(\$address))", $install);
+
+    self::assertIsString($javascript);
+    self::assertStringContainsString("url.searchParams.set('exclude_venue_id', settings.currentVenueId)", $javascript);
+  }
+
 }

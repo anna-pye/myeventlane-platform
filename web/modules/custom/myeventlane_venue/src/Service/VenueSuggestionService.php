@@ -29,10 +29,14 @@ final class VenueSuggestionService {
     string $address = '',
     ?float $latitude = NULL,
     ?float $longitude = NULL,
+    ?int $excludeVenueId = NULL,
   ): array {
     $existing = [];
     foreach ($this->accessResolver->getAccessibleVenues() as $venue) {
       if (!$venue instanceof Venue) {
+        continue;
+      }
+      if ($excludeVenueId !== NULL && (int) $venue->id() === $excludeVenueId) {
         continue;
       }
       $location = $this->venueManager->getPrimaryLocation($venue);

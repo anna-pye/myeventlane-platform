@@ -11,6 +11,10 @@ use Drupal\Core\Entity\EntityTypeBundleInfoInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Url;
 use Drupal\media\MediaInterface;
+use Drupal\myeventlane_location\Service\LocationProviderManager;
+use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Service\OverturePlaceRepository;
+use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\myeventlane_vendor\Service\OrganiserMediaAccess;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -24,6 +28,9 @@ class VenueForm extends ContentEntityForm {
     EntityTypeBundleInfoInterface $entity_type_bundle_info,
     TimeInterface $time,
     protected OrganiserMediaAccess $organiserMediaAccess,
+    protected VenueManager $venueManager,
+    protected OverturePlaceRepository $overtureRepository,
+    protected LocationProviderManager $locationProviderManager,
   ) {
     parent::__construct($entity_repository, $entity_type_bundle_info, $time);
   }
@@ -37,6 +44,9 @@ class VenueForm extends ContentEntityForm {
       $container->get('entity_type.bundle.info'),
       $container->get('datetime.time'),
       $container->get('myeventlane_vendor.organiser_media_access'),
+      $container->get('myeventlane_venue.manager'),
+      $container->get('myeventlane_venue.overture_repository'),
+      $container->get('myeventlane_location.provider_manager'),
     );
   }
 
@@ -48,6 +58,79 @@ class VenueForm extends ContentEntityForm {
 
     $form['#attributes']['class'][] = 'mel-form';
     $form['#attributes']['class'][] = 'mel-venue-form';
+    $form['#attributes']['class'][] = 'mel-venue-enrichment-form';
+    $form['#attached']['library'][] = 'myeventlane_venue/quick_create';
+    $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
+    $form['#attached']['drupalSettings']['myeventlaneVenueEnrichment'] = [
+      'suggestionsUrl' => Url::fromRoute('myeventlane_venue.suggestions')->toString(),
+      'currentVenueId' => $this->entity->isNew() ? NULL : (int) $this->entity->id(),
+    ];
+    $form['#attached']['drupalSettings']['myeventlaneLocation'] = $this->locationProviderManager->getFrontendSettings();
+
+    $form['venue_lookup'] = [
+      '#type' => 'container',
+      '#weight' => -30,
+      '#attributes' => ['data-mel-address' => 'primary_address'],
+    ];
+    $form['venue_lookup']['venue_search'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Search address'),
+      '#maxlength' => 255,
+      '#attributes' => [
+        'placeholder' => $this->t('Start typing a venue name or address...'),
+        'class' => ['mel-input', 'myeventlane-location-address-search'],
+        'data-address-search' => 'true',
+        'autocomplete' => 'off',
+      ],
+      '#description' => $this->t('Choose a result to update the address and review any public details. Nothing else is added unless you choose Use.'),
+    ];
+
+    $this->addWidgetClass($form, 'name', 'myeventlane-venue-name-field');
+    $this->addWidgetClass($form, 'primary_address', 'mel-venue-address-field');
+    foreach (['website', 'phone', 'email', 'facebook', 'instagram', 'twitter', 'linkedin', 'youtube', 'tiktok'] as $field_name) {
+      $this->addWidgetAttribute($form, $field_name, 'data-enrichment-field', $field_name);
+    }
+
+    $primary_location = $this->entity instanceof Venue && !$this->entity->isNew()
+      ? $this->venueManager->getPrimaryLocation($this->entity)
+      : NULL;
+    if ($this->entity->hasField('primary_address')
+      && $this->entity->get('primary_address')->isEmpty()
+      && $primary_location !== NULL
+      && isset($form['primary_address']['widget'][0]['value'])) {
+      $form['primary_address']['widget'][0]['value']['#default_value'] = $primary_location->getAddressText();
+    }
+
+    $form['venue_lat'] = [
+      '#type' => 'hidden',
+      '#default_value' => $primary_location?->getLatitude(),
+      '#attributes' => ['class' => ['myeventlane-location-latitude-field']],
+    ];
+    $form['venue_lng'] = [
+      '#type' => 'hidden',
+      '#default_value' => $primary_location?->getLongitude(),
+      '#attributes' => ['class' => ['myeventlane-location-longitude-field']],
+    ];
+    $form['venue_suggestions'] = [
+      '#type' => 'container',
+      '#weight' => 8,
+      '#attributes' => [
+        'class' => ['mel-venue-suggestions'],
+        'data-venue-suggestions' => 'true',
+        'aria-live' => 'polite',
+      ],
+    ];
+    $form['venue_suggestions']['prompt'] = [
+      '#markup' => '<p class="mel-venue-suggestions__prompt">' . $this->t('Search for this venue to check for public details you can review.') . '</p>',
+    ];
+    $form['overture_source_id'] = [
+      '#type' => 'hidden',
+      '#attributes' => ['data-overture-source-id' => 'true'],
+    ];
+    $form['overture_accepted_fields'] = [
+      '#type' => 'hidden',
+      '#attributes' => ['data-overture-accepted-fields' => 'true'],
+    ];
 
     return $form;
   }
@@ -60,6 +143,11 @@ class VenueForm extends ContentEntityForm {
       ? (int) $this->entity->get('image_media')->target_id
       : 0;
     $entity = parent::validateForm($form, $form_state);
+    $source_id = trim((string) $form_state->getValue('overture_source_id'));
+    $accepted_fields = $this->acceptedFields((string) $form_state->getValue('overture_accepted_fields'));
+    if ($source_id !== '' && $accepted_fields !== [] && $this->overtureRepository->load($source_id) === NULL) {
+      $form_state->setErrorByName('overture_source_id', $this->t('Those venue suggestions are no longer available. Search again or enter the details manually.'));
+    }
     if (!$entity->hasField('image_media') || $entity->get('image_media')->isEmpty()) {
       return $entity;
     }
@@ -131,7 +219,17 @@ class VenueForm extends ContentEntityForm {
    */
   public function save(array $form, FormStateInterface $form_state): int {
     $entity = $this->entity;
+    assert($entity instanceof Venue);
+    $this->applyEnrichmentProvenance($entity, $form_state);
     $status = parent::save($form, $form_state);
+
+    $address = trim((string) ($entity->get('primary_address')->value ?? ''));
+    $this->venueManager->syncPrimaryLocation(
+      $entity,
+      $address,
+      $this->coordinate($form_state->getValue('venue_lat'), -90.0, 90.0),
+      $this->coordinate($form_state->getValue('venue_lng'), -180.0, 180.0),
+    );
 
     if ($status === SAVED_NEW) {
       $this->messenger()->addStatus($this->t('Venue "@name" has been created.', [
@@ -148,6 +246,139 @@ class VenueForm extends ContentEntityForm {
     $form_state->setRedirectUrl($this->getCancelUrl());
 
     return $status;
+  }
+
+  /**
+   * Adds a CSS class to a base-field text widget when it is available.
+   */
+  private function addWidgetClass(array &$form, string $field_name, string $class): void {
+    if (isset($form[$field_name]['widget'][0]['value'])) {
+      $form[$field_name]['widget'][0]['value']['#attributes']['class'][] = $class;
+    }
+  }
+
+  /**
+   * Adds a data attribute to a base-field text widget when it is available.
+   */
+  private function addWidgetAttribute(array &$form, string $field_name, string $attribute, string $value): void {
+    if (isset($form[$field_name]['widget'][0]['value'])) {
+      $form[$field_name]['widget'][0]['value']['#attributes'][$attribute] = $value;
+    }
+  }
+
+  /**
+   * Stores provenance only for fields the organiser used unchanged.
+   */
+  private function applyEnrichmentProvenance(Venue $venue, FormStateInterface $form_state): void {
+    $source_id = trim((string) $form_state->getValue('overture_source_id'));
+    if ($source_id === '') {
+      return;
+    }
+
+    $accepted_fields = $this->verifiedAcceptedFields(
+      $venue,
+      $source_id,
+      (string) $form_state->getValue('overture_accepted_fields'),
+    );
+    if ($accepted_fields === []) {
+      $provenance_fields = [
+        'enrichment_source',
+        'enrichment_source_id',
+        'enrichment_checked',
+        'enrichment_accepted_fields',
+        'organiser_verified',
+      ];
+      foreach ($provenance_fields as $field_name) {
+        $venue->set($field_name, NULL);
+      }
+      return;
+    }
+
+    $request_time = $this->time->getRequestTime();
+    $venue->set('enrichment_source', 'overture');
+    $venue->set('enrichment_source_id', $source_id);
+    $venue->set('enrichment_checked', $request_time);
+    $venue->set('enrichment_accepted_fields', json_encode($accepted_fields, JSON_THROW_ON_ERROR));
+    $venue->set('organiser_verified', $request_time);
+  }
+
+  /**
+   * Returns the allow-listed enrichment fields from the review control.
+   *
+   * @return string[]
+   *   Accepted enrichment field names.
+   */
+  private function acceptedFields(string $json): array {
+    $values = json_decode($json, TRUE);
+    if (!is_array($values)) {
+      return [];
+    }
+    $allowed = [
+      'name',
+      'address',
+      'website',
+      'phone',
+      'email',
+      'facebook',
+      'instagram',
+      'twitter',
+      'linkedin',
+      'youtube',
+      'tiktok',
+    ];
+    return array_values(array_unique(array_intersect($allowed, array_filter($values, 'is_string'))));
+  }
+
+  /**
+   * Verifies that accepted values still match the local Overture source.
+   *
+   * @return string[]
+   *   Verified field names.
+   */
+  private function verifiedAcceptedFields(Venue $venue, string $source_id, string $accepted_json): array {
+    $candidate = $this->overtureRepository->load($source_id);
+    if ($candidate === NULL) {
+      return [];
+    }
+    $source_values = [
+      'name' => $candidate['name'] ?? '',
+      'address' => $candidate['address'] ?? '',
+      'website' => $candidate['website'] ?? '',
+      'phone' => $candidate['phone'] ?? '',
+      'email' => $candidate['email'] ?? '',
+    ] + ($candidate['socials'] ?? []);
+    $venue_values = [
+      'name' => $venue->getName(),
+      'address' => (string) ($venue->get('primary_address')->value ?? ''),
+      'website' => (string) ($venue->get('website')->value ?? ''),
+      'phone' => (string) ($venue->get('phone')->value ?? ''),
+      'email' => (string) ($venue->get('email')->value ?? ''),
+      'facebook' => (string) ($venue->get('facebook')->value ?? ''),
+      'instagram' => (string) ($venue->get('instagram')->value ?? ''),
+      'twitter' => (string) ($venue->get('twitter')->value ?? ''),
+      'linkedin' => (string) ($venue->get('linkedin')->value ?? ''),
+      'youtube' => (string) ($venue->get('youtube')->value ?? ''),
+      'tiktok' => (string) ($venue->get('tiktok')->value ?? ''),
+    ];
+
+    $verified = [];
+    foreach ($this->acceptedFields($accepted_json) as $field_name) {
+      if (trim($venue_values[$field_name]) === trim((string) ($source_values[$field_name] ?? ''))) {
+        $verified[] = $field_name;
+      }
+    }
+    return $verified;
+  }
+
+  /**
+   * Returns a valid coordinate submitted by the configured map provider.
+   */
+  private function coordinate(mixed $value, float $minimum, float $maximum): ?float {
+    if (!is_numeric($value)) {
+      return NULL;
+    }
+    $coordinate = (float) $value;
+    return $coordinate >= $minimum && $coordinate <= $maximum ? $coordinate : NULL;
   }
 
 }
