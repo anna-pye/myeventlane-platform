@@ -29,6 +29,7 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager;
 use Drupal\myeventlane_vendor\Service\OrganiserMediaAccess;
 use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Exception\DuplicateVenueException;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
@@ -350,6 +351,14 @@ final class EventStudioSaveService {
           ],
           (int) $account->id()
         );
+      }
+      catch (DuplicateVenueException $e) {
+        return $this->abortSectionScopedSave([
+          sprintf(
+            'This venue already exists as “%s”. Choose it from your saved venues instead.',
+            $e->getDuplicateVenue()->getName(),
+          ),
+        ], $payload);
       }
       catch (\Throwable $e) {
         $this->logger->error('Studio venue create failed: @m', ['@m' => $e->getMessage()]);

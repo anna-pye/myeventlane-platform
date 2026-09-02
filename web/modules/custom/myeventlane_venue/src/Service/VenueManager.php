@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_venue\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
+use Drupal\Core\Session\AccountInterface;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Entity\VenueAccess;
 use Drupal\myeventlane_venue\Entity\VenueLocation;
+use Drupal\myeventlane_venue\Exception\DuplicateVenueException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -22,6 +25,8 @@ class VenueManager {
     protected EntityTypeManagerInterface $entityTypeManager,
     protected VenueAccessResolver $accessResolver,
     protected LoggerInterface $logger,
+    protected VenueDuplicateGuard $duplicateGuard,
+    protected LockBackendInterface $lock,
   ) {}
 
   /**
@@ -103,8 +108,82 @@ class VenueManager {
    *   The created venue.
    *
    * @throws \Drupal\Core\Entity\EntityStorageException
+   * @throws \Drupal\myeventlane_venue\Exception\DuplicateVenueException
    */
   public function createVenueWithLocation(array $venueData, array $locationData, int $ownerId): Venue {
+    return $this->guardVenueCreation(
+      $venueData,
+      $locationData,
+      $ownerId,
+      fn (): Venue => $this->createVenueWithLocationUnchecked($venueData, $locationData, $ownerId),
+    );
+  }
+
+  /**
+   * Serialises, rechecks and executes a saved-venue creation operation.
+   *
+   * @param array $venueData
+   *   Venue name and optional trusted source identity.
+   * @param array $locationData
+   *   Address and optional provider coordinates.
+   * @param int $ownerId
+   *   The organiser account ID.
+   * @param callable(): T $create
+   *   Operation which persists the venue after the duplicate check.
+   *
+   * @template T
+   *
+   * @return T
+   *   The operation result.
+   */
+  public function guardVenueCreation(
+    array $venueData,
+    array $locationData,
+    int $ownerId,
+    callable $create,
+  ): mixed {
+    $lock_name = $this->creationLockName($venueData, $locationData, $ownerId);
+    $acquired = $this->lock->acquire($lock_name, 15.0);
+    if (!$acquired) {
+      $this->lock->wait($lock_name, 5);
+      $acquired = $this->lock->acquire($lock_name, 15.0);
+    }
+    if (!$acquired) {
+      throw new \RuntimeException('Another request is creating this venue. Try again.');
+    }
+
+    try {
+      $this->assertNoDuplicate($venueData, $locationData, $ownerId);
+      return $create();
+    }
+    finally {
+      $this->lock->release($lock_name);
+    }
+  }
+
+  /**
+   * Rejects an accessible saved venue with the same trusted identity.
+   */
+  private function assertNoDuplicate(array $venueData, array $locationData, int $ownerId): void {
+    $owner = $this->entityTypeManager->getStorage('user')->load($ownerId);
+    $duplicate = $this->duplicateGuard->findDuplicate(
+      trim((string) ($venueData['name'] ?? '')),
+      trim((string) ($locationData['address_text'] ?? '')),
+      $this->coordinate($locationData['lat'] ?? NULL, -90.0, 90.0),
+      $this->coordinate($locationData['lng'] ?? NULL, -180.0, 180.0),
+      NULL,
+      isset($venueData['enrichment_source_id']) ? (string) $venueData['enrichment_source_id'] : NULL,
+      $owner instanceof AccountInterface ? $owner : NULL,
+    );
+    if ($duplicate instanceof Venue) {
+      throw new DuplicateVenueException($duplicate);
+    }
+  }
+
+  /**
+   * Persists a venue after the guarded duplicate check.
+   */
+  private function createVenueWithLocationUnchecked(array $venueData, array $locationData, int $ownerId): Venue {
     // Create venue.
     $venue_values = [
       'name' => $venueData['name'],
@@ -160,6 +239,40 @@ class VenueManager {
     ]);
 
     return $venue;
+  }
+
+  /**
+   * Creates a stable lock name for concurrent submissions of the same venue.
+   */
+  private function creationLockName(array $venueData, array $locationData, int $ownerId): string {
+    $source_id = trim((string) ($venueData['enrichment_source_id'] ?? ''));
+    $identity = $source_id !== ''
+      ? 'source:' . $source_id
+      : implode('|', [
+        $this->normalizeIdentity((string) ($venueData['name'] ?? '')),
+        $this->normalizeIdentity((string) ($locationData['address_text'] ?? '')),
+      ]);
+    return 'myeventlane_venue:create:' . hash('sha256', $ownerId . '|' . $identity);
+  }
+
+  /**
+   * Normalises submitted text for the short-lived creation lock.
+   */
+  private function normalizeIdentity(string $value): string {
+    $value = mb_strtolower(trim($value));
+    $value = preg_replace('/[^\pL\pN]+/u', ' ', $value) ?? '';
+    return trim((string) preg_replace('/\s+/u', ' ', $value));
+  }
+
+  /**
+   * Returns a valid submitted coordinate.
+   */
+  private function coordinate(mixed $value, float $minimum, float $maximum): ?float {
+    if (!is_numeric($value)) {
+      return NULL;
+    }
+    $coordinate = (float) $value;
+    return $coordinate >= $minimum && $coordinate <= $maximum ? $coordinate : NULL;
   }
 
   /**

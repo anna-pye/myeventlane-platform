@@ -17,6 +17,10 @@ function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
     'myeventlane_venue_vendor_list' => [
       'variables' => [
         'venues' => [],
+        'owned_venues' => [],
+        'shared_venues' => [],
+        'owned_count' => 0,
+        'shared_count' => 0,
         'add_url' => NULL,
       ],
       'template' => 'myeventlane-venue-vendor-list',

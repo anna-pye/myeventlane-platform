@@ -80,4 +80,72 @@ final class VenueCandidateScorerTest extends TestCase {
     self::assertLessThan(35, $score);
   }
 
+  /**
+   * Tests that formatting differences do not bypass exact duplicate checks.
+   */
+  public function testDuplicateRequiresSameNormalisedNameAndAddress(): void {
+    self::assertTrue($this->scorer->isDuplicate(
+      'The Workers’ Club',
+      '51 Brunswick Street, Fitzroy VIC 3065',
+      NULL,
+      NULL,
+      [
+        'name' => 'THE WORKERS CLUB!',
+        'address' => '51 Brunswick Street — Fitzroy, VIC 3065',
+      ],
+    ));
+  }
+
+  /**
+   * Tests that branches with the same name remain valid distinct venues.
+   */
+  public function testSameNameAtDifferentAddressIsNotDuplicate(): void {
+    self::assertFalse($this->scorer->isDuplicate(
+      'Community Hall',
+      '1 High Street, Carlton VIC 3053',
+      NULL,
+      NULL,
+      [
+        'name' => 'Community Hall',
+        'address' => '99 Beach Road, St Kilda VIC 3182',
+      ],
+    ));
+  }
+
+  /**
+   * Tests that provider coordinates catch minor address-format differences.
+   */
+  public function testSameNameWithinSeventyFiveMetresIsDuplicate(): void {
+    self::assertTrue($this->scorer->isDuplicate(
+      'Abbotsford Convent',
+      '1 St Heliers St, Abbotsford',
+      -37.8024,
+      145.0034,
+      [
+        'name' => 'Abbotsford Convent',
+        'address' => '1 Saint Heliers Street, Abbotsford VIC 3067',
+        'latitude' => -37.80241,
+        'longitude' => 145.00339,
+      ],
+    ));
+  }
+
+  /**
+   * Tests that co-located organisations are not merged by address alone.
+   */
+  public function testDifferentNameAtSameAddressIsNotDuplicate(): void {
+    self::assertFalse($this->scorer->isDuplicate(
+      'Gallery One',
+      '100 Arts Lane, Melbourne VIC 3000',
+      -37.8100,
+      144.9600,
+      [
+        'name' => 'Gallery Two',
+        'address' => '100 Arts Lane, Melbourne VIC 3000',
+        'latitude' => -37.8100,
+        'longitude' => 144.9600,
+      ],
+    ));
+  }
+
 }

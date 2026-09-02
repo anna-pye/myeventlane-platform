@@ -480,6 +480,39 @@
   text-overflow: ellipsis;
 }
 
+.mel-event-card__location--metadata {
+  position: relative;
+  margin-top: 2px;
+  padding-left: 1rem;
+  font-weight: 650;
+}
+
+.mel-event-card__location--metadata::before {
+  position: absolute;
+  top: 0.18em;
+  left: 0;
+  width: 0.72rem;
+  height: 0.9rem;
+  border: 1.5px solid currentcolor;
+  border-radius: 50% 50% 50% 0;
+  content: '';
+  opacity: 0.75;
+  transform: rotate(-45deg) scale(0.72);
+  transform-origin: center;
+}
+
+.mel-event-card__location--metadata::after {
+  position: absolute;
+  top: 0.48em;
+  left: 0.34rem;
+  width: 0.18rem;
+  height: 0.18rem;
+  border-radius: 50%;
+  background: currentcolor;
+  content: '';
+  opacity: 0.75;
+}
+
 .mel-event-card__location--empty {
   visibility: hidden;
 }
@@ -895,7 +928,8 @@
 
   .mel-event-card__snapshot,
   .mel-event-card__when,
-  .mel-event-card__date {
+  .mel-event-card__date,
+  .mel-event-card__location {
     color: rgba(255, 255, 255, 0.92);
     font-size: clamp(0.75rem, 1vw, 0.8125rem);
     font-weight: 600;
@@ -1400,6 +1434,7 @@
     .mel-event-card__snapshot,
     .mel-event-card__when,
     .mel-event-card__date,
+    .mel-event-card__location,
     .mel-event-card__social {
       color: rgba(255, 255, 255, 0.92);
     }

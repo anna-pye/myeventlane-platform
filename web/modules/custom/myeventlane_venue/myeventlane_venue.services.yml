@@ -19,9 +19,18 @@ services:
       - '@entity_type.manager'
       - '@myeventlane_venue.access_resolver'
       - '@logger.channel.myeventlane_venue'
+      - '@myeventlane_venue.duplicate_guard'
+      - '@lock'
 
   myeventlane_venue.candidate_scorer:
     class: Drupal\myeventlane_venue\Service\VenueCandidateScorer
+
+  myeventlane_venue.duplicate_guard:
+    class: Drupal\myeventlane_venue\Service\VenueDuplicateGuard
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_venue.access_resolver'
+      - '@myeventlane_venue.candidate_scorer'
 
   myeventlane_venue.overture_repository:
     class: Drupal\myeventlane_venue\Service\OverturePlaceRepository

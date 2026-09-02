@@ -3587,6 +3587,16 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
       $canonical = $event_node->toUrl('canonical');
       $variables['mel_event_card_url'] = $canonical->toString();
       $variables['mel_event_card_event_id'] = (int) $event_node->id();
+      $variables['mel_event_card_location'] = _myeventlane_theme_event_card_location_label($event_node);
+      if ($event_node->hasField('field_venue') && !$event_node->get('field_venue')->isEmpty()) {
+        $venue = $event_node->get('field_venue')->entity;
+        if ($venue instanceof FieldableEntityInterface) {
+          $variables['#cache']['tags'] = Cache::mergeTags(
+            (array) ($variables['#cache']['tags'] ?? []),
+            $venue->getCacheTags(),
+          );
+        }
+      }
       if ($view instanceof ViewExecutable && \Drupal::hasService('myeventlane_core.discovery_attribution_sources')) {
         /** @var \Drupal\myeventlane_core\Service\DiscoveryAttributionSources $attribution_sources */
         $attribution_sources = \Drupal::service('myeventlane_core.discovery_attribution_sources');

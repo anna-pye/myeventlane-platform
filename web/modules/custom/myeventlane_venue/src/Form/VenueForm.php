@@ -18,7 +18,9 @@ use Drupal\media\MediaInterface;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
 use Drupal\myeventlane_venue\Controller\VenueWebsiteMetadataController;
 use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Exception\DuplicateVenueException;
 use Drupal\myeventlane_venue\Service\OverturePlaceRepository;
+use Drupal\myeventlane_venue\Service\VenueDuplicateGuard;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\myeventlane_vendor\Service\OrganiserMediaAccess;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -34,6 +36,7 @@ class VenueForm extends ContentEntityForm {
     TimeInterface $time,
     protected OrganiserMediaAccess $organiserMediaAccess,
     protected VenueManager $venueManager,
+    protected VenueDuplicateGuard $duplicateGuard,
     protected OverturePlaceRepository $overtureRepository,
     protected LocationProviderManager $locationProviderManager,
     protected PrivateTempStoreFactory $tempStoreFactory,
@@ -53,6 +56,7 @@ class VenueForm extends ContentEntityForm {
       $container->get('datetime.time'),
       $container->get('myeventlane_vendor.organiser_media_access'),
       $container->get('myeventlane_venue.manager'),
+      $container->get('myeventlane_venue.duplicate_guard'),
       $container->get('myeventlane_venue.overture_repository'),
       $container->get('myeventlane_location.provider_manager'),
       $container->get('tempstore.private'),
@@ -253,6 +257,23 @@ class VenueForm extends ContentEntityForm {
     if ($source_id !== '' && $accepted_fields !== [] && $this->overtureRepository->load($source_id) === NULL) {
       $form_state->setErrorByName('overture_source_id', $this->t('Those venue suggestions are no longer available. Search again or enter the details manually.'));
     }
+    $address = $entity->hasField('primary_address')
+      ? trim((string) $entity->get('primary_address')->value)
+      : '';
+    $duplicate = $this->duplicateGuard->findDuplicate(
+      $entity instanceof Venue ? $entity->getName() : '',
+      $address,
+      $this->coordinate($form_state->getValue('venue_lat'), -90.0, 90.0),
+      $this->coordinate($form_state->getValue('venue_lng'), -180.0, 180.0),
+      $entity->isNew() ? NULL : (int) $entity->id(),
+      $source_id,
+    );
+    if ($duplicate instanceof Venue) {
+      $form_state->setErrorByName('name', $this->t(
+        'This venue already exists as “@venue”. Use the existing venue instead of creating another.',
+        ['@venue' => $duplicate->getName()],
+      ));
+    }
     if (!$entity->hasField('image_media') || $entity->get('image_media')->isEmpty()) {
       return $entity;
     }
@@ -328,7 +349,42 @@ class VenueForm extends ContentEntityForm {
     assert($entity instanceof Venue);
     $this->applyEnrichmentProvenance($entity, $form_state);
     $this->applyWebsiteDescriptionProvenance($entity, $form_state);
-    $status = parent::save($form, $form_state);
+    if ($entity->isNew()) {
+      $address = trim((string) ($entity->get('primary_address')->value ?? ''));
+      try {
+        $status = $this->venueManager->guardVenueCreation(
+          [
+            'name' => $entity->getName(),
+            'enrichment_source_id' => (string) ($entity->get('enrichment_source_id')->value ?? ''),
+          ],
+          [
+            'address_text' => $address,
+            'lat' => $form_state->getValue('venue_lat'),
+            'lng' => $form_state->getValue('venue_lng'),
+          ],
+          (int) $entity->getOwnerId(),
+          fn (): int => parent::save($form, $form_state),
+        );
+      }
+      catch (DuplicateVenueException $e) {
+        $this->messenger()->addWarning($this->t(
+          'Venue “@venue” already exists. No duplicate was created.',
+          ['@venue' => $e->getDuplicateVenue()->getName()],
+        ));
+        $form_state->setRedirectUrl($this->getCancelUrl());
+        return SAVED_UPDATED;
+      }
+      catch (\RuntimeException) {
+        $this->messenger()->addError($this->t(
+          'This venue is already being created in another request. Wait a moment, then check your venue list.',
+        ));
+        $form_state->setRedirectUrl($this->getCancelUrl());
+        return SAVED_UPDATED;
+      }
+    }
+    else {
+      $status = parent::save($form, $form_state);
+    }
 
     $address = trim((string) ($entity->get('primary_address')->value ?? ''));
     $this->venueManager->syncPrimaryLocation(

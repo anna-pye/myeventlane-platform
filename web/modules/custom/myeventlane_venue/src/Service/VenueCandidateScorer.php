@@ -89,6 +89,60 @@ final class VenueCandidateScorer {
   }
 
   /**
+   * Determines whether submitted details identify the same physical venue.
+   *
+   * Matching is deliberately stricter than suggestion scoring. A common name
+   * alone must never block a legitimate venue at another address.
+   *
+   * @param string $name
+   *   Submitted venue name.
+   * @param string $address
+   *   Submitted venue address.
+   * @param float|null $latitude
+   *   Submitted latitude, when supplied by the map provider.
+   * @param float|null $longitude
+   *   Submitted longitude, when supplied by the map provider.
+   * @param array{name?: string, address?: string, latitude?: float|null, longitude?: float|null} $candidate
+   *   Existing venue data.
+   */
+  public function isDuplicate(
+    string $name,
+    string $address,
+    ?float $latitude,
+    ?float $longitude,
+    array $candidate,
+  ): bool {
+    $submitted_name = $this->normalize($name);
+    $candidate_name = $this->normalize((string) ($candidate['name'] ?? ''));
+    if ($submitted_name === '' || $submitted_name !== $candidate_name) {
+      return FALSE;
+    }
+
+    $submitted_address = $this->normalize($address);
+    $candidate_address = $this->normalize((string) ($candidate['address'] ?? ''));
+    if ($submitted_address !== '' && $submitted_address === $candidate_address) {
+      return TRUE;
+    }
+
+    $candidate_latitude = isset($candidate['latitude']) && is_numeric($candidate['latitude'])
+      ? (float) $candidate['latitude']
+      : NULL;
+    $candidate_longitude = isset($candidate['longitude']) && is_numeric($candidate['longitude'])
+      ? (float) $candidate['longitude']
+      : NULL;
+    if ($latitude === NULL || $longitude === NULL || $candidate_latitude === NULL || $candidate_longitude === NULL) {
+      return FALSE;
+    }
+
+    return $this->distanceMetres(
+      $latitude,
+      $longitude,
+      $candidate_latitude,
+      $candidate_longitude,
+    ) <= 75;
+  }
+
+  /**
    * Returns the great-circle distance in metres.
    */
   public function distanceMetres(float $lat1, float $lng1, float $lat2, float $lng2): float {
