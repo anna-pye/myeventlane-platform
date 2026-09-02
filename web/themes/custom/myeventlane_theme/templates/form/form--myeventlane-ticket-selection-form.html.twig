@@ -16,11 +16,6 @@
     {{ form.waitlist_offer_banner }}
     {{ form.sold_out }}
 
-    <div class="mel-booking__intro">
-      <h2>{{ 'Choose your tickets'|t }}</h2>
-      <p>{{ "Select how many tickets you'd like. You can review everything before checkout."|t }}</p>
-    </div>
-
     {% if form.bundles is defined %}
       {{ form.bundles }}
     {% endif %}

@@ -367,6 +367,9 @@
   function bindBookingFlow(flow, ticketForm, settings) {
     const fmt = getMoneyFormatter(settings.currencyCode, settings.locale);
     const targets = getTargets(flow);
+    const submitDisabledByServer =
+      (targets.submit instanceof HTMLButtonElement || targets.submit instanceof HTMLInputElement) &&
+      targets.submit.disabled;
     let announceTimer = null;
     let lastAnnounce = '';
 
@@ -470,6 +473,11 @@
 
       if (targets.submit) {
         targets.submit.classList.toggle('mel-booking-submit--soft-idle', !hasTickets);
+        if (targets.submit instanceof HTMLButtonElement || targets.submit instanceof HTMLInputElement) {
+          const shouldDisable = submitDisabledByServer || !hasTickets;
+          targets.submit.disabled = shouldDisable;
+          targets.submit.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+        }
       }
 
       rows.forEach((row) => {

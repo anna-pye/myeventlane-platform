@@ -41,7 +41,7 @@
                 {% if model.event.event_type_label|default('') is not empty %}
                   <span class="mel-live-ops__chip mel-live-ops__chip--calm">{{ model.event.event_type_label }}</span>
                 {% endif %}
-                <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% readiness'|t({'@pct': model.readiness.score|default(0)}) }}</span>
+                <span class="mel-live-ops__chip mel-live-ops__chip--info">{{ '@pct% event setup'|t({'@pct': model.readiness.score|default(0)}) }}</span>
               </div>
               <h1 id="mel-ws-event-title" class="mel-live-ops__hero-title">{{ model.event.title|default('') }}</h1>
               <p class="mel-live-ops__hero-venue">
@@ -63,7 +63,7 @@
                   <a class="mel-btn mel-btn--secondary" href="{{ model.actions.preview }}">{{ 'Preview public event'|t }}</a>
                 {% endif %}
                 {% if model.actions.advanced_tickets is not null %}
-                  <a class="mel-btn mel-btn--ghost" href="{{ model.actions.advanced_tickets }}">{{ 'Advanced ticket tools'|t }}</a>
+                  <a class="mel-btn mel-btn--ghost" href="{{ model.actions.advanced_tickets }}">{{ 'Ticket settings'|t }}</a>
                 {% endif %}
               </div>
             </div>

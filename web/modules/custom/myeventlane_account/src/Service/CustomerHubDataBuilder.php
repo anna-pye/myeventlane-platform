@@ -8,6 +8,7 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
 use Drupal\flag\FlaggingInterface;
@@ -28,6 +29,7 @@ final class CustomerHubDataBuilder {
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly MelReadinessHelper $readiness,
+    private readonly FileSystemInterface $fileSystem,
   ) {}
 
   /**
@@ -602,8 +604,12 @@ final class CustomerHubDataBuilder {
     if ($event->hasField('field_event_image') && !$event->get('field_event_image')->isEmpty()) {
       $file = $event->get('field_event_image')->entity;
       if ($file instanceof FileInterface && $file->getFileUri()) {
-        $style = $this->getEventImageStyle();
-        $imageUrl = $style ? $style->buildUrl($file->getFileUri()) : '';
+        $uri = $file->getFileUri();
+        $sourcePath = $this->fileSystem->realpath($uri);
+        if ($sourcePath !== FALSE && is_file($sourcePath)) {
+          $style = $this->getEventImageStyle();
+          $imageUrl = $style ? $style->buildUrl($uri) : '';
+        }
       }
     }
 

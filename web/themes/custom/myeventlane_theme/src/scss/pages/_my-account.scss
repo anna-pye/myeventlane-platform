@@ -70,10 +70,16 @@
   gap: spacing.mel-space(2);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(41, 50, 65, 0.28) transparent;
 
   &::-webkit-scrollbar {
-    display: none;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    border-radius: radii.$mel-radius-full;
+    background: rgba(41, 50, 65, 0.28);
   }
 
   @include breakpoints.mel-break(md) {
