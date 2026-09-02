@@ -158,7 +158,10 @@ final class EventStudioWorkspaceTestFactory {
     $tempStore->method('get')->willReturn(NULL);
     $tempStoreFactory->method('get')->willReturn($tempStore);
 
-    return new EventStudioAutosaveService($tempStoreFactory, new TestLoggerChannel());
+    /** @var \Drupal\Core\Entity\EntityTypeManagerInterface $entityTypeManager */
+    $entityTypeManager = $createMock(EntityTypeManagerInterface::class);
+
+    return new EventStudioAutosaveService($tempStoreFactory, new TestLoggerChannel(), $entityTypeManager);
   }
 
   /**
