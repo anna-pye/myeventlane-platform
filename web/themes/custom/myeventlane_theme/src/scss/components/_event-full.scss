@@ -1909,6 +1909,28 @@
   color: colors.$mel-color-text;
 }
 
+.mel-event-location__venue-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, currentcolor 45%, transparent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+
+  &:hover {
+    text-decoration-color: currentcolor;
+  }
+
+  &:focus-visible {
+    border-radius: 2px;
+    outline: 3px solid var(--mel-color-focus, currentColor);
+    outline-offset: 3px;
+  }
+}
+
+.mel-event-location__venue-link--hero {
+  width: fit-content;
+}
+
 .mel-event-location__address {
   margin-top: 2px;
   font-size: typography.mel-font-size(sm);

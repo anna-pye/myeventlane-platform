@@ -88,4 +88,27 @@ final class PublicEventBodyTemplateContractTest extends TestCase {
     self::assertStringContainsString('link.dataset.googleDirectionsUrl', $script);
   }
 
+  /**
+   * Ensures saved public venue names link to their canonical venue page.
+   */
+  public function testPublicSavedVenueNamesLinkToPublicVenuePage(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $theme = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/myeventlane_theme.theme',
+    );
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/node--event--full.html.twig',
+    );
+    $details = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/partial--event-full-view-details.html.twig',
+    );
+
+    self::assertStringContainsString("\$variables['mel_venue_url'] = NULL;", $theme);
+    self::assertStringContainsString("\$venue->get('visibility')->value === 'public'", $theme);
+    self::assertStringContainsString("\$venue->toUrl('canonical')->toString()", $theme);
+    self::assertSame(2, substr_count($template, 'href="{{ mel_venue_url }}"'));
+    self::assertSame(1, substr_count($details, 'href="{{ mel_venue_url }}"'));
+  }
+
 }

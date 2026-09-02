@@ -170,7 +170,11 @@
                     {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'map-pin', class: 'mel-event-hero__meta-svg mel-event-hero__meta-svg--location', size: 28 } only %}
                   </span>
                   <span class="mel-event-hero__meta-text">
-                    <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
+                    {% if mel_venue_url|default('') %}
+                      <a class="mel-event-hero__meta-primary mel-event-location__venue-link mel-event-location__venue-link--hero" href="{{ mel_venue_url }}">{{ _hero_venue_line }}</a>
+                    {% else %}
+                      <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
+                    {% endif %}
                   </span>
                 </li>
               {% endif %}
@@ -357,7 +361,13 @@
                 <div class="mel-info-row__label">{{ 'Location'|t }}</div>
                 <div class="mel-info-row__value mel-event-location">
                   {% if info_venue_line is not empty %}
-                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
+                    <div class="mel-event-location__venue">
+                      {% if mel_venue_url|default('') %}
+                        <a class="mel-event-location__venue-link" href="{{ mel_venue_url }}">{{ info_venue_line }}</a>
+                      {% else %}
+                        {{ info_venue_line }}
+                      {% endif %}
+                    </div>
                   {% endif %}
                   {% if info_address is not empty or has_field_location %}
                     <div class="mel-event-location__address">
