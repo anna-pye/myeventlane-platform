@@ -16,6 +16,7 @@
   {% set _url = mel_event_card_url|default('') %}
   {% if not _url %}
     {% set _url = fields.view_node.raw|default('') %}
+  {% endif %}
   {% if not _url %}
     {% set _link_html = fields.view_node.content|default('')|render|trim %}
     {% if 'href="' in _link_html %}
@@ -43,7 +44,7 @@
     date_day: fields.field_date_day.content|default('')|striptags|trim,
     date_month: fields.field_date_month.content|default('')|striptags|trim,
     date_full: fields.field_date.content|default('')|striptags|trim,
-    location: fields.field_location.content|default('')|striptags|trim,
+    location: mel_event_card_location|default(fields.field_location.content|default('')|striptags|trim),
     category: fields.field_category.content|default('')|striptags|trim,
     category_slug: fields.field_category_slug.content|default('')|striptags|trim,
     ticket_type: fields.field_ticket_type.content|default('rsvp')|striptags|trim,

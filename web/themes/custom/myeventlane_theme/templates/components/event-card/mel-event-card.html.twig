@@ -146,16 +146,19 @@
   {% set _display_signal = '' %}
 {% endif %}
 
+{% set _link_aria = _title %}
+{% if _loc %}
+  {% set _link_aria = _link_aria ~ ' — ' ~ _loc %}
+{% endif %}
 {% if _discovery_mode or _is_hero %}
-  {% set _link_aria = _title %}
   {% if _display_signal != '' %}
     {% set _link_aria = _link_aria ~ ' — ' ~ _display_signal %}
   {% endif %}
   {% if _cta|default('')|trim != '' %}
     {% set _link_aria = _link_aria ~ ' — ' ~ _cta %}
   {% endif %}
-{% else %}
-  {% set _link_aria = _title ~ ' — ' ~ _cta %}
+{% elseif _cta|default('')|trim != '' %}
+  {% set _link_aria = _link_aria ~ ' — ' ~ _cta %}
 {% endif %}
 
 {% set card_classes = ['mel-event-card', 'mel-event-card--' ~ _css_modifier] %}
@@ -285,6 +288,11 @@
             {% endif %}
           </p>
         {% endif %}
+        {% if _loc %}
+          <p class="mel-event-card__location mel-event-card__location--metadata mel-event-card__location--spotlight" title="{{ _loc|e('html_attr') }}">
+            <span class="mel-event-card__meta-text">{{ _loc }}</span>
+          </p>
+        {% endif %}
         {% if _display_signal %}
           <div class="mel-event-card__signal-row">
             <span class="mel-event-card__state-chip mel-event-card__state-chip--{{ _display_signal_mod|e('html_attr') }}" role="status">{{ _display_signal }}</span>
@@ -321,13 +329,13 @@
         {% endif %}
 
         {% if _is_poster %}
-          {% if _discovery_reason %}
-            <p class="mel-card-reason mel-card-reason--{{ _discovery_reason_type|e('html_attr') }}" role="status">{{ _discovery_reason }}</p>
-          {% endif %}
-          {% if mel_source|default('') == 'homepage_free' and _loc %}
-            <p class="mel-event-card__location mel-event-card__location--poster">
+          {% if _loc %}
+            <p class="mel-event-card__location mel-event-card__location--metadata mel-event-card__location--poster" title="{{ _loc|e('html_attr') }}">
               <span class="mel-event-card__meta-text">{{ _loc }}</span>
             </p>
+          {% endif %}
+          {% if _discovery_reason %}
+            <p class="mel-card-reason mel-card-reason--{{ _discovery_reason_type|e('html_attr') }}" role="status">{{ _discovery_reason }}</p>
           {% endif %}
           {% if _display_signal %}
             <div class="mel-event-card__signal-row">

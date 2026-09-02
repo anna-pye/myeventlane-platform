@@ -14,7 +14,9 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Url;
 use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Exception\DuplicateVenueException;
 use Drupal\myeventlane_venue\Service\OverturePlaceRepository;
+use Drupal\myeventlane_venue\Service\VenueDuplicateGuard;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\myeventlane_location\Service\LocationProviderManager;
 use Drupal\Component\Datetime\TimeInterface;
@@ -50,6 +52,7 @@ class VenueQuickCreateForm extends FormBase {
     protected OverturePlaceRepository $overtureRepository,
     protected TimeInterface $time,
     protected LocationProviderManager $locationProviderManager,
+    protected VenueDuplicateGuard $duplicateGuard,
   ) {
     $this->venueManager = $venue_manager;
     $this->setRequestStack($request_stack);
@@ -67,6 +70,7 @@ class VenueQuickCreateForm extends FormBase {
       $container->get('myeventlane_venue.overture_repository'),
       $container->get('datetime.time'),
       $container->get('myeventlane_location.provider_manager'),
+      $container->get('myeventlane_venue.duplicate_guard'),
     );
   }
 
@@ -310,6 +314,20 @@ class VenueQuickCreateForm extends FormBase {
     if ($source_id !== '' && $accepted_fields !== [] && $this->overtureRepository->load($source_id) === NULL) {
       $form_state->setErrorByName('overture_source_id', $this->t('Those venue suggestions are no longer available. Search again or enter the details manually.'));
     }
+    $duplicate = $this->duplicateGuard->findDuplicate(
+      $name,
+      $address,
+      $this->coordinate($form_state->getValue('lat'), -90.0, 90.0),
+      $this->coordinate($form_state->getValue('lng'), -180.0, 180.0),
+      NULL,
+      $source_id,
+    );
+    if ($duplicate instanceof Venue) {
+      $form_state->setErrorByName('name', $this->t(
+        'This venue already exists as “@venue”. Choose Use existing venue instead.',
+        ['@venue' => $duplicate->getName()],
+      ));
+    }
   }
 
   /**
@@ -441,6 +459,16 @@ class VenueQuickCreateForm extends FormBase {
         '@id' => $venue->id(),
         '@loc_id' => $locationId,
       ]);
+    }
+    catch (DuplicateVenueException $e) {
+      $duplicate = $e->getDuplicateVenue();
+      $response->addCommand(new MessageCommand(
+        $this->t('This venue already exists as “@venue”. Choose the existing venue instead.', [
+          '@venue' => $duplicate->getName(),
+        ]),
+        NULL,
+        ['type' => 'warning']
+      ));
     }
     catch (\Exception $e) {
       $this->logger->error('Quick-create venue failed: @message', [
@@ -620,6 +648,17 @@ class VenueQuickCreateForm extends FormBase {
     }
 
     return $addressData;
+  }
+
+  /**
+   * Returns a valid submitted coordinate.
+   */
+  private function coordinate(mixed $value, float $minimum, float $maximum): ?float {
+    if (!is_numeric($value)) {
+      return NULL;
+    }
+    $coordinate = (float) $value;
+    return $coordinate >= $minimum && $coordinate <= $maximum ? $coordinate : NULL;
   }
 
 }

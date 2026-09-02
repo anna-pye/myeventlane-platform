@@ -96,7 +96,7 @@ final class EventCardViewModel {
 
     $presentation = $this->resolvePresentation($viewMode);
     $image = $this->resolveCardImage($node, $viewMode, $cacheability);
-    $whereText = $this->locationLabel($node);
+    $whereText = $this->locationLabel($node, $cacheability);
 
     $displayPricing = is_array($context['mel_display_pricing'] ?? NULL)
       ? $context['mel_display_pricing']
@@ -408,10 +408,11 @@ final class EventCardViewModel {
     return $this->locationLabel($node);
   }
 
-  private function locationLabel(NodeInterface $node): ?string {
+  private function locationLabel(NodeInterface $node, ?CacheableMetadata $cacheability = NULL): ?string {
     if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
       $venue = $node->get('field_venue')->entity;
       if ($venue) {
+        $cacheability?->addCacheableDependency($venue);
         $name = trim((string) $venue->label());
         if ($name !== '') {
           return $name;
