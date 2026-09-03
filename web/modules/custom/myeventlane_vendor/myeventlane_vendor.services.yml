@@ -346,6 +346,7 @@ services:
       - '@entity_field.manager'
       - '@date.formatter'
       - '@datetime.time'
+      - '@myeventlane_core.event_datetime'
       - '@string_translation'
       - '@logger.factory'
       - '@myeventlane_surface.state_readiness_helper'

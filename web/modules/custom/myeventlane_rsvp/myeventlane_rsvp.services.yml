@@ -46,7 +46,7 @@ services:
 
   myeventlane_rsvp.ics_generator:
     class: Drupal\myeventlane_rsvp\Service\IcsGenerator
-    arguments: ['@logger.channel.myeventlane_rsvp']
+    arguments: ['@logger.channel.myeventlane_rsvp', '@myeventlane_core.event_datetime']
 
   myeventlane_rsvp.capacity:
     class: Drupal\myeventlane_rsvp\Service\RsvpCapacityService
@@ -54,7 +54,7 @@ services:
 
   myeventlane_rsvp.calendar_buttons:
     class: Drupal\myeventlane_rsvp\Service\CalendarButtonBuilder
-    arguments: ['@renderer', '@url_generator']
+    arguments: ['@myeventlane_core.event_datetime']
 
   myeventlane_rsvp.storage:
     class: Drupal\myeventlane_rsvp\Service\RsvpStorage
@@ -110,4 +110,4 @@ services:
 
   myeventlane_rsvp.ics_bundle:
     class: Drupal\myeventlane_rsvp\Service\IcsBundleGenerator
-    arguments: ['@entity_type.manager']
+    arguments: ['@entity_type.manager', '@myeventlane_core.event_datetime']

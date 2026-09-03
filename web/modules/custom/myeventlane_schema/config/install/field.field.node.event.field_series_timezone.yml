@@ -8,8 +8,8 @@ id: node.event.field_series_timezone
 field_name: field_series_timezone
 entity_type: node
 bundle: event
-label: 'Series timezone'
-description: 'Timezone for RRULE interpretation (e.g. Australia/Sydney). Optional.'
+label: 'Event timezone'
+description: 'IANA timezone used for event times, reminders, calendars, and recurrence rules.'
 required: false
 translatable: false
 default_value: {  }

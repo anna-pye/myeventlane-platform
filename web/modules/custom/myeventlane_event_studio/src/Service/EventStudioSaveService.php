@@ -270,6 +270,21 @@ final class EventStudioSaveService {
     if ($node->hasField('field_event_end') && !empty($payload['field_event_end'])) {
       $node->set('field_event_end', [['value' => (string) $payload['field_event_end']]]);
     }
+    if ($node->hasField('field_series_timezone') && array_key_exists('field_series_timezone', $payload)) {
+      $timezone = trim((string) $payload['field_series_timezone']);
+      try {
+        if ($timezone !== '') {
+          new \DateTimeZone($timezone);
+          $node->set('field_series_timezone', $timezone);
+        }
+      }
+      catch (\Exception) {
+        $this->logger->warning('Studio save: invalid event timezone "@timezone" ignored for event @nid.', [
+          '@timezone' => $timezone,
+          '@nid' => (string) ($node->id() ?? 'new'),
+        ]);
+      }
+    }
 
     $this->applySalesWindowPayload($node, $payload);
     $this->applyAgeRefundPolicyPayload($node, $payload);

@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event\EventCard\EventCardViewModel;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
@@ -25,6 +26,7 @@ final class EventStudioWorkspacePresentation {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
     private readonly EventCardViewModel $eventCardViewModel,
+    private readonly EventDateTimeResolver $eventDateTime,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -447,11 +449,11 @@ final class EventStudioWorkspacePresentation {
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
       return '';
     }
-    $timestamp = $this->eventWallTimeTimestamp($node, 'field_event_start');
+    $timestamp = $this->eventDateTime->getFieldTimestamp($node, 'field_event_start');
     if ($timestamp === NULL) {
       return '';
     }
-    return $this->dateFormatter->format($timestamp, 'medium', '', 'UTC');
+    return $this->dateFormatter->format($timestamp, 'medium', '', $this->eventDateTime->getTimezoneId($node));
   }
 
   /**
@@ -488,18 +490,8 @@ final class EventStudioWorkspacePresentation {
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_end') || $node->get('field_event_end')->isEmpty()) {
       return FALSE;
     }
-    $timestamp = $this->eventWallTimeTimestamp($node, 'field_event_end');
+    $timestamp = $this->eventDateTime->getFieldTimestamp($node, 'field_event_end');
     return $timestamp !== NULL && $timestamp < time();
-  }
-
-  /**
-   * Parses the current MEL wall-time storage convention without a second offset.
-   */
-  private function eventWallTimeTimestamp(NodeInterface $node, string $fieldName): ?int {
-    $values = $node->get($fieldName)->getValue();
-    $value = trim((string) ($values[0]['value'] ?? ''));
-    $timestamp = $value !== '' ? strtotime($value . ' UTC') : FALSE;
-    return $timestamp !== FALSE ? (int) $timestamp : NULL;
   }
 
   /**

@@ -17,6 +17,7 @@ use Drupal\Component\Datetime\TimeInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 use Drupal\node\NodeInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
@@ -39,6 +40,7 @@ final class VendorEventWorkspaceViewModelBuilder {
     private readonly EntityFieldManagerInterface $entityFieldManager,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly TimeInterface $time,
+    private readonly EventDateTimeResolver $eventDateTime,
     TranslationInterface $string_translation,
     private readonly LoggerChannelFactoryInterface $loggerFactory,
     private readonly MelReadinessHelper $readinessHelper,
@@ -101,7 +103,7 @@ final class VendorEventWorkspaceViewModelBuilder {
 
     $startTs = $this->getDateFieldTimestamp($event, 'field_event_start');
     $dateLabel = $startTs > 0
-      ? $this->dateFormatter->format($startTs, 'medium', '', 'UTC')
+      ? $this->dateFormatter->format($startTs, 'medium', '', $this->eventDateTime->getTimezoneId($event))
       : '';
 
     $salesSummary = [];
@@ -522,15 +524,7 @@ final class VendorEventWorkspaceViewModelBuilder {
   }
 
   private function getDateFieldTimestamp(NodeInterface $node, string $field): int {
-    if (!$node->hasField($field) || $node->get($field)->isEmpty()) {
-      return 0;
-    }
-    // Existing MEL event values are stored as organiser-entered wall time.
-    // Parse the raw value in UTC so DateFormatter does not apply a second
-    // Australia/Sydney offset on workspace screens.
-    $value = trim((string) $node->get($field)->value);
-    $timestamp = $value !== '' ? strtotime($value . ' UTC') : FALSE;
-    return $timestamp !== FALSE ? (int) $timestamp : 0;
+    return $this->eventDateTime->getFieldTimestamp($node, $field) ?? 0;
   }
 
   /**

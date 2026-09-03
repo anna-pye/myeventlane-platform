@@ -84,6 +84,11 @@ services:
       - '@date.formatter'
       - '@language_manager'
 
+  myeventlane_core.event_datetime:
+    class: Drupal\myeventlane_core\Service\EventDateTimeResolver
+    arguments:
+      - '@config.factory'
+
   myeventlane_core.stripe:
     class: Drupal\myeventlane_core\Service\StripeService
     arguments:

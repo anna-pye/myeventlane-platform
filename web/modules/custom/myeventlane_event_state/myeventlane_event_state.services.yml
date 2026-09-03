@@ -1,4 +1,4 @@
 services:
   myeventlane_event_state.resolver:
     class: Drupal\myeventlane_event_state\Service\EventStateResolver
-    arguments: ['@datetime.time', '@entity_type.manager', '@cache.default', '@?myeventlane_capacity.service']
+    arguments: ['@datetime.time', '@entity_type.manager', '@cache.default', '@myeventlane_core.event_datetime', '@?myeventlane_capacity.service']

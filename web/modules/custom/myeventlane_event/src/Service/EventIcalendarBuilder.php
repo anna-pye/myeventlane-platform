@@ -4,15 +4,18 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\Service;
 
-use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Component\Utility\Unicode;
-use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\node\NodeInterface;
 
 /**
  * Builds RFC 5545 iCalendar payloads for published event nodes.
  */
 final class EventIcalendarBuilder {
+
+  public function __construct(
+    private readonly EventDateTimeResolver $eventDateTime,
+  ) {}
 
   /**
    * Builds VCALENDAR text for downloading, or NULL if no usable start date.
@@ -89,6 +92,9 @@ final class EventIcalendarBuilder {
     return Unicode::truncate($base, 60, TRUE, '') . '.ics';
   }
 
+  /**
+   * Resolves the best available plain-text event description.
+   */
   private function resolveDescriptionBody(NodeInterface $node): string {
     if ($node->hasField('field_event_summary') && !$node->get('field_event_summary')->isEmpty()) {
       $item = $node->get('field_event_summary')->first();
@@ -117,6 +123,9 @@ final class EventIcalendarBuilder {
     return '';
   }
 
+  /**
+   * Resolves a human-readable event location.
+   */
   private function resolveLocationLine(NodeInterface $node): string {
     $parts = [];
     if ($node->hasField('field_venue_name') && !$node->get('field_venue_name')->isEmpty()) {
@@ -137,32 +146,13 @@ final class EventIcalendarBuilder {
     return implode(', ', array_values(array_unique(array_filter($parts, static fn(string $p): bool => $p !== ''))));
   }
 
+  /**
+   * Resolves an event datetime field and converts it to UTC.
+   */
   private function getUtcFromDatetimeField(NodeInterface $node, string $field_name): ?\DateTimeImmutable {
-    if (!$node->hasField($field_name) || $node->get($field_name)->isEmpty()) {
-      return NULL;
-    }
-    $value = trim((string) $node->get($field_name)->value);
-    if ($value === '') {
-      return NULL;
-    }
-
-    $parsed = DrupalDateTime::createFromFormat(
-      DateTimeItemInterface::DATETIME_STORAGE_FORMAT,
-      $value,
-      DateTimeItemInterface::STORAGE_TIMEZONE,
-    );
-    if (!$parsed instanceof DrupalDateTime) {
-      return NULL;
-    }
-
-    try {
-      $immutable = \DateTimeImmutable::createFromInterface($parsed);
-    }
-    catch (\Throwable) {
-      return NULL;
-    }
-
-    return $immutable->setTimezone(new \DateTimeZone('UTC'));
+    return $this->eventDateTime
+      ->getFieldDateTime($node, $field_name)
+      ?->setTimezone(new \DateTimeZone('UTC'));
   }
 
   /**
@@ -172,6 +162,9 @@ final class EventIcalendarBuilder {
     return str_replace(["\\", "\r\n", "\n", "\r", ';', ','], ["\\\\", '\n', '\n', '\n', '\\;', '\\,'], trim($text));
   }
 
+  /**
+   * Escapes an iCalendar structured value.
+   */
   private function escapeStructuredValue(string $value): string {
     return str_replace(["\\", ',', ';'], ['\\\\', '\\,', '\\;'], trim($value));
   }

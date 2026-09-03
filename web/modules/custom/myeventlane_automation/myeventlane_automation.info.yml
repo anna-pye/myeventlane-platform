@@ -5,6 +5,7 @@ core_version_requirement: ^11
 package: 'MyEventLane'
 
 dependencies:
+  - myeventlane_core:myeventlane_core
   - myeventlane_messaging
   - myeventlane_event_state
   - myeventlane_attendee

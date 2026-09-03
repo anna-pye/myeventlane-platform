@@ -1873,10 +1873,15 @@ function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
     return $links;
   }
 
+  /** @var \Drupal\myeventlane_core\Service\EventDateTimeResolver $event_datetime */
+  $event_datetime = \Drupal::service('myeventlane_core.event_datetime');
   $title = rawurlencode($event->label());
-  $start = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_start')->value));
+  $start = $event_datetime->formatFieldForIcalendar($event, 'field_event_start');
+  if ($start === NULL) {
+    return $links;
+  }
   $end = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-    ? gmdate('Ymd\THis\Z', strtotime($event->get('field_event_end')->value))
+    ? ($event_datetime->formatFieldForIcalendar($event, 'field_event_end') ?? $start)
     : $start;
 
   $details = '';
@@ -1901,9 +1906,16 @@ function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
   $links['google'] = "https://calendar.google.com/calendar/render?action=TEMPLATE" .
     "&text=$title&dates={$start}/{$end}&details=$details&location=$location";
 
-  $start_outlook = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_start')->value));
+  $start_outlook = $event_datetime->getFieldDateTime($event, 'field_event_start')
+    ?->setTimezone(new \DateTimeZone('UTC'))
+    ?->format('Y-m-d\TH:i:s\Z');
+  if ($start_outlook === NULL) {
+    return $links;
+  }
   $end_outlook = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-    ? gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_end')->value))
+    ? ($event_datetime->getFieldDateTime($event, 'field_event_end')
+      ?->setTimezone(new \DateTimeZone('UTC'))
+      ?->format('Y-m-d\TH:i:s\Z') ?? $start_outlook)
     : $start_outlook;
   $links['outlook'] = "https://outlook.live.com/calendar/0/deeplink/compose?subject={$title}&startdt={$start_outlook}&enddt={$end_outlook}";
 

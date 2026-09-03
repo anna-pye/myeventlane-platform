@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_refunds\Service;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\node\NodeInterface;
 
 /**
@@ -21,7 +22,7 @@ final class BuyerRefundEligibilityService {
    *
    * Maps policy key to days before event start when refund window closes.
    * NULL means no fixed window (e.g. case-by-case; request always allowed).
-   * Supports both myeventlane_schema keys (7_days, 1_day) and legacy keys (refund_7d, refund_24h).
+   * Supports both schema keys (7_days, 1_day) and legacy refund keys.
    */
   private const POLICY_DAYS = [
     '1_day' => 1,
@@ -38,10 +39,15 @@ final class BuyerRefundEligibilityService {
    *
    * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
    *   The order inspector.
+   * @param \Drupal\Component\Datetime\TimeInterface $time
+   *   The request time service.
+   * @param \Drupal\myeventlane_core\Service\EventDateTimeResolver $eventDateTime
+   *   Resolves event wall-clock values in each event's timezone.
    */
   public function __construct(
     private readonly RefundOrderInspector $orderInspector,
     private readonly TimeInterface $time,
+    private readonly EventDateTimeResolver $eventDateTime,
   ) {}
 
   /**
@@ -162,8 +168,8 @@ final class BuyerRefundEligibilityService {
   /**
    * Checks if the current time is within the refund window.
    *
-   * Window closes N days before event start (start of that day, UTC).
-   * For case_by_case (NULL days), there is no cutoff — request is always allowed.
+   * Window closes exactly N days before the event's local start time.
+   * A case_by_case policy has no cutoff, so a request is always allowed.
    */
   private function withinRefundWindow(NodeInterface $event): bool {
     if (!$event->hasField('field_refund_policy') || $event->get('field_refund_policy')->isEmpty()) {
@@ -178,24 +184,17 @@ final class BuyerRefundEligibilityService {
       return array_key_exists($policy, self::POLICY_DAYS);
     }
 
-    if (!$event->hasField('field_event_start') || $event->get('field_event_start')->isEmpty()) {
+    if (!$event->hasField('field_event_start')
+      || $event->get('field_event_start')->isEmpty()) {
       return FALSE;
     }
 
-    try {
-      $eventStart = $event->get('field_event_start')->date;
-      if (!$eventStart) {
-        return FALSE;
-      }
-      $eventStartUtc = clone $eventStart;
-      $eventStartUtc->setTimezone(new \DateTimeZone('UTC'));
-      $cutoffDate = clone $eventStartUtc;
-      $cutoffDate->modify('-' . $days . ' days');
-      $cutoffDate->setTime(0, 0, 0);
-    }
-    catch (\Exception $e) {
+    $eventStart = $this->eventDateTime
+      ->getFieldDateTime($event, 'field_event_start');
+    if ($eventStart === NULL) {
       return FALSE;
     }
+    $cutoffDate = $eventStart->modify('-' . $days . ' days');
 
     return $this->time->getRequestTime() < $cutoffDate->getTimestamp();
   }

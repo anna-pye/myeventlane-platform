@@ -13,13 +13,17 @@ use PHPUnit\Framework\TestCase;
  */
 final class EventWorkspaceDatePresentationContractTest extends TestCase {
 
-  public function testWorkspaceDoesNotApplyASecondTimezoneOffset(): void {
+  /**
+   * Ensures workspace dates use the event timezone only once.
+   */
+  public function testWorkspaceDateUsesOneOffset(): void {
     $source = (string) file_get_contents(
       dirname(__DIR__, 3) . '/src/Service/VendorEventWorkspaceViewModelBuilder.php',
     );
 
-    self::assertStringContainsString("strtotime(\$value . ' UTC')", $source);
-    self::assertStringContainsString("->format(\$startTs, 'medium', '', 'UTC')", $source);
+    self::assertStringContainsString('eventDateTime->getFieldTimestamp', $source);
+    self::assertStringContainsString('eventDateTime->getTimezoneId', $source);
+    self::assertStringNotContainsString("strtotime(\$value . ' UTC')", $source);
     self::assertStringNotContainsString("\$item->date->getTimestamp()", $source);
   }
 

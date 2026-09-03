@@ -6,6 +6,8 @@ namespace Drupal\Tests\myeventlane_boost\Unit;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Cache\CacheBackendInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -18,6 +20,7 @@ use Drupal\myeventlane_boost\Service\BoostEntitlementManager;
 use Drupal\myeventlane_boost\Service\BoostMetricsService;
 use Drupal\myeventlane_boost\Service\BoostPerformanceLevelService;
 use Drupal\myeventlane_boost\Service\BoostTrendIntelligenceService;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\myeventlane_vendor\Service\BoostStatusService;
 use Drupal\node\NodeInterface;
@@ -69,10 +72,15 @@ final class BoostExtensionRecommendationServiceTest extends UnitTestCase {
 
     $cache = $this->createMock(CacheBackendInterface::class);
     $cache->method('get')->willReturn(FALSE);
+    $systemDate = $this->createMock(ImmutableConfig::class);
+    $systemDate->method('get')->with('timezone.default')->willReturn('Australia/Sydney');
+    $configFactory = $this->createMock(ConfigFactoryInterface::class);
+    $configFactory->method('get')->with('system.date')->willReturn($systemDate);
     $eventStateResolver = new EventStateResolver(
       $this->time,
       $this->entityTypeManager,
       $cache,
+      new EventDateTimeResolver($configFactory),
       NULL,
     );
 
@@ -376,11 +384,19 @@ final class BoostExtensionRecommendationServiceTest extends UnitTestCase {
       }
     };
 
-    return new class($date) {
-      public function __construct(public object $date) {}
+    $value = (new \DateTimeImmutable('@' . $timestamp))
+      ->setTimezone(new \DateTimeZone('Australia/Sydney'))
+      ->format('Y-m-d\TH:i:s');
+
+    return new class($date, $value) {
+      public function __construct(public object $date, public string $value) {}
 
       public function isEmpty(): bool {
         return FALSE;
+      }
+
+      public function getValue(): array {
+        return [['value' => $this->value]];
       }
     };
   }
