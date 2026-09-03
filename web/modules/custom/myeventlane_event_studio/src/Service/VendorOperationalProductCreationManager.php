@@ -609,6 +609,7 @@ final class VendorOperationalProductCreationManager {
         }
         $variation = ProductVariation::create([
           'type' => $variation_type,
+          'product_id' => $product->id(),
           'sku' => $this->sanitizePlainText($sku, 128),
           'title' => $title . ' — ' . $this->sanitizePlainText($option_label, 128),
           'status' => !empty($row['published']) ? 1 : 0,
@@ -635,6 +636,7 @@ final class VendorOperationalProductCreationManager {
         $label = OperationalExtraVisualPresenter::SIZE_LABELS[$size_key] ?? strtoupper($size_key);
         $variation = ProductVariation::create([
           'type' => $variation_type,
+          'product_id' => $product->id(),
           'sku' => $this->sanitizePlainText($sku_base . '-' . $size_key, 128),
           'title' => $title . ' — ' . $label,
           'status' => 1,
@@ -652,6 +654,7 @@ final class VendorOperationalProductCreationManager {
 
     $variation = ProductVariation::create([
       'type' => $variation_type,
+      'product_id' => $product->id(),
       'sku' => $sku_base,
       'title' => $title,
       'status' => 1,
@@ -1084,7 +1087,12 @@ final class VendorOperationalProductCreationManager {
         $variation->setTitle($variation_title);
         $variation->setSku($this->sanitizePlainText($sku, 128));
         $variation->setPrice($row_price);
-        $variation->setPublished($published);
+        if ($published) {
+          $variation->setPublished();
+        }
+        else {
+          $variation->setUnpublished();
+        }
         $this->applySizeFieldFromOptionLabel($variation, $option_label);
         $this->stockResolver->applyStockFields($variation, [
           'stock_quantity' => $row['stock_quantity'] ?? NULL,
@@ -1098,6 +1106,7 @@ final class VendorOperationalProductCreationManager {
 
       $variation = ProductVariation::create([
         'type' => $variation_type,
+        'product_id' => $product->id(),
         'sku' => $this->sanitizePlainText($sku, 128),
         'title' => $variation_title,
         'status' => $published ? 1 : 0,
@@ -1116,7 +1125,7 @@ final class VendorOperationalProductCreationManager {
 
     foreach ($existing_by_id as $vid => $orphan) {
       if (!isset($kept_ids[$vid]) && $orphan->isPublished()) {
-        $orphan->setPublished(FALSE);
+        $orphan->setUnpublished();
         $orphan->save();
         $this->logger->notice('Unpublished event extra variation @vid (option removed from editor).', [
           '@vid' => (string) $vid,
@@ -1202,6 +1211,22 @@ final class VendorOperationalProductCreationManager {
   }
 
   /**
+   * Whether a row is the temporary single-option starting point.
+   *
+   * It may be replaced when the organiser starts configuring real options.
+   * Deliberately named options are never treated as placeholders.
+   *
+   * @param array<string, mixed> $row
+   */
+  public function isPlaceholderProductOptionRow(array $row): bool {
+    if (!empty($row['remove'])) {
+      return FALSE;
+    }
+    $label = strtolower(trim((string) ($row['option_label'] ?? '')));
+    return in_array($label, ['', 'one option', 'option 1'], TRUE);
+  }
+
+  /**
    * @return list<array<string, mixed>>
    */
   public function buildProductOptionsFromProduct(ProductInterface $product): array {
@@ -1227,7 +1252,7 @@ final class VendorOperationalProductCreationManager {
         'remove' => FALSE,
       ];
     }
-    return $options;
+    return $this->removeRedundantPlaceholderProductOptions($options);
   }
 
   /**
@@ -1391,7 +1416,12 @@ final class VendorOperationalProductCreationManager {
       $status = $this->resolveShowOnBooking($input) ? 'active' : 'hidden';
     }
     $published = $status === 'active' && $this->resolveShowOnBooking($input);
-    $product->setPublished($published);
+    if ($published) {
+      $product->setPublished();
+    }
+    else {
+      $product->setUnpublished();
+    }
   }
 
   /**
@@ -1614,7 +1644,35 @@ final class VendorOperationalProductCreationManager {
         'remove' => FALSE,
       ];
     }
-    return $out;
+    return $this->removeRedundantPlaceholderProductOptions($out);
+  }
+
+  /**
+   * Removes the generated single-option placeholder once real options exist.
+   *
+   * Explicit removal rows remain so an existing variation can still be
+   * unpublished during synchronization.
+   *
+   * @param list<array<string, mixed>> $options
+   *
+   * @return list<array<string, mixed>>
+   */
+  public function removeRedundantPlaceholderProductOptions(array $options): array {
+    $has_real_option = FALSE;
+    foreach ($options as $row) {
+      if (empty($row['remove']) && !$this->isPlaceholderProductOptionRow($row)) {
+        $has_real_option = TRUE;
+        break;
+      }
+    }
+    if (!$has_real_option) {
+      return array_values($options);
+    }
+
+    return array_values(array_filter(
+      $options,
+      fn (array $row): bool => !empty($row['remove']) || !$this->isPlaceholderProductOptionRow($row),
+    ));
   }
 
   /**
