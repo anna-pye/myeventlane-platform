@@ -25,6 +25,25 @@ final class BookingPagePresentationContractTest extends TestCase {
     self::assertStringContainsString("targets.submit.setAttribute('aria-disabled'", $script);
   }
 
+  public function testTicketQuantityHasAccessibleStepControls(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $script = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/js/mel-booking-summary.js',
+    );
+    $styles = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/src/scss/components/_booking-page.scss',
+    );
+
+    self::assertStringContainsString("decrease.type = 'button';", $script);
+    self::assertStringContainsString("increase.type = 'button';", $script);
+    self::assertStringContainsString("Drupal.t('Decrease quantity for @ticket'", $script);
+    self::assertStringContainsString("Drupal.t('Increase quantity for @ticket'", $script);
+    self::assertStringContainsString("input.dispatchEvent(new Event('change', { bubbles: true }))", $script);
+    self::assertStringContainsString('.mel-ticket-quantity-control {', $styles);
+    self::assertStringContainsString('grid-template-columns: 44px minmax(3rem, 1fr) 44px;', $styles);
+  }
+
   public function testBookingPageDoesNotRepeatTicketSelectionInstructions(): void {
     $moduleRoot = dirname(__DIR__, 3);
     $webRoot = dirname($moduleRoot, 3);

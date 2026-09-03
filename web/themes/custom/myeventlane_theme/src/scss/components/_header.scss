@@ -677,8 +677,8 @@ header:has(~ .mel-nav-toggle-checkbox:checked) .mel-nav-mobile-wrapper,
   }
 
   @include breakpoints.mel-break(md, max) {
-    right: auto;
-    left: 0;
+    right: 0;
+    left: auto;
   }
   
   // Show when parent has hover or focus (CSS-only)

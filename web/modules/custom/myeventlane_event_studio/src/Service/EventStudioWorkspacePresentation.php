@@ -447,11 +447,11 @@ final class EventStudioWorkspacePresentation {
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
       return '';
     }
-    $item = $node->get('field_event_start')->first();
-    if ($item === NULL || !isset($item->date) || !$item->date) {
+    $timestamp = $this->eventWallTimeTimestamp($node, 'field_event_start');
+    if ($timestamp === NULL) {
       return '';
     }
-    return $this->dateFormatter->format((int) $item->date->getTimestamp(), 'medium');
+    return $this->dateFormatter->format($timestamp, 'medium', '', 'UTC');
   }
 
   /**
@@ -488,11 +488,18 @@ final class EventStudioWorkspacePresentation {
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_end') || $node->get('field_event_end')->isEmpty()) {
       return FALSE;
     }
-    $item = $node->get('field_event_end')->first();
-    if ($item === NULL || !isset($item->date) || !$item->date) {
-      return FALSE;
-    }
-    return (int) $item->date->getTimestamp() < time();
+    $timestamp = $this->eventWallTimeTimestamp($node, 'field_event_end');
+    return $timestamp !== NULL && $timestamp < time();
+  }
+
+  /**
+   * Parses the current MEL wall-time storage convention without a second offset.
+   */
+  private function eventWallTimeTimestamp(NodeInterface $node, string $fieldName): ?int {
+    $values = $node->get($fieldName)->getValue();
+    $value = trim((string) ($values[0]['value'] ?? ''));
+    $timestamp = $value !== '' ? strtotime($value . ' UTC') : FALSE;
+    return $timestamp !== FALSE ? (int) $timestamp : NULL;
   }
 
   /**

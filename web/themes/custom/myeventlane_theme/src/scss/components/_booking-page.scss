@@ -346,7 +346,7 @@ $mel-book-layout-min: 960px;
 
 .mel-book-page .mel-event-book__form-body .mel-ticket-row__meta .form-item {
   flex: 0 0 auto;
-  width: 8.75rem;
+  width: 9rem;
   max-width: 10rem;
   min-width: 7.5rem;
   margin: 0;
@@ -388,6 +388,70 @@ $mel-book-layout-min: 960px;
   border-color: colors.$mel-color-secondary;
   box-shadow: 0 0 0 3px rgba(124, 131, 253, 0.25);
   outline: none;
+}
+
+.mel-book-page .mel-ticket-quantity-control {
+  display: grid;
+  grid-template-columns: 44px minmax(3rem, 1fr) 44px;
+  width: 100%;
+  min-width: 9rem;
+  border: 2px solid rgba(36, 48, 58, 0.12);
+  border-radius: radii.$mel-radius-md;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(36, 48, 58, 0.06);
+  overflow: hidden;
+}
+
+.mel-book-page .mel-event-book__form-body .mel-ticket-quantity-control input[type='number'].mel-ticket-quantity {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 spacing.mel-space(1);
+  border: 0;
+  border-right: 1px solid rgba(36, 48, 58, 0.12);
+  border-left: 1px solid rgba(36, 48, 58, 0.12);
+  border-radius: 0;
+  box-shadow: none;
+  appearance: textfield;
+
+  &::-webkit-inner-spin-button,
+  &::-webkit-outer-spin-button {
+    margin: 0;
+    appearance: none;
+  }
+}
+
+.mel-book-page .mel-ticket-quantity-step {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: colors.$mel-color-surface-alt;
+  color: colors.$mel-color-text;
+  font: inherit;
+  font-size: typography.mel-font-size(lg);
+  font-weight: typography.$mel-font-bold;
+  cursor: pointer;
+
+  &:hover:not(:disabled) {
+    background: color-mix(in srgb, colors.$mel-color-secondary 12%, #fff);
+    color: colors.$mel-color-secondary;
+  }
+
+  &:focus-visible {
+    position: relative;
+    z-index: 1;
+
+    @include colors.mel-focus-ring;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.42;
+  }
 }
 
 // ---------------------------------------------------------------------------

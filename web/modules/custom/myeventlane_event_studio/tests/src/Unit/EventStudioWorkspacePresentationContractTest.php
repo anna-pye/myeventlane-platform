@@ -126,6 +126,8 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('data-mel-topbar-location', $topbar);
     $this->assertStringContainsString('buildTopbarLocation', $presentation);
     $this->assertStringContainsString('buildTopbarDateLabel', $presentation);
+    $this->assertStringContainsString("strtotime(\$value . ' UTC')", $presentation);
+    $this->assertStringContainsString("->format(\$timestamp, 'medium', '', 'UTC')", $presentation);
     $this->assertStringContainsString('buildTopbarVenueLabel', $presentation);
     $this->assertStringContainsString('buildTopbarStatus', $presentation);
     $this->assertStringContainsString('data-mel-hero-primary-key', $topbar);
@@ -147,6 +149,7 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $endField = $this->createMock(\Drupal\Core\Field\FieldItemListInterface::class);
     $endField->method('isEmpty')->willReturn(FALSE);
     $endField->method('first')->willReturn($endItem);
+    $endField->method('getValue')->willReturn([['value' => '2020-01-01T12:00:00']]);
     $past->method('get')->willReturnCallback(static function (string $field) use ($endField) {
       return $field === 'field_event_end' ? $endField : NULL;
     });
