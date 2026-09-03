@@ -14,7 +14,5 @@ required: false
 translatable: false
 default_value: {  }
 default_value_callback: ''
-settings:
-  size: 60
-  placeholder: ''
+settings: {  }
 field_type: string
