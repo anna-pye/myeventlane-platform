@@ -701,12 +701,19 @@ final class EventStudioEventExtrasForm extends FormBase {
       'sku' => $pricing['sku'] ?? '',
     ];
     $rows = [];
-    if (!$replace && is_array($editor['product_options']['rows'] ?? NULL)) {
+    $submitted_rows = [];
+    if (is_array($editor['product_options']['rows'] ?? NULL)) {
       foreach ($editor['product_options']['rows'] as $row) {
         if (is_array($row)) {
-          $rows[] = $row;
+          $submitted_rows[] = $row;
         }
       }
+    }
+    $replace_placeholder = !$replace
+      && count($submitted_rows) === 1
+      && $this->productCreationManager->isPlaceholderProductOptionRow($submitted_rows[0]);
+    if (!$replace && !$replace_placeholder) {
+      $rows = $submitted_rows;
     }
     if ($labels === []) {
       $rows[] = $this->productCreationManager->emptyProductOptionRow($defaults);

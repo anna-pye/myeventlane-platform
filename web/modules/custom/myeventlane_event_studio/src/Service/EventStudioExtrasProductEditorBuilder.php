@@ -774,13 +774,13 @@ final class EventStudioExtrasProductEditorBuilder {
         'heading' => [
           '#type' => 'html_tag',
           '#tag' => 'h3',
-          '#value' => $this->t('Default pricing and SKU'),
+          '#value' => $this->t('Defaults for new options'),
           '#attributes' => ['class' => ['mel-es-card__title']],
         ],
-        'helper' => $this->sectionHelper((string) $this->t('Used for new options. You can adjust each option below.')),
+        'helper' => $this->sectionHelper((string) $this->t('These values start each new option. They do not create another option.')),
         'price_amount' => [
           '#type' => 'number',
-          '#title' => $this->t('Price'),
+          '#title' => $this->t('Default price'),
           '#default_value' => $defaults['price_amount'] ?? '',
           '#required' => TRUE,
           '#min' => 0,
@@ -789,9 +789,10 @@ final class EventStudioExtrasProductEditorBuilder {
         ],
         'sku' => [
           '#type' => 'textfield',
-          '#title' => $this->t('SKU'),
+          '#title' => $this->t('Base SKU (optional)'),
           '#default_value' => (string) ($defaults['sku'] ?? ''),
           '#maxlength' => 128,
+          '#description' => $this->t('MyEventLane adds the option label to make a unique SKU, such as TSHIRT-S or TSHIRT-XL.'),
         ],
       ],
     ];
@@ -809,6 +810,8 @@ final class EventStudioExtrasProductEditorBuilder {
     FormStateInterface $form_state,
   ): array {
     $rows = $this->resolveProductOptionRows($form_state, $defaults);
+    $has_placeholder = count($rows) === 1
+      && $this->productCreationManager->isPlaceholderProductOptionRow($rows[0]);
 
     $section = [
       'product_options' => [
@@ -817,6 +820,9 @@ final class EventStudioExtrasProductEditorBuilder {
         '#attributes' => ['class' => ['mel-event-product-editor__product-options']],
         'helper' => $this->sectionHelper((string) $this->t('Each option is something customers can buy. Add sizes, colours, parking passes, meal packages, or VIP upgrades as separate options.')),
         'colour_note' => $this->sectionHelper((string) $this->t('Colour can go in the option label for now (e.g. “Black / S”). A guided colour builder is coming later.')),
+        'placeholder_note' => $has_placeholder
+          ? $this->sectionHelper((string) $this->t('“One option” is only a starting placeholder. Choosing a preset or adding your first option replaces it.'))
+          : [],
         'presets' => [
           '#type' => 'container',
           '#attributes' => ['class' => ['mel-event-product-editor__option-presets']],
@@ -869,7 +875,7 @@ final class EventStudioExtrasProductEditorBuilder {
         ],
         'add_option' => [
           '#type' => 'submit',
-          '#value' => $this->t('Add option'),
+          '#value' => $has_placeholder ? $this->t('Add your first option') : $this->t('Add another option'),
           '#submit' => ['::submitAddProductOption'],
           '#limit_validation_errors' => [],
           '#attributes' => ['class' => ['mel-btn', 'mel-btn--secondary', 'mel-event-product-editor__add-option']],

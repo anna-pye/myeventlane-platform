@@ -230,6 +230,63 @@ final class EventStudioExtrasProductEditorTest extends TestCase {
     $this->assertSame(5, $rows[0]['stock_quantity']);
   }
 
+  public function testNewOptionsAreAssignedToProductBeforeCommerceStockSave(): void {
+    $manager = file_get_contents(dirname(__DIR__, 3) . '/src/Service/VendorOperationalProductCreationManager.php');
+    $this->assertIsString($manager);
+    $this->assertSame(
+      4,
+      substr_count($manager, "'product_id' => \$product->id(),"),
+      'Every operational variation create path must expose the parent store before Commerce Stock writes its transaction.',
+    );
+  }
+
+  public function testSingleDefaultOptionIsOnlyAReplaceablePlaceholder(): void {
+    $manager = $this->createPartialManager();
+    $this->assertTrue($manager->isPlaceholderProductOptionRow(['option_label' => 'One option']));
+    $this->assertTrue($manager->isPlaceholderProductOptionRow(['option_label' => 'Option 1']));
+    $this->assertTrue($manager->isPlaceholderProductOptionRow(['option_label' => '']));
+    $this->assertFalse($manager->isPlaceholderProductOptionRow(['option_label' => 'S']));
+    $this->assertFalse($manager->isPlaceholderProductOptionRow(['option_label' => 'One option', 'remove' => TRUE]));
+  }
+
+  public function testPlaceholderIsRemovedWhenRealOptionsExist(): void {
+    $manager = $this->createPartialManager();
+    $rows = $manager->removeRedundantPlaceholderProductOptions([
+      ['variation_id' => 1, 'option_label' => 'One option'],
+      ['variation_id' => 2, 'option_label' => 'S'],
+      ['variation_id' => 3, 'option_label' => 'M'],
+      ['variation_id' => 4, 'option_label' => 'L'],
+      ['variation_id' => 5, 'option_label' => 'XL'],
+    ]);
+    $this->assertSame(['S', 'M', 'L', 'XL'], array_column($rows, 'option_label'));
+
+    $single = $manager->removeRedundantPlaceholderProductOptions([
+      ['variation_id' => 1, 'option_label' => 'One option'],
+    ]);
+    $this->assertSame(['One option'], array_column($single, 'option_label'));
+  }
+
+  public function testProductOptionUiExplainsAndReplacesThePlaceholder(): void {
+    $builder = file_get_contents(dirname(__DIR__, 3) . '/src/Service/EventStudioExtrasProductEditorBuilder.php');
+    $form = file_get_contents(dirname(__DIR__, 3) . '/src/Form/EventStudioEventExtrasForm.php');
+    $this->assertIsString($builder);
+    $this->assertIsString($form);
+    $this->assertStringContainsString('Defaults for new options', $builder);
+    $this->assertStringContainsString('They do not create another option.', $builder);
+    $this->assertStringContainsString('“One option” is only a starting placeholder.', $builder);
+    $this->assertStringContainsString('Add your first option', $builder);
+    $this->assertStringContainsString('$replace_placeholder', $form);
+    $this->assertStringContainsString('isPlaceholderProductOptionRow($submitted_rows[0])', $form);
+  }
+
+  public function testUnpublishedOptionsUseDrupalUnpublishApi(): void {
+    $manager = file_get_contents(dirname(__DIR__, 3) . '/src/Service/VendorOperationalProductCreationManager.php');
+    $this->assertIsString($manager);
+    $this->assertStringNotContainsString('setPublished($published)', $manager);
+    $this->assertStringNotContainsString('setPublished(FALSE)', $manager);
+    $this->assertGreaterThanOrEqual(2, substr_count($manager, 'setUnpublished()'));
+  }
+
   private function createPartialManager(): VendorOperationalProductCreationManager {
     $ref = new \ReflectionClass(VendorOperationalProductCreationManager::class);
     /** @var VendorOperationalProductCreationManager $manager */
