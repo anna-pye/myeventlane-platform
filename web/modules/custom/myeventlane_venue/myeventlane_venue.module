@@ -14,6 +14,13 @@ use Drupal\Core\Url;
  */
 function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
   return [
+    'myeventlane_venue_public_directory' => [
+      'variables' => [
+        'venues' => [],
+        'pager' => NULL,
+      ],
+      'template' => 'myeventlane-venue-public-directory',
+    ],
     'myeventlane_venue_vendor_list' => [
       'variables' => [
         'venues' => [],

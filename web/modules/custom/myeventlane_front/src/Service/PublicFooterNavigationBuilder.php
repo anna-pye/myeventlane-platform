@@ -43,6 +43,7 @@ final class PublicFooterNavigationBuilder {
   public function buildSections(): array {
     $discover_links = array_values(array_filter([
       $this->routeLink('All events', 'view.upcoming_events.page_events'),
+      $this->routeLink('Venues', 'myeventlane_venue.public_directory'),
       $this->routeLink('Today', 'view.upcoming_events.page_today'),
       $this->routeLink('This weekend', 'view.upcoming_events.page_this_weekend'),
       $this->routeLink('Free events', 'view.upcoming_events.page_free'),
