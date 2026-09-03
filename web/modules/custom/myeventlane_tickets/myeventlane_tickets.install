@@ -663,3 +663,20 @@ function myeventlane_tickets_update_8014(): string {
 
   return sprintf('Preserved %d existing ticket group(s) as booking-page sections.', $backfilled);
 }
+
+/**
+ * Adds the stored Preparing state and fulfilment audit actions.
+ */
+function myeventlane_tickets_update_8016(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+
+  $ticket_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_ticket');
+  $ticket_fields = Ticket::baseFieldDefinitions($ticket_type);
+  $manager->updateFieldStorageDefinition($ticket_fields['fulfilment_status']);
+
+  $log_type = \Drupal::entityTypeManager()->getDefinition('mel_redemption_log');
+  $log_fields = \Drupal\myeventlane_tickets\Entity\RedemptionLog::baseFieldDefinitions($log_type);
+  $manager->updateFieldStorageDefinition($log_fields['action_type']);
+
+  return 'Added Preparing fulfilment state and organiser fulfilment audit actions.';
+}

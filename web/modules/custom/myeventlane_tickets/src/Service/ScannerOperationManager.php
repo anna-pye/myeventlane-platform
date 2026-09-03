@@ -179,8 +179,17 @@ final class ScannerOperationManager {
     }
 
     if (!$this->capabilityManager->canBeScanned($ticket)) {
-      $result_token = $this->capabilityManager->isExpired($ticket) ? 'expired' : 'redemption_limit_reached';
-      $message = $result_token === 'expired' ? 'Entitlement has expired.' : 'Redemption limit has already been reached.';
+      $not_ready = $this->capabilityManager->isMerchPickup($ticket)
+        && $ticket->getFulfilmentStatus() !== Ticket::FULFILMENT_READY
+        && !in_array($ticket->getFulfilmentStatus(), [Ticket::FULFILMENT_COLLECTED, Ticket::FULFILMENT_REDEEMED], TRUE);
+      $result_token = $not_ready
+        ? 'not_ready'
+        : ($this->capabilityManager->isExpired($ticket) ? 'expired' : 'redemption_limit_reached');
+      $message = match ($result_token) {
+        'not_ready' => 'This extra is not ready to collect yet.',
+        'expired' => 'Entitlement has expired.',
+        default => 'Redemption limit has already been reached.',
+      };
       $result = $this->result(FALSE, $result_token, $message, (string) $ticket->get('ticket_code')->value, 0, (int) $ticket->id());
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
       $this->logRedemptionAudit(

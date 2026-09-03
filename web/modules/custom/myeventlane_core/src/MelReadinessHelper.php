@@ -966,6 +966,10 @@ final class MelReadinessHelper {
       'cancelled' => $this->customerHubBookingStatusLabel('cancelled'),
       'payment_pending' => $this->customerHubBookingStatusLabel('payment_pending'),
       'ticket_ready' => $this->customerHubBookingStatusLabel('ticket_ready'),
+      'awaiting_preparation' => (string) $this->t('Order received'),
+      'preparing' => (string) $this->t('Preparing'),
+      'ready_to_collect' => (string) $this->t('Ready to collect'),
+      'collected' => (string) $this->t('Collected'),
       default => $this->customerHubBookingStatusLabel('confirmed'),
     };
   }
@@ -979,6 +983,10 @@ final class MelReadinessHelper {
       'cancelled' => (string) $this->t('This ticket is no longer valid.'),
       'expired' => (string) $this->t('This ticket has expired.'),
       'payment_pending' => (string) $this->t('We will show your entry pass when payment is confirmed.'),
+      'awaiting_preparation' => (string) $this->t('The organiser has your order. We will update this pass when it is being prepared.'),
+      'preparing' => (string) $this->t('The organiser is preparing your extra.'),
+      'ready_to_collect' => (string) $this->t('Show this QR code at the collection point.'),
+      'collected' => (string) $this->t('This extra has been collected.'),
       default => (string) $this->t('Show this QR code at entry when you arrive.'),
     };
   }

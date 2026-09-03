@@ -450,6 +450,7 @@ services:
       - '@messenger'
       - '@myeventlane_commerce.vendor_operational_addon_order_builder'
       - '@myeventlane_vendor.service.event_tabs'
+      - '@myeventlane_tickets.operational_entitlement_fulfilment'
     tags:
       - { name: controller.service_arguments }
 

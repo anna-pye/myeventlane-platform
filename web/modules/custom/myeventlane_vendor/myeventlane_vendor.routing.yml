@@ -489,6 +489,40 @@ myeventlane_vendor.console.event_operational_addon_orders:
         bundle:
           - event
 
+myeventlane_vendor.console.event_operational_addon_transition:
+  path: '/vendor/events/{event}/addons/{ticket}/{target}'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\OperationalEntitlementTransitionForm'
+    _title: 'Update extra'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: '\d+'
+    ticket: '\d+'
+    target: 'preparing|ready|collected'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+      ticket:
+        type: entity:myeventlane_ticket
+
+myeventlane_vendor.console.event_operational_addon_recovery:
+  path: '/vendor/events/{event}/addons/manual-recovery'
+  defaults:
+    _form: '\Drupal\myeventlane_tickets\Form\OperationalEntitlementRecoveryForm'
+    _title: 'Manual collection recovery'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+    event: '\d+'
+  options:
+    parameters:
+      event:
+        type: entity:node
+        bundle:
+          - event
+
 myeventlane_vendor.console.event_order_view:
   path: '/vendor/events/{event}/orders/{order}'
   defaults:

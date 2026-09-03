@@ -55,10 +55,31 @@ services:
       '@myeventlane_commerce.ticket_backed_order_item_classifier',
     ]
 
+  myeventlane_tickets.operational_entitlement_issuer:
+    class: Drupal\myeventlane_tickets\Ticket\OperationalEntitlementIssuer
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_tickets.ticket_code_generator'
+      - '@logger.factory'
+      - '@lock'
+      - '@myeventlane_commerce.operational_merchandise_manager'
+
+  myeventlane_tickets.operational_entitlement_fulfilment:
+    class: Drupal\myeventlane_tickets\Service\OperationalEntitlementFulfilmentManager
+    arguments:
+      - '@entity_type.manager'
+      - '@lock'
+      - '@database'
+      - '@current_user'
+      - '@request_stack'
+      - '@datetime.time'
+      - '@logger.channel.myeventlane_tickets'
+
   myeventlane_tickets.order_paid_subscriber:
     class: Drupal\myeventlane_tickets\EventSubscriber\OrderPaidSubscriber
     arguments:
       - '@myeventlane_tickets.ticket_issuer'
+      - '@myeventlane_tickets.operational_entitlement_issuer'
     tags:
       - { name: event_subscriber }
 
