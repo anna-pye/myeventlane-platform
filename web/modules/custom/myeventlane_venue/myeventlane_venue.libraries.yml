@@ -40,7 +40,7 @@ venue_wizard:
     - core/once
     - core/drupal.ajax
     - core/drupal.dialog.ajax
-    - myeventlane_location/mel_location
+    - myeventlane_location/address_autocomplete
 
 venue_page:
   version: VERSION

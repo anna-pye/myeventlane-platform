@@ -56,7 +56,7 @@ final class LocationProviderManager {
    */
   public function getDefaultProvider(): string {
     $config = $this->configFactory->get('myeventlane_location.settings');
-    return $config->get('default_provider') ?? 'google_maps';
+    return $config->get('default_provider') ?? 'apple_maps';
   }
 
   /**
@@ -138,9 +138,7 @@ final class LocationProviderManager {
         return !empty($this->getGoogleMapsApiKey());
 
       case 'apple_maps':
-        return !empty($this->getAppleMapsTeamId())
-          && !empty($this->getAppleMapsKeyId())
-          && !empty($this->getAppleMapsPrivateKey());
+        return $this->tokenGenerator->isConfigured();
 
       default:
         return FALSE;
