@@ -12,6 +12,12 @@ vendor_venues:
     - core/jquery
     - myeventlane_location/mel_location
 
+public_venues:
+  version: VERSION
+  css:
+    theme:
+      css/public-venues.css: {}
+
 quick_create:
   version: VERSION
   css:

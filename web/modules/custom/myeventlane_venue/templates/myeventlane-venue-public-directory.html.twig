@@ -1,0 +1,84 @@
+{#
+/**
+ * @file
+ * Public directory of venues deliberately marked Public.
+ */
+#}
+<div class="mel-public-venues">
+  <header class="mel-public-venues__hero" aria-labelledby="mel-public-venues-title">
+    <p class="mel-public-venues__eyebrow">{{ 'Discover places'|t }}</p>
+    <h1 id="mel-public-venues-title">{{ 'Venues'|t }}</h1>
+    <p>{{ 'Explore public venues where communities gather, celebrate and create memorable events.'|t }}</p>
+  </header>
+
+  {% if venues is not empty %}
+    <div class="mel-public-venues__grid" role="list" aria-label="{{ 'Public venues'|t }}">
+      {% for venue in venues %}
+        <article class="mel-public-venue-card" role="listitem">
+          <a href="{{ venue.url }}" class="mel-public-venue-card__link" aria-label="{{ 'Explore @venue'|t({'@venue': venue.name}) }}">
+            <div class="mel-public-venue-card__media">
+              {% if venue.image_url %}
+                <img
+                  src="{{ venue.image_url }}"
+                  alt="{{ venue.image_alt }}"
+                  loading="lazy"
+                  decoding="async">
+              {% else %}
+                <div class="mel-public-venue-card__placeholder" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+                    <circle cx="12" cy="10" r="2.5"/>
+                  </svg>
+                </div>
+              {% endif %}
+              <span class="mel-public-venue-card__type">{{ 'Venue'|t }}</span>
+            </div>
+
+            <div class="mel-public-venue-card__body">
+              <h2>{{ venue.name }}</h2>
+
+              {% if venue.address %}
+                <p class="mel-public-venue-card__address">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                    <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+                    <circle cx="12" cy="10" r="2.5"/>
+                  </svg>
+                  <span>{{ venue.address }}</span>
+                </p>
+              {% endif %}
+
+              {% if venue.summary %}
+                <p class="mel-public-venue-card__summary">{{ venue.summary }}</p>
+              {% endif %}
+
+              <span class="mel-public-venue-card__cta" aria-hidden="true">
+                {{ 'Explore venue'|t }}
+                <span>→</span>
+              </span>
+            </div>
+          </a>
+        </article>
+      {% endfor %}
+    </div>
+
+    {% if pager %}
+      <div class="mel-public-venues__pager">
+        {{ pager }}
+      </div>
+    {% endif %}
+  {% else %}
+    <section class="mel-public-venues__empty">
+      <div class="mel-public-venues__empty-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+          <circle cx="12" cy="10" r="2.5"/>
+        </svg>
+      </div>
+      <h2>{{ 'More venues are coming'|t }}</h2>
+      <p>{{ 'Public venues will appear here as organisers add them.'|t }}</p>
+      <a href="{{ path('view.upcoming_events.page_events') }}" class="mel-btn mel-btn--primary">
+        {{ 'Browse events'|t }}
+      </a>
+    </section>
+  {% endif %}
+</div>

@@ -81,9 +81,9 @@ class VenueAccessControlHandler extends EntityAccessControlHandler {
         ->addCacheableDependency($venue);
     }
 
-    // Public venues are viewable by authenticated users with permission.
+    // Public-directory venues are deliberately viewable by everyone.
     if ($venue->isPublic()) {
-      return AccessResult::allowedIfHasPermission($account, 'access vendor venues')
+      return AccessResult::allowed()
         ->addCacheableDependency($venue);
     }
 

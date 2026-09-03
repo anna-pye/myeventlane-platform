@@ -100,6 +100,15 @@ entity.myeventlane_venue_issue.collection:
 # Public venue routes
 # ==============================================================================
 
+# Public venue directory.
+myeventlane_venue.public_directory:
+  path: '/venues'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\PublicVenuesController::listing'
+    _title: 'Venues'
+  requirements:
+    _access: 'TRUE'
+
 # Public venue page (canonical).
 entity.myeventlane_venue.canonical:
   path: '/venues/{myeventlane_venue}'

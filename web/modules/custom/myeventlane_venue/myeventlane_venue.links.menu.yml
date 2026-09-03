@@ -1,5 +1,12 @@
 # Menu links for MyEventLane Venues module.
 
+myeventlane_venue.public_directory:
+  title: 'Venues'
+  description: 'Browse public venues.'
+  route_name: myeventlane_venue.public_directory
+  menu_name: main
+  weight: 5
+
 myeventlane_venue.admin:
   title: 'Venues'
   description: 'Manage venues and venue settings.'
