@@ -16,6 +16,7 @@ use Drupal\Core\Url;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\myeventlane_core\MelReadinessHelper;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_questions\Entity\VendorQuestionInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
@@ -94,6 +95,8 @@ final class EventStudioForm extends FormBase {
 
   protected EventStudioAiAssistBuilder $aiAssistBuilder;
 
+  protected EventDateTimeResolver $eventDateTime;
+
   /**
    * Lazily restored for cached form AJAX (see {@see getMelPlatformSupportWizardForm()}).
    *
@@ -130,6 +133,7 @@ final class EventStudioForm extends FormBase {
     $instance->eventStudioGovernanceComponentBuilder = $container->get('myeventlane_event_studio.governance_component_builder');
     $instance->readinessHelper = $container->get('myeventlane_surface.state_readiness_helper');
     $instance->aiAssistBuilder = $container->get('myeventlane_event_studio.ai_assist_builder');
+    $instance->eventDateTime = $container->get('myeventlane_core.event_datetime');
     return $instance;
   }
 
@@ -142,6 +146,22 @@ final class EventStudioForm extends FormBase {
   }
 
   /**
+   * Organiser-facing Australian timezone choices.
+   *
+   * @return array<string, \Drupal\Core\StringTranslation\TranslatableMarkup>
+   */
+  private function eventTimezoneOptions(): array {
+    $options = [];
+    foreach (EventDateTimeResolver::AUSTRALIAN_TIMEZONES as $timezone => $region) {
+      $options[$timezone] = $this->t('@region — @timezone', [
+        '@region' => $region,
+        '@timezone' => $timezone,
+      ]);
+    }
+    return $options;
+  }
+
+  /**
    * Ensures services are present after form cache unserialization.
    *
    * Cached form state restores the form object via serialize/unserialize.
@@ -149,7 +169,7 @@ final class EventStudioForm extends FormBase {
    * subclass properties can still be uninitialized on some paths; repull then.
    */
   private function ensureInjectedServices(): void {
-    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventHighlightsFormBuilder, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper, $this->aiAssistBuilder)
+    if (isset($this->entityTypeManager, $this->entityFieldManager, $this->formBuilder, $this->saveService, $this->currentUser, $this->eventHighlightHelper, $this->eventHighlightsFormBuilder, $this->ticketTypeManager, $this->ticketTierLifecycle, $this->eventTicketReconciliation, $this->logger, $this->melPayloadService, $this->entityAutocompleteMelNormalizer, $this->publishRequirementsGate, $this->bookingFlowResolver, $this->eventStudioGovernanceBuilder, $this->eventStudioGovernanceComponentBuilder, $this->readinessHelper, $this->aiAssistBuilder, $this->eventDateTime)
       && isset($this->melPlatformSupportWizardForm)) {
       return;
     }
@@ -216,6 +236,9 @@ final class EventStudioForm extends FormBase {
     }
     if (!isset($this->aiAssistBuilder)) {
       $this->aiAssistBuilder = $container->get('myeventlane_event_studio.ai_assist_builder');
+    }
+    if (!isset($this->eventDateTime)) {
+      $this->eventDateTime = $container->get('myeventlane_core.event_datetime');
     }
   }
 
@@ -681,6 +704,16 @@ final class EventStudioForm extends FormBase {
         ? new DrupalDateTime($event->get('field_event_end')->value)
         : NULL,
       '#date_increment' => 15,
+      '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_series_timezone'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Event timezone'),
+      '#description' => $this->t('Choose where the event takes place. MEL applies the correct daylight-saving rules for that location.'),
+      '#options' => $this->eventTimezoneOptions(),
+      '#default_value' => $this->eventDateTime->getTimezoneId($event),
+      '#required' => TRUE,
       '#attributes' => ['class' => ['mel-input']],
     ];
 

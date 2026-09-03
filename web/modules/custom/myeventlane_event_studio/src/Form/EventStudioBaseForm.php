@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
 use Drupal\myeventlane_event_studio\Service\EntityAutocompleteMelNormalizer;
 use Drupal\myeventlane_event_studio\Service\EventStudioAiAssistBuilder;
@@ -43,6 +44,7 @@ abstract class EventStudioBaseForm extends FormBase {
     protected EventStudioAutosaveService $autosaveService,
     protected EventStudioAiAssistBuilder $aiAssistBuilder,
     protected EventHighlightsFormBuilder $eventHighlightsFormBuilder,
+    protected EventDateTimeResolver $eventDateTime,
     RequestStack $request_stack,
     protected LoggerInterface $logger,
     protected ?LocationProviderManager $eventStudioLocationProvider = NULL,
@@ -66,6 +68,7 @@ abstract class EventStudioBaseForm extends FormBase {
       $container->get('myeventlane_event_studio.autosave'),
       $container->get('myeventlane_event_studio.ai_assist_builder'),
       $container->get('myeventlane_event_studio.highlights_form_builder'),
+      $container->get('myeventlane_core.event_datetime'),
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_event_studio'),
       $container->has('myeventlane_location.provider_manager')
@@ -102,6 +105,7 @@ abstract class EventStudioBaseForm extends FormBase {
       $this->autosaveService,
       $this->aiAssistBuilder,
       $this->eventHighlightsFormBuilder,
+      $this->eventDateTime,
       $this->requestStack,
       $this->logger,
     )) {
@@ -141,6 +145,9 @@ abstract class EventStudioBaseForm extends FormBase {
     if (!isset($this->eventHighlightsFormBuilder)) {
       $this->eventHighlightsFormBuilder = $container->get('myeventlane_event_studio.highlights_form_builder');
     }
+    if (!isset($this->eventDateTime)) {
+      $this->eventDateTime = $container->get('myeventlane_core.event_datetime');
+    }
     if (!isset($this->requestStack)) {
       $this->requestStack = $container->get('request_stack');
     }
@@ -150,6 +157,22 @@ abstract class EventStudioBaseForm extends FormBase {
     if (!isset($this->eventStudioLocationProvider) && $container->has('myeventlane_location.provider_manager')) {
       $this->eventStudioLocationProvider = $container->get('myeventlane_location.provider_manager');
     }
+  }
+
+  /**
+   * Organiser-facing Australian timezone choices.
+   *
+   * @return array<string, \Drupal\Core\StringTranslation\TranslatableMarkup>
+   */
+  protected function eventTimezoneOptions(): array {
+    $options = [];
+    foreach (EventDateTimeResolver::AUSTRALIAN_TIMEZONES as $timezone => $region) {
+      $options[$timezone] = $this->t('@region — @timezone', [
+        '@region' => $region,
+        '@timezone' => $timezone,
+      ]);
+    }
+    return $options;
   }
 
   /**

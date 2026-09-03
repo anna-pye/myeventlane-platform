@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_api\Service;
 
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_core\Service\EventStateResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\myeventlane_metrics\Service\EventMetricsServiceInterface;
@@ -22,6 +23,7 @@ final class EventSerializer {
     private readonly EventStateResolverInterface $eventStateResolver,
     private readonly EventStateResolver $eventDomainStateResolver,
     private readonly EventMetricsServiceInterface $eventMetricsService,
+    private readonly EventDateTimeResolver $eventDateTime,
   ) {}
 
   /**
@@ -131,10 +133,10 @@ final class EventSerializer {
         ? strip_tags($event->get('body')->value ?? '')
         : NULL,
       'start' => $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()
-        ? date('c', strtotime($event->get('field_event_start')->value))
+        ? $this->eventDateTime->getFieldDateTime($event, 'field_event_start')?->format(\DateTimeInterface::ATOM)
         : NULL,
       'end' => $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-        ? date('c', strtotime($event->get('field_event_end')->value))
+        ? $this->eventDateTime->getFieldDateTime($event, 'field_event_end')?->format(\DateTimeInterface::ATOM)
         : NULL,
       'location' => $location,
       'categories' => $categories,
@@ -181,9 +183,9 @@ final class EventSerializer {
     // Google Calendar URL.
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
       $title = rawurlencode($event->label());
-      $start = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_start')->value));
+      $start = $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_start') ?? '';
       $end = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-        ? gmdate('Ymd\THis\Z', strtotime($event->get('field_event_end')->value))
+        ? ($this->eventDateTime->formatFieldForIcalendar($event, 'field_event_end') ?? $start)
         : $start;
 
       $details = '';
@@ -209,9 +211,9 @@ final class EventSerializer {
         "&text=$title&dates={$start}/{$end}&details=$details&location=$location";
 
       // Outlook Calendar URL.
-      $start_outlook = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_start')->value));
+      $start_outlook = $this->formatOutlookDate($event, 'field_event_start') ?? '';
       $end_outlook = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-        ? gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_end')->value))
+        ? ($this->formatOutlookDate($event, 'field_event_end') ?? $start_outlook)
         : $start_outlook;
 
       $links['outlook'] = "https://outlook.live.com/calendar/0/deeplink/compose?subject={$title}&startdt={$start_outlook}&enddt={$end_outlook}";
@@ -221,6 +223,16 @@ final class EventSerializer {
     }
 
     return $links;
+  }
+
+  /**
+   * Formats an event field as an Outlook-compatible UTC value.
+   */
+  private function formatOutlookDate(NodeInterface $event, string $fieldName): ?string {
+    return $this->eventDateTime
+      ->getFieldDateTime($event, $fieldName)
+      ?->setTimezone(new \DateTimeZone('UTC'))
+      ?->format('Y-m-d\TH:i:s\Z');
   }
 
 }

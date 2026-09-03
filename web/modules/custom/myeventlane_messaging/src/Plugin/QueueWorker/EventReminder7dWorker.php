@@ -263,14 +263,7 @@ final class EventReminder7dWorker extends QueueWorkerBase implements ContainerFa
     ];
 
     // Event date/time.
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $startDate = $event->get('field_event_start')->date;
-      if ($startDate) {
-        $context['event_start'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
-        $context['event_start_date'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y');
-        $context['event_start_time'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'g:ia T');
-      }
-    }
+    $this->scheduler->appendEventDateTimeContext($context, $event);
 
     // Event location.
     if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {

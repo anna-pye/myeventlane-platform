@@ -12,6 +12,7 @@ use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_vendor\Form\EventTicketManagerForm;
 use Drupal\node\NodeInterface;
 
@@ -31,6 +32,7 @@ final class EventStudioMelDefaultsProvider {
     private readonly FormBuilderInterface $formBuilder,
     private readonly AccountProxyInterface $currentUser,
     private readonly EventHighlightHelper $eventHighlightHelper,
+    private readonly EventDateTimeResolver $eventDateTime,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -389,6 +391,12 @@ final class EventStudioMelDefaultsProvider {
       '#type' => 'datetime',
       '#date_increment' => 15,
       '#default_value' => $end_default,
+    ];
+
+    $mel['field_series_timezone'] = [
+      '#type' => 'select',
+      '#options' => EventDateTimeResolver::AUSTRALIAN_TIMEZONES,
+      '#default_value' => $this->eventDateTime->getTimezoneId($event),
     ];
 
     $mel['field_sales_start'] = [

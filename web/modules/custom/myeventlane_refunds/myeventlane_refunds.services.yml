@@ -9,7 +9,7 @@ services:
 
   myeventlane_refunds.buyer_eligibility:
     class: Drupal\myeventlane_refunds\Service\BuyerRefundEligibilityService
-    arguments: ['@myeventlane_refunds.order_inspector', '@datetime.time']
+    arguments: ['@myeventlane_refunds.order_inspector', '@datetime.time', '@myeventlane_core.event_datetime']
 
   myeventlane_refunds.refund_request_storage:
     class: Drupal\myeventlane_refunds\Service\RefundRequestStorage

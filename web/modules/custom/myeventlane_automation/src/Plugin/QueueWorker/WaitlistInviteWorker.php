@@ -9,6 +9,7 @@ use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
@@ -43,6 +44,7 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
     protected readonly TimeInterface $time,
     protected readonly ConfigFactoryInterface $configFactory,
     protected readonly DateFormatterInterface $dateFormatter,
+    protected readonly EventDateTimeResolver $eventDateTime,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $dispatchService, $auditLogger, $logger);
   }
@@ -64,6 +66,7 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
       $container->get('datetime.time'),
       $container->get('config.factory'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_core.event_datetime'),
     );
   }
 
@@ -140,11 +143,14 @@ final class WaitlistInviteWorker extends AutomationWorkerBase {
       'expires_at' => $this->dateFormatter->format($expiresAt, 'custom', 'g:ia T'),
     ];
 
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $startDate = $event->get('field_event_start')->date;
-      if ($startDate) {
-        $context['event_start'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
-      }
+    $startTimestamp = $this->eventDateTime->getFieldTimestamp($event, 'field_event_start');
+    if ($startTimestamp !== NULL) {
+      $context['event_start'] = $this->dateFormatter->format(
+        $startTimestamp,
+        'custom',
+        'F j, Y g:ia T',
+        $this->eventDateTime->getTimezoneId($event),
+      );
     }
 
     // Send email.

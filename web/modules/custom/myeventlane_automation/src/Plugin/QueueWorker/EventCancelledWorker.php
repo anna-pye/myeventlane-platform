@@ -6,6 +6,7 @@ namespace Drupal\myeventlane_automation\Plugin\QueueWorker;
 
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_automation\Service\AutomationDispatchService;
 use Drupal\myeventlane_automation\Service\AutomationAuditLogger;
 use Drupal\myeventlane_messaging\Service\MessagingManager;
@@ -38,6 +39,7 @@ final class EventCancelledWorker extends AutomationWorkerBase {
     protected readonly EntityTypeManagerInterface $entityTypeManager,
     protected readonly AttendeeRepositoryResolver $attendeeRepositoryResolver,
     protected readonly DateFormatterInterface $dateFormatter,
+    protected readonly EventDateTimeResolver $eventDateTime,
   ) {
     parent::__construct($configuration, $plugin_id, $plugin_definition, $dispatchService, $auditLogger, $logger);
   }
@@ -57,6 +59,7 @@ final class EventCancelledWorker extends AutomationWorkerBase {
       $container->get('entity_type.manager'),
       $container->get('myeventlane_attendee.repository_resolver'),
       $container->get('date.formatter'),
+      $container->get('myeventlane_core.event_datetime'),
     );
   }
 
@@ -94,11 +97,14 @@ final class EventCancelledWorker extends AutomationWorkerBase {
       'cancel_reason' => $cancelReason ?? 'This event has been cancelled.',
     ];
 
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $startDate = $event->get('field_event_start')->date;
-      if ($startDate) {
-        $context['event_start'] = $this->dateFormatter->format($startDate->getTimestamp(), 'custom', 'F j, Y g:ia T');
-      }
+    $startTimestamp = $this->eventDateTime->getFieldTimestamp($event, 'field_event_start');
+    if ($startTimestamp !== NULL) {
+      $context['event_start'] = $this->dateFormatter->format(
+        $startTimestamp,
+        'custom',
+        'F j, Y g:ia T',
+        $this->eventDateTime->getTimezoneId($event),
+      );
     }
 
     // Check if event has paid tickets (needs refund info).

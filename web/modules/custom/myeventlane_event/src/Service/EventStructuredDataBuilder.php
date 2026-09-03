@@ -9,6 +9,7 @@ use Drupal\commerce_price\Price;
 use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 
@@ -17,13 +18,12 @@ use Drupal\node\NodeInterface;
  */
 final class EventStructuredDataBuilder {
 
-  private const DISPLAY_TIMEZONE = 'Australia/Sydney';
-
   public function __construct(
     private readonly PublicEventVisibility $publicEventVisibility,
     private readonly BookingFlowResolver $bookingFlowResolver,
     private readonly TicketTypeManager $ticketTypeManager,
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
+    private readonly EventDateTimeResolver $eventDateTime,
   ) {}
 
   /**
@@ -51,14 +51,14 @@ final class EventStructuredDataBuilder {
     }
 
     if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $start = $this->formatFieldValue((string) $event->get('field_event_start')->value);
+      $start = $this->formatFieldValue((string) $event->get('field_event_start')->value, $event);
       if ($start !== NULL) {
         $data['startDate'] = $start;
       }
     }
 
     if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
-      $end = $this->formatFieldValue((string) $event->get('field_event_end')->value);
+      $end = $this->formatFieldValue((string) $event->get('field_event_end')->value, $event);
       if ($end !== NULL) {
         $data['endDate'] = $end;
       }
@@ -118,7 +118,7 @@ final class EventStructuredDataBuilder {
     }
 
     if ($description !== '' && str_contains($description, '[date]') && $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $start = $this->parseFieldValue((string) $event->get('field_event_start')->value);
+      $start = $this->parseFieldValue((string) $event->get('field_event_start')->value, $event);
       if ($start !== NULL) {
         $description = str_replace('[date]', $start->format('j F Y'), $description);
       }
@@ -266,32 +266,17 @@ final class EventStructuredDataBuilder {
   }
 
   /**
-   * Formats a stored event wall-clock value with its Sydney offset.
+   * Formats a stored event wall-clock value with its event-local offset.
    */
-  private function formatFieldValue(string $value): ?string {
-    return $this->parseFieldValue($value)?->format(\DateTimeInterface::ATOM);
+  private function formatFieldValue(string $value, ?NodeInterface $event = NULL): ?string {
+    return $this->parseFieldValue($value, $event)?->format(\DateTimeInterface::ATOM);
   }
 
   /**
-   * Parses a stored event wall-clock value in the display timezone.
+   * Parses a stored event wall-clock value in the event timezone.
    */
-  private function parseFieldValue(string $value): ?\DateTimeImmutable {
-    if ($value === '') {
-      return NULL;
-    }
-
-    $timezone = new \DateTimeZone(self::DISPLAY_TIMEZONE);
-    $date = \DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i:s', $value, $timezone);
-    if ($date !== FALSE) {
-      return $date;
-    }
-
-    try {
-      return new \DateTimeImmutable($value, $timezone);
-    }
-    catch (\Exception) {
-      return NULL;
-    }
+  private function parseFieldValue(string $value, ?NodeInterface $event = NULL): ?\DateTimeImmutable {
+    return $this->eventDateTime->parseValue($value, $event);
   }
 
 }

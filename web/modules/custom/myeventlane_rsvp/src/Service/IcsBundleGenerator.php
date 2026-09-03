@@ -4,15 +4,24 @@ namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 
 /**
  * Generates a multi-event ICS file for user RSVPs.
  */
 class IcsBundleGenerator {
 
+  /**
+   * The entity type manager.
+   *
+   * @var \Drupal\Core\Entity\EntityTypeManagerInterface
+   */
   protected $entityTypeManager;
 
-  public function __construct(EntityTypeManagerInterface $etm) {
+  public function __construct(
+    EntityTypeManagerInterface $etm,
+    private readonly EventDateTimeResolver $eventDateTime,
+  ) {
     $this->entityTypeManager = $etm;
   }
 
@@ -37,8 +46,8 @@ class IcsBundleGenerator {
 
       $events[] = [
         'title' => $event->label(),
-        'start' => $event->get('field_event_start')->value,
-        'end'   => $event->get('field_event_end')->value,
+        'start' => $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_start'),
+        'end'   => $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_end'),
         'url'   => $event->toUrl('canonical', ['absolute' => TRUE])->toString(),
         'location' => $event->get('field_location')->value ?? '',
       ];
@@ -57,13 +66,16 @@ class IcsBundleGenerator {
     $lines[] = 'PRODID:-//MyEventLane//RSVP Bundle//EN';
 
     foreach ($events as $event) {
+      if (empty($event['start'])) {
+        continue;
+      }
       $uid = md5($event['title'] . $event['start']);
 
       $lines[] = 'BEGIN:VEVENT';
       $lines[] = 'UID:' . $uid;
       $lines[] = 'SUMMARY:' . $this->escape($event['title']);
-      $lines[] = 'DTSTART:' . gmdate('Ymd\THis\Z', strtotime($event['start']));
-      $lines[] = 'DTEND:' . gmdate('Ymd\THis\Z', strtotime($event['end']));
+      $lines[] = 'DTSTART:' . $event['start'];
+      $lines[] = 'DTEND:' . (!empty($event['end']) ? $event['end'] : $event['start']);
       if (!empty($event['location'])) {
         $lines[] = 'LOCATION:' . $this->escape($event['location']);
       }
@@ -77,7 +89,7 @@ class IcsBundleGenerator {
   }
 
   /**
-   *
+   * Escapes text for iCalendar output.
    */
   protected function escape($text) {
     return str_replace(',', '\,', $text);

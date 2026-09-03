@@ -3,15 +3,23 @@
 namespace Drupal\myeventlane_rsvp\Service;
 
 use Drupal\Core\Url;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\node\NodeInterface;
 
 /**
- *
+ * Builds event calendar links.
  */
 final class CalendarButtonBuilder {
 
+  use StringTranslationTrait;
+
+  public function __construct(
+    private readonly EventDateTimeResolver $eventDateTime,
+  ) {}
+
   /**
-   *
+   * Builds Google, Outlook, and Apple calendar links.
    */
   public function build(NodeInterface $event): array {
     $google = $this->googleUrl($event);
@@ -22,19 +30,19 @@ final class CalendarButtonBuilder {
     return [
       'google' => [
         '#type' => 'link',
-        '#title' => t('Google Calendar'),
+        '#title' => $this->t('Google Calendar'),
         '#url' => Url::fromUri($google),
         '#attributes' => ['class' => ['mel-btn', 'mel-btn-google']],
       ],
       'outlook' => [
         '#type' => 'link',
-        '#title' => t('Outlook'),
+        '#title' => $this->t('Outlook'),
         '#url' => Url::fromUri($outlook),
         '#attributes' => ['class' => ['mel-btn', 'mel-btn-outlook']],
       ],
       'apple' => [
         '#type' => 'link',
-        '#title' => t('Apple Calendar'),
+        '#title' => $this->t('Apple Calendar'),
         '#url' => Url::fromUri('internal:' . $apple),
         '#attributes' => ['class' => ['mel-btn', 'mel-btn-apple']],
       ],
@@ -42,12 +50,12 @@ final class CalendarButtonBuilder {
   }
 
   /**
-   *
+   * Builds a Google Calendar URL.
    */
   private function googleUrl(NodeInterface $event): string {
     $title = rawurlencode($event->label());
-    $start = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_start')->value));
-    $end   = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_end')->value ?? $event->get('field_event_start')->value));
+    $start = $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_start') ?? '';
+    $end = $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_end') ?? $start;
 
     $details = rawurlencode(strip_tags($event->get('body')->value ?? ''));
     $location = rawurlencode($event->get('field_location')->value ?? '');
@@ -57,14 +65,24 @@ final class CalendarButtonBuilder {
   }
 
   /**
-   *
+   * Builds an Outlook Calendar URL.
    */
   private function outlookUrl(NodeInterface $event): string {
     $title = rawurlencode($event->label());
-    $start = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_start')->value));
-    $end   = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_end')->value ?? $event->get('field_event_start')->value));
+    $start = $this->formatOutlookDate($event, 'field_event_start') ?? '';
+    $end = $this->formatOutlookDate($event, 'field_event_end') ?? $start;
 
     return "https://outlook.live.com/calendar/0/deeplink/compose?subject={$title}&startdt={$start}&enddt={$end}";
+  }
+
+  /**
+   * Formats an event field for the Outlook URL.
+   */
+  private function formatOutlookDate(NodeInterface $event, string $fieldName): ?string {
+    return $this->eventDateTime
+      ->getFieldDateTime($event, $fieldName)
+      ?->setTimezone(new \DateTimeZone('UTC'))
+      ?->format('Y-m-d\TH:i:s\Z');
   }
 
 }

@@ -2,8 +2,8 @@
 
 namespace Drupal\myeventlane_rsvp\Service;
 
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\node\NodeInterface;
-use InvalidArgumentException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -13,6 +13,7 @@ final class IcsGenerator {
 
   public function __construct(
     private readonly LoggerInterface $logger,
+    private readonly EventDateTimeResolver $eventDateTime,
   ) {}
 
   /**
@@ -28,16 +29,19 @@ final class IcsGenerator {
       $this->logger->error('ICS generation refused: event @nid has empty field_event_start.', [
         '@nid' => (string) $event->id(),
       ]);
-      throw new InvalidArgumentException('Event has no start date.');
+      throw new \InvalidArgumentException('Event has no start date.');
     }
 
-    $endRaw = $event->get('field_event_end')->value;
-    if ($endRaw === NULL || $endRaw === '') {
-      $endRaw = $startRaw;
+    $start = $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_start');
+    $end = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
+      ? $this->eventDateTime->formatFieldForIcalendar($event, 'field_event_end')
+      : $start;
+    if ($start === NULL || $end === NULL) {
+      $this->logger->error('ICS generation refused: unparseable date for event @nid.', [
+        '@nid' => (string) $event->id(),
+      ]);
+      throw new \InvalidArgumentException('Invalid event date value.');
     }
-
-    $start = $this->formatDate($startRaw, $event->id());
-    $end = $this->formatDate($endRaw, $event->id());
 
     $location = $event->get('field_location')->value ?? '';
     $desc = strip_tags($event->get('body')->summary ?? $event->get('body')->value ?? '');
@@ -68,22 +72,6 @@ final class IcsGenerator {
    */
   private function escape(string $value): string {
     return preg_replace('/([,;])/', '\\\$1', $value);
-  }
-
-  /**
-   * Formats a stored datetime string as UTC ICS datetime.
-   */
-  private function formatDate(string $date, int|string $eventId): string {
-    $timestamp = strtotime($date);
-    if ($timestamp === FALSE) {
-      $this->logger->error('ICS generation refused: unparseable date "@date" for event @nid.', [
-        '@date' => $date,
-        '@nid' => (string) $eventId,
-      ]);
-      throw new InvalidArgumentException('Invalid event date value.');
-    }
-
-    return gmdate('Ymd\THis\Z', $timestamp);
   }
 
 }
