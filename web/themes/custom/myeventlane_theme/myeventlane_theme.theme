@@ -5262,6 +5262,7 @@ function myeventlane_theme_preprocess_node__event__full(array &$variables): void
       ['absolute' => TRUE],
     )->toString(TRUE);
     $variables['mel_canonical_url'] = $canonicalUrl->getGeneratedUrl();
+    $variables['mel_share_title'] = $node->label();
     CacheableMetadata::createFromRenderArray($variables)
       ->addCacheableDependency($canonicalUrl)
       ->applyTo($variables);

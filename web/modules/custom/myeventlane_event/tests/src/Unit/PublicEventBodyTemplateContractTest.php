@@ -28,6 +28,11 @@ final class PublicEventBodyTemplateContractTest extends TestCase {
     self::assertStringContainsString("\$variables['mel_canonical_url'] = \$canonicalUrl->getGeneratedUrl();", $theme);
     self::assertStringContainsString('->addCacheableDependency($canonicalUrl)', $theme);
     self::assertStringContainsString("{% set canonical_url = mel_canonical_url|default('') %}", $template);
+    self::assertStringContainsString("\$variables['mel_share_title'] = \$node->label();", $theme);
+    self::assertStringContainsString("{% set share_title = mel_share_title|default('') %}", $template);
+    self::assertStringContainsString('subject={{ share_title|url_encode }}', $template);
+    self::assertStringContainsString('text={{ share_title|url_encode }}', $template);
+    self::assertStringNotContainsString('label|url_encode', $template);
     self::assertStringNotContainsString("{% set canonical_url = url('entity.node.canonical'", $template);
   }
 

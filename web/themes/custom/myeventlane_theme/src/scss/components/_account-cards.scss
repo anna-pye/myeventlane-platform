@@ -222,13 +222,14 @@ $mel-account-event-thumb: 5.5rem;
 
   @include breakpoints.mel-break(md, max) {
     .mel-account-event-card__actions {
-      flex-direction: column;
+      flex-direction: row;
       align-items: stretch;
     }
 
     .mel-account-event-card__action,
     .mel-account-event-card__flag .flag a {
-      width: 100%;
+      flex: 1 1 9rem;
+      width: auto;
       justify-content: center;
     }
   }

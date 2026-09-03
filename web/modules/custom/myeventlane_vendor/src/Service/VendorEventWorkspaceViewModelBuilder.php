@@ -101,7 +101,7 @@ final class VendorEventWorkspaceViewModelBuilder {
 
     $startTs = $this->getDateFieldTimestamp($event, 'field_event_start');
     $dateLabel = $startTs > 0
-      ? $this->dateFormatter->format($startTs, 'medium')
+      ? $this->dateFormatter->format($startTs, 'medium', '', 'UTC')
       : '';
 
     $salesSummary = [];
@@ -525,11 +525,12 @@ final class VendorEventWorkspaceViewModelBuilder {
     if (!$node->hasField($field) || $node->get($field)->isEmpty()) {
       return 0;
     }
-    $item = $node->get($field)->first();
-    if ($item && isset($item->date) && $item->date) {
-      return (int) $item->date->getTimestamp();
-    }
-    return 0;
+    // Existing MEL event values are stored as organiser-entered wall time.
+    // Parse the raw value in UTC so DateFormatter does not apply a second
+    // Australia/Sydney offset on workspace screens.
+    $value = trim((string) $node->get($field)->value);
+    $timestamp = $value !== '' ? strtotime($value . ' UTC') : FALSE;
+    return $timestamp !== FALSE ? (int) $timestamp : 0;
   }
 
   /**
