@@ -12,8 +12,10 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_location\Service\LocationProviderManager;
 use Drupal\myeventlane_venue\Entity\Venue;
 use Drupal\myeventlane_venue\Service\VenueAccessResolver;
+use Drupal\myeventlane_venue\Service\VenueManager;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -31,6 +33,8 @@ class VenueViewController extends ControllerBase {
    */
   public function __construct(
     protected VenueAccessResolver $accessResolver,
+    protected VenueManager $venueManager,
+    protected LocationProviderManager $locationProviderManager,
     DateFormatterInterface $date_formatter,
   ) {
     $this->dateFormatter = $date_formatter;
@@ -42,6 +46,8 @@ class VenueViewController extends ControllerBase {
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('myeventlane_venue.access_resolver'),
+      $container->get('myeventlane_venue.manager'),
+      $container->get('myeventlane_location.provider_manager'),
       $container->get('date.formatter'),
     );
   }
@@ -65,6 +71,24 @@ class VenueViewController extends ControllerBase {
     elseif ($image_file !== NULL) {
       $cache_tags = Cache::mergeTags($cache_tags, $image_file->getCacheTags());
     }
+    $cache_tags = Cache::mergeTags($cache_tags, ['myeventlane_venue_location_list']);
+
+    $locations = $this->getLocations($myeventlane_venue);
+    $map = $this->getMapData($myeventlane_venue);
+    $attached = [
+      'library' => ['myeventlane_venue/venue_page'],
+    ];
+
+    if ($map['latitude'] !== NULL && $map['longitude'] !== NULL) {
+      $attached['library'][] = 'myeventlane_location/event_map';
+      $attached['drupalSettings']['myeventlaneLocation'] = $this->locationProviderManager->getFrontendSettings();
+      $attached['drupalSettings']['myeventlaneLocationMap'] = [
+        'latitude' => $map['latitude'],
+        'longitude' => $map['longitude'],
+        'title' => $myeventlane_venue->getName(),
+        'address' => $map['address'],
+      ];
+    }
 
     $build = [
       '#theme' => 'myeventlane_venue_page',
@@ -73,15 +97,14 @@ class VenueViewController extends ControllerBase {
       '#image_alt' => $myeventlane_venue->getImageAlt(),
       '#can_edit' => $this->canEdit($myeventlane_venue),
       '#edit_url' => $this->getEditUrl($myeventlane_venue),
-      '#locations' => $this->getLocations($myeventlane_venue),
+      '#locations' => $locations,
+      '#map' => $map,
       '#events' => $this->getEvents($myeventlane_venue),
       '#cache' => [
         'tags' => $cache_tags,
         'contexts' => ['user', 'url'],
       ],
-      '#attached' => [
-        'library' => ['myeventlane_venue/venue_page'],
-      ],
+      '#attached' => $attached,
     ];
 
     return $build;
@@ -220,24 +243,15 @@ class VenueViewController extends ControllerBase {
     $locations = [];
 
     try {
-      $location_storage = $this->entityTypeManager()->getStorage('myeventlane_venue_location');
-      $location_ids = $location_storage->getQuery()
-        ->condition('venue_id', $venue->id())
-        ->accessCheck(FALSE)
-        ->execute();
-
-      if (!empty($location_ids)) {
-        $location_entities = $location_storage->loadMultiple($location_ids);
-
-        foreach ($location_entities as $location) {
-          $locations[] = [
-            'id' => $location->id(),
-            'name' => $location->get('name')->value ?? '',
-            'address' => $location->get('address')->value ?? '',
-            'lat' => $location->get('lat')->value ?? NULL,
-            'lng' => $location->get('lng')->value ?? NULL,
-          ];
-        }
+      foreach ($this->venueManager->getLocations($venue) as $location) {
+        $locations[] = [
+          'id' => $location->id(),
+          'name' => $location->getTitle(),
+          'address' => $location->getAddressText(),
+          'lat' => $location->getLatitude(),
+          'lng' => $location->getLongitude(),
+          'is_primary' => $location->isPrimary(),
+        ];
       }
     }
     catch (\Exception $e) {
@@ -245,6 +259,36 @@ class VenueViewController extends ControllerBase {
     }
 
     return $locations;
+  }
+
+  /**
+   * Builds provider-neutral map data for the venue's best mapped location.
+   *
+   * @return array{latitude: ?float, longitude: ?float, address: string}
+   *   Map coordinates and address. Coordinates may be absent for older venues.
+   */
+  protected function getMapData(Venue $venue): array {
+    $location = $this->venueManager->getPrimaryLocation($venue);
+
+    if ($location === NULL || $location->getLatitude() === NULL || $location->getLongitude() === NULL) {
+      foreach ($this->venueManager->getLocations($venue) as $candidate) {
+        if ($candidate->getLatitude() !== NULL && $candidate->getLongitude() !== NULL) {
+          $location = $candidate;
+          break;
+        }
+      }
+    }
+
+    $address = $location?->getAddressText() ?? '';
+    if ($address === '' && !$venue->get('primary_address')->isEmpty()) {
+      $address = (string) $venue->get('primary_address')->value;
+    }
+
+    return [
+      'latitude' => $location?->getLatitude(),
+      'longitude' => $location?->getLongitude(),
+      'address' => $address,
+    ];
   }
 
   /**

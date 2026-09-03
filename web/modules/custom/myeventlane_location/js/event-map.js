@@ -41,8 +41,10 @@
    */
   function initEventMap() {
     const settings = drupalSettings.myeventlaneLocation || {};
-    const eventData = drupalSettings.myeventlaneLocationEvent || {};
-    const provider = settings.provider || 'google_maps';
+    const eventData = drupalSettings.myeventlaneLocationMap
+      || drupalSettings.myeventlaneLocationEvent
+      || {};
+    const provider = settings.provider || 'apple_maps';
 
     configureDirectionsLinks(provider);
 

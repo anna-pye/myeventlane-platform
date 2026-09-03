@@ -183,6 +183,18 @@ $melGetEnv = static function (string $name): string {
   return '';
 };
 
+// Apple Maps is the canonical site provider. DDEV keeps the explicit Google
+// fallback because MapKit JS cannot currently be exercised reliably there.
+// MEL_MAP_PROVIDER may be set to apple_maps or google_maps for a deliberate
+// environment override without creating active-config drift.
+$mel_map_provider = $melGetEnv('MEL_MAP_PROVIDER');
+if (in_array($mel_map_provider, ['apple_maps', 'google_maps'], TRUE)) {
+  $config['myeventlane_location.settings']['default_provider'] = $mel_map_provider;
+}
+elseif (getenv('IS_DDEV_PROJECT') === 'true') {
+  $config['myeventlane_location.settings']['default_provider'] = 'google_maps';
+}
+
 // Social sign-in may authenticate an existing MyEventLane account only.
 // Account creation remains in the consent-first MEL registration workflow.
 // Keep this as a runtime invariant so saving a provider form cannot silently
