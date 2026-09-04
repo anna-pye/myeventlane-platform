@@ -8,6 +8,7 @@
 declare(strict_types=1);
 
 use Drupal\Core\Url;
+use Drupal\myeventlane_refunds\Service\RefundRequestStorage;
 
 /**
  * Implements hook_preprocess_HOOK() for myeventlane_order_detail.
@@ -26,6 +27,7 @@ function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variabl
   }
 
   $eligibility = \Drupal::service('myeventlane_refunds.buyer_eligibility');
+  $requestStorage = \Drupal::service('myeventlane_refunds.refund_request_storage');
   $nodeStorage = \Drupal::entityTypeManager()->getStorage('node');
   $variables['order']['refund_actions'] = [];
 
@@ -40,7 +42,19 @@ function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variabl
       continue;
     }
 
-    $canRefund = $eligibility->isEligible($order, $event, $currentUser);
+    $latestRequestRow = $requestStorage->loadLatestForBuyer(
+      (int) $order->id(),
+      $eventId,
+      (int) $currentUser->id(),
+    );
+    $latestRequestStatus = is_array($latestRequestRow)
+      ? (string) ($latestRequestRow['status'] ?? '')
+      : '';
+    $hasActiveRequest = in_array($latestRequestStatus, [
+      RefundRequestStorage::STATUS_REQUESTED,
+      RefundRequestStorage::STATUS_APPROVED,
+    ], TRUE);
+    $canRefund = !$hasActiveRequest && $eligibility->isEligible($order, $event, $currentUser);
     $variables['order']['events'][$key]['can_refund'] = $canRefund;
     $variables['order']['events'][$key]['refund_url'] = $canRefund
       ? Url::fromRoute('myeventlane_refunds.buyer_refund', [
@@ -50,8 +64,17 @@ function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variabl
       ])->toString()
       : NULL;
     if (!$canRefund) {
-      $variables['order']['events'][$key]['refund_ineligible_reason'] = $eligibility->getIneligibilityReason($order, $event, $currentUser);
+      $variables['order']['events'][$key]['refund_ineligible_reason'] = $hasActiveRequest
+        ? 'A refund request is already awaiting a final outcome.'
+        : $eligibility->getIneligibilityReason($order, $event, $currentUser);
     }
+
+    $latestRequest = $latestRequestStatus !== '' ? [
+      'status' => $latestRequestStatus,
+      'decision_reason' => $latestRequestStatus === RefundRequestStorage::STATUS_REJECTED
+        ? trim((string) ($latestRequestRow['decision_reason'] ?? ''))
+        : '',
+    ] : NULL;
 
     $variables['order']['refund_actions'][] = [
       'event_id' => $eventId,
@@ -59,6 +82,7 @@ function myeventlane_refunds_preprocess_myeventlane_order_detail(array &$variabl
       'can_refund' => $canRefund,
       'refund_url' => $variables['order']['events'][$key]['refund_url'],
       'ineligible_reason' => $variables['order']['events'][$key]['refund_ineligible_reason'] ?? NULL,
+      'latest_request' => $latestRequest,
     ];
   }
 }

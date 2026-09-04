@@ -12,6 +12,14 @@ use Drupal\commerce_order\Entity\OrderInterface;
 interface RefundOrderInspectorInterface extends RefundOrderItemsInterface {
 
   /**
+   * Builds active attendee pricing for one event in an order.
+   *
+   * @return array<int, array{attendee: object, amount_cents: int, display_name: string}>
+   *   Refundable attendee rows keyed by attendee ID.
+   */
+  public function getRefundableTicketAttendeeBreakdown(OrderInterface $order, int $event_nid): array;
+
+  /**
    * Calculates the refund for selected attendees from one event.
    *
    * @param \Drupal\commerce_order\Entity\OrderInterface $order

@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_refunds\Service;
 
-use Drupal\Core\Database\Connection;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Cache\CacheTagsInvalidatorInterface;
+use Drupal\Core\Database\Connection;
 
 /**
  * Storage for buyer-initiated refund requests.
@@ -40,6 +41,7 @@ final class RefundRequestStorage {
   public function __construct(
     private readonly Connection $database,
     private readonly TimeInterface $time,
+    private readonly CacheTagsInvalidatorInterface $cacheTagsInvalidator,
   ) {}
 
   /**
@@ -53,6 +55,7 @@ final class RefundRequestStorage {
     $id = $this->database->insert('myeventlane_refund_request')
       ->fields($fields)
       ->execute();
+    $this->invalidateOrder((int) ($fields['order_id'] ?? 0));
     return (int) $id;
   }
 
@@ -75,11 +78,35 @@ final class RefundRequestStorage {
    * Updates a refund request.
    */
   public function update(int $id, array $fields): void {
+    $orderId = (int) $this->database->select('myeventlane_refund_request', 'r')
+      ->fields('r', ['order_id'])
+      ->condition('id', $id)
+      ->execute()
+      ->fetchField();
     $fields['updated'] = $this->time->getRequestTime();
     $this->database->update('myeventlane_refund_request')
       ->fields($fields)
       ->condition('id', $id)
       ->execute();
+    $this->invalidateOrder($orderId);
+  }
+
+  /**
+   * Loads the newest request for one buyer's order and event.
+   */
+  public function loadLatestForBuyer(int $orderId, int $eventId, int $buyerUid): ?array {
+    $row = $this->database->select('myeventlane_refund_request', 'r')
+      ->fields('r')
+      ->condition('order_id', $orderId)
+      ->condition('event_id', $eventId)
+      ->condition('buyer_uid', $buyerUid)
+      ->orderBy('created', 'DESC')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    return $row ?: NULL;
   }
 
   /**
@@ -124,6 +151,15 @@ final class RefundRequestStorage {
       ->fetchField();
 
     return (int) $count > 0;
+  }
+
+  /**
+   * Invalidates customer order pages affected by request-state changes.
+   */
+  private function invalidateOrder(int $orderId): void {
+    if ($orderId > 0) {
+      $this->cacheTagsInvalidator->invalidateTags(['commerce_order:' . $orderId]);
+    }
   }
 
 }
