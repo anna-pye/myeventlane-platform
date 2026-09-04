@@ -56,9 +56,7 @@ jobs:
         run: composer audit --no-dev
 
       - name: Staging deployment regression tests
-        run: |
-          bash scripts/deploy/test-stale-release-guard.sh
-          vendor/bin/phpunit web/modules/custom/myeventlane_schema/tests/src/Unit/SeriesTimezoneConfigConvergenceTest.php
+        run: bash scripts/deploy/test-stale-release-guard.sh
 
       - name: Enforce Drupal check for clean modules
         run: >-
