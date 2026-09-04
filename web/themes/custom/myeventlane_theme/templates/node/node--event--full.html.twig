@@ -13,7 +13,8 @@
  */
 #}
 {{ attach_library('myeventlane_theme/myeventlane_event_full') }}
-{% set canonical_url = url('entity.node.canonical', { 'node': node.id() }, { 'absolute': true }) %}
+{% set canonical_url = mel_canonical_url|default('') %}
+{% set share_title = mel_share_title|default('') %}
 {# Event Information map uses the provider selected by myeventlane_location. #}
 {% set mel_cta_text = (event_ui is defined and (event_ui.cta_label|default(''))|striptags|length > 0) ? event_ui.cta_label : (event_cta and event_cta.label ? event_cta.label : '') %}
 {% if mel_booking_action_label is defined and mel_booking_action_label %}
@@ -170,7 +171,11 @@
                     {% include '@myeventlane_theme/includes/mel-event-ui-icons.html.twig' with { icon: 'map-pin', class: 'mel-event-hero__meta-svg mel-event-hero__meta-svg--location', size: 28 } only %}
                   </span>
                   <span class="mel-event-hero__meta-text">
-                    <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
+                    {% if mel_venue_url|default('') %}
+                      <a class="mel-event-hero__meta-primary mel-event-location__venue-link mel-event-location__venue-link--hero" href="{{ mel_venue_url }}">{{ _hero_venue_line }}</a>
+                    {% else %}
+                      <span class="mel-event-hero__meta-primary">{{ _hero_venue_line }}</span>
+                    {% endif %}
                   </span>
                 </li>
               {% endif %}
@@ -357,7 +362,13 @@
                 <div class="mel-info-row__label">{{ 'Location'|t }}</div>
                 <div class="mel-info-row__value mel-event-location">
                   {% if info_venue_line is not empty %}
-                    <div class="mel-event-location__venue">{{ info_venue_line }}</div>
+                    <div class="mel-event-location__venue">
+                      {% if mel_venue_url|default('') %}
+                        <a class="mel-event-location__venue-link" href="{{ mel_venue_url }}">{{ info_venue_line }}</a>
+                      {% else %}
+                        {{ info_venue_line }}
+                      {% endif %}
+                    </div>
                   {% endif %}
                   {% if info_address is not empty or has_field_location %}
                     <div class="mel-event-location__address">
@@ -570,7 +581,7 @@
                   </span>
                   <span class="mel-event-share__chip-label">{{ 'Copy link'|t }}</span>
                 </button>
-                <a class="mel-event-share__chip mel-social" href="mailto:?subject={{ label|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
+                <a class="mel-event-share__chip mel-social" href="mailto:?subject={{ share_title|url_encode }}&body={{ canonical_url|url_encode }}" aria-label="{{ 'Share by email'|t }}">
                   <span class="mel-event-share__chip-icon" aria-hidden="true">
                     <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" focusable="false">
                       <path d="M4 6.75C4 5.784 4.784 5 5.75 5h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 18.25 19H5.75A1.75 1.75 0 0 1 4 17.25V6.75Z" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/>
@@ -587,7 +598,7 @@
                   </span>
                   <span class="mel-event-share__chip-label">{{ 'Facebook'|t }}</span>
                 </a>
-                <a class="mel-event-share__chip mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ label|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
+                <a class="mel-event-share__chip mel-social" href="https://twitter.com/intent/tweet?url={{ canonical_url|url_encode }}&text={{ share_title|url_encode }}" target="_blank" rel="noopener noreferrer" aria-label="{{ 'Share on X (opens in a new tab)'|t }}">
                   <span class="mel-event-share__chip-icon" aria-hidden="true">
                     <svg class="mel-icon" width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" focusable="false">
                       <path fill="currentColor" d="M14.1 10.5 20.7 3h-1.6l-5.7 6.5L8.5 3H3.5l7 10.1L3.5 21h1.6l6-6.9 4.8 6.9h5L14 10.5Zm-2.4 2.7-.7-1-5.6-8h2.4l4.5 6.4.7 1 5.9 8.4h-2.4l-4.8-6.8Z"/>

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Service;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -21,6 +23,7 @@ final class EventStudioAutosaveService {
   public function __construct(
     private readonly PrivateTempStoreFactory $privateTempStoreFactory,
     private readonly LoggerInterface $logger,
+    private readonly EntityTypeManagerInterface $entityTypeManager,
   ) {}
 
   /**
@@ -103,6 +106,15 @@ final class EventStudioAutosaveService {
     }
 
     if ($baseRevisionId > 0 && (int) $event->getRevisionId() !== $baseRevisionId) {
+      if ($this->baseRevisionHasEquivalentContent($event, $baseRevisionId)) {
+        $this->logger->notice('Event Studio accepted an equivalent base revision: event_id=@nid base_revision=@base current_revision=@current', [
+          '@nid' => (string) $event->id(),
+          '@base' => (string) $baseRevisionId,
+          '@current' => (string) $event->getRevisionId(),
+        ]);
+        return FALSE;
+      }
+
       return TRUE;
     }
 
@@ -128,6 +140,44 @@ final class EventStudioAutosaveService {
     $baseRevisionId = (int) ($draft['base_revision_id'] ?? 0);
 
     return $this->isStaleSubmission($event, $baseChanged, $baseRevisionId);
+  }
+
+  /**
+   * Checks whether a revision ID changed without the event content changing.
+   */
+  private function baseRevisionHasEquivalentContent(NodeInterface $event, int $baseRevisionId): bool {
+    $storage = $this->entityTypeManager->getStorage('node');
+    if (!$storage instanceof RevisionableStorageInterface) {
+      return FALSE;
+    }
+
+    $baseRevision = $storage->loadRevision($baseRevisionId);
+    if (!$baseRevision instanceof NodeInterface || (int) $baseRevision->id() !== (int) $event->id()) {
+      return FALSE;
+    }
+
+    return $this->contentValues($baseRevision) === $this->contentValues($event);
+  }
+
+  /**
+   * Returns field data without revision bookkeeping values.
+   *
+   * @return array<string, mixed>
+   */
+  private function contentValues(NodeInterface $event): array {
+    $values = $event->toArray();
+    foreach ([
+      'vid',
+      'revision_timestamp',
+      'revision_uid',
+      'revision_log',
+      'revision_default',
+      'revision_translation_affected',
+    ] as $revisionField) {
+      unset($values[$revisionField]);
+    }
+
+    return $values;
   }
 
   /**

@@ -301,6 +301,7 @@ final class EventStudioMelPayloadService {
       'field_location' => $field_location,
       'field_event_start' => $this->normalizeDatetimeValue($mel['start_date'] ?? NULL),
       'field_event_end' => $this->normalizeDatetimeValue($mel['end_date'] ?? NULL),
+      'field_series_timezone' => trim((string) ($mel['field_series_timezone'] ?? '')),
       'field_sales_start' => $this->normalizeDatetimeValue($mel['field_sales_start'] ?? NULL),
       'field_sales_end' => $this->normalizeDatetimeValue($mel['field_sales_end'] ?? NULL),
       'field_age_policy' => trim((string) ($mel['field_age_policy'] ?? 'all_ages')),

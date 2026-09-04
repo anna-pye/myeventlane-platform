@@ -164,7 +164,7 @@
                 <p class="mel-rsvp-book-help__copy">{{ 'Questions about your RSVP? We are here to help.'|t }}</p>
               {% endif %}
               <p class="mel-rsvp-book-help__link">
-                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Contact support'|t }}</a>
+                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Open Help Centre'|t }}</a>
               </p>
             </section>
           </div>
@@ -334,9 +334,6 @@
                   <span class="mel-mobile-booking-bar__count" data-mel-booking-count></span>
                   <span class="mel-mobile-booking-bar__total" data-mel-booking-total></span>
                 </div>
-                <p class="mel-booking__cta-note">
-                  {{ "Tickets go to your cart first — you'll review everything before payment."|t }}
-                </p>
                 {{ ticket_form_actions }}
               </div>
             {% endif %}
@@ -355,7 +352,6 @@
               <div class="mel-booking-summary__body">
                 <div class="mel-booking-summary__empty" data-mel-summary-empty>
                   <p class="mel-booking-summary__empty-line">{{ 'Choose at least one ticket to see your total.'|t }}</p>
-                  <p class="mel-booking-summary__empty-line mel-booking-summary__empty-line--soft">{{ "You'll review your cart before payment."|t }}</p>
                 </div>
                 <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
                 <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
@@ -363,9 +359,6 @@
                   <span class="mel-booking-summary__subtotal-value" data-mel-summary-subtotal-value></span>
                 </div>
               </div>
-              <footer class="mel-booking-summary__footer">
-                <p class="mel-booking-summary__cta-note">{{ "Tickets go to your cart first — you'll review everything before payment."|t }}</p>
-              </footer>
             </div>
 
             <div class="mel-book-trust mel-book-panel mel-card" role="region" aria-label="{{ 'Booking reassurance'|t }}">
@@ -406,7 +399,7 @@
                 {{ 'Your tickets are only confirmed once checkout is complete.'|t }}
               </p>
               <p class="mel-book-trust__support">
-                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Need help? Contact support'|t }}</a>
+                <a class="mel-link" href="{{ path('myeventlane_support.page') }}">{{ 'Open Help Centre'|t }}</a>
               </p>
             </div>
 

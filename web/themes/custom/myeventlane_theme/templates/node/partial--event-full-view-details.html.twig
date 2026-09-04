@@ -42,7 +42,13 @@
         <span class="mel-event-sidebar-details__label">{{ 'Where'|t }}</span>
         <div class="mel-event-sidebar-details__value mel-event-location">
           {% if venue_line is not empty %}
-            <div class="mel-event-location__venue">{{ venue_line }}</div>
+            <div class="mel-event-location__venue">
+              {% if mel_venue_url|default('') %}
+                <a class="mel-event-location__venue-link" href="{{ mel_venue_url }}">{{ venue_line }}</a>
+              {% else %}
+                {{ venue_line }}
+              {% endif %}
+            </div>
           {% endif %}
           {% if display_address is not empty or has_field_location %}
             <div class="mel-event-location__address">

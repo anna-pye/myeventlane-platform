@@ -100,6 +100,15 @@ entity.myeventlane_venue_issue.collection:
 # Public venue routes
 # ==============================================================================
 
+# Public venue directory.
+myeventlane_venue.public_directory:
+  path: '/venues'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\PublicVenuesController::listing'
+    _title: 'Venues'
+  requirements:
+    _access: 'TRUE'
+
 # Public venue page (canonical).
 entity.myeventlane_venue.canonical:
   path: '/venues/{myeventlane_venue}'
@@ -148,6 +157,35 @@ myeventlane_venue.vendor_venue_edit:
       myeventlane_venue:
         type: entity:myeventlane_venue
 
+# Organiser-triggered website metadata preview. The controller only reads the
+# website already saved on the venue; it never accepts an arbitrary URL.
+myeventlane_venue.website_metadata_preview:
+  path: '/vendor/settings/venues/{myeventlane_venue}/website-preview'
+  defaults:
+    _controller: 'myeventlane_venue.controller.website_metadata:preview'
+  methods: [POST]
+  requirements:
+    _entity_access: 'myeventlane_venue.update'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
+# A separate action imports only the image held in the user's current preview.
+myeventlane_venue.website_metadata_import_image:
+  path: '/vendor/settings/venues/{myeventlane_venue}/website-image'
+  defaults:
+    _controller: 'myeventlane_venue.controller.website_metadata:importImage'
+  methods: [POST]
+  requirements:
+    _entity_access: 'myeventlane_venue.update'
+    _csrf_request_header_token: 'TRUE'
+  options:
+    parameters:
+      myeventlane_venue:
+        type: entity:myeventlane_venue
+
 # Vendor delete venue form.
 myeventlane_venue.vendor_venue_delete:
   path: '/vendor/settings/venues/{myeventlane_venue}/delete'
@@ -167,6 +205,14 @@ myeventlane_venue.quick_create:
   defaults:
     _form: '\Drupal\myeventlane_venue\Form\VenueQuickCreateForm'
     _title: 'Add venue'
+  requirements:
+    _custom_access: 'myeventlane_vendor.access.vendor_console:access'
+
+# Read-only suggestions for the quick-create venue review step.
+myeventlane_venue.suggestions:
+  path: '/vendor/venues/suggestions'
+  defaults:
+    _controller: '\Drupal\myeventlane_venue\Controller\VenueSuggestionsController::suggest'
   requirements:
     _custom_access: 'myeventlane_vendor.access.vendor_console:access'
 

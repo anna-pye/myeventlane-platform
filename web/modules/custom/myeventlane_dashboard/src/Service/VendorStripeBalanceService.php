@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_dashboard\Service;
 
 use Stripe\StripeClient;
+use Stripe\Exception\ApiErrorException;
 use Drupal\commerce_payment\Entity\PaymentGatewayInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
@@ -44,7 +45,7 @@ final class VendorStripeBalanceService implements VendorStripeBalanceServiceInte
       $logger->warning('Stripe secret key not found in payment gateway config. Balance unavailable for store @sid.', [
         '@sid' => (string) $store->id(),
       ]);
-      return '$0.00';
+      return 'Unavailable';
     }
 
     // Use Stripe SDK if present.
@@ -52,7 +53,7 @@ final class VendorStripeBalanceService implements VendorStripeBalanceServiceInte
       $logger->warning('Stripe SDK (stripe/stripe-php) not installed. Balance unavailable for store @sid.', [
         '@sid' => (string) $store->id(),
       ]);
-      return '$0.00';
+      return 'Unavailable';
     }
 
     try {
@@ -73,12 +74,28 @@ final class VendorStripeBalanceService implements VendorStripeBalanceServiceInte
 
       return '$' . number_format($available_total / 100, 2);
     }
-    catch (\Throwable $e) {
-      $logger->error('Stripe balance fetch failed for store @sid: @m', [
+    catch (ApiErrorException $e) {
+      $status = (int) ($e->getHttpStatus() ?? 0);
+      $context = [
         '@sid' => (string) $store->id(),
-        '@m' => $e->getMessage(),
+        '@status' => $status > 0 ? (string) $status : 'unknown',
+        '@code' => (string) ($e->getStripeCode() ?? 'unknown'),
+      ];
+      $message = 'Stripe balance unavailable for store @sid (HTTP @status, code @code).';
+      if (in_array($status, [401, 403], TRUE)) {
+        $logger->warning($message, $context);
+      }
+      else {
+        $logger->error($message, $context);
+      }
+      return 'Unavailable';
+    }
+    catch (\Throwable $e) {
+      $logger->error('Unexpected Stripe balance failure for store @sid (@exception).', [
+        '@sid' => (string) $store->id(),
+        '@exception' => $e::class,
       ]);
-      return '$0.00';
+      return 'Unavailable';
     }
   }
 

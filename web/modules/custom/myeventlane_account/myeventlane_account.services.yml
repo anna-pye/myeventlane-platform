@@ -9,6 +9,7 @@ services:
     arguments:
       - '@entity_type.manager'
       - '@myeventlane_surface.state_readiness_helper'
+      - '@file_system'
 
   myeventlane_account.account_links:
     class: Drupal\myeventlane_account\Service\AccountLinksService
@@ -32,4 +33,3 @@ services:
       - '@current_route_match'
     tags:
       - { name: event_subscriber }
-

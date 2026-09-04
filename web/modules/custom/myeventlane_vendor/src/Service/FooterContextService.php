@@ -4,28 +4,23 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_vendor\Service;
 
-use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\commerce_store\Entity\StoreInterface;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Provides footer context data for authenticated vendor/admin users.
  *
- * Centralizes data retrieval; Twig stays dumb. Payout balance via optional
- * Stripe service, cached 5 minutes to avoid heavy API calls on page load.
+ * Centralizes data retrieval; Twig stays dumb. Global footer rendering must
+ * not call external payment APIs because it runs on every organiser page.
  */
 final class FooterContextService {
 
-  private const BALANCE_CACHE_TTL = 300;
-
   /**
    * Constructs the service.
-   *
-   * @param object|null $vendorStripe
-   *   Optional myeventlane_stripe.vendor_payout. When enabled, provides payout balance.
    */
   public function __construct(
     private readonly AccountProxyInterface $currentUser,
@@ -33,8 +28,7 @@ final class FooterContextService {
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly LoggerInterface $logger,
-    private readonly CacheBackendInterface $cache,
-    private readonly ?object $vendorStripe = NULL,
+    private readonly RequestStack $requestStack,
   ) {}
 
   /**
@@ -42,18 +36,18 @@ final class FooterContextService {
    *
    * @return array{
    *   store_name: string|null,
-   *   payout_balance: string,
+   *   payout_balance: string|null,
    *   environment: string,
    *   open_tickets: int,
    *   is_vendor: bool,
    *   is_admin: bool,
-   * }
+   *   }
    */
   public function getContext(): array {
     $context = [
       'store_name' => NULL,
-      'payout_balance' => '$0.00',
-      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'payout_balance' => NULL,
+      'environment' => $this->getEnvironmentLabel(),
       'open_tickets' => 0,
       'is_vendor' => $this->currentUser->hasRole('vendor'),
       'is_admin' => $this->currentUser->hasRole('administrator'),
@@ -67,7 +61,6 @@ final class FooterContextService {
       $store = $this->getStoreForCurrentUser();
       if ($store instanceof StoreInterface) {
         $context['store_name'] = $store->label();
-        $context['payout_balance'] = $this->getPayoutBalanceFormatted($store);
       }
 
       $context['open_tickets'] = $this->countOpenEscalations();
@@ -77,25 +70,34 @@ final class FooterContextService {
   }
 
   /**
-   * Gets Stripe payout balance, cached to avoid heavy API calls on page load.
+   * Returns a truthful short label for the current runtime environment.
    */
-  private function getPayoutBalanceFormatted(StoreInterface $store): string {
-    if ($this->vendorStripe === NULL || !method_exists($this->vendorStripe, 'getAvailableBalanceFormatted')) {
-      return '$0.00';
+  private function getEnvironmentLabel(): string {
+    $host = strtolower($this->requestStack->getCurrentRequest()?->getHost() ?? '');
+    if ($host === 'staging.myeventlane.com.au' || str_contains($host, '.staging.')) {
+      return 'Staging';
+    }
+    if ($host === 'localhost' || str_ends_with($host, '.ddev.site')) {
+      return 'Local';
     }
 
-    $cid = 'footer_balance:' . $store->id();
-    $cached = $this->cache->get($cid);
-    if ($cached !== FALSE && isset($cached->data)) {
-      return (string) $cached->data;
+    $configured = trim((string) (getenv('SITE_ENV') ?: getenv('APP_ENV') ?: ''));
+    if ($configured !== '') {
+      return match (strtolower($configured)) {
+        'prod', 'production' => 'Production',
+        'stage', 'staging' => 'Staging',
+        'dev', 'development', 'local' => 'Local',
+        default => ucfirst($configured),
+      };
     }
 
-    $balance = (string) $this->vendorStripe->getAvailableBalanceFormatted($store);
-    $this->cache->set($cid, $balance, time() + self::BALANCE_CACHE_TTL, [
-      'commerce_store:' . $store->id(),
-    ]);
+    if ($host === 'myeventlane.com.au' || $host === 'www.myeventlane.com.au') {
+      return 'Production';
+    }
 
-    return $balance;
+    // An absent label is safer than incorrectly claiming an unknown host is
+    // production.
+    return '';
   }
 
   /**

@@ -16,6 +16,7 @@ services:
       - '@myeventlane_event_state.resolver'
       - '@myeventlane_core.event_state_resolver'
       - '@myeventlane_metrics.service'
+      - '@myeventlane_core.event_datetime'
 
   myeventlane_api.audit_logger:
     class: Drupal\myeventlane_api\Service\ApiAuditLogger

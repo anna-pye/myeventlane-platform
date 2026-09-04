@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_state\Service;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\node\NodeInterface;
 use Drupal\myeventlane_capacity\Service\EventCapacityServiceInterface;
 
@@ -33,6 +34,7 @@ final class EventStateResolver implements EventStateResolverInterface {
     private readonly TimeInterface $time,
     private readonly EntityTypeManagerInterface $entityTypeManager,
     private readonly CacheBackendInterface $cache,
+    private readonly EventDateTimeResolver $eventDateTime,
     private readonly ?EventCapacityServiceInterface $capacityService = NULL,
   ) {}
 
@@ -89,7 +91,7 @@ final class EventStateResolver implements EventStateResolverInterface {
       return self::STATE_SOLD_OUT;
     }
 
-    // 7. If sales_start <= now <= sales_end and capacity remaining > 0, return live.
+    // 7. If now is inside the sales window, return live.
     if ($salesStart !== NULL && $salesEnd !== NULL) {
       if ($now >= $salesStart && $now <= $salesEnd) {
         return self::STATE_LIVE;
@@ -128,9 +130,9 @@ final class EventStateResolver implements EventStateResolverInterface {
    * {@inheritdoc}
    */
   public function getSalesStart(NodeInterface $event): ?int {
-    if ($event->hasField('field_sales_start') && !$event->get('field_sales_start')->isEmpty()) {
-      $date = $event->get('field_sales_start')->date;
-      return $date ? $date->getTimestamp() : NULL;
+    $timestamp = $this->eventDateTime->getFieldTimestamp($event, 'field_sales_start');
+    if ($timestamp !== NULL) {
+      return $timestamp;
     }
 
     // Default: use publish time.
@@ -141,9 +143,9 @@ final class EventStateResolver implements EventStateResolverInterface {
    * {@inheritdoc}
    */
   public function getSalesEnd(NodeInterface $event): ?int {
-    if ($event->hasField('field_sales_end') && !$event->get('field_sales_end')->isEmpty()) {
-      $date = $event->get('field_sales_end')->date;
-      return $date ? $date->getTimestamp() : NULL;
+    $timestamp = $this->eventDateTime->getFieldTimestamp($event, 'field_sales_end');
+    if ($timestamp !== NULL) {
+      return $timestamp;
     }
 
     // Default: use event end time.
@@ -154,22 +156,14 @@ final class EventStateResolver implements EventStateResolverInterface {
    * Gets the event start timestamp.
    */
   private function getEventStart(NodeInterface $event): ?int {
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $date = $event->get('field_event_start')->date;
-      return $date ? $date->getTimestamp() : NULL;
-    }
-    return NULL;
+    return $this->eventDateTime->getFieldTimestamp($event, 'field_event_start');
   }
 
   /**
    * Gets the event end timestamp.
    */
   private function getEventEnd(NodeInterface $event): ?int {
-    if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
-      $date = $event->get('field_event_end')->date;
-      return $date ? $date->getTimestamp() : NULL;
-    }
-    return NULL;
+    return $this->eventDateTime->getFieldTimestamp($event, 'field_event_end');
   }
 
   /**

@@ -10,7 +10,7 @@
 {% set model = vendor_dashboard_view_model|default({}) %}
 {% set vendor = model.vendor|default({}) %}
 {% set account_summary = account|default({}) %}
-{% set organiser_display_name = account_summary.display_name|default(vendor.label|default('')) %}
+{% set organiser_display_name = vendor.label|default(account_summary.display_name|default('')) %}
 {% set organiser_actions = model.organiser_actions|default([]) %}
 {% set priority_action = model.priority_action|default(null) %}
 {% set secondary_actions = model.secondary_actions|default([]) %}

@@ -138,8 +138,17 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-.mel-venue-map-section iframe {
-  display: block;
+.mel-venue-map-section .mel-venue-map[data-latitude][data-longitude] {
+  margin: 0;
+  border-radius: 0;
+  height: 250px;
+  min-height: 250px;
+}
+
+.mel-venue-map-section__actions {
+  margin: 0;
+  padding: 0.75rem;
+  background: var(--mel-color-surface, #fff);
 }
 
 /* Content Sections */

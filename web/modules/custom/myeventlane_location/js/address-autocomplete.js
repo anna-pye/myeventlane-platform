@@ -1153,7 +1153,7 @@
     if (!isVisible(input)) {
       return;
     }
-    const provider = getSettings().provider || 'google_maps';
+    const provider = getSettings().provider || 'apple_maps';
     if (provider === 'google_maps') {
       setupGoogleAutocomplete(input, form, null);
     }
@@ -1211,7 +1211,7 @@
     // Set default country to AU if empty.
     ensureDefaultCountry(form, widgetRoot);
 
-    const provider = getSettings().provider || 'google_maps';
+    const provider = getSettings().provider || 'apple_maps';
 
     log('Initializing provider:', provider, 'Form:', form);
 

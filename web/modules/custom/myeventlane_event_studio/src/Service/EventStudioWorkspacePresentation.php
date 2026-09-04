@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event_studio\Service;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event\EventCard\EventCardViewModel;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
@@ -25,6 +26,7 @@ final class EventStudioWorkspacePresentation {
     private readonly DateFormatterInterface $dateFormatter,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
     private readonly EventCardViewModel $eventCardViewModel,
+    private readonly EventDateTimeResolver $eventDateTime,
     TranslationInterface $stringTranslation,
   ) {
     $this->stringTranslation = $stringTranslation;
@@ -447,11 +449,11 @@ final class EventStudioWorkspacePresentation {
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_start') || $node->get('field_event_start')->isEmpty()) {
       return '';
     }
-    $item = $node->get('field_event_start')->first();
-    if ($item === NULL || !isset($item->date) || !$item->date) {
+    $timestamp = $this->eventDateTime->getFieldTimestamp($node, 'field_event_start');
+    if ($timestamp === NULL) {
       return '';
     }
-    return $this->dateFormatter->format((int) $item->date->getTimestamp(), 'medium');
+    return $this->dateFormatter->format($timestamp, 'medium', '', $this->eventDateTime->getTimezoneId($node));
   }
 
   /**
@@ -488,11 +490,8 @@ final class EventStudioWorkspacePresentation {
     if ($node->bundle() !== 'event' || !$node->hasField('field_event_end') || $node->get('field_event_end')->isEmpty()) {
       return FALSE;
     }
-    $item = $node->get('field_event_end')->first();
-    if ($item === NULL || !isset($item->date) || !$item->date) {
-      return FALSE;
-    }
-    return (int) $item->date->getTimestamp() < time();
+    $timestamp = $this->eventDateTime->getFieldTimestamp($node, 'field_event_end');
+    return $timestamp !== NULL && $timestamp < time();
   }
 
   /**

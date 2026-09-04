@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_automation\Service;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Component\Datetime\TimeInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Psr\Log\LoggerInterface;
@@ -27,6 +28,7 @@ final class AutomationScheduler {
     private readonly QueueFactory $queueFactory,
     private readonly TimeInterface $time,
     private readonly LoggerInterface $logger,
+    private readonly EventDateTimeResolver $eventDateTime,
   ) {}
 
   /**
@@ -56,14 +58,15 @@ final class AutomationScheduler {
     // Check events with sales_start in the past 1 hour (to catch missed scans).
     $oneHourAgo = $now - 3600;
     $oneHourFromNow = $now + 3600;
+    [$storageStart, $storageEnd] = $this->eventDateTime->getBroadStorageBounds($oneHourAgo, $oneHourFromNow);
 
     $query = $this->entityTypeManager->getStorage('node')->getQuery()
       ->accessCheck(FALSE)
       ->condition('type', 'event')
       ->condition('status', 1)
       ->exists('field_sales_start')
-      ->condition('field_sales_start', date('Y-m-d\TH:i:s', $oneHourAgo), '>=')
-      ->condition('field_sales_start', date('Y-m-d\TH:i:s', $oneHourFromNow), '<=');
+      ->condition('field_sales_start', $storageStart, '>=')
+      ->condition('field_sales_start', $storageEnd, '<=');
 
     $eventIds = $query->execute();
 
@@ -74,6 +77,10 @@ final class AutomationScheduler {
       }
       $event = $this->entityTypeManager->getStorage('node')->load($eventId);
       if (!$event) {
+        continue;
+      }
+
+      if (!$this->eventDateTime->fieldIsWithin($event, 'field_sales_start', $oneHourAgo, $oneHourFromNow)) {
         continue;
       }
 

@@ -20,12 +20,37 @@ jobs:
       # Pin checkout to the exact commit that triggered this run (avoids wrong-tree / stale builds).
       ref: ${{ github.sha }}
 
+  freshness:
+    name: Confirm latest main revision
+    runs-on: ubuntu-latest
+    needs:
+      - build
+    outputs:
+      deploy: ${{ steps.check.outputs.deploy }}
+    steps:
+      - name: Check this run still represents main
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          latest_sha="$(gh api "repos/${GITHUB_REPOSITORY}/commits/main" --jq .sha)"
+          if [ "$latest_sha" = "$GITHUB_SHA" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+            echo "This is the latest main revision: $GITHUB_SHA"
+          else
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping stale staging deployment for $GITHUB_SHA; main is $latest_sha"
+          fi
+
   deploy:
     name: Deploy to staging
+    if: ${{ needs.freshness.outputs.deploy == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     needs:
       - build
+      - freshness
     environment: staging
 
     steps:

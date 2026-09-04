@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_studio\DTO\EventReadinessResult;
 use Drupal\myeventlane_event_studio\Service\EventStudioWorkspacePresentation;
 use Drupal\node\NodeInterface;
@@ -33,7 +36,15 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
       ->newInstanceWithoutConstructor();
     $eventCardViewModel = (new ReflectionClass(\Drupal\myeventlane_event\EventCard\EventCardViewModel::class))
       ->newInstanceWithoutConstructor();
-    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $eventCardViewModel, $translator);
+    $this->presentation = new EventStudioWorkspacePresentation($dateFormatter, $homepageReadinessRender, $eventCardViewModel, $this->eventDateTime(), $translator);
+  }
+
+  private function eventDateTime(): EventDateTimeResolver {
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->with('timezone.default')->willReturn('Australia/Sydney');
+    $factory = $this->createMock(ConfigFactoryInterface::class);
+    $factory->method('get')->with('system.date')->willReturn($config);
+    return new EventDateTimeResolver($factory);
   }
 
   public function testStripAndAjaxPayloadShareReadinessSummaryFields(): void {
@@ -126,6 +137,8 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $this->assertStringContainsString('data-mel-topbar-location', $topbar);
     $this->assertStringContainsString('buildTopbarLocation', $presentation);
     $this->assertStringContainsString('buildTopbarDateLabel', $presentation);
+    $this->assertStringContainsString("eventDateTime->getFieldTimestamp", $presentation);
+    $this->assertStringContainsString("eventDateTime->getTimezoneId", $presentation);
     $this->assertStringContainsString('buildTopbarVenueLabel', $presentation);
     $this->assertStringContainsString('buildTopbarStatus', $presentation);
     $this->assertStringContainsString('data-mel-hero-primary-key', $topbar);
@@ -147,6 +160,7 @@ final class EventStudioWorkspacePresentationContractTest extends UnitTestCase {
     $endField = $this->createMock(\Drupal\Core\Field\FieldItemListInterface::class);
     $endField->method('isEmpty')->willReturn(FALSE);
     $endField->method('first')->willReturn($endItem);
+    $endField->method('getValue')->willReturn([['value' => '2020-01-01T12:00:00']]);
     $past->method('get')->willReturnCallback(static function (string $field) use ($endField) {
       return $field === 'field_event_end' ? $endField : NULL;
     });

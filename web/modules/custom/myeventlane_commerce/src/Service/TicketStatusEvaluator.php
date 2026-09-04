@@ -9,7 +9,7 @@ use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\node\NodeInterface;
 
 /**
- * Pure status evaluation shared by TicketStatusService and TicketAvailabilityService.
+ * Evaluates status for ticket services without creating container cycles.
  *
  * Keeps one algorithm without service-to-service cycles in the container.
  */
@@ -30,7 +30,10 @@ final class TicketStatusEvaluator {
   private function __construct() {}
 
   /**
+   * Evaluates a ticket's current sales and capacity status.
+   *
    * @return self::STATUS_*
+   *   One of the ticket status constants.
    */
   public static function evaluate(
     TicketTypeInterface $ticket,
@@ -42,7 +45,7 @@ final class TicketStatusEvaluator {
       return self::STATUS_ARCHIVED;
     }
 
-    if ((int) ($ticket->get('status')->value ?? 0) === 0) {
+    if (!$ticket->isPublished()) {
       return self::STATUS_INACTIVE;
     }
 
@@ -54,14 +57,15 @@ final class TicketStatusEvaluator {
       $tzEvent = $ref instanceof NodeInterface ? $ref : NULL;
     }
 
-    $tzName = EventTimezoneResolver::getTimezoneId($tzEvent);
-    $now = new \DateTime('now', new \DateTimeZone($tzName));
-    $nowTs = $now->getTimestamp();
+    $nowTs = $time->getRequestTime();
 
     if (!$ticket->get('sale_start')->isEmpty()) {
       /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem|null $startItem */
       $startItem = $ticket->get('sale_start')->first();
-      if ($startItem && $startItem->date && $startItem->date->getTimestamp() > $nowTs) {
+      $start = $startItem
+        ? EventTimezoneResolver::parseWallClock((string) $startItem->value, $tzEvent)
+        : NULL;
+      if ($start !== NULL && $start->getTimestamp() > $nowTs) {
         return self::STATUS_UPCOMING;
       }
     }
@@ -69,7 +73,10 @@ final class TicketStatusEvaluator {
     if (!$ticket->get('sale_end')->isEmpty()) {
       /** @var \Drupal\datetime\Plugin\Field\FieldType\DateTimeItem|null $endItem */
       $endItem = $ticket->get('sale_end')->first();
-      if ($endItem && $endItem->date && $endItem->date->getTimestamp() < $nowTs) {
+      $end = $endItem
+        ? EventTimezoneResolver::parseWallClock((string) $endItem->value, $tzEvent)
+        : NULL;
+      if ($end !== NULL && $end->getTimestamp() < $nowTs) {
         return self::STATUS_ENDED;
       }
     }

@@ -29,6 +29,7 @@ use Drupal\myeventlane_event\Utility\EventNodeRevisionSave;
 use Drupal\myeventlane_event_studio\Service\EventStudioQuestionTemplateManager;
 use Drupal\myeventlane_vendor\Service\OrganiserMediaAccess;
 use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Exception\DuplicateVenueException;
 use Drupal\myeventlane_venue\Service\VenueManager;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
@@ -269,6 +270,21 @@ final class EventStudioSaveService {
     if ($node->hasField('field_event_end') && !empty($payload['field_event_end'])) {
       $node->set('field_event_end', [['value' => (string) $payload['field_event_end']]]);
     }
+    if ($node->hasField('field_series_timezone') && array_key_exists('field_series_timezone', $payload)) {
+      $timezone = trim((string) $payload['field_series_timezone']);
+      try {
+        if ($timezone !== '') {
+          new \DateTimeZone($timezone);
+          $node->set('field_series_timezone', $timezone);
+        }
+      }
+      catch (\Exception) {
+        $this->logger->warning('Studio save: invalid event timezone "@timezone" ignored for event @nid.', [
+          '@timezone' => $timezone,
+          '@nid' => (string) ($node->id() ?? 'new'),
+        ]);
+      }
+    }
 
     $this->applySalesWindowPayload($node, $payload);
     $this->applyAgeRefundPolicyPayload($node, $payload);
@@ -350,6 +366,14 @@ final class EventStudioSaveService {
           ],
           (int) $account->id()
         );
+      }
+      catch (DuplicateVenueException $e) {
+        return $this->abortSectionScopedSave([
+          sprintf(
+            'This venue already exists as “%s”. Choose it from your saved venues instead.',
+            $e->getDuplicateVenue()->getName(),
+          ),
+        ], $payload);
       }
       catch (\Throwable $e) {
         $this->logger->error('Studio venue create failed: @m', ['@m' => $e->getMessage()]);
@@ -886,7 +910,7 @@ final class EventStudioSaveService {
     }
 
     if (!$draft && in_array($event_type, ['paid', 'both'], TRUE) && $node->hasField('field_product_target') && $node->get('field_product_target')->isEmpty()) {
-      return ['Paid events need a ticket. Link one above or open Advanced ticket tools from Event Studio.'];
+      return ['Paid events need a ticket. Link one above or open Ticket settings from Event Studio.'];
     }
 
     return [];

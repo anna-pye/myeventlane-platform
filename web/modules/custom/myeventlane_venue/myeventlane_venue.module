@@ -14,9 +14,20 @@ use Drupal\Core\Url;
  */
 function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
   return [
+    'myeventlane_venue_public_directory' => [
+      'variables' => [
+        'venues' => [],
+        'pager' => NULL,
+      ],
+      'template' => 'myeventlane-venue-public-directory',
+    ],
     'myeventlane_venue_vendor_list' => [
       'variables' => [
         'venues' => [],
+        'owned_venues' => [],
+        'shared_venues' => [],
+        'owned_count' => 0,
+        'shared_count' => 0,
         'add_url' => NULL,
       ],
       'template' => 'myeventlane-venue-vendor-list',
@@ -36,6 +47,7 @@ function myeventlane_venue_theme(array $existing, $type, $theme, $path): array {
         'can_edit' => FALSE,
         'edit_url' => NULL,
         'locations' => [],
+        'map' => [],
         'events' => [],
       ],
       'template' => 'myeventlane-venue-page',

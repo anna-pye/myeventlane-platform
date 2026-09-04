@@ -85,8 +85,372 @@
   border: 1px solid #e0e0e0;
 }
 
+/* Existing-venue and public-data review. */
+.mel-venue-suggestions {
+  margin: 1rem 0;
+}
+
+.mel-venue-suggestions__prompt,
+.mel-venue-suggestions__help,
+.mel-venue-suggestions__attribution,
+.mel-venue-suggestions__message {
+  color: #5b6472;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.mel-venue-suggestions__section {
+  background: #fffaf4;
+  border: 1px solid #f2d9c9;
+  border-radius: 12px;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+.mel-venue-suggestions__section h3 {
+  color: #293241;
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.mel-venue-suggestion {
+  align-items: flex-start;
+  background: #fff;
+  border: 1px solid #e3e6eb;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.875rem;
+}
+
+.mel-venue-suggestion > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.mel-venue-suggestion > div:first-child span {
+  color: #5b6472;
+  font-size: 0.875rem;
+}
+
+.mel-venue-suggestion__fields {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  width: 100%;
+}
+
+.mel-venue-suggestion__field {
+  border-top: 1px solid #edf0f3;
+  display: grid;
+  gap: 0.25rem;
+  padding-top: 0.75rem;
+}
+
+.mel-venue-suggestion__field dt {
+  color: #5b6472;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mel-venue-suggestion__field dd {
+  align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  justify-content: space-between;
+  margin: 0;
+  min-width: 0;
+}
+
+.mel-venue-suggestion__field dd span {
+  overflow-wrap: anywhere;
+}
+
+.mel-venue-suggestion .mel-btn--small {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  padding: 0.45rem 0.8rem;
+}
+
+.mel-venue-suggestions__message {
+  background: #f7f8fa;
+  border-radius: 10px;
+  margin: 1rem 0;
+  padding: 0.875rem;
+}
+
+.mel-venue-suggestions__message--warning {
+  background: #fff5e5;
+  color: #704700;
+}
+
+.mel-venue-suggestions__message--loading {
+  background: #f1f2ff;
+  color: #3d478f;
+}
+
+.mel-venue-contact-details {
+  background: #fff;
+}
+
+/* Full venue settings form — MEL organiser presentation. */
+.mel-vendor .mel-venue-form {
+  max-width: 56rem;
+  margin-inline: auto;
+  padding: 1rem;
+}
+
+.mel-venue-form__header {
+  margin-bottom: 2rem;
+}
+
+.mel-venue-form__eyebrow {
+  margin: 0 0 0.5rem;
+  color: #637185;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.mel-venue-form__title {
+  margin: 0;
+  color: #0d1520;
+  font-size: clamp(1.75rem, 4vw, 2.25rem);
+  line-height: 1.15;
+}
+
+.mel-venue-form__intro {
+  max-width: 42rem;
+  margin: 0.75rem 0 0;
+  color: #637185;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.mel-venue-form__section {
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  border: 1px solid #e9e3de;
+  border-radius: 1rem;
+  background: #fff;
+  box-shadow: 0 0.25rem 1rem rgba(36, 48, 58, 0.05);
+}
+
+.mel-venue-form__section-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e9e3de;
+  background: #fffbf6;
+}
+
+.mel-venue-form__section-title {
+  margin: 0;
+  color: #0d1520;
+  font-size: 1.25rem;
+  line-height: 1.3;
+}
+
+.mel-venue-form__section-intro {
+  margin: 0.35rem 0 0;
+  color: #637185;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mel-venue-form__section-body {
+  padding: 1.5rem;
+}
+
+.mel-venue-form__section-body > .form-item:last-child,
+.mel-venue-form__section-body > .form-wrapper:last-child {
+  margin-bottom: 0;
+}
+
+.mel-venue-form__section--social-links .mel-venue-form__section-body {
+  display: grid;
+  gap: 0 1rem;
+}
+
+.mel-venue-form__actions {
+  position: sticky;
+  z-index: 3;
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e9e3de;
+  border-radius: 1rem 1rem 0 0;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 -0.35rem 1.25rem rgba(36, 48, 58, 0.08);
+  backdrop-filter: blur(0.5rem);
+}
+
+.mel-venue-form__actions .button--danger,
+.mel-venue-form__actions .button--danger:hover {
+  margin-left: auto;
+  color: #b42318;
+  background: transparent;
+  border-color: transparent;
+}
+
+.mel-venue-form .myeventlane-location-address-search {
+  border-width: 2px;
+  border-color: rgba(107, 70, 255, 0.45);
+  background: #fff;
+}
+
+.mel-venue-form .myeventlane-location-address-search:focus {
+  border-color: #6b46ff;
+  box-shadow: 0 0 0 3px rgba(107, 70, 255, 0.14);
+}
+
+.mel-venue-website-review {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid rgba(107, 70, 255, 0.22);
+  border-radius: 0.875rem;
+  background: rgba(234, 244, 255, 0.55);
+}
+
+.mel-venue-website-review__title {
+  margin: 0;
+  color: #0d1520;
+  font-size: 1rem;
+}
+
+.mel-venue-website-review__help,
+.mel-venue-website-review__status,
+.mel-venue-website-review__source {
+  color: #637185;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.mel-venue-website-review__status {
+  margin-top: 0.75rem;
+}
+
+.mel-venue-website-review__status.is-error {
+  color: #b42318;
+}
+
+.mel-venue-website-review__status.is-success {
+  color: #166534;
+}
+
+.mel-venue-website-review__candidate {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(107, 70, 255, 0.18);
+}
+
+.mel-venue-website-review__candidate[hidden] {
+  display: none;
+}
+
+.mel-venue-website-review__description h4,
+.mel-venue-website-review__description p,
+.mel-venue-website-review__source,
+.mel-venue-website-review__image {
+  margin: 0;
+}
+
+.mel-venue-website-review__description h4 {
+  margin-bottom: 0.35rem;
+  color: #0d1520;
+  font-size: 0.875rem;
+}
+
+.mel-venue-website-review__description p {
+  color: #334155;
+  line-height: 1.55;
+}
+
+.mel-venue-website-review__image {
+  max-width: 28rem;
+  overflow: hidden;
+  border: 1px solid #e9e3de;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.mel-venue-website-review__image img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.mel-venue-website-review__confirmation {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  margin: 0;
+  padding: 0.875rem;
+  border-radius: 0.75rem;
+  background: #fff;
+  color: #334155;
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.mel-venue-website-review__confirmation input {
+  flex: 0 0 auto;
+  margin-top: 0.1rem;
+}
+
+.mel-venue-website-review__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+@media (width >= 700px) {
+  .mel-vendor .mel-venue-form {
+    padding: 2rem;
+  }
+
+  .mel-venue-form__section--social-links .mel-venue-form__section-body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width < 576px) {
+  .mel-venue-form__section-header,
+  .mel-venue-form__section-body {
+    padding: 1rem;
+  }
+
+  .mel-venue-form__actions .mel-btn,
+  .mel-venue-website-review__actions .mel-btn {
+    width: 100%;
+  }
+
+  .mel-venue-form__actions .button--danger {
+    margin-left: 0;
+  }
+}
+
+@media (width >= 576px) {
+  .mel-venue-suggestion--existing {
+    align-items: center;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+}
+
 /* Google Places autocomplete dropdown styling */
 .pac-container {
+  /* stylelint-disable-next-line declaration-no-important -- Keep the provider dropdown above Drupal dialogs. */
   z-index: 10000 !important;
   border-radius: 8px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);

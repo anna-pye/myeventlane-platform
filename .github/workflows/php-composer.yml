@@ -55,6 +55,9 @@ jobs:
       - name: Run Composer security audit
         run: composer audit --no-dev
 
+      - name: Staging deployment regression tests
+        run: bash scripts/deploy/test-stale-release-guard.sh
+
       - name: Enforce Drupal check for clean modules
         run: >-
           vendor/bin/drupal-check --memory-limit=1G

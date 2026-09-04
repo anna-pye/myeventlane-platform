@@ -17,6 +17,7 @@ use Drupal\myeventlane_attendee\Attendee\RsvpAttendee;
 use Drupal\myeventlane_attendee\Attendee\TicketAttendee;
 use Drupal\myeventlane_attendee\Service\AttendeeRepositoryResolver;
 use Drupal\myeventlane_core\Service\DomainDetector;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService;
 use Drupal\node\NodeInterface;
 use Psr\Log\LoggerInterface;
@@ -58,6 +59,8 @@ final class EventReminderScheduler {
    *   The domain detector (for public-domain customer links).
    * @param \Drupal\myeventlane_notifications\Service\ReminderNotificationTriggerService|null $reminderNotificationTrigger
    *   Optional in-app reminder trigger.
+   * @param \Drupal\myeventlane_core\Service\EventDateTimeResolver|null $eventDateTime
+   *   Resolves event wall-clock values in each event's timezone.
    */
   public function __construct(
     private readonly EntityTypeManagerInterface $entityTypeManager,
@@ -71,6 +74,7 @@ final class EventReminderScheduler {
     private readonly ?object $icsGenerator = NULL,
     private readonly ?DomainDetector $domainDetector = NULL,
     private readonly ?ReminderNotificationTriggerService $reminderNotificationTrigger = NULL,
+    private readonly ?EventDateTimeResolver $eventDateTime = NULL,
   ) {}
 
   /**
@@ -101,6 +105,9 @@ final class EventReminderScheduler {
   private function scanReminders(int $now, int $reminderOffset, ?string $template, string $timeframe, ?string $inAppWindow): void {
     $windowStart = $now + $reminderOffset - 3600;
     $windowEnd = $now + $reminderOffset + 3600;
+    [$storageStart, $storageEnd] = $this->eventDateTime
+      ?->getBroadStorageBounds($windowStart, $windowEnd)
+      ?? [gmdate('Y-m-d\TH:i:s', $windowStart), gmdate('Y-m-d\TH:i:s', $windowEnd)];
 
     $nodeStorage = $this->entityTypeManager->getStorage('node');
     $query = $nodeStorage->getQuery()
@@ -108,8 +115,8 @@ final class EventReminderScheduler {
       ->condition('type', 'event')
       ->condition('status', 1)
       ->exists('field_event_start')
-      ->condition('field_event_start', date('Y-m-d\TH:i:s', $windowStart), '>=')
-      ->condition('field_event_start', date('Y-m-d\TH:i:s', $windowEnd), '<=');
+      ->condition('field_event_start', $storageStart, '>=')
+      ->condition('field_event_start', $storageEnd, '<=');
 
     $eventIds = $query->execute();
     if (empty($eventIds)) {
@@ -122,6 +129,11 @@ final class EventReminderScheduler {
 
     foreach ($events as $event) {
       if (!$event instanceof NodeInterface) {
+        continue;
+      }
+
+      if ($this->eventDateTime !== NULL
+        && !$this->eventDateTime->fieldIsWithin($event, 'field_event_start', $windowStart, $windowEnd)) {
         continue;
       }
 
@@ -516,15 +528,7 @@ final class EventReminderScheduler {
    *   The event node.
    */
   private function appendEventScheduleContext(array &$context, NodeInterface $event): void {
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $startDate = $event->get('field_event_start')->date;
-      if ($startDate) {
-        $ts = $startDate->getTimestamp();
-        $context['event_start'] = $this->dateFormatter->format($ts, 'custom', 'F j, Y g:ia T');
-        $context['event_start_date'] = $this->dateFormatter->format($ts, 'custom', 'F j, Y');
-        $context['event_start_time'] = $this->dateFormatter->format($ts, 'custom', 'g:ia T');
-      }
-    }
+    $this->appendEventDateTimeContext($context, $event);
 
     if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
       $context['event_location'] = $event->get('field_location')->value;
@@ -532,6 +536,26 @@ final class EventReminderScheduler {
     elseif ($event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()) {
       $context['event_location'] = $event->get('field_venue_name')->value;
     }
+  }
+
+  /**
+   * Appends timezone-correct event date and time fields to message context.
+   *
+   * @param array<string, mixed> $context
+   *   Context array to mutate.
+   * @param \Drupal\node\NodeInterface $event
+   *   The event node.
+   */
+  public function appendEventDateTimeContext(array &$context, NodeInterface $event): void {
+    $timestamp = $this->eventDateTime?->getFieldTimestamp($event, 'field_event_start');
+    if ($timestamp === NULL) {
+      return;
+    }
+
+    $timezone = $this->eventDateTime->getTimezoneId($event);
+    $context['event_start'] = $this->dateFormatter->format($timestamp, 'custom', 'F j, Y g:ia T', $timezone);
+    $context['event_start_date'] = $this->dateFormatter->format($timestamp, 'custom', 'F j, Y', $timezone);
+    $context['event_start_time'] = $this->dateFormatter->format($timestamp, 'custom', 'g:ia T', $timezone);
   }
 
   /**

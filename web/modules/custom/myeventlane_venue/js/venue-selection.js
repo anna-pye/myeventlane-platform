@@ -65,7 +65,7 @@
 
       // Get location provider settings.
       const locationSettings = settings.myeventlaneLocation || {};
-      const provider = locationSettings.provider || 'google_maps';
+      const provider = locationSettings.provider || 'apple_maps';
 
       // Check if address-autocomplete.js has already attached to this field
       // If so, we'll just listen for place selections via a custom event
@@ -74,7 +74,7 @@
       
       if (!alreadyAttached) {
         // Initialize Google Maps or Apple Maps autocomplete.
-        if (provider === 'apple_maps' && window.MapKit) {
+        if (provider === 'apple_maps' && window.mapkit) {
           // Apple Maps implementation.
           this.initAppleMapsAutocomplete(venueSearch, locationSettings);
         }
@@ -143,7 +143,7 @@
      * Initialize Apple Maps autocomplete.
      */
     initAppleMapsAutocomplete: function (venueSearch, settings) {
-      if (!window.MapKit) {
+      if (!window.mapkit) {
         return;
       }
 
@@ -404,7 +404,7 @@
      */
     initMapPreview: function (mapPreview, lat, lng, title) {
       const locationSettings = drupalSettings.myeventlaneLocation || {};
-      const provider = locationSettings.provider || 'google_maps';
+      const provider = locationSettings.provider || 'apple_maps';
 
       if (provider === 'google_maps' && window.google && window.google.maps) {
         const map = new google.maps.Map(mapPreview, {
@@ -418,7 +418,7 @@
           title: title || 'Venue location',
         });
       }
-      else if (provider === 'apple_maps' && window.MapKit) {
+      else if (provider === 'apple_maps' && window.mapkit) {
         // Apple Maps implementation.
         const map = new mapkit.Map(mapPreview);
         const coordinate = new mapkit.Coordinate(lat, lng);

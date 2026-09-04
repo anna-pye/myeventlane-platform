@@ -28,6 +28,7 @@ services:
       - '@date.formatter'
       - '@myeventlane_event.featured_readiness_render'
       - '@myeventlane_event.event_card_view_model'
+      - '@myeventlane_core.event_datetime'
       - '@string_translation'
 
   myeventlane_event_studio.preprocess:
@@ -177,6 +178,7 @@ services:
       - '@form_builder'
       - '@current_user'
       - '@myeventlane_event_studio.highlight_helper'
+      - '@myeventlane_core.event_datetime'
       - '@string_translation'
 
   myeventlane_event_studio.wizard_mel_baseline:
@@ -482,6 +484,7 @@ services:
     arguments:
       - '@tempstore.private'
       - '@logger.channel.myeventlane_event_studio'
+      - '@entity_type.manager'
 
   myeventlane_event_studio.governance_refresh_controller:
     class: Drupal\myeventlane_event_studio\Controller\EventStudioGovernanceRefreshController

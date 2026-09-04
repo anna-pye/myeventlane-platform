@@ -385,6 +385,7 @@ final class EventStudioAutosaveController {
       'field_location' => $field_location,
       'field_event_start' => $this->normalizeDatetimeFromMelRequest($mel['start_date'] ?? $params['when']['field_event_start'] ?? $params['field_event_start'] ?? NULL),
       'field_event_end' => $this->normalizeDatetimeFromMelRequest($mel['end_date'] ?? $params['when']['field_event_end'] ?? $params['field_event_end'] ?? NULL),
+      'field_series_timezone' => trim((string) ($mel['field_series_timezone'] ?? $params['field_series_timezone'] ?? '')),
       'field_sales_start' => $this->normalizeDatetimeFromMelRequest($mel['field_sales_start'] ?? $params['field_sales_start'] ?? NULL),
       'field_sales_end' => $this->normalizeDatetimeFromMelRequest($mel['field_sales_end'] ?? $params['field_sales_end'] ?? NULL),
       'field_age_policy' => trim((string) ($mel['field_age_policy'] ?? $params['field_age_policy'] ?? 'all_ages')),

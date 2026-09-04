@@ -7,8 +7,8 @@
 #}
 {% set footer_context = footer_context|default({
   store_name: null,
-  payout_balance: '$0.00',
-  environment: 'Production',
+  payout_balance: null,
+  environment: '',
   open_tickets: 0,
   is_vendor: false,
   is_admin: false
@@ -24,7 +24,9 @@
         <span class="mel-badge mel-badge--env">{{ footer_context.environment }}</span>
       </div>
       <div class="mel-footer__metrics">
-        <span>{{ 'Payout balance'|t }}: {{ footer_context.payout_balance }}</span>
+        {% if footer_context.payout_balance %}
+          <span>{{ 'Payout balance'|t }}: {{ footer_context.payout_balance }}</span>
+        {% endif %}
         {% if footer_context.open_tickets > 0 %}
         <span class="mel-badge mel-badge--alert">{{ footer_context.open_tickets }} {{ 'open support tickets'|t }}</span>
         {% endif %}

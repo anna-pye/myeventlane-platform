@@ -561,7 +561,7 @@
   // Keep sparse rails visually intentional instead of leaving empty columns.
   &:has(> :only-child) {
     grid-template-columns: minmax(0, 320px);
-    justify-content: center;
+    justify-content: start;
   }
 
   &:has(> :first-child:nth-last-child(2)) {
@@ -746,7 +746,6 @@
     }
 
     .mel-event-card__ticket-type-row,
-    .mel-event-card__location--poster,
     .mel-event-card__footer {
       display: none;
     }

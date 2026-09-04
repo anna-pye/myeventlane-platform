@@ -277,7 +277,14 @@
 
       // Get location settings.
       var locationSettings = drupalSettings.myeventlaneLocation || {};
-      var provider = locationSettings.provider || 'google_maps';
+      var provider = locationSettings.provider || 'apple_maps';
+
+      // Use the shared provider-aware autocomplete for both Apple Maps and
+      // Google Maps. This keeps the event wizard aligned with venue forms.
+      if (Drupal.behaviors.myeventlaneLocationAutocomplete) {
+        Drupal.behaviors.myeventlaneLocationAutocomplete.attach($form[0]);
+        return;
+      }
 
       if (provider === 'google_maps') {
         // Wait for Google Maps API to be ready.

@@ -18,7 +18,8 @@ final class CustomerHubBookingPresentationTest extends UnitTestCase {
   private function builder(): CustomerHubDataBuilder {
     $entityTypeManager = $this->createMock('Drupal\Core\Entity\EntityTypeManagerInterface');
     $readiness = new MelReadinessHelper($this->getStringTranslationStub());
-    return new CustomerHubDataBuilder($entityTypeManager, $readiness);
+    $fileSystem = $this->createMock('Drupal\Core\File\FileSystemInterface');
+    return new CustomerHubDataBuilder($entityTypeManager, $readiness, $fileSystem);
   }
 
   /**

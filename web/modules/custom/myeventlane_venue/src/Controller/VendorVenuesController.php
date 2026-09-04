@@ -68,9 +68,18 @@ class VendorVenuesController extends ControllerBase {
     $venues = $this->accessResolver->getAccessibleVenues($this->currentUser());
 
     $rows = [];
+    $ownedRows = [];
+    $sharedRows = [];
     $cacheTags = ['myeventlane_venue_list'];
     foreach ($venues as $venue) {
-      $rows[] = $this->buildVenueRow($venue);
+      $row = $this->buildVenueRow($venue);
+      $rows[] = $row;
+      if ($row['is_owner']) {
+        $ownedRows[] = $row;
+      }
+      else {
+        $sharedRows[] = $row;
+      }
       $cacheTags = Cache::mergeTags($cacheTags, $venue->getCacheTags());
       $imageMedia = $venue->getImageMedia();
       $imageFile = $venue->getImageFile();
@@ -85,7 +94,11 @@ class VendorVenuesController extends ControllerBase {
     $build = [
       '#theme' => 'myeventlane_venue_vendor_list',
       '#venues' => $rows,
-      '#add_url' => Url::fromRoute('myeventlane_venue.vendor_venue_add'),
+      '#owned_venues' => $ownedRows,
+      '#shared_venues' => $sharedRows,
+      '#owned_count' => count($ownedRows),
+      '#shared_count' => count($sharedRows),
+      '#add_url' => Url::fromRoute('myeventlane_venue.quick_create'),
       '#attached' => [
         'library' => ['myeventlane_venue/vendor_venues'],
       ],

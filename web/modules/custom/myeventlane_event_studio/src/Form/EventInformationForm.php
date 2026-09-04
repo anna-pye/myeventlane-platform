@@ -151,6 +151,15 @@ final class EventInformationForm extends EventStudioBaseForm {
       '#default_value' => $melDefaults['end_date'] ?? NULL,
       '#date_increment' => 15,
       '#attributes' => ['class' => ['mel-input']],
+    ];
+
+    $form['mel']['field_series_timezone'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Event timezone'),
+      '#description' => $this->t('Choose where the event takes place. MEL applies the correct daylight-saving rules for that location.'),
+      '#options' => $this->eventTimezoneOptions(),
+      '#default_value' => $this->eventDateTime->getTimezoneId($node),
+      '#required' => TRUE,
       '#suffix' => '</div></section>',
     ];
 
@@ -198,6 +207,23 @@ final class EventInformationForm extends EventStudioBaseForm {
       ],
     ];
 
+    $form['mel']['location_search'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Search address'),
+      '#attributes' => [
+        'class' => ['mel-location-search', 'mel-input'],
+        'data-mel-location' => 'true',
+      ],
+      '#states' => [
+        'visible' => [
+          'or' => [
+            [':input[name="mel[venue_mode]"]' => ['value' => 'one_off']],
+            [':input[name="mel[venue_mode]"]' => ['value' => 'create']],
+          ],
+        ],
+      ],
+    ];
+
     $form['mel']['venue_create_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Venue name'),
@@ -223,23 +249,6 @@ final class EventInformationForm extends EventStudioBaseForm {
         ],
         'required' => [
           ':input[name="mel[venue_mode]"]' => ['value' => 'one_off'],
-        ],
-      ],
-    ];
-
-    $form['mel']['location_search'] = [
-      '#type' => 'textfield',
-      '#title' => $this->t('Search address'),
-      '#attributes' => [
-        'class' => ['mel-location-search', 'mel-input'],
-        'data-mel-location' => 'true',
-      ],
-      '#states' => [
-        'visible' => [
-          'or' => [
-            [':input[name="mel[venue_mode]"]' => ['value' => 'one_off']],
-            [':input[name="mel[venue_mode]"]' => ['value' => 'create']],
-          ],
         ],
       ],
     ];

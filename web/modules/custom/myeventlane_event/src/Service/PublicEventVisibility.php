@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_event\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface;
 use Drupal\node\NodeInterface;
@@ -45,6 +46,7 @@ final class PublicEventVisibility {
     private readonly EventStateResolverInterface $eventStateResolver,
     private readonly TimeInterface $time,
     private readonly ?EventPasscodeAccess $passcodeAccess = NULL,
+    private readonly ?EventDateTimeResolver $eventDateTime = NULL,
   ) {}
 
   /**
@@ -315,8 +317,14 @@ final class PublicEventVisibility {
     }
 
     if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
-      $end = $event->get('field_event_end')->date;
-      if ($end !== NULL && $end->getTimestamp() < $this->time->getRequestTime()) {
+      $endTimestamp = $this->eventDateTime?->getFieldTimestamp(
+        $event,
+        'field_event_end',
+      );
+      if ($this->eventDateTime === NULL) {
+        $endTimestamp = $event->get('field_event_end')->date?->getTimestamp();
+      }
+      if ($endTimestamp !== NULL && $endTimestamp < $this->time->getRequestTime()) {
         return TRUE;
       }
     }

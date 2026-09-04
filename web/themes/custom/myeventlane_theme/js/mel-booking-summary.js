@@ -86,6 +86,68 @@
   }
 
   /**
+   * Adds accessible increment and decrement buttons around a quantity input.
+   * The number input remains the form source of truth.
+   *
+   * @param {HTMLInputElement} input
+   */
+  function enhanceQuantityInput(input) {
+    if (input.dataset.melQuantityStepper === 'true') {
+      return;
+    }
+    input.dataset.melQuantityStepper = 'true';
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'mel-ticket-quantity-control';
+    const decrease = document.createElement('button');
+    const increase = document.createElement('button');
+    const ticketName = (input.getAttribute('aria-label') || Drupal.t('ticket quantity'))
+      .replace(/^Quantity for\s+/i, '');
+
+    decrease.type = 'button';
+    decrease.className = 'mel-ticket-quantity-step mel-ticket-quantity-step--decrease';
+    decrease.textContent = '−';
+    decrease.setAttribute('aria-label', Drupal.t('Decrease quantity for @ticket', { '@ticket': ticketName }));
+    increase.type = 'button';
+    increase.className = 'mel-ticket-quantity-step mel-ticket-quantity-step--increase';
+    increase.textContent = '+';
+    increase.setAttribute('aria-label', Drupal.t('Increase quantity for @ticket', { '@ticket': ticketName }));
+
+    input.parentNode.insertBefore(wrapper, input);
+    wrapper.append(decrease, input, increase);
+
+    const numericAttribute = (name, fallback) => {
+      const raw = input.getAttribute(name);
+      if (raw === null || raw === '') {
+        return fallback;
+      }
+      const parsed = Number(raw);
+      return Number.isFinite(parsed) ? parsed : fallback;
+    };
+    const updateButtons = () => {
+      const value = Number(input.value) || 0;
+      decrease.disabled = input.disabled || value <= numericAttribute('min', 0);
+      increase.disabled = input.disabled || value >= numericAttribute('max', Number.POSITIVE_INFINITY);
+    };
+    const changeBy = (direction) => {
+      const min = numericAttribute('min', 0);
+      const max = numericAttribute('max', Number.POSITIVE_INFINITY);
+      const step = Math.max(numericAttribute('step', 1), 1);
+      const current = Number.isFinite(Number(input.value)) ? Number(input.value) : min;
+      input.value = String(Math.min(max, Math.max(min, current + direction * step)));
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      input.dispatchEvent(new Event('change', { bubbles: true }));
+      updateButtons();
+    };
+
+    decrease.addEventListener('click', () => changeBy(-1));
+    increase.addEventListener('click', () => changeBy(1));
+    input.addEventListener('input', updateButtons);
+    input.addEventListener('change', updateButtons);
+    updateButtons();
+  }
+
+  /**
    * @param {EventTarget|null} t
    * @returns {boolean}
    */
@@ -367,6 +429,9 @@
   function bindBookingFlow(flow, ticketForm, settings) {
     const fmt = getMoneyFormatter(settings.currencyCode, settings.locale);
     const targets = getTargets(flow);
+    const submitDisabledByServer =
+      (targets.submit instanceof HTMLButtonElement || targets.submit instanceof HTMLInputElement) &&
+      targets.submit.disabled;
     let announceTimer = null;
     let lastAnnounce = '';
 
@@ -470,6 +535,11 @@
 
       if (targets.submit) {
         targets.submit.classList.toggle('mel-booking-submit--soft-idle', !hasTickets);
+        if (targets.submit instanceof HTMLButtonElement || targets.submit instanceof HTMLInputElement) {
+          const shouldDisable = submitDisabledByServer || !hasTickets;
+          targets.submit.disabled = shouldDisable;
+          targets.submit.setAttribute('aria-disabled', shouldDisable ? 'true' : 'false');
+        }
       }
 
       rows.forEach((row) => {
@@ -601,6 +671,8 @@
         if (!(ticketForm instanceof HTMLFormElement)) {
           return;
         }
+        once('mel-ticket-quantity-stepper', 'input[type="number"].mel-ticket-quantity', ticketForm)
+          .forEach((input) => enhanceQuantityInput(input));
         bindBookingFlow(flow, ticketForm, settings);
       });
     },

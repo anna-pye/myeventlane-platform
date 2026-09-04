@@ -117,24 +117,6 @@
     </section>
   {% endif %}
 
-  {% if not is_vendor_context %}
-    <section class="mel-help-home__section" aria-labelledby="mel-audience-title">
-      <div class="mel-help-home__section-head">
-        <h2 id="mel-audience-title">{{ 'Start by audience'|t }}</h2>
-      </div>
-      <div class="mel-help-home__grid mel-help-home__grid--categories">
-        <article class="mel-help-home__card">
-          <h3 class="mel-help-home__card-title"><a href="/help/attendees">{{ 'Attendee help'|t }}</a></h3>
-          <p class="mel-help-home__card-excerpt">{{ 'Need help with tickets, RSVPs, refunds, or event-day access? Start here.'|t }}</p>
-        </article>
-        <article class="mel-help-home__card">
-          <h3 class="mel-help-home__card-title"><a href="/help/organisers">{{ 'Organiser help'|t }}</a></h3>
-          <p class="mel-help-home__card-excerpt">{{ 'Running an event? Find practical guides for setup, ticketing, payouts, and day-of operations.'|t }}</p>
-        </article>
-      </div>
-    </section>
-  {% endif %}
-
   {% if featured_articles_has_content|default(false) %}
   <section class="mel-help-home__section" aria-labelledby="mel-popular-articles-title">
     <div class="mel-help-home__section-head">
@@ -168,41 +150,6 @@
     {% endif %}
   </section>
 
-  <section class="mel-help-home__section" aria-labelledby="mel-policies-title">
-    <div class="mel-help-home__section-head">
-      <h2 id="mel-policies-title">{{ 'Policies and trust'|t }}</h2>
-    </div>
-    <div class="mel-help-home__grid mel-help-home__grid--categories">
-      <article class="mel-help-home__card">
-        <h3 class="mel-help-home__card-title"><a href="/help/policies">{{ 'Refund policy'|t }}</a></h3>
-        <p class="mel-help-home__card-excerpt">{{ 'Here is how refunds work on MyEventLane.'|t }}</p>
-      </article>
-      <article class="mel-help-home__card">
-        <h3 class="mel-help-home__card-title"><a href="/help/policies">{{ 'Community guidelines'|t }}</a></h3>
-        <p class="mel-help-home__card-excerpt">{{ 'A friendly community starts with respectful behaviour and clear expectations.'|t }}</p>
-      </article>
-      <article class="mel-help-home__card">
-        <h3 class="mel-help-home__card-title"><a href="/help/policies">{{ 'Privacy and safety'|t }}</a></h3>
-        <p class="mel-help-home__card-excerpt">{{ 'Understand how we handle trust, privacy, and safety across the platform.'|t }}</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="mel-help-home__section mel-help-home__section--support-final" aria-labelledby="mel-help-support-title">
-    <div class="mel-help-home__section-head">
-      <h2 id="mel-help-support-title">{{ 'Still need help?'|t }}</h2>
-    </div>
-    <article class="mel-help-home__card mel-help-home__card--support">
-      <p class="mel-help-home__card-excerpt">{{ 'If you could not find the right answer, try the Help Assistant or contact support with your event or booking details so we can help faster.'|t }}</p>
-      <p class="mel-help-home__card-link-wrap">
-        {% if help_assistant_page_url is defined and help_assistant_page_url %}
-          <a href="{{ help_assistant_page_url }}" class="mel-help-home__card-link">{{ 'Open Help Assistant'|t }}</a>
-          <span class="mel-help-home__card-link-sep" aria-hidden="true"> · </span>
-        {% endif %}
-        <a href="{{ contact_support_url|default('/help') }}" class="mel-help-home__card-link">{{ 'Contact support'|t }} &rarr;</a>
-      </p>
-    </article>
-  </section>
 </section>
 {% if is_vendor_context %}
 </div>

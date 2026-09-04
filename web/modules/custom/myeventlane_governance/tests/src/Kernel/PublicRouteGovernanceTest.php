@@ -53,6 +53,7 @@ final class PublicRouteGovernanceTest extends TestCase {
     'myeventlane_messaging.postmark_webhook_delivery' => 'Secured by X-Webhook-Secret header validation in PostmarkWebhookController.',
     'myeventlane_pro.subscription_webhook' => 'Secured by Stripe signature verification in ProSubscriptionWebhookController.',
     'myeventlane_public_trust.page' => 'Public trust page; aggregated cached metrics only, no PII.',
+    'myeventlane_venue.public_directory' => 'Public venue discovery; controller queries only venues explicitly marked Public and rechecks isPublic() before rendering.',
     'myeventlane_vendor.create_event_gateway' => 'Create-event entry; controller redirects anonymous users and enforces onboarding.',
     'myeventlane_vendor.login_alias' => 'Vendor login alias; redirect-only to core user.login with safe destination.',
     'myeventlane_vendor.shell.dashboard' => 'Vendor shell entry; permission-based redirect only, no sensitive payload.',

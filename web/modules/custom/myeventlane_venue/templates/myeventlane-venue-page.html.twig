@@ -123,19 +123,34 @@
       </div>
     </section>
 
-    {# Map section - full width #}
-    {% if venue.primary_address.value %}
+    {# Provider-aware map section. Apple Maps is canonical; DDEV overrides to Google. #}
+    {% if map.address or (map.latitude is not null and map.longitude is not null) %}
       <section class="mel-venue-map-section">
-        <iframe
-          src="https://www.google.com/maps?output=embed&amp;q={{ venue.primary_address.value|url_encode }}"
-          width="100%"
-          height="250"
-          style="border:0;"
-          allowfullscreen
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          title="{{ 'Map of venue location'|t }}">
-        </iframe>
+        {% if map.latitude is not null and map.longitude is not null %}
+          <div
+            class="mel-venue-map myeventlane-event-map-container"
+            data-latitude="{{ map.latitude }}"
+            data-longitude="{{ map.longitude }}"
+            data-title="{{ venue.name.value }}"
+            role="img"
+            aria-label="{{ 'Map of @venue'|t({'@venue': venue.name.value}) }}">
+          </div>
+        {% endif %}
+
+        {% set apple_query = map.latitude is not null and map.longitude is not null
+          ? map.latitude ~ ',' ~ map.longitude
+          : map.address %}
+        <div class="myeventlane-event-map-actions mel-venue-map-section__actions">
+          <a
+            href="https://maps.apple.com/?q={{ apple_query|url_encode }}"
+            data-mel-directions-link
+            data-apple-directions-url="https://maps.apple.com/?q={{ apple_query|url_encode }}"
+            data-google-directions-url="https://www.google.com/maps/search/?api=1&amp;query={{ apple_query|url_encode }}"
+            target="_blank"
+            rel="noopener noreferrer">
+            {{ 'Get directions'|t }}
+          </a>
+        </div>
       </section>
     {% endif %}
 

@@ -1,108 +1,157 @@
 {#
 /**
  * @file
- * Template for the vendor venues list.
- *
- * Available variables:
- * - venues: Array of venue row data.
- *   - name: Venue name.
- *   - visibility: Visibility string (public/shared).
- *   - visibility_label: Translated visibility label.
- *   - location_count: Number of locations.
- *   - primary_address: Primary address string.
- *   - is_owner: Whether current user owns this venue.
- *   - has_image: Whether venue has an image.
- *   - image_url: URL to the venue image.
- *   - actions: Array of action links.
- * - add_url: URL to add a new venue.
+ * Organiser venue library.
  */
 #}
-<div class="mel-venues-list-page">
-  <div class="mel-venues-header">
-    <h2 class="mel-venues-title">{{ 'Your Venues'|t }}</h2>
-    <div class="mel-venues-actions">
-      <a href="{{ add_url }}" class="mel-btn mel-btn--primary">
-        <span class="mel-btn__icon">+</span>
-        {{ 'Add venue'|t }}
-      </a>
+{% macro venue_card(row) %}
+  {% set location_label = row.location_count == 1
+    ? '1 location'|t
+    : '@count locations'|t({'@count': row.location_count})
+  %}
+  <article class="mel-venue-card{{ row.is_owner ? ' mel-venue-card--owned' : ' mel-venue-card--shared' }}{{ row.has_image ? ' mel-venue-card--has-image' : '' }}">
+    <div class="mel-venue-card__image">
+      {% if row.has_image and row.image_url %}
+        <img src="{{ row.image_url }}" alt="{{ row.name }}" class="mel-venue-card__img" loading="lazy">
+      {% else %}
+        <div class="mel-venue-card__placeholder" aria-hidden="true">
+          <svg class="mel-venue-card__placeholder-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M17.657 16.657 13.414 20.9a1.998 1.998 0 0 1-2.827 0l-4.244-4.243a8 8 0 1 1 11.314 0Z"/>
+            <path d="M15 11a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+          </svg>
+        </div>
+      {% endif %}
     </div>
-  </div>
+
+    <div class="mel-venue-card__content">
+      <div class="mel-venue-card__header">
+        <h3 class="mel-venue-card__name">{{ row.name }}</h3>
+        <span class="mel-pill mel-pill--{{ row.visibility }}">{{ row.visibility_label }}</span>
+      </div>
+
+      <div class="mel-venue-card__details">
+        {% if row.primary_address %}
+          <p class="mel-venue-card__address">
+            <svg class="mel-venue-card__detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+              <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+              <circle cx="12" cy="10" r="2.5"/>
+            </svg>
+            <span>{{ row.primary_address }}</span>
+          </p>
+        {% else %}
+          <p class="mel-venue-card__address mel-venue-card__address--empty">
+            <span>{{ 'Address not added yet'|t }}</span>
+          </p>
+        {% endif %}
+
+        <p class="mel-venue-card__locations">
+          <svg class="mel-venue-card__detail-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+            <path d="M4 7h16M7 4v6m10-6v6M6 12h4v4H6zM14 12h4v4h-4z"/>
+          </svg>
+          <span>{{ location_label }}</span>
+        </p>
+      </div>
+
+      <div class="mel-venue-card__actions" aria-label="{{ 'Actions for @venue'|t({'@venue': row.name}) }}">
+        {% for key, action in row.actions %}
+          {% if key == 'share' %}
+            <button type="button"
+                    class="mel-venue-action mel-venue-action--secondary mel-copy-share-link"
+                    data-share-url="{{ action.share_url }}"
+                    title="{{ 'Copy the sharing link'|t }}">
+              {{ action.title }}
+            </button>
+          {% elseif key == 'delete' %}
+            <a href="{{ action.url }}"
+               class="mel-venue-action mel-venue-action--danger mel-venue-delete-btn"
+               data-venue-name="{{ row.name }}">
+              {{ action.title }}
+            </a>
+          {% elseif action.url %}
+            <a href="{{ action.url }}" class="mel-venue-action{{ key == 'view' ? ' mel-venue-action--primary' : ' mel-venue-action--secondary' }}">
+              {{ action.title }}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  </article>
+{% endmacro %}
+
+<div class="mel-venues-list-page">
+  <header class="mel-venues-hero" aria-labelledby="mel-venues-title">
+    <div class="mel-venues-hero__copy">
+      <p class="mel-venues-eyebrow">{{ 'Settings'|t }}</p>
+      <h1 id="mel-venues-title" class="mel-venues-title">{{ 'Venues'|t }}</h1>
+      <p class="mel-venues-intro">
+        {{ 'Save venue details once, then reuse them when you create an event.'|t }}
+      </p>
+      {% if venues is not empty %}
+        <div class="mel-venues-summary" aria-label="{{ 'Venue summary'|t }}">
+          <span><strong>{{ owned_count }}</strong> {{ owned_count == 1 ? 'venue you manage'|t : 'venues you manage'|t }}</span>
+          {% if shared_count > 0 %}
+            <span><strong>{{ shared_count }}</strong> {{ 'shared with you'|t }}</span>
+          {% endif %}
+        </div>
+      {% endif %}
+    </div>
+    <a href="{{ add_url }}" class="use-ajax mel-btn mel-btn--primary mel-venues-add" data-dialog-type="modal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+        <path d="M12 5v14M5 12h14"/>
+      </svg>
+      <span>{{ 'Add venue'|t }}</span>
+    </a>
+  </header>
 
   {% if venues is empty %}
     <div class="mel-empty-state">
-      <div class="mel-empty-state__icon">📍</div>
-      <h3 class="mel-empty-state__title">{{ 'No venues yet'|t }}</h3>
+      <div class="mel-empty-state__icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/>
+          <circle cx="12" cy="10" r="2.5"/>
+        </svg>
+      </div>
+      <h2 class="mel-empty-state__title">{{ 'Add your first venue'|t }}</h2>
       <p class="mel-empty-state__text">
-        {{ 'Create your first venue to easily reuse locations across your events.'|t }}
+        {{ 'Keep the name, address and photo ready for your next event.'|t }}
       </p>
-      <a href="{{ add_url }}" class="mel-btn mel-btn--primary">
-        {{ 'Create your first venue'|t }}
+      <a href="{{ add_url }}" class="use-ajax mel-btn mel-btn--primary" data-dialog-type="modal">
+        {{ 'Create venue'|t }}
       </a>
     </div>
   {% else %}
-    <div class="mel-venues-grid">
-      {% for row in venues %}
-        <div class="mel-venue-card{% if row.is_owner %} mel-venue-card--owned{% endif %}{% if row.has_image %} mel-venue-card--has-image{% endif %}">
-          {# Venue image or placeholder #}
-          <div class="mel-venue-card__image">
-            {% if row.has_image and row.image_url %}
-              <img src="{{ row.image_url }}" alt="{{ row.name }}" class="mel-venue-card__img" loading="lazy">
-            {% else %}
-              <div class="mel-venue-card__placeholder">
-                <svg class="mel-venue-card__placeholder-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                  <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
-                  <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
-                </svg>
-              </div>
-            {% endif %}
+    {% if owned_venues is not empty %}
+      <section class="mel-venues-section" aria-labelledby="mel-owned-venues-title">
+        <div class="mel-venues-section__header">
+          <div>
+            <h2 id="mel-owned-venues-title">{{ 'Venues you manage'|t }}</h2>
+            <p>{{ 'Update details, sharing and photos for these venues.'|t }}</p>
           </div>
-
-          <div class="mel-venue-card__content">
-            <div class="mel-venue-card__header">
-              <h3 class="mel-venue-card__name">{{ row.name }}</h3>
-              <span class="mel-pill mel-pill--{{ row.visibility }}">
-                {{ row.visibility_label }}
-              </span>
-            </div>
-
-            {% if row.primary_address %}
-              <p class="mel-venue-card__address">{{ row.primary_address }}</p>
-            {% endif %}
-
-            <div class="mel-venue-card__meta">
-              <span class="mel-venue-card__locations">
-                {{ row.location_count }} {{ row.location_count == 1 ? 'location'|t : 'locations'|t }}
-              </span>
-              {% if not row.is_owner %}
-                <span class="mel-venue-card__shared-badge">{{ 'Shared with you'|t }}</span>
-              {% endif %}
-            </div>
-
-            <div class="mel-venue-card__actions">
-              {% for key, action in row.actions %}
-                {% if key == 'share' %}
-                  <button type="button"
-                          class="mel-btn mel-btn--text mel-copy-share-link"
-                          data-share-url="{{ action.share_url }}"
-                          title="{{ 'Click to copy share link'|t }}">
-                    {{ action.title }}
-                  </button>
-                {% elseif key == 'delete' %}
-                  <a href="{{ action.url }}"
-                     class="mel-btn mel-btn--text mel-btn--danger mel-venue-delete-btn"
-                     data-venue-name="{{ row.name }}">
-                    {{ action.title }}
-                  </a>
-                {% elseif action.url %}
-                  <a href="{{ action.url }}" class="mel-btn mel-btn--text">
-                    {{ action.title }}
-                  </a>
-                {% endif %}
-              {% endfor %}
-            </div>
-          </div>
+          <span class="mel-venues-count">{{ owned_count }}</span>
         </div>
-      {% endfor %}
-    </div>
+        <div class="mel-venues-grid">
+          {% for row in owned_venues %}
+            {{ _self.venue_card(row) }}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
+
+    {% if shared_venues is not empty %}
+      <section class="mel-venues-section" aria-labelledby="mel-shared-venues-title">
+        <div class="mel-venues-section__header">
+          <div>
+            <h2 id="mel-shared-venues-title">{{ 'Shared with you'|t }}</h2>
+            <p>{{ 'You can use these venues on your events. The owner manages their details.'|t }}</p>
+          </div>
+          <span class="mel-venues-count mel-venues-count--shared">{{ shared_count }}</span>
+        </div>
+        <div class="mel-venues-grid">
+          {% for row in shared_venues %}
+            {{ _self.venue_card(row) }}
+          {% endfor %}
+        </div>
+      </section>
+    {% endif %}
   {% endif %}
 </div>

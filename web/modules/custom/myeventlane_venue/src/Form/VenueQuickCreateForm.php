@@ -11,8 +11,15 @@ use Drupal\Core\Ajax\MessageCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\StringTranslation\TranslatableMarkup;
+use Drupal\Core\Url;
 use Drupal\myeventlane_venue\Entity\Venue;
+use Drupal\myeventlane_venue\Exception\DuplicateVenueException;
+use Drupal\myeventlane_venue\Service\OverturePlaceRepository;
+use Drupal\myeventlane_venue\Service\VenueDuplicateGuard;
 use Drupal\myeventlane_venue\Service\VenueManager;
+use Drupal\myeventlane_location\Service\LocationProviderManager;
+use Drupal\Component\Datetime\TimeInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -42,9 +49,13 @@ class VenueQuickCreateForm extends FormBase {
     VenueManager $venue_manager,
     RequestStack $request_stack,
     LoggerInterface $logger,
+    protected OverturePlaceRepository $overtureRepository,
+    protected TimeInterface $time,
+    protected LocationProviderManager $locationProviderManager,
+    protected VenueDuplicateGuard $duplicateGuard,
   ) {
     $this->venueManager = $venue_manager;
-    $this->requestStack = $request_stack;
+    $this->setRequestStack($request_stack);
     $this->logger = $logger;
   }
 
@@ -56,6 +67,10 @@ class VenueQuickCreateForm extends FormBase {
       $container->get('myeventlane_venue.manager'),
       $container->get('request_stack'),
       $container->get('logger.factory')->get('myeventlane_venue'),
+      $container->get('myeventlane_venue.overture_repository'),
+      $container->get('datetime.time'),
+      $container->get('myeventlane_location.provider_manager'),
+      $container->get('myeventlane_venue.duplicate_guard'),
     );
   }
 
@@ -77,27 +92,30 @@ class VenueQuickCreateForm extends FormBase {
     $prefillLat = $request?->query->get('lat', '') ?? '';
     $prefillLng = $request?->query->get('lng', '') ?? '';
 
-    $form['#prefix'] = '<div id="venue-quick-create-form-wrapper" class="mel-venue-quick-create">';
+    $form['#prefix'] = '<div id="venue-quick-create-form-wrapper" class="mel-venue-quick-create mel-venue-enrichment-form">';
     $form['#suffix'] = '</div>';
 
     // Attach libraries for dialog and location autocomplete.
     $form['#attached']['library'][] = 'core/drupal.dialog.ajax';
     $form['#attached']['library'][] = 'myeventlane_venue/quick_create';
+    $form['#attached']['drupalSettings']['myeventlaneVenueEnrichment'] = [
+      'suggestionsUrl' => Url::fromRoute('myeventlane_venue.suggestions')->toString(),
+    ];
 
-    // Attach location module's autocomplete if available.
-    if (\Drupal::hasService('myeventlane_location.provider_manager')) {
-      $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
-
-      // Get location provider settings for JS.
-      /** @var \Drupal\myeventlane_location\Service\LocationProviderManager $providerManager */
-      $providerManager = \Drupal::service('myeventlane_location.provider_manager');
-      $form['#attached']['drupalSettings']['myeventlaneLocation'] = $providerManager->getFrontendSettings();
-    }
+    // Attach the location module's configured Apple or Google autocomplete.
+    $form['#attached']['library'][] = 'myeventlane_location/address_autocomplete';
+    $form['#attached']['drupalSettings']['myeventlaneLocation'] = $this->locationProviderManager->getFrontendSettings();
 
     // Search field - integrates with myeventlane_location autocomplete.
     // User types venue/place name, system searches via Google/Apple Places.
     // Hidden if already pre-filled from wizard.
-    $form['venue_search'] = [
+    $form['venue_lookup'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'data-mel-address' => 'field_location',
+      ],
+    ];
+    $form['venue_lookup']['venue_search'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Search for venue'),
       '#maxlength' => 255,
@@ -190,6 +208,58 @@ class VenueQuickCreateForm extends FormBase {
       ],
     ];
 
+    $form['venue_suggestions'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['mel-venue-suggestions'],
+        'data-venue-suggestions' => 'true',
+        'aria-live' => 'polite',
+      ],
+    ];
+    $form['venue_suggestions']['prompt'] = [
+      '#markup' => '<p class="mel-venue-suggestions__prompt">' . $this->t('Choose a search result to check for an existing venue and any public details you can review.') . '</p>',
+    ];
+
+    $form['details'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Venue contact details'),
+      '#description' => $this->t('Optional. Review any suggested information before creating the venue.'),
+      '#open' => FALSE,
+      '#attributes' => ['class' => ['mel-venue-contact-details']],
+    ];
+    $form['details']['website'] = $this->optionalUrlField($this->t('Website'));
+    $form['details']['phone'] = [
+      '#type' => 'tel',
+      '#title' => $this->t('Public phone'),
+      '#maxlength' => 50,
+      '#attributes' => ['class' => ['mel-input'], 'data-enrichment-field' => 'phone'],
+    ];
+    $form['details']['email'] = [
+      '#type' => 'email',
+      '#title' => $this->t('Public email'),
+      '#maxlength' => 255,
+      '#attributes' => ['class' => ['mel-input'], 'data-enrichment-field' => 'email'],
+    ];
+    foreach ([
+      'facebook' => $this->t('Facebook'),
+      'instagram' => $this->t('Instagram'),
+      'twitter' => $this->t('X (Twitter)'),
+      'linkedin' => $this->t('LinkedIn'),
+      'youtube' => $this->t('YouTube'),
+      'tiktok' => $this->t('TikTok'),
+    ] as $field_name => $label) {
+      $form['details'][$field_name] = $this->optionalUrlField($label, $field_name);
+    }
+
+    $form['overture_source_id'] = [
+      '#type' => 'hidden',
+      '#attributes' => ['data-overture-source-id' => 'true'],
+    ];
+    $form['overture_accepted_fields'] = [
+      '#type' => 'hidden',
+      '#attributes' => ['data-overture-accepted-fields' => 'true'],
+    ];
+
     $form['actions'] = [
       '#type' => 'actions',
     ];
@@ -238,6 +308,26 @@ class VenueQuickCreateForm extends FormBase {
     if (empty($address)) {
       $form_state->setErrorByName('address_text', $this->t('Address is required.'));
     }
+
+    $source_id = trim((string) $form_state->getValue('overture_source_id'));
+    $accepted_fields = $this->acceptedFields((string) $form_state->getValue('overture_accepted_fields'));
+    if ($source_id !== '' && $accepted_fields !== [] && $this->overtureRepository->load($source_id) === NULL) {
+      $form_state->setErrorByName('overture_source_id', $this->t('Those venue suggestions are no longer available. Search again or enter the details manually.'));
+    }
+    $duplicate = $this->duplicateGuard->findDuplicate(
+      $name,
+      $address,
+      $this->coordinate($form_state->getValue('lat'), -90.0, 90.0),
+      $this->coordinate($form_state->getValue('lng'), -180.0, 180.0),
+      NULL,
+      $source_id,
+    );
+    if ($duplicate instanceof Venue) {
+      $form_state->setErrorByName('name', $this->t(
+        'This venue already exists as “@venue”. Choose Use existing venue instead.',
+        ['@venue' => $duplicate->getName()],
+      ));
+    }
   }
 
   /**
@@ -273,7 +363,28 @@ class VenueQuickCreateForm extends FormBase {
     $venueData = [
       'name' => trim((string) $form_state->getValue('name')),
       'visibility' => $form_state->getValue('visibility'),
+      'website' => trim((string) $form_state->getValue('website')),
+      'phone' => trim((string) $form_state->getValue('phone')),
+      'email' => trim((string) $form_state->getValue('email')),
+      'facebook' => trim((string) $form_state->getValue('facebook')),
+      'instagram' => trim((string) $form_state->getValue('instagram')),
+      'twitter' => trim((string) $form_state->getValue('twitter')),
+      'linkedin' => trim((string) $form_state->getValue('linkedin')),
+      'youtube' => trim((string) $form_state->getValue('youtube')),
+      'tiktok' => trim((string) $form_state->getValue('tiktok')),
     ];
+
+    $source_id = trim((string) $form_state->getValue('overture_source_id'));
+    $accepted_fields = $this->verifiedAcceptedFields($form_state, $source_id);
+    if ($accepted_fields !== [] && $source_id !== '') {
+      $venueData += [
+        'enrichment_source' => 'overture',
+        'enrichment_source_id' => $source_id,
+        'enrichment_checked' => $this->time->getRequestTime(),
+        'enrichment_accepted_fields' => json_encode($accepted_fields, JSON_THROW_ON_ERROR),
+        'organiser_verified' => $this->time->getRequestTime(),
+      ];
+    }
 
     $locationData = [
       'title' => trim((string) $form_state->getValue('location_title')) ?: $venueData['name'],
@@ -330,14 +441,17 @@ class VenueQuickCreateForm extends FormBase {
       $response->addCommand(new InvokeCommand(
         'body',
         'trigger',
-        ['venueCreated', [
-          'venue_id' => $venue->id(),
-          'venue_name' => $venue->getName(),
-          'location_id' => $locationId,
-          'address' => $addressData,
-          'latitude' => $primaryLocation?->getLatitude(),
-          'longitude' => $primaryLocation?->getLongitude(),
-        ]]
+        [
+          'venueCreated',
+          [
+            'venue_id' => $venue->id(),
+            'venue_name' => $venue->getName(),
+            'location_id' => $locationId,
+            'address' => $addressData,
+            'latitude' => $primaryLocation?->getLatitude(),
+            'longitude' => $primaryLocation?->getLongitude(),
+          ],
+        ]
       ));
 
       $this->logger->notice('Quick-created venue @name (ID: @id) with location @loc_id', [
@@ -345,6 +459,16 @@ class VenueQuickCreateForm extends FormBase {
         '@id' => $venue->id(),
         '@loc_id' => $locationId,
       ]);
+    }
+    catch (DuplicateVenueException $e) {
+      $duplicate = $e->getDuplicateVenue();
+      $response->addCommand(new MessageCommand(
+        $this->t('This venue already exists as “@venue”. Choose the existing venue instead.', [
+          '@venue' => $duplicate->getName(),
+        ]),
+        NULL,
+        ['type' => 'warning']
+      ));
     }
     catch (\Exception $e) {
       $this->logger->error('Quick-create venue failed: @message', [
@@ -375,6 +499,83 @@ class VenueQuickCreateForm extends FormBase {
     $response = new AjaxResponse();
     $response->addCommand(new CloseDialogCommand());
     return $response;
+  }
+
+  /**
+   * Builds a reusable optional URL field.
+   */
+  private function optionalUrlField(TranslatableMarkup $label, string $field_name = 'website'): array {
+    return [
+      '#type' => 'url',
+      '#title' => $label,
+      '#maxlength' => 255,
+      '#attributes' => [
+        'class' => ['mel-input'],
+        'data-enrichment-field' => $field_name,
+      ],
+    ];
+  }
+
+  /**
+   * Returns only fields which the review interface is allowed to attribute.
+   *
+   * @return string[]
+   *   Accepted enrichment field names.
+   */
+  private function acceptedFields(string $json): array {
+    $values = json_decode($json, TRUE);
+    if (!is_array($values)) {
+      return [];
+    }
+    $allowed = [
+      'name',
+      'address',
+      'website',
+      'phone',
+      'email',
+      'facebook',
+      'instagram',
+      'twitter',
+      'linkedin',
+      'youtube',
+      'tiktok',
+    ];
+    return array_values(array_unique(array_intersect($allowed, array_filter($values, 'is_string'))));
+  }
+
+  /**
+   * Keeps provenance only while the submitted value still matches its source.
+   *
+   * Organisers can edit every field, but an edited value must no longer be
+   * recorded as an exact Overture suggestion.
+   *
+   * @return string[]
+   *   Accepted fields whose submitted values still match the source.
+   */
+  private function verifiedAcceptedFields(FormStateInterface $form_state, string $source_id): array {
+    if ($source_id === '') {
+      return [];
+    }
+    $candidate = $this->overtureRepository->load($source_id);
+    if ($candidate === NULL) {
+      return [];
+    }
+    $source_values = [
+      'name' => $candidate['name'] ?? '',
+      'address' => $candidate['address'] ?? '',
+      'website' => $candidate['website'] ?? '',
+      'phone' => $candidate['phone'] ?? '',
+      'email' => $candidate['email'] ?? '',
+    ] + ($candidate['socials'] ?? []);
+
+    $verified = [];
+    foreach ($this->acceptedFields((string) $form_state->getValue('overture_accepted_fields')) as $field_name) {
+      $form_field = $field_name === 'address' ? 'address_text' : $field_name;
+      if (trim((string) $form_state->getValue($form_field)) === trim((string) ($source_values[$field_name] ?? ''))) {
+        $verified[] = $field_name;
+      }
+    }
+    return $verified;
   }
 
   /**
@@ -409,7 +610,7 @@ class VenueQuickCreateForm extends FormBase {
 
     // Try to parse Australian address format:
     // "Street, Suburb State Postcode, Australia"
-    // or "Street, Suburb State Postcode"
+    // Or "Street, Suburb State Postcode".
     $parts = array_map('trim', explode(',', $address_text));
 
     if (count($parts) >= 1) {
@@ -447,6 +648,17 @@ class VenueQuickCreateForm extends FormBase {
     }
 
     return $addressData;
+  }
+
+  /**
+   * Returns a valid submitted coordinate.
+   */
+  private function coordinate(mixed $value, float $minimum, float $maximum): ?float {
+    if (!is_numeric($value)) {
+      return NULL;
+    }
+    $coordinate = (float) $value;
+    return $coordinate >= $minimum && $coordinate <= $maximum ? $coordinate : NULL;
   }
 
 }

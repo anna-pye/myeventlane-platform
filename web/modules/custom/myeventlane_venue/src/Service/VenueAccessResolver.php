@@ -49,7 +49,7 @@ class VenueAccessResolver {
 
     // Public venues are viewable.
     if ($venue->isPublic()) {
-      return $account->hasPermission('access vendor venues');
+      return TRUE;
     }
 
     // Check for explicit access grant.

@@ -15,6 +15,8 @@ use Drupal\Component\Render\PlainTextOutput;
 use Drupal\Component\Utility\Html;
 use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Cache\Cache;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Render\Element;
 use Drupal\Core\Routing\RouteNotFoundException;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
@@ -1871,10 +1873,15 @@ function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
     return $links;
   }
 
+  /** @var \Drupal\myeventlane_core\Service\EventDateTimeResolver $event_datetime */
+  $event_datetime = \Drupal::service('myeventlane_core.event_datetime');
   $title = rawurlencode($event->label());
-  $start = gmdate('Ymd\THis\Z', strtotime($event->get('field_event_start')->value));
+  $start = $event_datetime->formatFieldForIcalendar($event, 'field_event_start');
+  if ($start === NULL) {
+    return $links;
+  }
   $end = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-    ? gmdate('Ymd\THis\Z', strtotime($event->get('field_event_end')->value))
+    ? ($event_datetime->formatFieldForIcalendar($event, 'field_event_end') ?? $start)
     : $start;
 
   $details = '';
@@ -1899,9 +1906,16 @@ function _myeventlane_theme_build_calendar_links(NodeInterface $event): array {
   $links['google'] = "https://calendar.google.com/calendar/render?action=TEMPLATE" .
     "&text=$title&dates={$start}/{$end}&details=$details&location=$location";
 
-  $start_outlook = gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_start')->value));
+  $start_outlook = $event_datetime->getFieldDateTime($event, 'field_event_start')
+    ?->setTimezone(new \DateTimeZone('UTC'))
+    ?->format('Y-m-d\TH:i:s\Z');
+  if ($start_outlook === NULL) {
+    return $links;
+  }
   $end_outlook = $event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()
-    ? gmdate('Y-m-d\TH:i:s\Z', strtotime($event->get('field_event_end')->value))
+    ? ($event_datetime->getFieldDateTime($event, 'field_event_end')
+      ?->setTimezone(new \DateTimeZone('UTC'))
+      ?->format('Y-m-d\TH:i:s\Z') ?? $start_outlook)
     : $start_outlook;
   $links['outlook'] = "https://outlook.live.com/calendar/0/deeplink/compose?subject={$title}&startdt={$start_outlook}&enddt={$end_outlook}";
 
@@ -2108,7 +2122,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
     $variables['footer_context'] = [
       'store_name' => NULL,
       'payout_balance' => '$0.00',
-      'environment' => getenv('SITE_ENV') ?: 'Production',
+      'environment' => '',
       'open_tickets' => 0,
       'is_vendor' => FALSE,
       'is_admin' => FALSE,
@@ -3586,6 +3600,16 @@ function myeventlane_theme_preprocess_views_view_fields(array &$variables): void
       $canonical = $event_node->toUrl('canonical');
       $variables['mel_event_card_url'] = $canonical->toString();
       $variables['mel_event_card_event_id'] = (int) $event_node->id();
+      $variables['mel_event_card_location'] = _myeventlane_theme_event_card_location_label($event_node);
+      if ($event_node->hasField('field_venue') && !$event_node->get('field_venue')->isEmpty()) {
+        $venue = $event_node->get('field_venue')->entity;
+        if ($venue instanceof FieldableEntityInterface) {
+          $variables['#cache']['tags'] = Cache::mergeTags(
+            (array) ($variables['#cache']['tags'] ?? []),
+            $venue->getCacheTags(),
+          );
+        }
+      }
       if ($view instanceof ViewExecutable && \Drupal::hasService('myeventlane_core.discovery_attribution_sources')) {
         /** @var \Drupal\myeventlane_core\Service\DiscoveryAttributionSources $attribution_sources */
         $attribution_sources = \Drupal::service('myeventlane_core.discovery_attribution_sources');
@@ -4865,10 +4889,29 @@ function _myeventlane_theme_apply_event_page_style_theme_variables(array &$varia
 }
 
 /**
- * Sets mel_venue, mel_address, mel_suburb, mel_lat, mel_lng for event templates.
+ * Sets public event location variables for event templates.
  */
 function _myeventlane_theme_apply_event_location_variables(array &$variables, NodeInterface $node): void {
   $variables['mel_venue'] = _myeventlane_theme_event_primary_location_label($node);
+  $variables['mel_venue_url'] = NULL;
+
+  if ($node->hasField('field_venue') && !$node->get('field_venue')->isEmpty()) {
+    $venue = $node->get('field_venue')->entity;
+    if ($venue instanceof FieldableEntityInterface) {
+      $variables['#cache']['tags'] = Cache::mergeTags(
+        $variables['#cache']['tags'] ?? [],
+        $venue->getCacheTags(),
+      );
+
+      // Shared venues must remain plain text on public event pages. Their
+      // canonical pages are intentionally unavailable to anonymous visitors.
+      $is_public = $venue->hasField('visibility')
+        && (string) $venue->get('visibility')->value === 'public';
+      if ($is_public && $venue->hasLinkTemplate('canonical')) {
+        $variables['mel_venue_url'] = $venue->toUrl('canonical')->toString();
+      }
+    }
+  }
 
   $address_parts = [];
   $variables['mel_suburb'] = NULL;
@@ -5222,6 +5265,19 @@ function myeventlane_theme_preprocess_node__event(array &$variables): void {
 function myeventlane_theme_preprocess_node__event__full(array &$variables): void {
   $node = $variables['node'] ?? NULL;
   if ($node instanceof NodeInterface) {
+    // Pass Twig a plain URL string. Drupal's Twig url() helper returns a
+    // render array so it can bubble cache metadata; URL-encoding that array
+    // leaks keys such as #theme and #markup into share links.
+    $canonicalUrl = Url::fromRoute(
+      'entity.node.canonical',
+      ['node' => (int) $node->id()],
+      ['absolute' => TRUE],
+    )->toString(TRUE);
+    $variables['mel_canonical_url'] = $canonicalUrl->getGeneratedUrl();
+    $variables['mel_share_title'] = $node->label();
+    CacheableMetadata::createFromRenderArray($variables)
+      ->addCacheableDependency($canonicalUrl)
+      ->applyTo($variables);
     _myeventlane_theme_apply_event_page_style_theme_variables($variables, $node);
     _myeventlane_theme_apply_event_location_variables($variables, $node);
   }

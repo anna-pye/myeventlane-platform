@@ -87,7 +87,7 @@ final class LocationSettingsForm extends ConfigFormBase {
         'google_maps' => $this->t('Google Maps'),
         'apple_maps' => $this->t('Apple Maps (MapKit JS)'),
       ],
-      '#default_value' => $config->get('default_provider') ?? 'google_maps',
+      '#default_value' => $config->get('default_provider') ?? 'apple_maps',
       '#required' => TRUE,
     ];
 

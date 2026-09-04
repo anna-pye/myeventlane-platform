@@ -84,6 +84,7 @@ final class EventStudioOperationalCapabilityKernelTest extends KernelTestBase {
     $autosave = new EventStudioAutosaveService(
       $this->container->get('tempstore.private'),
       new TestLoggerChannel(),
+      $this->container->get('entity_type.manager'),
     );
     $autosave->storeDraft($event, 'fulfilment', [
       'operational_capabilities' => [

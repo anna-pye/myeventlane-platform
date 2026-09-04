@@ -182,6 +182,8 @@ services:
 
   myeventlane_event.icalendar_builder:
     class: Drupal\myeventlane_event\Service\EventIcalendarBuilder
+    arguments:
+      - '@myeventlane_core.event_datetime'
 
   myeventlane_event.media_presenter:
     class: Drupal\myeventlane_event\Service\EventMediaPresenter
@@ -206,6 +208,7 @@ services:
       - '@myeventlane_event_state.resolver'
       - '@datetime.time'
       - '@myeventlane_event.passcode_access'
+      - '@myeventlane_core.event_datetime'
 
   myeventlane_event.event_visibility_noindex_subscriber:
     class: Drupal\myeventlane_event\EventSubscriber\EventVisibilityNoindexSubscriber
@@ -265,6 +268,7 @@ services:
       - '@myeventlane_event.booking_flow_resolver'
       - '@myeventlane_event.ticket_type_manager'
       - '@file_url_generator'
+      - '@myeventlane_core.event_datetime'
 
   myeventlane_event.event_card_view_model:
     class: Drupal\myeventlane_event\EventCard\EventCardViewModel

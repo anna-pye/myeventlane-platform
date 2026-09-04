@@ -13,6 +13,29 @@ use PHPUnit\Framework\TestCase;
  */
 final class PublicEventBodyTemplateContractTest extends TestCase {
 
+  public function testShareLinksUseAPlainCanonicalUrlString(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/node--event--full.html.twig',
+    );
+    $theme = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/myeventlane_theme.theme',
+    );
+
+    self::assertStringContainsString('$canonicalUrl = Url::fromRoute(', $theme);
+    self::assertStringContainsString(')->toString(TRUE);', $theme);
+    self::assertStringContainsString("\$variables['mel_canonical_url'] = \$canonicalUrl->getGeneratedUrl();", $theme);
+    self::assertStringContainsString('->addCacheableDependency($canonicalUrl)', $theme);
+    self::assertStringContainsString("{% set canonical_url = mel_canonical_url|default('') %}", $template);
+    self::assertStringContainsString("\$variables['mel_share_title'] = \$node->label();", $theme);
+    self::assertStringContainsString("{% set share_title = mel_share_title|default('') %}", $template);
+    self::assertStringContainsString('subject={{ share_title|url_encode }}', $template);
+    self::assertStringContainsString('text={{ share_title|url_encode }}', $template);
+    self::assertStringNotContainsString('label|url_encode', $template);
+    self::assertStringNotContainsString("{% set canonical_url = url('entity.node.canonical'", $template);
+  }
+
   public function testBodyIsRenderedOnceAndReusedForOutput(): void {
     $moduleRoot = dirname(__DIR__, 3);
     $webRoot = dirname($moduleRoot, 3);
@@ -86,6 +109,29 @@ final class PublicEventBodyTemplateContractTest extends TestCase {
     self::assertStringContainsString("provider === 'apple_maps'", $script);
     self::assertStringContainsString('link.dataset.appleDirectionsUrl', $script);
     self::assertStringContainsString('link.dataset.googleDirectionsUrl', $script);
+  }
+
+  /**
+   * Ensures saved public venue names link to their canonical venue page.
+   */
+  public function testPublicSavedVenueNamesLinkToPublicVenuePage(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $theme = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/myeventlane_theme.theme',
+    );
+    $template = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/node--event--full.html.twig',
+    );
+    $details = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/node/partial--event-full-view-details.html.twig',
+    );
+
+    self::assertStringContainsString("\$variables['mel_venue_url'] = NULL;", $theme);
+    self::assertStringContainsString("\$venue->get('visibility')->value === 'public'", $theme);
+    self::assertStringContainsString("\$venue->toUrl('canonical')->toString()", $theme);
+    self::assertSame(2, substr_count($template, 'href="{{ mel_venue_url }}"'));
+    self::assertSame(1, substr_count($details, 'href="{{ mel_venue_url }}"'));
   }
 
 }

@@ -7,7 +7,7 @@
  * - Populates venue name and address fields from selected place.
  */
 
-(function ($, Drupal, once) {
+(function ($, Drupal, once, drupalSettings) {
   'use strict';
 
   /**
@@ -27,7 +27,7 @@
       }
 
       // Initialize place selection handling for quick create forms.
-      var formWrappers = once('venue-quick-create-place', '.mel-venue-quick-create', context);
+      var formWrappers = once('venue-quick-create-place', '.mel-venue-enrichment-form', context);
       formWrappers.forEach(function (wrapper) {
         Drupal.behaviors.venueQuickCreate.initPlaceSelection(wrapper);
       });
@@ -41,6 +41,189 @@
             e.preventDefault();
             return false;
           }
+        });
+      });
+
+      once('venue-website-review', '[data-venue-website-review]', context).forEach(function (panel) {
+        Drupal.behaviors.venueQuickCreate.initWebsiteReview(panel);
+      });
+    },
+
+    /**
+     * Initializes approval-gated website metadata controls.
+     */
+    initWebsiteReview: function (panel) {
+      var settings = drupalSettings.myeventlaneVenueWebsite || {};
+      var previewButton = panel.querySelector('[data-venue-website-preview]');
+      var status = panel.querySelector('[data-venue-website-status]');
+      var candidate = panel.querySelector('[data-venue-website-candidate]');
+      if (!settings.previewUrl || !settings.importImageUrl || !previewButton || !status || !candidate) {
+        return;
+      }
+
+      previewButton.addEventListener('click', function (event) {
+        event.preventDefault();
+        previewButton.disabled = true;
+        status.textContent = Drupal.t('Reading the saved official website…');
+        status.className = 'mel-venue-website-review__status is-loading';
+        candidate.hidden = true;
+        candidate.replaceChildren();
+
+        this.websiteRequest(settings.previewUrl, settings.csrfToken)
+          .then(function (payload) {
+            this.renderWebsiteCandidate(panel, candidate, status, payload, settings);
+          }.bind(this))
+          .catch(function (error) {
+            status.textContent = error.message || Drupal.t('We could not preview that website safely.');
+            status.className = 'mel-venue-website-review__status is-error';
+          })
+          .finally(function () {
+            previewButton.disabled = false;
+          });
+      }.bind(this));
+    },
+
+    /**
+     * Renders metadata with text nodes and organiser-controlled actions.
+     */
+    renderWebsiteCandidate: function (panel, container, status, payload, settings) {
+      container.replaceChildren();
+
+      var source = document.createElement('p');
+      source.className = 'mel-venue-website-review__source';
+      source.textContent = Drupal.t('Preview from @source', { '@source': payload.sourceUrl || Drupal.t('saved website') });
+      container.appendChild(source);
+
+      if (payload.description) {
+        var description = document.createElement('div');
+        description.className = 'mel-venue-website-review__description';
+        var descriptionTitle = document.createElement('h4');
+        descriptionTitle.textContent = Drupal.t('Suggested description');
+        var descriptionText = document.createElement('p');
+        descriptionText.textContent = payload.description;
+        description.appendChild(descriptionTitle);
+        description.appendChild(descriptionText);
+        container.appendChild(description);
+      }
+
+      if (payload.imageUrl) {
+        var imageFigure = document.createElement('figure');
+        imageFigure.className = 'mel-venue-website-review__image';
+        var image = document.createElement('img');
+        image.src = payload.imageUrl;
+        image.alt = payload.title || Drupal.t('Website image preview');
+        image.loading = 'lazy';
+        image.referrerPolicy = 'no-referrer';
+        imageFigure.appendChild(image);
+        container.appendChild(imageFigure);
+      }
+
+      var confirmation = document.createElement('label');
+      confirmation.className = 'mel-venue-website-review__confirmation';
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      var confirmationText = document.createElement('span');
+      confirmationText.textContent = Drupal.t('I confirm I have permission to reuse the selected website content.');
+      confirmation.appendChild(checkbox);
+      confirmation.appendChild(confirmationText);
+      container.appendChild(confirmation);
+
+      var actions = document.createElement('div');
+      actions.className = 'mel-venue-website-review__actions';
+      var descriptionButton = null;
+      if (payload.description) {
+        descriptionButton = this.button(Drupal.t('Use description'));
+        descriptionButton.disabled = true;
+        descriptionButton.addEventListener('click', function () {
+          this.useWebsiteDescription(panel.closest('form'), payload.description, descriptionButton, status);
+        }.bind(this));
+        actions.appendChild(descriptionButton);
+      }
+
+      var imageButton = null;
+      if (payload.imageUrl) {
+        imageButton = this.button(Drupal.t('Save image to venue'));
+        imageButton.disabled = true;
+        imageButton.addEventListener('click', function () {
+          if (!window.confirm(Drupal.t('This saves the image now and reloads the page. Save any other form changes first. Continue?'))) {
+            return;
+          }
+          imageButton.disabled = true;
+          status.textContent = Drupal.t('Saving the approved image to your Media Library…');
+          status.className = 'mel-venue-website-review__status is-loading';
+          this.websiteRequest(settings.importImageUrl, settings.csrfToken, { confirmRights: true })
+            .then(function (response) {
+              status.textContent = response.message;
+              status.className = 'mel-venue-website-review__status is-success';
+              window.location.reload();
+            })
+            .catch(function (error) {
+              status.textContent = error.message || Drupal.t('The image could not be saved safely.');
+              status.className = 'mel-venue-website-review__status is-error';
+              imageButton.disabled = !checkbox.checked;
+            });
+        }.bind(this));
+        actions.appendChild(imageButton);
+      }
+      container.appendChild(actions);
+
+      checkbox.addEventListener('change', function () {
+        if (descriptionButton) descriptionButton.disabled = !checkbox.checked;
+        if (imageButton) imageButton.disabled = !checkbox.checked;
+      });
+
+      container.hidden = false;
+      status.textContent = Drupal.t('Review each item before choosing what to use.');
+      status.className = 'mel-venue-website-review__status is-success';
+    },
+
+    /**
+     * Places an approved description into the editable Drupal field.
+     */
+    useWebsiteDescription: function (form, description, button, status) {
+      if (!form) return;
+      var textarea = form.querySelector('textarea[name="description[0][value]"]');
+      var accepted = form.querySelector('[data-website-metadata-accept-description]');
+      if (!textarea || !accepted) return;
+
+      var editorId = textarea.dataset.ckeditor5Id;
+      var editor = Drupal.CKEditor5Instances && editorId
+        ? Drupal.CKEditor5Instances.get(editorId)
+        : null;
+      if (editor) {
+        var safe = document.createElement('div');
+        safe.textContent = description;
+        editor.setData('<p>' + safe.innerHTML + '</p>');
+      }
+      textarea.value = description;
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      accepted.value = '1';
+      button.textContent = Drupal.t('Description added');
+      button.disabled = true;
+      status.textContent = Drupal.t('The description is ready to edit. It is not saved until you save the venue.');
+      status.className = 'mel-venue-website-review__status is-success';
+    },
+
+    /**
+     * Makes a same-origin JSON request protected by Drupal's CSRF token.
+     */
+    websiteRequest: function (url, token, payload) {
+      return fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': token
+        },
+        body: payload ? JSON.stringify(payload) : '{}'
+      }).then(function (response) {
+        return response.json().catch(function () { return {}; }).then(function (body) {
+          if (!response.ok) {
+            throw new Error(body.message || Drupal.t('The website request could not be completed.'));
+          }
+          return body;
         });
       });
     },
@@ -62,8 +245,6 @@
       var $latField = $wrapper.find('.myeventlane-location-latitude-field');
       var $lngField = $wrapper.find('.myeventlane-location-longitude-field');
 
-      console.log('[Venue Quick Create] Initializing, search input found:', $searchInput.length > 0);
-
       if (!$searchInput.length) {
         return;
       }
@@ -73,17 +254,8 @@
 
       // Listen for place_selected custom event from location autocomplete.
       $searchInput[0].addEventListener('place_selected', function (e) {
-        console.log('[Venue Quick Create] place_selected event received:', e.detail);
         self.populateFields(e.detail, $venueNameField, $addressField, $latField, $lngField);
-      });
-
-      // Also listen via jQuery for compatibility.
-      $searchInput.on('place_selected', function (e) {
-        var detail = e.originalEvent && e.originalEvent.detail;
-        if (detail) {
-          console.log('[Venue Quick Create] place_selected (jQuery) event received:', detail);
-          self.populateFields(detail, $venueNameField, $addressField, $latField, $lngField);
-        }
+        self.loadSuggestions(wrapper, e.detail || {});
       });
 
       // Fallback: Check if Google Places Autocomplete is attached and hook into it.
@@ -91,7 +263,6 @@
         if (window.google && window.google.maps && window.google.maps.places) {
           var existingAutocomplete = $searchInput.data('google-autocomplete');
           if (!existingAutocomplete && !$searchInput.data('mel-autocomplete-attached')) {
-            console.log('[Venue Quick Create] Setting up Google autocomplete fallback listener');
             // The autocomplete is managed by myeventlane_location, but we can
             // observe value changes as a fallback.
             $searchInput.on('blur', function () {
@@ -175,7 +346,6 @@
         if (!currentName) {
           $venueNameField.val(placeName);
           $venueNameField.trigger('change');
-          console.log('[Venue Quick Create] Populated venue name:', placeName);
         }
       }
 
@@ -183,7 +353,6 @@
       if (formattedAddress && $addressField.length) {
         $addressField.val(formattedAddress);
         $addressField.trigger('change');
-        console.log('[Venue Quick Create] Populated address:', formattedAddress);
       }
 
       // Populate coordinates.
@@ -194,12 +363,244 @@
         $lngField.val(lng.toFixed(7));
       }
 
-      console.log('[Venue Quick Create] Place fields populated:', {
-        name: placeName,
-        address: formattedAddress,
-        lat: lat,
-        lng: lng
-      });
+    },
+
+    /**
+     * Load accessible existing venues and saveable Overture suggestions.
+     */
+    loadSuggestions: function (wrapper, detail) {
+      var settings = drupalSettings.myeventlaneVenueEnrichment || {};
+      var container = wrapper.querySelector('[data-venue-suggestions]');
+      if (!settings.suggestionsUrl || !container) {
+        return;
+      }
+
+      var nameField = wrapper.querySelector('.myeventlane-venue-name-field');
+      var addressField = wrapper.querySelector('.mel-venue-address-field');
+      var latField = wrapper.querySelector('.myeventlane-location-latitude-field');
+      var lngField = wrapper.querySelector('.myeventlane-location-longitude-field');
+      var url = new URL(settings.suggestionsUrl, window.location.origin);
+      url.searchParams.set('name', nameField ? nameField.value : '');
+      url.searchParams.set('address', addressField ? addressField.value : '');
+      url.searchParams.set('lat', detail.lat !== undefined ? detail.lat : (latField ? latField.value : ''));
+      url.searchParams.set('lng', detail.lng !== undefined ? detail.lng : (lngField ? lngField.value : ''));
+      if (settings.currentVenueId) {
+        url.searchParams.set('exclude_venue_id', settings.currentVenueId);
+      }
+
+      container.replaceChildren(this.message(Drupal.t('Checking MyEventLane and public venue data…'), 'loading'));
+      var self = this;
+      fetch(url.toString(), {
+        credentials: 'same-origin',
+        headers: { 'Accept': 'application/json' }
+      })
+        .then(function (response) {
+          if (!response.ok) {
+            throw new Error('Venue suggestions request failed.');
+          }
+          return response.json();
+        })
+        .then(function (payload) {
+          self.renderSuggestions(wrapper, container, payload || {});
+        })
+        .catch(function () {
+          container.replaceChildren(self.message(
+            Drupal.t('We could not check public venue details. You can still enter the venue manually.'),
+            'warning'
+          ));
+        });
+    },
+
+    /**
+     * Render suggestion cards with safe DOM text nodes.
+     */
+    renderSuggestions: function (wrapper, container, payload) {
+      container.replaceChildren();
+      var existing = Array.isArray(payload.existing) ? payload.existing : [];
+      var overture = Array.isArray(payload.overture) ? payload.overture : [];
+
+      if (existing.length) {
+        var existingSection = this.section(Drupal.t('We may already have this venue'));
+        existing.forEach(function (candidate) {
+          var card = document.createElement('article');
+          card.className = 'mel-venue-suggestion mel-venue-suggestion--existing';
+          card.appendChild(this.candidateTitle(candidate.name, candidate.address));
+          var button = this.button(Drupal.t('Use existing venue'));
+          button.addEventListener('click', function () {
+            $('body').trigger('venueCreated', [{
+              venue_id: candidate.venue_id,
+              venue_name: candidate.name,
+              address: candidate.address || '',
+              latitude: candidate.latitude,
+              longitude: candidate.longitude
+            }]);
+            var cancel = wrapper.querySelector('.dialog-cancel');
+            if (cancel) cancel.click();
+          });
+          card.appendChild(button);
+          existingSection.appendChild(card);
+        }, this);
+        container.appendChild(existingSection);
+      }
+
+      if (overture.length) {
+        var publicSection = this.section(Drupal.t('Public details found'));
+        var help = document.createElement('p');
+        help.className = 'mel-venue-suggestions__help';
+        help.textContent = Drupal.t('Use only the details you recognise. Nothing is added until you choose Use.');
+        publicSection.appendChild(help);
+        overture.forEach(function (candidate) {
+          publicSection.appendChild(this.overtureCard(wrapper, candidate));
+        }, this);
+        if (payload.attribution) {
+          var attribution = document.createElement('p');
+          attribution.className = 'mel-venue-suggestions__attribution';
+          attribution.textContent = payload.attribution;
+          publicSection.appendChild(attribution);
+        }
+        container.appendChild(publicSection);
+      }
+
+      if (!existing.length && !overture.length) {
+        container.appendChild(this.message(
+          Drupal.t('No close venue match was found. Check the details below and create a new venue.'),
+          'neutral'
+        ));
+      }
+    },
+
+    overtureCard: function (wrapper, candidate) {
+      var card = document.createElement('article');
+      card.className = 'mel-venue-suggestion mel-venue-suggestion--public';
+      card.appendChild(this.candidateTitle(candidate.name, candidate.address));
+
+      var fields = [
+        ['name', Drupal.t('Venue name'), candidate.name],
+        ['address', Drupal.t('Address'), candidate.address],
+        ['website', Drupal.t('Website'), candidate.website],
+        ['phone', Drupal.t('Public phone'), candidate.phone],
+        ['email', Drupal.t('Public email'), candidate.email]
+      ];
+      var socials = candidate.socials || {};
+      Object.keys(socials).forEach(function (field) {
+        fields.push([field, this.socialLabel(field), socials[field]]);
+      }, this);
+
+      var list = document.createElement('dl');
+      list.className = 'mel-venue-suggestion__fields';
+      fields.forEach(function (field) {
+        if (!field[2]) return;
+        var row = document.createElement('div');
+        row.className = 'mel-venue-suggestion__field';
+        var term = document.createElement('dt');
+        term.textContent = field[1];
+        var description = document.createElement('dd');
+        var value = document.createElement('span');
+        value.textContent = field[2];
+        description.appendChild(value);
+        var useButton = this.button(Drupal.t('Use'));
+        useButton.classList.add('mel-btn--small');
+        useButton.addEventListener('click', function () {
+          this.applySuggestionField(wrapper, candidate, field[0], field[2], useButton);
+        }.bind(this));
+        description.appendChild(useButton);
+        row.appendChild(term);
+        row.appendChild(description);
+        list.appendChild(row);
+      }, this);
+      card.appendChild(list);
+      return card;
+    },
+
+    applySuggestionField: function (wrapper, candidate, field, value, button) {
+      var target = null;
+      if (field === 'name') {
+        target = wrapper.querySelector('.myeventlane-venue-name-field');
+      }
+      else if (field === 'address') {
+        target = wrapper.querySelector('.mel-venue-address-field');
+      }
+      else {
+        target = wrapper.querySelector('[data-enrichment-field="' + field + '"]');
+      }
+      if (!target) return;
+
+      target.value = value;
+      target.dispatchEvent(new Event('change', { bubbles: true }));
+      if (field === 'address') {
+        var lat = wrapper.querySelector('.myeventlane-location-latitude-field');
+        var lng = wrapper.querySelector('.myeventlane-location-longitude-field');
+        if (lat && candidate.latitude !== undefined) lat.value = candidate.latitude;
+        if (lng && candidate.longitude !== undefined) lng.value = candidate.longitude;
+      }
+      if (field !== 'name' && field !== 'address') {
+        var details = target.closest('details');
+        if (details) details.open = true;
+      }
+
+      var sourceInput = wrapper.querySelector('[data-overture-source-id]');
+      var acceptedInput = wrapper.querySelector('[data-overture-accepted-fields]');
+      if (sourceInput && acceptedInput) {
+        if (sourceInput.value && sourceInput.value !== candidate.source_id) {
+          acceptedInput.value = '[]';
+        }
+        sourceInput.value = candidate.source_id;
+        var accepted = [];
+        try { accepted = JSON.parse(acceptedInput.value || '[]'); } catch (e) {}
+        if (accepted.indexOf(field) === -1) accepted.push(field);
+        acceptedInput.value = JSON.stringify(accepted);
+      }
+      button.textContent = Drupal.t('Used');
+      button.disabled = true;
+    },
+
+    section: function (title) {
+      var section = document.createElement('section');
+      section.className = 'mel-venue-suggestions__section';
+      var heading = document.createElement('h3');
+      heading.textContent = title;
+      section.appendChild(heading);
+      return section;
+    },
+
+    candidateTitle: function (name, address) {
+      var wrapper = document.createElement('div');
+      var strong = document.createElement('strong');
+      strong.textContent = name || Drupal.t('Unnamed venue');
+      wrapper.appendChild(strong);
+      if (address) {
+        var text = document.createElement('span');
+        text.textContent = address;
+        wrapper.appendChild(text);
+      }
+      return wrapper;
+    },
+
+    button: function (label) {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'mel-btn mel-btn--secondary';
+      button.textContent = label;
+      return button;
+    },
+
+    message: function (text, type) {
+      var message = document.createElement('p');
+      message.className = 'mel-venue-suggestions__message mel-venue-suggestions__message--' + type;
+      message.textContent = text;
+      return message;
+    },
+
+    socialLabel: function (field) {
+      var labels = {
+        facebook: Drupal.t('Facebook'),
+        instagram: Drupal.t('Instagram'),
+        twitter: Drupal.t('X (Twitter)'),
+        linkedin: Drupal.t('LinkedIn'),
+        youtube: Drupal.t('YouTube'),
+        tiktok: Drupal.t('TikTok')
+      };
+      return labels[field] || Drupal.t('Social profile');
     },
 
     /**
@@ -230,4 +631,4 @@
     }
   };
 
-})(jQuery, Drupal, once);
+})(jQuery, Drupal, once, drupalSettings);

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_event_studio\Unit;
 
+use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Entity\RevisionableStorageInterface;
 use Drupal\Core\TempStore\PrivateTempStore;
 use Drupal\Core\TempStore\PrivateTempStoreFactory;
 use Drupal\myeventlane_event_studio\Service\EventStudioAutosaveService;
@@ -40,7 +42,8 @@ final class EventStudioAutosaveCanonicalSectionTest extends UnitTestCase {
     $factory = $this->createMock(PrivateTempStoreFactory::class);
     $factory->method('get')->willReturn($store);
     $logger = $this->createMock(LoggerInterface::class);
-    $service = new EventStudioAutosaveService($factory, $logger);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $service = new EventStudioAutosaveService($factory, $logger, $entityTypeManager);
 
     $node = $this->createMock(NodeInterface::class);
     $node->method('id')->willReturn(42);
@@ -98,7 +101,8 @@ final class EventStudioAutosaveCanonicalSectionTest extends UnitTestCase {
     $factory = $this->createMock(PrivateTempStoreFactory::class);
     $factory->method('get')->willReturn($store);
     $logger = $this->createMock(LoggerInterface::class);
-    $service = new EventStudioAutosaveService($factory, $logger);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $service = new EventStudioAutosaveService($factory, $logger, $entityTypeManager);
 
     $node = $this->createMock(NodeInterface::class);
     $node->method('id')->willReturn(9);
@@ -110,6 +114,97 @@ final class EventStudioAutosaveCanonicalSectionTest extends UnitTestCase {
     $this->assertSame('Legacy venue draft', $draft['mel']['title'] ?? NULL);
     $this->assertArrayHasKey('node.9.information', $bag);
     $this->assertArrayNotHasKey('node.9.venue', $bag);
+  }
+
+  /**
+   * Equivalent revision bookkeeping does not invalidate a submission.
+   */
+  public function testEquivalentBaseRevisionIsNotStale(): void {
+    $factory = $this->createMock(PrivateTempStoreFactory::class);
+    $logger = $this->createMock(LoggerInterface::class);
+    $storage = $this->createMock(RevisionableStorageInterface::class);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->method('getStorage')->with('node')->willReturn($storage);
+
+    $base = $this->eventRevision(42, 7, 100, 'Untitled event');
+    $current = $this->eventRevision(42, 8, 100, 'Untitled event');
+    $storage->method('loadRevision')->with(7)->willReturn($base);
+
+    $service = new EventStudioAutosaveService($factory, $logger, $entityTypeManager);
+
+    $this->assertFalse($service->isStaleSubmission($current, 100, 7));
+  }
+
+  /**
+   * A real field change still invalidates a submission.
+   */
+  public function testChangedContentRemainsStale(): void {
+    $factory = $this->createMock(PrivateTempStoreFactory::class);
+    $logger = $this->createMock(LoggerInterface::class);
+    $storage = $this->createMock(RevisionableStorageInterface::class);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->method('getStorage')->with('node')->willReturn($storage);
+
+    $base = $this->eventRevision(42, 7, 100, 'Untitled event');
+    $current = $this->eventRevision(42, 8, 100, 'Updated event');
+    $storage->method('loadRevision')->with(7)->willReturn($base);
+
+    $service = new EventStudioAutosaveService($factory, $logger, $entityTypeManager);
+
+    $this->assertTrue($service->isStaleSubmission($current, 100, 7));
+  }
+
+  /**
+   * A revision belonging to another event cannot bypass the safety check.
+   */
+  public function testOtherEventBaseRevisionRemainsStale(): void {
+    $factory = $this->createMock(PrivateTempStoreFactory::class);
+    $logger = $this->createMock(LoggerInterface::class);
+    $storage = $this->createMock(RevisionableStorageInterface::class);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->method('getStorage')->with('node')->willReturn($storage);
+
+    $otherEvent = $this->eventRevision(99, 7, 100, 'Untitled event');
+    $current = $this->eventRevision(42, 8, 100, 'Untitled event');
+    $storage->method('loadRevision')->with(7)->willReturn($otherEvent);
+
+    $service = new EventStudioAutosaveService($factory, $logger, $entityTypeManager);
+
+    $this->assertTrue($service->isStaleSubmission($current, 100, 7));
+  }
+
+  /**
+   * A newer changed timestamp still invalidates a submission immediately.
+   */
+  public function testNewerChangedTimeRemainsStale(): void {
+    $factory = $this->createMock(PrivateTempStoreFactory::class);
+    $logger = $this->createMock(LoggerInterface::class);
+    $entityTypeManager = $this->createMock(EntityTypeManagerInterface::class);
+    $entityTypeManager->expects($this->never())->method('getStorage');
+    $current = $this->eventRevision(42, 8, 101, 'Updated event');
+
+    $service = new EventStudioAutosaveService($factory, $logger, $entityTypeManager);
+
+    $this->assertTrue($service->isStaleSubmission($current, 100, 7));
+  }
+
+  /**
+   * Builds a node revision test double with representative field values.
+   */
+  private function eventRevision(int $id, int $revisionId, int $changed, string $title): NodeInterface {
+    $event = $this->createMock(NodeInterface::class);
+    $event->method('id')->willReturn($id);
+    $event->method('getRevisionId')->willReturn($revisionId);
+    $event->method('getChangedTime')->willReturn($changed);
+    $event->method('toArray')->willReturn([
+      'nid' => [['value' => $id]],
+      'vid' => [['value' => $revisionId]],
+      'changed' => [['value' => $changed]],
+      'title' => [['value' => $title]],
+      'revision_timestamp' => [['value' => $changed + $revisionId]],
+    ]);
+
+    return $event;
   }
 
 }
