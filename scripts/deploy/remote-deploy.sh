@@ -60,6 +60,56 @@ mel_verify_config_status_output() {
   fi
 }
 
+# Read a single numeric workflow_run value from REVISION without sourcing it.
+mel_revision_workflow_run() {
+  local revision_file="$1"
+  local value count
+
+  [ -r "$revision_file" ] || return 1
+  count="$(awk -F= '$1 == "workflow_run" { count++ } END { print count + 0 }' "$revision_file")"
+  [ "$count" -eq 1 ] || return 1
+  value="$(awk -F= '$1 == "workflow_run" { print $2 }' "$revision_file")"
+  case "$value" in
+    ''|*[!0-9]*) return 1 ;;
+  esac
+  printf '%s\n' "$value"
+}
+
+# Refuse an older GitHub Actions release before shared files, config or symlinks
+# can be changed. GitHub concurrency groups serialize runs but do not guarantee
+# that queued runs start in commit order.
+mel_verify_candidate_not_stale() {
+  local current_revision="$1"
+  local candidate_revision="$2"
+  local current_run candidate_run
+
+  if [ ! -r "$current_revision" ]; then
+    echo "NOTICE: No current REVISION found; stale-release comparison skipped."
+    return 0
+  fi
+
+  if ! grep -q '^workflow_run=' "$current_revision"; then
+    echo "NOTICE: Current release has legacy provenance; stale-release comparison skipped."
+    return 0
+  fi
+
+  if ! current_run="$(mel_revision_workflow_run "$current_revision")"; then
+    echo "ERROR: Current REVISION has an invalid or duplicate workflow_run." >&2
+    return 1
+  fi
+  if ! candidate_run="$(mel_revision_workflow_run "$candidate_revision")"; then
+    echo "ERROR: Candidate REVISION has no single valid workflow_run." >&2
+    return 1
+  fi
+
+  if [ "$candidate_run" -lt "$current_run" ]; then
+    echo "ERROR: Refusing stale release from workflow ${candidate_run}; current workflow is ${current_run}." >&2
+    return 1
+  fi
+
+  echo "Release order OK: candidate workflow ${candidate_run}, current workflow ${current_run}."
+}
+
 # Narrow, side-effect-free entry point used by the regression test. Production
 # deploys never set this variable.
 if [ "${MEL_TEST_CONFIG_STATUS_OUTPUT:-0}" = "1" ]; then
@@ -68,6 +118,13 @@ if [ "${MEL_TEST_CONFIG_STATUS_OUTPUT:-0}" = "1" ]; then
     "$test_output" \
     "${MEL_TEST_CONFIG_STATUS_RC:-0}" \
     "${MEL_TEST_CONFIG_STATUS_ALLOWED:-}"
+  exit $?
+fi
+
+if [ "${MEL_TEST_STALE_RELEASE_GUARD:-0}" = "1" ]; then
+  mel_verify_candidate_not_stale \
+    "${MEL_TEST_CURRENT_REVISION:?}" \
+    "${MEL_TEST_CANDIDATE_REVISION:?}"
   exit $?
 fi
 
@@ -707,6 +764,14 @@ echo "Deploying release: $TIMESTAMP"
 
 mel_validate_base_paths
 
+if [ -z "$ARTIFACT_PATH" ] || [ ! -d "$ARTIFACT_PATH" ]; then
+  echo "Artifact directory not found"
+  exit 1
+fi
+
+# Check the artifact before pruning releases or touching any shared path.
+mel_verify_candidate_not_stale "$CURRENT_PATH/REVISION" "$ARTIFACT_PATH/REVISION"
+
 mkdir -p "$APP_PATH/releases"
 mkdir -p "$SHARED_PATH/files"
 mkdir -p "$SHARED_PATH/files/page-visuals"
@@ -714,12 +779,6 @@ mkdir -p "$SHARED_PATH/files/page-visuals"
 mel_report_disk_usage
 mel_prune_old_releases
 mel_check_disk_space
-
-# ---- CRITICAL FIX: validate directory, not file ----
-if [ -z "$ARTIFACT_PATH" ] || [ ! -d "$ARTIFACT_PATH" ]; then
-  echo "Artifact directory not found"
-  exit 1
-fi
 
 mkdir -p "$RELEASE_PATH"
 
