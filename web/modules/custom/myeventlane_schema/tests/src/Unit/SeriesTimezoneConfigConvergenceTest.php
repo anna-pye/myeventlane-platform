@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Drupal\Tests\myeventlane_schema\Unit;
 
+use Drupal\Component\FileCache\FileCacheFactory;
+use Drupal\Core\Config\FileStorage;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Yaml\Yaml;
 
@@ -38,7 +40,17 @@ final class SeriesTimezoneConfigConvergenceTest extends TestCase {
     $installConfig = Yaml::parseFile($installPath);
 
     self::assertArrayHasKey('uuid', $syncConfig);
-    self::assertNull($syncConfig['uuid']);
+    self::assertSame('b1cd174d-a550-4710-a0b4-4a05b61cfd42', $syncConfig['uuid']);
+    self::assertMatchesRegularExpression(
+      '/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/',
+      $syncConfig['uuid'],
+    );
+
+    FileCacheFactory::setPrefix('series_timezone_config_convergence');
+    $syncStorage = new FileStorage(dirname($syncPath));
+    $storedSyncConfig = $syncStorage->read('field.field.node.event.field_series_timezone');
+    self::assertIsArray($storedSyncConfig);
+    self::assertSame($syncConfig['uuid'], $storedSyncConfig['uuid'] ?? NULL);
     self::assertArrayNotHasKey('uuid', $installConfig);
   }
 
