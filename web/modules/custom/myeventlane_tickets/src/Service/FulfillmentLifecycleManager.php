@@ -213,6 +213,7 @@ final class FulfillmentLifecycleManager {
 
     if (!in_array($fulfilment, [
       Ticket::FULFILMENT_PENDING,
+      Ticket::FULFILMENT_PREPARING,
       Ticket::FULFILMENT_READY,
       Ticket::FULFILMENT_COLLECTED,
       Ticket::FULFILMENT_REDEEMED,
@@ -240,6 +241,9 @@ final class FulfillmentLifecycleManager {
     }
     if ($fulfilment === Ticket::FULFILMENT_READY) {
       return self::STATE_READY;
+    }
+    if ($fulfilment === Ticket::FULFILMENT_PREPARING) {
+      return self::STATE_PREPARED;
     }
 
     if ($redeemable && $multi && $limit > 1 && $count > 0 && $count < $limit) {

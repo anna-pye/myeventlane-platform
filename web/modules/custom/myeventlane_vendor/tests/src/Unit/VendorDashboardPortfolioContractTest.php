@@ -143,6 +143,17 @@ final class VendorDashboardPortfolioContractTest extends TestCase {
     $this->assertStringContainsString("{{ 'Open support'|t }}", $this->template);
   }
 
+  public function testDashboardShowsCanonicalAddOnStockWithoutMixingTicketCapacity(): void {
+    $this->assertStringContainsString('EventOperationalStockSummaryBuilder $operationalStockSummaryBuilder', $this->builder);
+    $this->assertStringContainsString('buildForEvent($node)', $this->builder);
+    $this->assertStringContainsString("'add_on_stock' => \$addOnStock", $this->builder);
+    $this->assertStringContainsString("'@myeventlane_commerce.event_operational_stock_summary_builder'", $this->services);
+    $this->assertStringContainsString("{{ 'Add-on stock'|t }}", $this->template);
+    $this->assertStringContainsString('add_on_stock.manage_url', $this->template);
+    $this->assertStringContainsString('mel-vendor-portfolio__stock--', $this->template);
+    $this->assertStringNotContainsString('Ticket stock', $this->template);
+  }
+
   public function testDashboardSummaryStaysCompactAndLinksToFullPortfolio(): void {
     $this->assertStringContainsString(
       'grid-template-columns: minmax(0, 1fr) minmax(15rem, 18rem);',

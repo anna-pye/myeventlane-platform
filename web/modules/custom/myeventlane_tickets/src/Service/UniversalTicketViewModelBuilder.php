@@ -82,6 +82,8 @@ final class UniversalTicketViewModelBuilder {
         'status_label' => $this->statusLabel($status),
         'entitlement_type' => $entitlement_type,
         'entitlement_label' => $this->entitlementLabel($entitlement_type),
+        'display_label' => $this->entitlementDisplayLabel($ticket, $entitlement_type),
+        'is_extra' => !$this->entitlementCapabilityRegistry->isAdmissionEntitlementType($entitlement_type),
       ],
       'event' => $this->buildEvent($ticket),
       'holder' => [
@@ -417,7 +419,21 @@ final class UniversalTicketViewModelBuilder {
     return $this->walletActionBuilder->buildForOrderItem(
       $order_item_id,
       WalletActionBuilder::SURFACE_ACTIONS,
+      FALSE,
+      (string) $ticket->uuid(),
     );
+  }
+
+  /**
+   * Uses the purchased add-on label while keeping admission labels unchanged.
+   */
+  private function entitlementDisplayLabel(Ticket $ticket, string $entitlement_type): string {
+    if ($this->entitlementCapabilityRegistry->isAdmissionEntitlementType($entitlement_type)) {
+      return $this->entitlementLabel($entitlement_type);
+    }
+    $metadata = $this->readMap($ticket, 'metadata_json');
+    $label = trim((string) ($metadata['display_label'] ?? ''));
+    return $label !== '' ? $label : $this->entitlementLabel($entitlement_type);
   }
 
   /**
@@ -444,6 +460,10 @@ final class UniversalTicketViewModelBuilder {
     }
     if ($this->entitlementCapabilityRegistry->isAdmissionEntitlementType($entitlement_type) && $status === Ticket::STATUS_CHECKED_IN) {
       return 'checked_in';
+    }
+    if (!$can_scan && $entitlement_type === Ticket::ENTITLEMENT_MERCH
+      && in_array($fulfilment_status, [Ticket::FULFILMENT_PENDING, Ticket::FULFILMENT_PREPARING], TRUE)) {
+      return 'not_ready';
     }
     if (!$can_scan && $this->capabilityManager->getRemainingRedemptions($ticket) === 0) {
       return 'redemption_limit_reached';
@@ -476,6 +496,7 @@ final class UniversalTicketViewModelBuilder {
       'fulfilment_cancelled' => 'Fulfilment was cancelled; this cannot be scanned.',
       'fulfilment_expired' => 'Fulfilment has expired; this cannot be scanned.',
       'not_scannable' => 'This entitlement cannot be scanned right now.',
+      'not_ready' => 'This extra is not ready to collect yet.',
       'unassigned' => 'Ticket is issued but holder details are not assigned.',
       default => 'Ready to scan.',
     };
@@ -657,6 +678,7 @@ final class UniversalTicketViewModelBuilder {
    */
   private function fulfilmentLabel(string $status): string {
     return match ($status) {
+      Ticket::FULFILMENT_PREPARING => 'Preparing',
       Ticket::FULFILMENT_READY => 'Ready',
       Ticket::FULFILMENT_COLLECTED => 'Collected',
       Ticket::FULFILMENT_REDEEMED => 'Redeemed',

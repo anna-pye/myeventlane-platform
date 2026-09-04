@@ -16,6 +16,15 @@ trait RegistersTicketBackedClassifierStubTrait {
    * Registers the kernel-test classifier when commerce is not in the test stack.
    */
   protected function registerTicketBackedClassifierStub(ContainerBuilder $container): void {
+    if (!$container->hasDefinition('myeventlane_commerce.operational_merchandise_manager')) {
+      $container->register('logger.channel.myeventlane_commerce', \Psr\Log\NullLogger::class);
+      $container->register('myeventlane_commerce.operational_merchandise_manager', \Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager::class)
+        ->setArguments([
+          new \Symfony\Component\DependencyInjection\Reference('entity_type.manager'),
+          new \Symfony\Component\DependencyInjection\Reference('string_translation'),
+          new \Symfony\Component\DependencyInjection\Reference('logger.channel.myeventlane_commerce'),
+        ]);
+    }
     if ($container->hasDefinition('myeventlane_commerce.ticket_backed_order_item_classifier')) {
       return;
     }

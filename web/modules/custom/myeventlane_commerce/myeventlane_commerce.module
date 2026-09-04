@@ -16,12 +16,27 @@ use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\myeventlane_capacity\Exception\CapacityExceededException;
+use Drupal\myeventlane_commerce\Exception\OperationalStockUnavailableException;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
 use Drupal\node\NodeInterface;
 use Drupal\views\Plugin\views\field\FieldPluginBase;
 use Drupal\views\Plugin\views\query\QueryPluginBase;
 use Drupal\views\ResultRow;
 use Drupal\views\ViewExecutable;
+
+/**
+ * Implements hook_config_schema_info_alter().
+ */
+function myeventlane_commerce_config_schema_info_alter(array &$definitions): void {
+  if (isset($definitions['commerce_stock.service_manager'])) {
+    foreach (\Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver::OPERATIONAL_VARIATION_BUNDLES as $bundle) {
+      $definitions['commerce_stock.service_manager']['mapping']['commerce_product_variation_' . $bundle . '_service_id'] = [
+        'type' => 'string',
+        'label' => 'Stock service for operational extras',
+      ];
+    }
+  }
+}
 
 /**
  * Helper: find the quantity number element in ATC form (various widget shapes).
@@ -356,6 +371,7 @@ function myeventlane_commerce_theme(): array {
         'orders_url' => NULL,
         'refunds_url' => NULL,
         'extras_url' => NULL,
+        'manual_recovery_url' => NULL,
       ],
       'template' => 'mel-vendor-operational-addon-orders',
     ],
@@ -556,6 +572,7 @@ function myeventlane_commerce_theme_registry_alter(array &$registry): void {
  * Also falls back to product's field_event if variation has neither.
  */
 function myeventlane_commerce_commerce_order_item_presave(EntityInterface $entity): void {
+  \Drupal::service('myeventlane_commerce.operational_stock_order_guard')->protectItem($entity);
   // Only process if field_target_event exists and is empty.
   if (!$entity->hasField('field_target_event') || !$entity->get('field_target_event')->isEmpty()) {
     return;
@@ -591,6 +608,27 @@ function myeventlane_commerce_commerce_order_item_presave(EntityInterface $entit
       '@event' => $eventId,
     ]);
   }
+}
+
+/**
+ * Implements hook_commerce_order_item_predelete().
+ */
+function myeventlane_commerce_commerce_order_item_predelete(OrderItemInterface $item): void {
+  \Drupal::service('myeventlane_commerce.operational_stock_order_guard')->protectItem($item, TRUE);
+}
+
+/**
+ * Implements hook_commerce_order_presave().
+ */
+function myeventlane_commerce_commerce_order_presave(OrderInterface $order): void {
+  \Drupal::service('myeventlane_commerce.operational_stock_order_guard')->protectOrder($order);
+}
+
+/**
+ * Implements hook_commerce_order_predelete().
+ */
+function myeventlane_commerce_commerce_order_predelete(OrderInterface $order): void {
+  \Drupal::service('myeventlane_commerce.operational_stock_order_guard')->protectOrder($order, TRUE);
 }
 
 /**
@@ -668,6 +706,11 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
     $form['actions']['checkout']['#attributes']['class'][] = 'mel-cart-action';
     $form['actions']['checkout']['#attributes']['class'][] = 'mel-cart-action--checkout';
     $form['actions']['checkout']['#attributes']['class'][] = 'mel-ticket-hold-protected-action';
+    $form['actions']['checkout']['#attributes']['class'][] = 'mel-operational-stock-protected-action';
+    $form['#validate'] = array_merge(
+      ['myeventlane_commerce_operational_stock_validate'],
+      $form['#validate'] ?? [],
+    );
 
     $order_id = (int) $form['actions']['checkout']['#order_id'];
     $cart = $order_id > 0
@@ -724,6 +767,11 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
   }
 
   if ($is_commerce_checkout_form && isset($form['actions']['next']) && is_array($form['actions']['next'])) {
+    $form['actions']['next']['#attributes']['class'][] = 'mel-operational-stock-protected-action';
+    $form['#validate'] = array_merge(
+      ['myeventlane_commerce_operational_stock_validate'],
+      $form['#validate'] ?? [],
+    );
     $order = \Drupal::routeMatch()->getParameter('commerce_order');
     if (is_numeric($order)) {
       $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);
@@ -806,6 +854,47 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
       $form['#submit'] = [];
     }
     array_unshift($form['#submit'], 'myeventlane_commerce_checkout_form_submit_safety_check');
+  }
+}
+
+/**
+ * Rechecks and refreshes add-on holds before cart and checkout submissions.
+ */
+function myeventlane_commerce_operational_stock_validate(array &$form, FormStateInterface $form_state): void {
+  $trigger = $form_state->getTriggeringElement();
+  $classes = $trigger['#attributes']['class'] ?? [];
+  $formId = (string) ($form_state->getBuildInfo()['form_id'] ?? '');
+  $isCheckout = str_starts_with($formId, 'commerce_checkout_flow_');
+  $isProtectedAction = is_array($classes)
+    && in_array('mel-operational-stock-protected-action', $classes, TRUE);
+  if (!$isCheckout && !$isProtectedAction) {
+    return;
+  }
+
+  $order = NULL;
+  $orderId = (int) ($trigger['#order_id'] ?? 0);
+  if ($orderId > 0) {
+    $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load($orderId);
+  }
+  if (!$order instanceof OrderInterface) {
+    $order = \Drupal::routeMatch()->getParameter('commerce_order');
+    if (is_numeric($order)) {
+      $order = \Drupal::entityTypeManager()->getStorage('commerce_order')->load((int) $order);
+    }
+  }
+  if (!$order instanceof OrderInterface
+    || !\Drupal::hasService('myeventlane_commerce.operational_stock_hold_manager')) {
+    return;
+  }
+
+  try {
+    \Drupal::service('myeventlane_commerce.operational_stock_hold_manager')->refresh($order);
+  }
+  catch (OperationalStockUnavailableException $e) {
+    $form_state->setError(
+      $form,
+      t('@message Please adjust your cart before paying.', ['@message' => $e->getMessage()]),
+    );
   }
 }
 
@@ -1133,5 +1222,8 @@ function myeventlane_commerce_cron(): void {
   }
   if (\Drupal::hasService('myeventlane_commerce.cart_ticket_tier_hold_store')) {
     \Drupal::service('myeventlane_commerce.cart_ticket_tier_hold_store')->purgeExpired();
+  }
+  if (\Drupal::hasService('myeventlane_commerce.operational_stock_hold_store')) {
+    \Drupal::service('myeventlane_commerce.operational_stock_hold_store')->purgeExpired();
   }
 }

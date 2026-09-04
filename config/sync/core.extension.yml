@@ -27,6 +27,10 @@ module:
   commerce_store: 0
   commerce_stripe: 0
   commerce_stripe_webhook_event: 0
+  commerce_stock: 0
+  commerce_stock_enforcement: 0
+  commerce_stock_field: 0
+  commerce_stock_local: 0
   commerce_tax: 0
   conditional_fields: 0
   config: 0

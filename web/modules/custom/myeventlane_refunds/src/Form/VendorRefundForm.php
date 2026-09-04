@@ -214,7 +214,7 @@ final class VendorRefundForm extends FormBase {
       '#type' => 'radios',
       '#title' => $this->t('Refund Type'),
       '#options' => [
-        'full' => $this->t('Full refund (tickets for this event)'),
+        'full' => $this->t('Full ticket refund for this event'),
         'partial' => $this->t('Partial refund'),
       ],
       '#default_value' => 'full',
@@ -287,6 +287,29 @@ final class VendorRefundForm extends FormBase {
         ],
       ],
     ];
+
+    $operationalItems = $this->orderInspector->getRefundableOperationalItemBreakdown($order, $eventId);
+    if ($operationalItems !== []) {
+      $options = [];
+      foreach ($operationalItems as $itemId => $entry) {
+        $options[$itemId] = $this->t('@label — @quantity × units — $@amount', [
+          '@label' => $entry['label'],
+          '@quantity' => $entry['quantity'],
+          '@amount' => number_format($entry['amount_cents'] / 100, 2),
+        ]);
+      }
+      $form['operational_item_ids'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Also refund uncollected event extras'),
+        '#options' => $options,
+        '#description' => $this->t('Only whole, uncollected add-on lines can be refunded here. Refunded units return to available stock after Stripe confirms the refund.'),
+        '#states' => [
+          'visible' => [
+            ':input[name="refund_type"]' => ['value' => 'full'],
+          ],
+        ],
+      ];
+    }
 
     $form['reason'] = [
       '#type' => 'textarea',
@@ -374,6 +397,30 @@ final class VendorRefundForm extends FormBase {
       $form_state->set('partial_refund_amount_cents', $amountCents);
       $form_state->set('partial_refund_attendee_ids', $selectedAttendeeIds);
     }
+
+    $selectedOperationalIds = array_values(array_filter(array_map(
+      'intval',
+      (array) $form_state->getValue('operational_item_ids', []),
+    )));
+    if ($refundType !== 'full' && $selectedOperationalIds !== []) {
+      $form_state->setErrorByName('operational_item_ids', $this->t('Event extras can only be included with a full ticket refund.'));
+      return;
+    }
+    if ($selectedOperationalIds !== []) {
+      $breakdown = $this->orderInspector->getRefundableOperationalItemBreakdown(
+        $order,
+        (int) $form_state->get('event_id'),
+      );
+      $quantities = [];
+      foreach ($selectedOperationalIds as $itemId) {
+        if (!isset($breakdown[$itemId])) {
+          $form_state->setErrorByName('operational_item_ids', $this->t('One or more event extras are no longer refundable.'));
+          return;
+        }
+        $quantities[$itemId] = (int) $breakdown[$itemId]['quantity'];
+      }
+      $form_state->set('operational_refund_quantities', $quantities);
+    }
   }
 
   /**
@@ -398,13 +445,25 @@ final class VendorRefundForm extends FormBase {
       }
     }
 
+    $operationalQuantities = (array) ($form_state->get('operational_refund_quantities') ?? []);
+    if ($operationalQuantities !== []) {
+      $amountCents += $this->orderInspector->calculateSelectedOperationalRefundCents(
+        $order,
+        $eventId,
+        $operationalQuantities,
+      );
+    }
+
     $totalPrice = $order->getTotalPrice();
     $currency = $totalPrice ? strtoupper($totalPrice->getCurrencyCode()) : 'AUD';
     $payload = [
       'amount_cents' => $amountCents,
       'currency' => $currency,
-      'refund_type' => 'vendor',
-      'refund_scope' => 'order',
+      'refund_type' => $refundType,
+      'refund_scope' => $includeDonation ? 'tickets_and_donation' : 'tickets_only',
+      'include_donation' => $includeDonation,
+      'attendee_ids' => (array) ($form_state->get('partial_refund_attendee_ids') ?? []),
+      'operational_item_quantities' => $operationalQuantities,
       'reason' => $reason,
     ];
 

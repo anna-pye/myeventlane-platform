@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_wallet\Controller;
 
+use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\myeventlane_wallet\Service\PkPassBuilder;
 use Drupal\myeventlane_wallet\Service\WalletDownloadAccessChecker;
 use Drupal\myeventlane_wallet\Service\WalletTicketResolver;
+use Drupal\myeventlane_tickets\Entity\Ticket;
 use RuntimeException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -67,6 +69,27 @@ final class WalletAppleController extends ControllerBase {
 
     $ticket = $this->walletTicketResolver->resolvePrimaryTicketForOrderItem($item, $this->currentUser());
     $this->walletDownloadAccessChecker->assertAuthorized($item, $ticket, $this->currentUser());
+
+    return $this->buildDownloadResponse($item, $ticket);
+  }
+
+  /**
+   * Downloads the exact pass selected on the customer's Your extras card.
+   */
+  public function downloadTicket(string $ticket_uuid): Response {
+    $ticket = $this->walletTicketResolver->resolveTicketByUuid($ticket_uuid);
+    if (!$ticket instanceof Ticket || $ticket->get('order_item_id')->isEmpty()) {
+      throw new NotFoundHttpException();
+    }
+    $item = $ticket->get('order_item_id')->entity;
+    if (!$item instanceof OrderItemInterface) {
+      throw new NotFoundHttpException();
+    }
+    $this->walletDownloadAccessChecker->assertAuthorized($item, $ticket, $this->currentUser());
+    return $this->buildDownloadResponse($item, $ticket);
+  }
+
+  private function buildDownloadResponse(OrderItemInterface $item, ?Ticket $ticket): Response {
 
     try {
       $passPath = $this->pkpassBuilder->generate($item, $ticket);

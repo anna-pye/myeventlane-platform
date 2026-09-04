@@ -22,6 +22,8 @@ final class SalesOperationsHelpContentContractTest extends TestCase {
     self::assertSame('/help/organisers/managing-event-sales-orders-add-ons-and-refunds', $sync['help_articles'][$key]['alias']);
     self::assertStringContainsString('original payment method', $sync['help_articles'][$key]['body']);
     self::assertStringContainsString('status says completed', $sync['help_articles'][$key]['body']);
+    self::assertStringContainsString('Preparing, Ready to collect and Collected', $sync['help_articles'][$key]['body']);
+    self::assertStringContainsString('manual recovery', $sync['help_articles'][$key]['body']);
   }
 
   public function testUpdateSeedsOnlyTheNewGuide(): void {
@@ -29,6 +31,7 @@ final class SalesOperationsHelpContentContractTest extends TestCase {
     $install = (string) file_get_contents($root . '/web/modules/custom/myeventlane_help_centre/myeventlane_help_centre.install');
 
     self::assertStringContainsString('function myeventlane_help_centre_update_10039()', $install);
+    self::assertStringContainsString('function myeventlane_help_centre_update_10041()', $install);
     self::assertStringContainsString("seedHelpArticles([\$seedKey])", $install);
   }
 

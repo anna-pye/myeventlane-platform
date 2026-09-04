@@ -97,7 +97,7 @@ final class GoogleWalletBuilder {
 
     $event_label = (string) ($model['event']['label'] ?? 'Event');
     $holder = (string) ($model['holder']['name'] ?? '');
-    $entitlement = (string) ($model['ticket']['entitlement_label'] ?? $model['ticket']['entitlement_type'] ?? 'Ticket');
+    $entitlement = (string) ($model['ticket']['display_label'] ?? $model['ticket']['entitlement_label'] ?? $model['ticket']['entitlement_type'] ?? 'Ticket');
     $ticket_uuid = (string) ($model['ticket']['uuid'] ?? $ticket->uuid());
     $event_id = (int) ($model['event']['id'] ?? 0);
     $class_suffix = $event_id > 0 ? ('mel.ticket.event.' . $event_id) : 'mel.ticket.generic';
@@ -110,7 +110,7 @@ final class GoogleWalletBuilder {
     $generic_object = [
       'id' => $object_id,
       'classId' => $class_id,
-      'state' => 'ACTIVE',
+      'state' => $this->googleObjectState($ticket),
       'cardTitle' => [
         'defaultValue' => [
           'language' => 'en-AU',
@@ -136,6 +136,11 @@ final class GoogleWalletBuilder {
         'alternateText' => $ticket_code,
       ],
       'textModulesData' => array_values(array_filter([
+        [
+          'id' => 'fulfilment_status',
+          'header' => 'Status',
+          'body' => (string) ($model['fulfilment']['status_label'] ?? 'Order received'),
+        ],
         $holder !== '' ? [
           'id' => 'holder',
           'header' => 'Name',
@@ -148,6 +153,12 @@ final class GoogleWalletBuilder {
         ],
       ])),
     ];
+    $order_id = $ticket->get('order_id')->isEmpty() ? 0 : (int) $ticket->get('order_id')->target_id;
+    if ($order_id > 0) {
+      $generic_object['groupingInfo'] = [
+        'groupingId' => 'mel.event.' . $event_id . '.order.' . $order_id,
+      ];
+    }
     if ($hero_image !== NULL) {
       $generic_object['heroImage'] = $hero_image;
     }
@@ -192,6 +203,19 @@ final class GoogleWalletBuilder {
     }
 
     return $signing_input . '.' . $signature_b64;
+  }
+
+  private function googleObjectState(Ticket $ticket): string {
+    $status = (string) $ticket->get('status')->value;
+    if (in_array($status, [Ticket::STATUS_VOID, Ticket::STATUS_REFUNDED], TRUE)
+      || $ticket->getFulfilmentStatus() === Ticket::FULFILMENT_CANCELLED) {
+      return 'INACTIVE';
+    }
+    return match ($ticket->getFulfilmentStatus()) {
+      Ticket::FULFILMENT_COLLECTED, Ticket::FULFILMENT_REDEEMED => 'COMPLETED',
+      Ticket::FULFILMENT_EXPIRED => 'EXPIRED',
+      default => 'ACTIVE',
+    };
   }
 
   /**

@@ -9,7 +9,9 @@ use Drupal\commerce_order\Entity\OrderItemInterface;
 use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
+use Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver;
 use Drupal\myeventlane_event_attendees\Entity\EventAttendee;
+use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\node\NodeInterface;
 
 /**
@@ -62,7 +64,16 @@ final class RefundOrderInspector implements RefundOrderInspectorInterface {
    *   TRUE if the item is a ticket, FALSE otherwise.
    */
   public function isTicketItem(OrderItemInterface $item): bool {
-    return !$this->isDonationItem($item);
+    return !$this->isDonationItem($item) && !$this->isOperationalItem($item);
+  }
+
+  /**
+   * Checks whether an order item is an operational add-on.
+   */
+  public function isOperationalItem(OrderItemInterface $item): bool {
+    $variation = $item->getPurchasedEntity();
+    return $variation !== NULL
+      && in_array($variation->bundle(), OperationalVariationStockResolver::OPERATIONAL_VARIATION_BUNDLES, TRUE);
   }
 
   /**
@@ -370,6 +381,112 @@ final class RefundOrderInspector implements RefundOrderInspectorInterface {
       }
     }
 
+    return $total;
+  }
+
+  /**
+   * Lists whole add-on lines that are safe to refund and return to stock.
+   *
+   * A line is excluded if entitlement issuance is incomplete or any unit was
+   * already collected, redeemed, refunded, or voided. Partial add-on line
+   * refunds are intentionally unsupported until unit selection is explicit.
+   *
+   * @return array<int, array{item: OrderItemInterface, label: string, quantity: int, amount_cents: int}>
+   *   Refundable lines keyed by order item ID.
+   */
+  public function getRefundableOperationalItemBreakdown(OrderInterface $order, int $event_nid): array {
+    $ticketStorage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+    $breakdown = [];
+
+    foreach ($this->extractItemsForEvent($order, $event_nid) as $item) {
+      if (!$item instanceof OrderItemInterface || !$this->isOperationalItem($item)) {
+        continue;
+      }
+      $itemId = (int) $item->id();
+      $quantity = max(0, (int) round((float) $item->getQuantity()));
+      if ($itemId < 1 || $quantity < 1) {
+        continue;
+      }
+
+      $entitlementIds = $ticketStorage->getQuery()
+        ->accessCheck(FALSE)
+        ->condition('order_id', (int) $order->id())
+        ->condition('order_item_id', $itemId)
+        ->condition('entitlement_type', Ticket::ENTITLEMENT_TICKET, '<>')
+        ->sort('id', 'ASC')
+        ->execute();
+      $entitlements = array_values($ticketStorage->loadMultiple($entitlementIds));
+      if (count($entitlements) !== $quantity) {
+        continue;
+      }
+
+      $safe = TRUE;
+      foreach ($entitlements as $entitlement) {
+        $status = (string) ($entitlement->get('status')->value ?? '');
+        $fulfilment = (string) ($entitlement->get('fulfilment_status')->value ?? '');
+        if (in_array($status, [Ticket::STATUS_REFUNDED, Ticket::STATUS_VOID], TRUE)
+          || in_array($fulfilment, [Ticket::FULFILMENT_COLLECTED, Ticket::FULFILMENT_REDEEMED], TRUE)) {
+          $safe = FALSE;
+          break;
+        }
+      }
+      $total = $item->getTotalPrice();
+      if (!$safe || $total === NULL) {
+        continue;
+      }
+
+      $variation = $item->getPurchasedEntity();
+      $label = $variation !== NULL ? trim((string) $variation->label()) : '';
+      $breakdown[$itemId] = [
+        'item' => $item,
+        'label' => $label !== '' ? $label : 'Event extra',
+        'quantity' => $quantity,
+        'amount_cents' => $this->priceToCents($total),
+      ];
+    }
+
+    return $breakdown;
+  }
+
+  /**
+   * Validates whole add-on line selections and returns their exact cents.
+   *
+   * @param \Drupal\commerce_order\Entity\OrderInterface $order
+   *   The order containing the selected operational lines.
+   * @param int $event_nid
+   *   The event node ID that owns the operational lines.
+   * @param array<int|string, int|string> $selectedItemQuantities
+   *   Order item IDs mapped to the full quantity being refunded.
+   *
+   * @return int
+   *   The exact selected operational subtotal in cents.
+   */
+  public function calculateSelectedOperationalRefundCents(
+    OrderInterface $order,
+    int $event_nid,
+    array $selectedItemQuantities,
+  ): int {
+    $selected = [];
+    foreach ($selectedItemQuantities as $itemId => $quantity) {
+      $itemId = (int) $itemId;
+      $quantity = (int) $quantity;
+      if ($itemId > 0 && $quantity > 0) {
+        $selected[$itemId] = $quantity;
+      }
+    }
+    if ($selected === []) {
+      return 0;
+    }
+
+    $breakdown = $this->getRefundableOperationalItemBreakdown($order, $event_nid);
+    $total = 0;
+    foreach ($selected as $itemId => $quantity) {
+      $line = $breakdown[$itemId] ?? NULL;
+      if ($line === NULL || $quantity !== $line['quantity']) {
+        throw new \InvalidArgumentException('Selected event extras are no longer fully refundable.');
+      }
+      $total += $line['amount_cents'];
+    }
     return $total;
   }
 

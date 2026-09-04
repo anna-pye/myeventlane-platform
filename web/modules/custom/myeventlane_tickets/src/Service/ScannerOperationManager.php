@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_tickets\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\Lock\LockBackendInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\myeventlane_tickets\Entity\RedemptionLog;
 use Drupal\myeventlane_tickets\Entity\Ticket;
@@ -61,6 +62,7 @@ final class ScannerOperationManager {
     private readonly Connection $database,
     private readonly RequestStack $requestStack,
     private readonly LoggerInterface $logger,
+    private readonly LockBackendInterface $lock,
   ) {}
 
   /**
@@ -70,6 +72,28 @@ final class ScannerOperationManager {
    *   Structured outcome for form/API/scanner callers.
    */
   public function process(int $route_event_id, string $input, string $device_id = 'web-form', string $mode = 'online', ?array $operational_context = NULL): array {
+    $parsed = $this->ticketQrPayload->parseAndValidate($this->normalizeInput($input));
+    $ticket = $parsed === NULL ? NULL : $this->loadTicketFromParsedData($parsed);
+    if (!$ticket instanceof Ticket || $ticket->getEntitlementType() === Ticket::ENTITLEMENT_TICKET) {
+      return $this->processLocked($route_event_id, $input, $device_id, $mode, $operational_context);
+    }
+    $name = 'myeventlane_operational_item:' . (int) $ticket->get('order_item_id')->target_id;
+    if (!$this->lock->acquire($name, 30.0)) {
+      return $this->result(FALSE, 'busy', 'This extra is being updated. Try again.', '');
+    }
+    $transaction = $this->database->startTransaction();
+    $this->database->transactionManager()->addPostTransactionCallback(fn() => $this->lock->release($name));
+    try {
+      $this->entityTypeManager->getStorage('myeventlane_ticket')->resetCache([(int) $ticket->id()]);
+      return $this->processLocked($route_event_id, $input, $device_id, $mode, $operational_context);
+    }
+    catch (\Throwable $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+  }
+
+  private function processLocked(int $route_event_id, string $input, string $device_id, string $mode, ?array $operational_context): array {
     $normalized_input = $this->normalizeInput($input);
     $payload_sha256 = hash('sha256', $normalized_input);
     if ($normalized_input === '') {
@@ -179,8 +203,17 @@ final class ScannerOperationManager {
     }
 
     if (!$this->capabilityManager->canBeScanned($ticket)) {
-      $result_token = $this->capabilityManager->isExpired($ticket) ? 'expired' : 'redemption_limit_reached';
-      $message = $result_token === 'expired' ? 'Entitlement has expired.' : 'Redemption limit has already been reached.';
+      $not_ready = $this->capabilityManager->isMerchPickup($ticket)
+        && $ticket->getFulfilmentStatus() !== Ticket::FULFILMENT_READY
+        && !in_array($ticket->getFulfilmentStatus(), [Ticket::FULFILMENT_COLLECTED, Ticket::FULFILMENT_REDEEMED], TRUE);
+      $result_token = $not_ready
+        ? 'not_ready'
+        : ($this->capabilityManager->isExpired($ticket) ? 'expired' : 'redemption_limit_reached');
+      $message = match ($result_token) {
+        'not_ready' => 'This extra is not ready to collect yet.',
+        'expired' => 'Entitlement has expired.',
+        default => 'Redemption limit has already been reached.',
+      };
       $result = $this->result(FALSE, $result_token, $message, (string) $ticket->get('ticket_code')->value, 0, (int) $ticket->id());
       $this->checkinLogger->logResult($route_event_id, $ticket, $device_id, $mode, $result['result'], $result['message'], $normalized_input);
       $this->logRedemptionAudit(
@@ -222,6 +255,7 @@ final class ScannerOperationManager {
   private function executeOperation(int $route_event_id, Ticket $ticket, string $device_id, string $mode, string $normalized_input, string $payload_sha256, array $operational_scan_policy = [], ?array $operational_identity_bundle = NULL, array $operational_continuity_audit = []): array {
     $action = $this->resolveAction($ticket);
     $redemption_before = $ticket->getRedemptionCount();
+    $transaction = $ticket->getEntitlementType() !== Ticket::ENTITLEMENT_TICKET ? $this->database->startTransaction() : NULL;
 
     try {
       $now = $this->time->getCurrentTime();
@@ -249,6 +283,7 @@ final class ScannerOperationManager {
       return $result;
     }
     catch (\Throwable $e) {
+      $transaction?->rollBack();
       $this->logger->error('Scanner operation @action failed for ticket @ticket and event @event: @message', [
         '@action' => $action,
         '@ticket' => (string) $ticket->id(),
@@ -298,6 +333,9 @@ final class ScannerOperationManager {
     array $operational_continuity_audit = [],
   ): void {
     if (!$this->entityTypeManager->hasDefinition('mel_redemption_log')) {
+      if ($ok && $ticket->getEntitlementType() !== Ticket::ENTITLEMENT_TICKET) {
+        throw new \RuntimeException('Collection audit storage is unavailable.');
+      }
       return;
     }
 
@@ -305,6 +343,9 @@ final class ScannerOperationManager {
       $storage = $this->entityTypeManager->getStorage('mel_redemption_log');
       $base_table = $storage->getEntityType()->getBaseTable();
       if ($base_table && !$this->database->schema()->tableExists($base_table)) {
+        if ($ok && $ticket->getEntitlementType() !== Ticket::ENTITLEMENT_TICKET) {
+          throw new \RuntimeException('Collection audit storage is unavailable.');
+        }
         return;
       }
       $device_norm = $this->normalizeDeviceId($device_id);
@@ -381,6 +422,9 @@ final class ScannerOperationManager {
         '@ticket' => (string) $ticket->id(),
         '@message' => $e->getMessage(),
       ]);
+      if ($ok && $ticket->getEntitlementType() !== Ticket::ENTITLEMENT_TICKET) {
+        throw $e;
+      }
     }
   }
 

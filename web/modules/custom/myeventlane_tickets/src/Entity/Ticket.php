@@ -57,6 +57,7 @@ final class Ticket extends ContentEntityBase {
   public const ENTITLEMENT_ADDON = 'addon';
 
   public const FULFILMENT_PENDING = 'pending';
+  public const FULFILMENT_PREPARING = 'preparing';
   public const FULFILMENT_READY = 'ready';
   public const FULFILMENT_COLLECTED = 'collected';
   public const FULFILMENT_REDEEMED = 'redeemed';
@@ -194,6 +195,7 @@ final class Ticket extends ContentEntityBase {
       ->setRequired(TRUE)
       ->setSetting('allowed_values', [
         self::FULFILMENT_PENDING => 'Pending',
+        self::FULFILMENT_PREPARING => 'Preparing',
         self::FULFILMENT_READY => 'Ready',
         self::FULFILMENT_COLLECTED => 'Collected',
         self::FULFILMENT_REDEEMED => 'Redeemed',

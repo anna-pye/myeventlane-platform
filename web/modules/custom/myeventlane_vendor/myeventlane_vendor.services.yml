@@ -308,6 +308,7 @@ services:
       - '@myeventlane_vendor.service.boost_status'
       - '@myeventlane_boost.manager'
       - '@myeventlane_event.featured_readiness_render'
+      - '@myeventlane_commerce.event_operational_stock_summary_builder'
       - '@myeventlane_core.domain_detector'
       - '@?myeventlane_front.homepage_visibility_report'
       - '@?myeventlane_boost.metrics'
@@ -451,6 +452,7 @@ services:
       - '@messenger'
       - '@myeventlane_commerce.vendor_operational_addon_order_builder'
       - '@myeventlane_vendor.service.event_tabs'
+      - '@myeventlane_tickets.operational_entitlement_fulfilment'
     tags:
       - { name: controller.service_arguments }
 

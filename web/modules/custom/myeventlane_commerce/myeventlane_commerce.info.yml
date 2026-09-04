@@ -19,4 +19,8 @@ dependencies:
   - drupal:commerce_checkout
   - drupal:commerce_order
   - drupal:commerce_payment
+  - commerce_stock:commerce_stock
+  - commerce_stock:commerce_stock_enforcement
+  - commerce_stock:commerce_stock_field
+  - commerce_stock:commerce_stock_local
   - paragraphs:paragraphs

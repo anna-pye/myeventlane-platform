@@ -146,6 +146,12 @@ function myeventlane_refunds_schema(): array {
         'not null' => FALSE,
         'description' => 'JSON array of attendee IDs targeted by partial ticket refund.',
       ],
+      'operational_item_quantities_json' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON object of whole operational order item quantities explicitly included in the refund.',
+      ],
       'adjustment_note_number' => [
         'type' => 'varchar',
         'length' => 128,
@@ -906,4 +912,21 @@ function myeventlane_refunds_update_9011(): void {
       ['fields' => ['adjustment_note_number' => $fields['adjustment_note_number']]],
     );
   }
+}
+
+/**
+ * Persists exact operational add-on quantities included in a refund.
+ */
+function myeventlane_refunds_update_9012(): void {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('myeventlane_refund_log')
+    || $schema->fieldExists('myeventlane_refund_log', 'operational_item_quantities_json')) {
+    return;
+  }
+  $schema->addField('myeventlane_refund_log', 'operational_item_quantities_json', [
+    'type' => 'text',
+    'size' => 'big',
+    'not null' => FALSE,
+    'description' => 'JSON object of whole operational order item quantities explicitly included in the refund.',
+  ]);
 }

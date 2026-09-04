@@ -186,6 +186,7 @@
             {% for event in dashboard_events %}
               {% set links = event.links|default({}) %}
               {% set image = event.image|default({}) %}
+              {% set add_on_stock = event.add_on_stock|default(null) %}
               <article class="mel-vendor-portfolio__event-summary" role="listitem">
                 <div class="mel-vendor-portfolio__event-identity">
                   {% include '@myeventlane_vendor_theme/components/mel-event-card-thumb.html.twig' with {
@@ -206,6 +207,19 @@
                         <span>{{ event.booking_state_label }}</span>
                       {% endif %}
                     </div>
+                    {% if add_on_stock and add_on_stock.manage_url|default(null) %}
+                      <a
+                        class="mel-vendor-portfolio__stock mel-vendor-portfolio__stock--{{ add_on_stock.state|default('healthy') }}"
+                        href="{{ add_on_stock.manage_url }}"
+                        aria-label="{{ 'Manage add-on stock for @event: @stock'|t({
+                          '@event': event.title|default('Untitled event'|t),
+                          '@stock': add_on_stock.label|default('')
+                        }) }}"
+                      >
+                        <span class="mel-vendor-portfolio__stock-label">{{ 'Add-on stock'|t }}</span>
+                        <strong>{{ add_on_stock.label|default('') }}</strong>
+                      </a>
+                    {% endif %}
                   </div>
                 </div>
                 {% if links.manage|default(null) %}

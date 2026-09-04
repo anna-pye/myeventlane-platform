@@ -276,6 +276,50 @@
   background: rgba(254, 243, 199, 0.45);
 }
 
+.mel-vendor-addon-orders__recovery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  align-items: baseline;
+  margin: 0.75rem 0 1rem;
+  font-size: 0.88rem;
+}
+
+.mel-vendor-addon-orders__passes {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mel-vendor-addon-orders__pass {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 0.75rem;
+  background: rgba(248, 250, 252, 0.8);
+}
+
+.mel-vendor-addon-orders__pass-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.03em;
+}
+
+.mel-vendor-addon-orders__pass .mel-button {
+  margin-left: auto;
+}
+
+.mel-vendor-addon-orders__pass-missing {
+  margin: 0.65rem 0 0;
+  color: rgba(15, 23, 42, 0.65);
+  font-size: 0.82rem;
+}
+
 @media (max-width: 36rem) {
   .mel-vendor-addon-orders__hero { flex-direction: column; }
   .mel-sales-ops__nav,
@@ -284,4 +328,8 @@
     flex-direction: column;
   }
   .mel-vendor-addon-orders__customer { align-items: flex-start; }
+  .mel-vendor-addon-orders__pass .mel-button {
+    width: 100%;
+    margin-left: 0;
+  }
 }

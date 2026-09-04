@@ -7,6 +7,7 @@ namespace Drupal\myeventlane_tickets\EventSubscriber;
 use Drupal\commerce_order\Event\OrderEvents;
 use Drupal\commerce_order\Event\OrderEvent;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
+use Drupal\myeventlane_tickets\Ticket\OperationalEntitlementIssuer;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 
 /**
@@ -16,6 +17,7 @@ final class OrderPaidSubscriber implements EventSubscriberInterface {
 
   public function __construct(
     private readonly TicketIssuer $issuer,
+    private readonly OperationalEntitlementIssuer $operationalEntitlementIssuer,
   ) {}
 
   /**
@@ -38,6 +40,7 @@ final class OrderPaidSubscriber implements EventSubscriberInterface {
   public function onOrderPaid(OrderEvent $event): void {
     $order = $event->getOrder();
     $this->issuer->issueForOrder($order);
+    $this->operationalEntitlementIssuer->issueForOrder($order);
   }
 
 }

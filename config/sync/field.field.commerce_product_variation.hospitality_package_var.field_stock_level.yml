@@ -1,0 +1,21 @@
+uuid: 74d5ebde-3e76-4711-b98b-3cc888fa907b
+langcode: en
+status: true
+dependencies:
+  config:
+    - commerce_product.commerce_product_variation_type.hospitality_package_var
+    - field.storage.commerce_product_variation.field_stock_level
+  module:
+    - commerce_stock_field
+id: commerce_product_variation.hospitality_package_var.field_stock_level
+field_name: field_stock_level
+entity_type: commerce_product_variation
+bundle: hospitality_package_var
+label: 'Stock ledger'
+description: 'Commerce Stock transaction ledger for this add-on option.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: commerce_stock_level

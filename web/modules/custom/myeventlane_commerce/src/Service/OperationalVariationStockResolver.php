@@ -7,14 +7,16 @@ namespace Drupal\myeventlane_commerce\Service;
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_product\Entity\ProductInterface;
 use Drupal\commerce_product\Entity\ProductVariationInterface;
+use Drupal\commerce_stock\StockServiceManager;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\StringTranslation\TranslationInterface;
 
 /**
- * Reads and validates operational extra stock on Commerce product variations.
+ * Reads and validates operational add-on stock on Commerce variations.
  *
- * Blank stock quantity = unlimited. Zero stock quantity = sold out.
- * Does not decrement stock, reserve inventory, or mutate carts beyond validation.
+ * Commerce Stock is authoritative when available. The legacy MEL integer field
+ * remains only as a migration/input compatibility field. Blank means unlimited.
  */
 final class OperationalVariationStockResolver {
 
@@ -38,6 +40,10 @@ final class OperationalVariationStockResolver {
 
   public function __construct(
     TranslationInterface $string_translation,
+    private readonly ?StockServiceManager $stockServiceManager = NULL,
+    private readonly ?OperationalStockHoldStoreInterface $holdStore = NULL,
+    private readonly ?OperationalStockHoldManager $holds = NULL,
+    private readonly ?Connection $database = NULL,
   ) {
     $this->stringTranslation = $string_translation;
   }
@@ -53,6 +59,15 @@ final class OperationalVariationStockResolver {
    * Reads stock quantity: NULL = unlimited, 0 = sold out, positive = finite.
    */
   public function readStockQuantity(ProductVariationInterface $variation): ?int {
+    if ($this->stockServiceManager !== NULL && $this->bundleSupportsStock($variation->bundle())) {
+      $stock = $this->readCommerceStockLevel($variation);
+      if ($stock === NULL) {
+        return NULL;
+      }
+      $held = $this->holdStore?->getHeldQuantity((int) $variation->id()) ?? 0;
+      return max(0, $stock - $held);
+    }
+
     if (!$variation->hasField(self::FIELD_STOCK_QUANTITY) || $variation->get(self::FIELD_STOCK_QUANTITY)->isEmpty()) {
       return NULL;
     }
@@ -136,6 +151,14 @@ final class OperationalVariationStockResolver {
    */
   public function validateStockInput(array $stock_input): array {
     $errors = [];
+    foreach (['stock_quantity' => 0, 'limit_per_order' => 1] as $key => $minimum) {
+      $raw = $stock_input[$key] ?? NULL;
+      if ($raw !== NULL && $raw !== '' && (!is_scalar($raw)
+        || !preg_match('/^\d+$/D', trim((string) $raw))
+        || (float) $raw < $minimum || (float) $raw > PHP_INT_MAX)) {
+        $errors[] = (string) $this->t('Stock and per-order limits must be whole numbers. Leave the field blank for no limit.');
+      }
+    }
     $stock = $this->normalizeStockInput($stock_input['stock_quantity'] ?? NULL);
     $limit = $this->normalizeLimitInput($stock_input['limit_per_order'] ?? NULL);
     if ($stock !== NULL && $limit !== NULL && $stock > 0 && $limit > $stock) {
@@ -153,9 +176,16 @@ final class OperationalVariationStockResolver {
     if (!$this->bundleSupportsStock($variation->bundle())) {
       return;
     }
+    if ($errors = $this->validateStockInput($stock_input)) {
+      throw new \InvalidArgumentException(implode(' ', $errors));
+    }
     $stock = $this->normalizeStockInput($stock_input['stock_quantity'] ?? NULL);
     $limit = $this->normalizeLimitInput($stock_input['limit_per_order'] ?? NULL);
     $show = $this->normalizeShowRemaining($stock_input['show_remaining'] ?? FALSE);
+    if ($stock !== NULL && !$variation->isNew()
+      && $stock < ($this->holdStore?->getHeldQuantity((int) $variation->id()) ?? 0)) {
+      throw new \InvalidArgumentException('Stock cannot be reduced below quantities currently held at checkout. Wait for those checkouts to finish or expire.');
+    }
 
     if ($variation->hasField(self::FIELD_STOCK_QUANTITY)) {
       if ($stock === NULL) {
@@ -163,6 +193,19 @@ final class OperationalVariationStockResolver {
       }
       else {
         $variation->set(self::FIELD_STOCK_QUANTITY, $stock);
+      }
+    }
+    if ($this->stockServiceManager !== NULL && $variation->hasField('commerce_stock_always_in_stock')) {
+      $variation->set('commerce_stock_always_in_stock', $stock === NULL ? 1 : 0);
+      if ($stock !== NULL && $variation->hasField('field_stock_level')) {
+        $current = max(0, (int) floor((float) $this->stockServiceManager->getStockLevel($variation)));
+        $adjustment = $stock - $current;
+        if ($adjustment !== 0) {
+          $variation->set('field_stock_level', [
+            'adjustment' => $adjustment,
+            'stock_transaction_note' => 'MyEventLane organiser stock update',
+          ]);
+        }
       }
     }
     if ($variation->hasField(self::FIELD_LIMIT_PER_ORDER)) {
@@ -179,12 +222,36 @@ final class OperationalVariationStockResolver {
   }
 
   /**
+   * Saves an organiser stock count under the same lock as paid stock sales.
+   *
+   * The computed stock field writes its adjustment in postSave(), so protecting
+   * only the calculation would leave a read/write race. New variations have no
+   * buyers yet; their first stock record is covered by the creation transaction.
+   */
+  public function saveStockFields(ProductVariationInterface $variation, array $stock_input): void {
+    $locks = !$variation->isNew() ? ($this->holds?->acquireLocks([(int) $variation->id()]) ?? []) : [];
+    $transaction = $this->database?->startTransaction();
+    try {
+      $this->applyStockFields($variation, $stock_input);
+      $variation->save();
+    }
+    catch (\Throwable $e) {
+      $transaction?->rollBack();
+      throw $e;
+    }
+    finally {
+      $this->holds?->releaseLocks($locks);
+    }
+  }
+
+  /**
    * @return array<string, mixed>
    *   Keys: stock_quantity, limit_per_order, show_remaining.
    */
   public function extractStockFields(ProductVariationInterface $variation): array {
     return [
-      'stock_quantity' => $this->readStockQuantity($variation),
+      // Authoring must show the ledger level, not a temporary buyer hold.
+      'stock_quantity' => $this->readConfiguredStockQuantity($variation),
       'limit_per_order' => $this->readLimitPerOrder($variation),
       'show_remaining' => $this->readShowRemaining($variation),
     ];
@@ -311,12 +378,12 @@ final class OperationalVariationStockResolver {
    * Maximum quantity a customer may add in one request (NULL = unlimited).
    */
   public function maxPurchasableQuantity(ProductVariationInterface $variation, ?OrderInterface $cart): ?int {
-    if ($this->isSoldOut($variation)) {
+    $stock = $this->readAvailableForOrder($variation, $cart);
+    if ($stock !== NULL && $stock === 0) {
       return 0;
     }
 
     $max = NULL;
-    $stock = $this->readStockQuantity($variation);
     if ($stock !== NULL) {
       $max = $stock;
     }
@@ -355,7 +422,7 @@ final class OperationalVariationStockResolver {
       return [(string) $this->t('This option is sold out.')];
     }
 
-    $stock = $this->readStockQuantity($variation);
+    $stock = $this->readAvailableForOrder($variation, $cart);
     $in_cart = $cart instanceof OrderInterface
       ? $this->countCartQuantityForVariation($cart, (int) $variation->id())
       : 0;
@@ -363,10 +430,12 @@ final class OperationalVariationStockResolver {
 
     if ($stock !== NULL && $total_requested > $stock) {
       if ($in_cart > 0) {
-        return [(string) $this->t('You already have @count in your cart. Only @remaining more can be added.', [
-          '@count' => $in_cart,
-          '@remaining' => max(0, $stock - $in_cart),
-        ])];
+        return [
+          (string) $this->t('You already have @count in your cart. Only @remaining more can be added.', [
+            '@count' => $in_cart,
+            '@remaining' => max(0, $stock - $in_cart),
+          ]),
+        ];
       }
       return [(string) $this->t('Only @count available for this option.', ['@count' => $stock])];
     }
@@ -374,10 +443,12 @@ final class OperationalVariationStockResolver {
     $limit = $this->readLimitPerOrder($variation);
     if ($limit !== NULL && $total_requested > $limit) {
       if ($in_cart > 0) {
-        return [(string) $this->t('Limit @limit per order. You already have @count in your cart.', [
-          '@limit' => $limit,
-          '@count' => $in_cart,
-        ])];
+        return [
+          (string) $this->t('Limit @limit per order. You already have @count in your cart.', [
+            '@limit' => $limit,
+            '@count' => $in_cart,
+          ]),
+        ];
       }
       return [(string) $this->t('Limit @limit per order.', ['@limit' => $limit])];
     }
@@ -397,6 +468,50 @@ final class OperationalVariationStockResolver {
       return '';
     }
     return (string) $this->t('Limit @limit per order', ['@limit' => $limit]);
+  }
+
+  /**
+   * Reads stock available to one order, excluding that order's own hold.
+   */
+  private function readAvailableForOrder(ProductVariationInterface $variation, ?OrderInterface $cart): ?int {
+    if ($this->stockServiceManager === NULL || !$this->bundleSupportsStock($variation->bundle())) {
+      return $this->readStockQuantity($variation);
+    }
+
+    $stock = $this->readCommerceStockLevel($variation);
+    if ($stock === NULL) {
+      return NULL;
+    }
+    $orderId = $cart instanceof OrderInterface ? (int) $cart->id() : 0;
+    $excludedKey = $orderId > 0
+      ? OperationalStockHoldStore::reservationKey($orderId, (int) $variation->id())
+      : NULL;
+    $heldByOthers = $this->holdStore?->getHeldQuantity((int) $variation->id(), $excludedKey) ?? 0;
+    return max(0, $stock - $heldByOthers);
+  }
+
+  /**
+   * Reads the underlying Commerce Stock ledger without subtracting MEL holds.
+   */
+  private function readCommerceStockLevel(ProductVariationInterface $variation): ?int {
+    if ($this->stockServiceManager === NULL) {
+      return NULL;
+    }
+    $service = $this->stockServiceManager->getService($variation);
+    if ($service->getStockChecker()->getIsAlwaysInStock($variation)) {
+      return NULL;
+    }
+    return max(0, (int) floor((float) $this->stockServiceManager->getStockLevel($variation)));
+  }
+
+  /**
+   * Reads the organiser-authored stock target without subtracting cart holds.
+   */
+  private function readConfiguredStockQuantity(ProductVariationInterface $variation): ?int {
+    if ($this->stockServiceManager !== NULL && $this->bundleSupportsStock($variation->bundle())) {
+      return $this->readCommerceStockLevel($variation);
+    }
+    return $this->readStockQuantity($variation);
   }
 
 }

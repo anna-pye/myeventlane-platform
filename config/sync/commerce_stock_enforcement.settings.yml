@@ -1,0 +1,3 @@
+insufficient_stock_cart: 'Only %qty of %name remain available.'
+insufficient_stock_add_to_cart_zero_in_cart: 'Only %qty remain available; you asked for %qty_asked.'
+insufficient_stock_add_to_cart_quantity_in_cart: 'Only %qty remain available and you already have %qty_o in your cart.'
