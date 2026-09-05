@@ -23,6 +23,27 @@ final class WalletTicketResolver {
   ) {}
 
   /**
+   * Resolves one issued entitlement by its non-sequential public UUID.
+   */
+  public function resolveTicketByUuid(string $uuid): ?Ticket {
+    $uuid = trim($uuid);
+    if ($uuid === '') {
+      return NULL;
+    }
+    $storage = $this->entityTypeManager->getStorage('myeventlane_ticket');
+    $ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uuid', $uuid)
+      ->range(0, 1)
+      ->execute();
+    if (!$ids) {
+      return NULL;
+    }
+    $ticket = $storage->load((int) reset($ids));
+    return $ticket instanceof Ticket ? $ticket : NULL;
+  }
+
+  /**
    * Loads issued tickets for an order item and picks the operational row.
    *
    * Prefers tickets that are still wallet-eligible (not void, refunded, or

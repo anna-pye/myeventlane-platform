@@ -109,6 +109,12 @@ class TicketCapabilityManager {
       return $status !== Ticket::STATUS_CHECKED_IN;
     }
 
+    // A merchandise claim cannot be collected before the organiser marks it
+    // ready. This is enforced by the server, not just hidden in the UI.
+    if ($this->isMerchPickup($ticket) && $fulfilment_status !== Ticket::FULFILMENT_READY) {
+      return FALSE;
+    }
+
     if ($this->isRedeemable($ticket)) {
       return $this->getRemainingRedemptions($ticket) > 0;
     }

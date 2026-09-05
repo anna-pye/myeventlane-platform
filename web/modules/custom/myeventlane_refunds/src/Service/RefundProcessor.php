@@ -417,6 +417,7 @@ final class RefundProcessor implements RefundProcessorInterface {
    *   - amount_cents: int (for partial refunds)
    *   - reason: string (optional)
    *   - include_donation: bool (optional, default FALSE)
+   *   - operational_item_quantities: whole add-on line quantities (optional)
    *
    * @return int
    *   The refund log ID.
@@ -465,6 +466,17 @@ final class RefundProcessor implements RefundProcessorInterface {
     $includeDonation = $payload['include_donation'] ?? FALSE;
     $selectedAttendeeIds = array_values(array_unique(array_map('intval', (array) ($payload['attendee_ids'] ?? []))));
     $selectedAttendeeIds = array_values(array_filter($selectedAttendeeIds, static fn(int $id): bool => $id > 0));
+    $operationalItemQuantities = [];
+    foreach ((array) ($payload['operational_item_quantities'] ?? []) as $itemId => $quantity) {
+      $itemId = (int) $itemId;
+      $quantity = (int) $quantity;
+      if ($itemId > 0 && $quantity > 0) {
+        $operationalItemQuantities[$itemId] = $quantity;
+      }
+    }
+    if ($refundType !== 'full' && $operationalItemQuantities !== []) {
+      throw new \Exception('Operational add-ons can only be included with a full ticket refund.');
+    }
 
     $amountCents = 0;
     $donationRefunded = 0;
@@ -482,6 +494,13 @@ final class RefundProcessor implements RefundProcessorInterface {
       elseif ($refundScope === 'donation_only') {
         $amountCents = $this->orderInspector->calculateDonationTotalCents($order);
         $donationRefunded = 1;
+      }
+      if ($operationalItemQuantities !== []) {
+        $amountCents += $this->orderInspector->calculateSelectedOperationalRefundCents(
+          $order,
+          (int) $event->id(),
+          $operationalItemQuantities,
+        );
       }
     }
     else {
@@ -526,6 +545,9 @@ final class RefundProcessor implements RefundProcessorInterface {
       'created' => $now,
       'updated' => $now,
       'attendee_ids_json' => !empty($selectedAttendeeIds) ? json_encode($selectedAttendeeIds, JSON_UNESCAPED_SLASHES) : NULL,
+      'operational_item_quantities_json' => $operationalItemQuantities !== []
+        ? json_encode($operationalItemQuantities, JSON_UNESCAPED_SLASHES)
+        : NULL,
     ];
     if (isset($payload['refund_request_id'])) {
       $logFields['refund_request_id'] = $payload['refund_request_id'];
@@ -1057,6 +1079,7 @@ final class RefundProcessor implements RefundProcessorInterface {
         'retry_of' => $failed['id'],
         'refund_request_id' => $failed['refund_request_id'] ?? NULL,
         'attendee_ids_json' => $failed['attendee_ids_json'] ?? NULL,
+        'operational_item_quantities_json' => $failed['operational_item_quantities_json'] ?? NULL,
         'actual_refunded_cents' => 0,
         'created' => time(),
         'updated' => time(),

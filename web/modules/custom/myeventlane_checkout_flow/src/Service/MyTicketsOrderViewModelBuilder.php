@@ -222,6 +222,13 @@ final class MyTicketsOrderViewModelBuilder {
       $bookingConfirmed,
     );
     $refundSummary = $this->buildRefundSummary($order);
+    $ticketCacheTags = [];
+    foreach ($enrichedTicketModels as $ticketModel) {
+      $ticketId = (int) ($ticketModel['ticket']['id'] ?? 0);
+      if ($ticketId > 0) {
+        $ticketCacheTags[] = 'myeventlane_ticket:' . $ticketId;
+      }
+    }
 
     return [
       'order' => $order,
@@ -241,7 +248,7 @@ final class MyTicketsOrderViewModelBuilder {
       'pass_labels' => $ctaLabels,
       'readiness' => $orderReadiness,
       'refund_summary' => $refundSummary['summary'],
-      'cache_tags' => $refundSummary['cache_tags'],
+      'cache_tags' => array_values(array_unique(array_merge($refundSummary['cache_tags'], $ticketCacheTags))),
     ];
   }
 
@@ -447,6 +454,15 @@ final class MyTicketsOrderViewModelBuilder {
       return 'cancelled';
     }
 
+    if (!empty($ticketModel['ticket']['is_extra'])) {
+      return match ((string) ($ticketModel['fulfilment']['status'] ?? '')) {
+        Ticket::FULFILMENT_PREPARING => 'preparing',
+        Ticket::FULFILMENT_READY => 'ready_to_collect',
+        Ticket::FULFILMENT_COLLECTED, Ticket::FULFILMENT_REDEEMED => 'collected',
+        default => 'awaiting_preparation',
+      };
+    }
+
     return 'ticket_ready';
   }
 
@@ -459,6 +475,10 @@ final class MyTicketsOrderViewModelBuilder {
       'expired' => (string) $this->t('Expired'),
       'cancelled' => (string) $this->t('Cancelled'),
       'payment_pending' => (string) $this->t('Booking received'),
+      'awaiting_preparation' => (string) $this->t('Order received'),
+      'preparing' => (string) $this->t('Preparing'),
+      'ready_to_collect' => (string) $this->t('Ready to collect'),
+      'collected' => (string) $this->t('Collected'),
       default => (string) $this->t('Ticket ready'),
     };
   }

@@ -47,6 +47,7 @@ final class WalletActionBuilder {
     int $order_item_id,
     string $surface = self::SURFACE_ACTIONS,
     bool $absolute = FALSE,
+    string $ticket_uuid = '',
   ): array {
     $empty = [
       'apple' => NULL,
@@ -65,12 +66,14 @@ final class WalletActionBuilder {
 
     $actions = $empty;
     if ($this->presentationGate->isAppleWalletPresentable()) {
+      $apple_route = $ticket_uuid !== '' ? 'myeventlane_wallet.apple_ticket' : 'myeventlane_wallet.apple';
+      $apple_parameters = $ticket_uuid !== '' ? ['ticket_uuid' => $ticket_uuid] : ['order_item_id' => $order_item_id];
       $actions['apple'] = $this->buildProviderAction(
         'apple',
         'Add to Apple Wallet',
-        'myeventlane_wallet.apple',
-        $order_item_id,
-        '/wallet/apple/' . $order_item_id,
+        $apple_route,
+        $apple_parameters,
+        $ticket_uuid !== '' ? '/wallet/apple/pass/' . rawurlencode($ticket_uuid) : '/wallet/apple/' . $order_item_id,
         $absolute,
         'add-to-apple-wallet.svg',
       );
@@ -80,12 +83,14 @@ final class WalletActionBuilder {
       $badge = $surface === self::SURFACE_EMAIL
         ? 'add-to-google-wallet.png'
         : 'add-to-google-wallet.svg';
+      $google_route = $ticket_uuid !== '' ? 'myeventlane_wallet.google_ticket' : 'myeventlane_wallet.google';
+      $google_parameters = $ticket_uuid !== '' ? ['ticket_uuid' => $ticket_uuid] : ['order_item_id' => $order_item_id];
       $actions['google'] = $this->buildProviderAction(
         'google',
         'Add to Google Wallet',
-        'myeventlane_wallet.google',
-        $order_item_id,
-        '/wallet/google/' . $order_item_id,
+        $google_route,
+        $google_parameters,
+        $ticket_uuid !== '' ? '/wallet/google/pass/' . rawurlencode($ticket_uuid) : '/wallet/google/' . $order_item_id,
         $absolute,
         $badge,
       );
@@ -109,7 +114,7 @@ final class WalletActionBuilder {
     string $provider,
     string $label,
     string $route_name,
-    int $order_item_id,
+    array $parameters,
     string $fallback_path,
     bool $absolute,
     string $badge_filename,
@@ -125,7 +130,7 @@ final class WalletActionBuilder {
       'label' => $label,
       'aria_label' => $label,
       'route' => $route_name,
-      'url' => $this->routeUrl($route_name, ['order_item_id' => $order_item_id], $fallback_path, $absolute),
+      'url' => $this->routeUrl($route_name, $parameters, $fallback_path, $absolute),
       'badge' => $badge_src !== NULL ? [
         'src' => $badge_src,
         'alt' => $label,
@@ -135,7 +140,7 @@ final class WalletActionBuilder {
   }
 
   /**
-   * @param array<string, int> $parameters
+   * @param array<string, int|string> $parameters
    */
   private function routeUrl(string $route_name, array $parameters, string $fallback, bool $absolute): string {
     try {

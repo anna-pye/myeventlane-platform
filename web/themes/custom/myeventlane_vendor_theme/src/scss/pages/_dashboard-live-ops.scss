@@ -2011,6 +2011,54 @@ $mel-dash-attention-danger: #D64545;
     color: $mel-ws-navy !important;
   }
 
+  &__stock {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: $spacing-1 $spacing-2;
+    align-items: center;
+    width: fit-content;
+    min-height: 32px;
+    margin-top: $spacing-1;
+    padding: $spacing-1 $spacing-2;
+    border: 1px solid rgba($success, 0.24);
+    border-radius: $radius-md;
+    background: rgba($success, 0.08);
+    color: $mel-ws-navy;
+    font-size: $font-size-xs;
+    text-decoration: none;
+
+    &:hover {
+      border-color: rgba($success, 0.48);
+      background: rgba($success, 0.13);
+      color: $mel-ws-navy;
+      text-decoration: none;
+    }
+
+    &:focus-visible {
+      outline: 3px solid rgba($primary, 0.35);
+      outline-offset: 2px;
+    }
+
+    &--low {
+      border-color: rgba($mel-dash-attention-warning, 0.42);
+      background: rgba($mel-dash-attention-warning, 0.12);
+    }
+
+    &--sold_out {
+      border-color: rgba($mel-dash-attention-danger, 0.38);
+      background: rgba($mel-dash-attention-danger, 0.1);
+    }
+  }
+
+  &__stock-label {
+    color: $text-secondary;
+    font-weight: $font-weight-semibold;
+
+    &::after {
+      content: ':';
+    }
+  }
+
   &__open {
     width: 100%;
     justify-content: center;

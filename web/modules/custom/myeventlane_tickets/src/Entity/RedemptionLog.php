@@ -40,6 +40,9 @@ final class RedemptionLog extends ContentEntityBase {
   public const ACTION_VALIDATE = 'validate';
   public const ACTION_REDEEM = 'redeem';
   public const ACTION_VERIFY = 'verify';
+  public const ACTION_PREPARE = 'prepare';
+  public const ACTION_READY = 'ready';
+  public const ACTION_RECOVER = 'recover';
 
   /**
    * {@inheritdoc}
@@ -95,6 +98,9 @@ final class RedemptionLog extends ContentEntityBase {
         self::ACTION_VALIDATE => 'Validate',
         self::ACTION_REDEEM => 'Redeem',
         self::ACTION_VERIFY => 'Verify',
+        self::ACTION_PREPARE => 'Prepare',
+        self::ACTION_READY => 'Mark ready',
+        self::ACTION_RECOVER => 'Manual recovery',
       ]);
 
     $fields['device_identifier'] = BaseFieldDefinition::create('string')

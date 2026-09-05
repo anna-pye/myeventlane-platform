@@ -231,7 +231,7 @@ final class VendorOperationalAddonOrderBuilder {
       'empty' => $rows === [],
       'page_title' => (string) $this->t('Add-on orders'),
       'page_intro' => (string) $this->t('Merch, hospitality, timed collection and other add-ons purchased for this event.'),
-      'vendor_prepare_hint' => (string) $this->t('Prepare these add-ons before check-in. This list is read-only — collection and scanning tools are not available here yet.'),
+      'vendor_prepare_hint' => (string) $this->t('Move each paid extra through Preparing, Ready to collect and Collected. Use manual recovery only after checking the booking.'),
       'empty_message' => (string) $this->t('No add-ons have been purchased for this event yet.'),
       'orders' => $rows,
       'totals' => [
@@ -263,7 +263,7 @@ final class VendorOperationalAddonOrderBuilder {
       'empty' => FALSE,
       'page_title' => (string) $this->t('Add-on orders'),
       'page_intro' => (string) $this->t('Operational add-ons on this order for your event.'),
-      'vendor_prepare_hint' => (string) $this->t('Prepare these add-ons before check-in. This list is read-only — collection and scanning tools are not available here yet.'),
+      'vendor_prepare_hint' => (string) $this->t('Move each paid extra through Preparing, Ready to collect and Collected. Use manual recovery only after checking the booking.'),
       'empty_message' => (string) $this->t('No add-ons on this order for this event.'),
       'orders' => [$row],
       'totals' => [
@@ -286,7 +286,7 @@ final class VendorOperationalAddonOrderBuilder {
       'empty' => $empty,
       'page_title' => (string) $this->t('Add-on orders'),
       'page_intro' => (string) $this->t('Merch, hospitality, timed collection and other add-ons purchased for this event.'),
-      'vendor_prepare_hint' => (string) $this->t('Prepare these add-ons before check-in. This list is read-only — collection and scanning tools are not available here yet.'),
+      'vendor_prepare_hint' => (string) $this->t('Move each paid extra through Preparing, Ready to collect and Collected. Use manual recovery only after checking the booking.'),
       'empty_message' => (string) $this->t('No add-ons have been purchased for this event yet.'),
       'orders' => [],
       'totals' => [

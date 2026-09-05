@@ -303,6 +303,62 @@ services:
     class: Drupal\myeventlane_commerce\Service\OperationalVariationStockResolver
     arguments:
       - '@string_translation'
+      - '@?commerce_stock.service_manager'
+      - '@myeventlane_commerce.operational_stock_hold_store'
+      - '@myeventlane_commerce.operational_stock_hold_manager'
+      - '@database'
+
+  myeventlane_commerce.event_operational_stock_summary_builder:
+    class: Drupal\myeventlane_commerce\Service\EventOperationalStockSummaryBuilder
+    arguments:
+      - '@entity_type.manager'
+      - '@myeventlane_commerce.operational_variation_stock_resolver'
+      - '@string_translation'
+
+  myeventlane_commerce.operational_stock_hold_store:
+    class: Drupal\myeventlane_commerce\Service\OperationalStockHoldStore
+    arguments:
+      - '@database'
+      - '@datetime.time'
+      - '@config.factory'
+
+  Drupal\myeventlane_commerce\Service\OperationalStockHoldStoreInterface:
+    alias: myeventlane_commerce.operational_stock_hold_store
+
+  myeventlane_commerce.operational_stock_hold_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalStockHoldManager
+    arguments:
+      - '@?commerce_stock.service_manager'
+      - '@myeventlane_commerce.operational_stock_hold_store'
+      - '@lock'
+      - '@logger.channel.myeventlane_commerce'
+      - '@database'
+
+  myeventlane_commerce.operational_stock_sale_manager:
+    class: Drupal\myeventlane_commerce\Service\OperationalStockSaleManager
+    arguments:
+      - '@?commerce_stock.service_manager'
+      - '@myeventlane_commerce.operational_stock_hold_manager'
+      - '@myeventlane_commerce.operational_stock_hold_store'
+      - '@database'
+      - '@config.factory'
+      - '@entity_type.manager'
+
+  myeventlane_commerce.operational_stock_order_guard:
+    class: Drupal\myeventlane_commerce\Service\OperationalStockOrderGuard
+    arguments: ['@myeventlane_commerce.operational_stock_sale_manager']
+
+  myeventlane_commerce.operational_stock_subscriber:
+    class: Drupal\myeventlane_commerce\EventSubscriber\OperationalStockCommerceSubscriber
+    arguments:
+      - '@myeventlane_commerce.operational_stock_hold_manager'
+      - '@myeventlane_commerce.operational_stock_hold_store'
+      - '@commerce_cart.cart_manager'
+      - '@request_stack'
+      - '@logger.channel.myeventlane_commerce'
+      - '@myeventlane_commerce.operational_stock_sale_manager'
+    tags:
+      - { name: event_subscriber }
 
   myeventlane_commerce.event_operational_addon_builder:
     class: Drupal\myeventlane_commerce\Service\EventOperationalAddonBuilder

@@ -22,6 +22,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 #[RunTestsInSeparateProcesses]
 final class TicketCheckinServiceTest extends KernelTestBase {
 
+  use \Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
+
   /**
    * {@inheritdoc}
    */
@@ -59,6 +61,8 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    */
   private User $scannerUser;
 
+  private array $scannerErrors = [];
+
   /**
    * {@inheritdoc}
    */
@@ -80,6 +84,7 @@ final class TicketCheckinServiceTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $this->registerTicketBackedClassifierStub($container);
   }
 
   /**
@@ -87,9 +92,17 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    */
   protected function setUp(): void {
     parent::setUp();
+    new \Drupal\Core\Site\Settings(['myeventlane_qr_secret' => 'kernel-only-signing-key-not-for-deployment'] + \Drupal\Core\Site\Settings::getAll());
+    $this->container->set('lock', new \Drupal\Core\Lock\DatabaseLockBackend($this->container->get('database')));
+    $logger = $this->createMock(\Psr\Log\LoggerInterface::class);
+    $logger->method('error')->willReturnCallback(function ($message, array $context = []): void {
+      $this->scannerErrors[] = strtr((string) $message, $context);
+    });
+    $this->container->set('logger.channel.myeventlane_tickets', $logger);
     $this->installEntitySchema('user');
     $this->installEntitySchema('node');
     $this->installEntitySchema('myeventlane_ticket');
+    $this->installEntitySchema('mel_redemption_log');
 
     NodeType::create([
       'type' => 'event',
@@ -245,7 +258,7 @@ final class TicketCheckinServiceTest extends KernelTestBase {
     $result = $this->container->get('myeventlane_tickets.ticket_checkin_service')
       ->checkIn((int) $this->eventA->id(), $payload, 'kernel-device-6', 'online');
 
-    $this->assertTrue($result['ok']);
+    $this->assertTrue($result['ok'], json_encode([$result, $this->scannerErrors], JSON_THROW_ON_ERROR));
     $this->assertSame('redeemed', $result['result']);
 
     $reloaded = Ticket::load($ticket->id());
@@ -257,6 +270,38 @@ final class TicketCheckinServiceTest extends KernelTestBase {
 
     $this->assertFalse($second_result['ok']);
     $this->assertSame('redemption_limit_reached', $second_result['result']);
+  }
+
+  public function testExtraRedemptionRollsBackWhenAuditCannotBeSaved(): void {
+    $ticket = $this->createTicket('MEL-AUDIT-FAIL-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'redemption_limit' => 1,
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+    // Isolated test table only: simulate an unavailable audit store.
+    $this->container->get('database')->schema()->dropTable('mel_redemption_log');
+    $result = $this->container->get('mel_scanner.operation_manager')->process((int) $this->eventA->id(), $payload);
+    self::assertFalse($result['ok']);
+    $reloaded = $this->container->get('entity_type.manager')->getStorage('myeventlane_ticket')->loadUnchanged($ticket->id());
+    self::assertSame(0, (int) $reloaded->get('redemption_count')->value);
+    self::assertNotSame(Ticket::FULFILMENT_REDEEMED, $reloaded->get('fulfilment_status')->value);
+  }
+
+  public function testExtraScanCannotRaceRefundOrCollection(): void {
+    $ticket = $this->createTicket('MEL-BUSY-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
+      'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
+      'order_item_id' => 123,
+      'redemption_limit' => 1,
+    ]);
+    $payload = $this->container->get('myeventlane_tickets.ticket_qr_payload')->buildForTicket($ticket);
+    $otherWorker = new \Drupal\Core\Lock\DatabaseLockBackend($this->container->get('database'));
+    self::assertTrue($otherWorker->acquire('myeventlane_operational_item:123'));
+    $result = $this->container->get('mel_scanner.operation_manager')->process((int) $this->eventA->id(), $payload);
+    self::assertFalse($result['ok']);
+    self::assertSame('busy', $result['result']);
+    $otherWorker->release('myeventlane_operational_item:123');
+    $result = $this->container->get('mel_scanner.operation_manager')->process((int) $this->eventA->id(), $payload);
+    self::assertTrue($result['ok']);
   }
 
   /**
@@ -283,7 +328,6 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    * mel_redemption_log rows must carry venue integrity metadata (staff-side).
    */
   public function testRedemptionAuditStoresVenueIntegrityMetadata(): void {
-    $this->installEntitySchema('mel_redemption_log');
 
     $ticket = $this->createTicket('MEL-REDEMPTION-META-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
@@ -325,7 +369,6 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    * Scanner path attaches operational identity metadata (staff integrity).
    */
   public function testRedemptionAuditIncludesOperationalIdentity(): void {
-    $this->installEntitySchema('mel_redemption_log');
     $ticket = $this->createTicket('MEL-OP-ID-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
       'redemption_limit' => 2,
@@ -364,7 +407,6 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    * @group continuity
    */
   public function testRedemptionAuditIncludesOperationalContinuity(): void {
-    $this->installEntitySchema('mel_redemption_log');
     $ticket = $this->createTicket('MEL-OC-AUDIT-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
       'redemption_limit' => 2,
@@ -470,7 +512,6 @@ final class TicketCheckinServiceTest extends KernelTestBase {
    * @group occupancy
    */
   public function testRedemptionAuditIncludesOccupancyInOperationalScanPolicy(): void {
-    $this->installEntitySchema('mel_redemption_log');
     $ticket = $this->createTicket('MEL-OCC-AUDIT-1', (int) $this->eventA->id(), Ticket::STATUS_ASSIGNED, [
       'entitlement_type' => Ticket::ENTITLEMENT_DRINK,
       'redemption_limit' => 2,
@@ -514,4 +555,3 @@ final class TicketCheckinServiceTest extends KernelTestBase {
   }
 
 }
-

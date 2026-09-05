@@ -127,6 +127,13 @@ final class WalletActionBuilderTest extends UnitTestCase {
     $this->assertSame('Add to Google Wallet', $actions['google']['label']);
     $this->assertSame('myeventlane_wallet.google', $actions['google']['route']);
     $this->assertSame('/wallet/google/55', $actions['google']['url']);
+
+    $uuid = '12345678-1234-1234-1234-123456789abc';
+    $exact = $builder->buildForOrderItem(55, WalletActionBuilder::SURFACE_ACTIONS, FALSE, $uuid);
+    $this->assertSame('myeventlane_wallet.apple_ticket', $exact['apple']['route']);
+    $this->assertSame('/wallet/apple/pass/' . $uuid, $exact['apple']['url']);
+    $this->assertSame('myeventlane_wallet.google_ticket', $exact['google']['route']);
+    $this->assertSame('/wallet/google/pass/' . $uuid, $exact['google']['url']);
   }
 
   /**

@@ -7,9 +7,11 @@
 
 declare(strict_types=1);
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\node\NodeInterface;
 
 /**
  * Implements hook_theme().
@@ -173,6 +175,17 @@ function myeventlane_tickets_entity_update(EntityInterface $entity): void {
   $original = $entity->original ?? NULL;
   $subscriber = \Drupal::service('myeventlane_tickets.ticket_assigned_subscriber');
   $subscriber->onTicketAssigned($entity, $original);
+}
+
+/**
+ * Implements hook_myeventlane_refund_completed().
+ */
+function myeventlane_tickets_myeventlane_refund_completed(OrderInterface $order, NodeInterface $event, array $log): void {
+  if (!\Drupal::hasService('myeventlane_tickets.operational_stock_return_manager')) {
+    return;
+  }
+  \Drupal::service('myeventlane_tickets.operational_stock_return_manager')
+    ->reconcile($order, $event, $log);
 }
 
 /**

@@ -616,12 +616,11 @@ final class VendorOperationalProductCreationManager {
           'price' => $row_price_obj,
         ]);
         $this->applySizeFieldFromOptionLabel($variation, $option_label);
-        $this->stockResolver->applyStockFields($variation, [
+        $this->stockResolver->saveStockFields($variation, [
           'stock_quantity' => $row['stock_quantity'] ?? NULL,
           'limit_per_order' => $row['limit_per_order'] ?? NULL,
           'show_remaining' => !empty($row['show_remaining']),
         ]);
-        $variation->save();
         $ids[] = (int) $variation->id();
       }
       return $ids;
@@ -645,8 +644,7 @@ final class VendorOperationalProductCreationManager {
         if ($variation->hasField('field_mel_size')) {
           $variation->set('field_mel_size', $size_key);
         }
-        $this->stockResolver->applyStockFields($variation, $this->resolveVariantStockInput($payload, $size_key));
-        $variation->save();
+        $this->stockResolver->saveStockFields($variation, $this->resolveVariantStockInput($payload, $size_key));
         $ids[] = (int) $variation->id();
       }
       return $ids;
@@ -660,8 +658,7 @@ final class VendorOperationalProductCreationManager {
       'status' => 1,
       'price' => $price,
     ]);
-    $this->stockResolver->applyStockFields($variation, $this->resolveVariantStockInput($payload, '_default'));
-    $variation->save();
+    $this->stockResolver->saveStockFields($variation, $this->resolveVariantStockInput($payload, '_default'));
     return [(int) $variation->id()];
   }
 
@@ -1094,12 +1091,11 @@ final class VendorOperationalProductCreationManager {
           $variation->setUnpublished();
         }
         $this->applySizeFieldFromOptionLabel($variation, $option_label);
-        $this->stockResolver->applyStockFields($variation, [
+        $this->stockResolver->saveStockFields($variation, [
           'stock_quantity' => $row['stock_quantity'] ?? NULL,
           'limit_per_order' => $row['limit_per_order'] ?? NULL,
           'show_remaining' => !empty($row['show_remaining']),
         ]);
-        $variation->save();
         $kept_ids[$variation_id] = $variation_id;
         continue;
       }
@@ -1113,12 +1109,11 @@ final class VendorOperationalProductCreationManager {
         'price' => $row_price,
       ]);
       $this->applySizeFieldFromOptionLabel($variation, $option_label);
-      $this->stockResolver->applyStockFields($variation, [
+      $this->stockResolver->saveStockFields($variation, [
         'stock_quantity' => $row['stock_quantity'] ?? NULL,
         'limit_per_order' => $row['limit_per_order'] ?? NULL,
         'show_remaining' => !empty($row['show_remaining']),
       ]);
-      $variation->save();
       $product->addVariation($variation);
       $kept_ids[(int) $variation->id()] = (int) $variation->id();
     }

@@ -1,7 +1,7 @@
 {#
 /**
  * @file
- * Vendor read-only list of operational add-on purchases for an event.
+ * Vendor preparation and collection workflow for paid event extras.
  *
  * @see \Drupal\myeventlane_commerce\Service\VendorOperationalAddonOrderBuilder
  */
@@ -37,6 +37,7 @@
   {% if doc.vendor_prepare_hint %}
     <p class="mel-vendor-addon-orders__prepare-hint">{{ doc.vendor_prepare_hint }}</p>
   {% endif %}
+  <p class="mel-vendor-addon-orders__recovery"><a href="{{ manual_recovery_url }}">{{ 'Use manual recovery'|t }}</a> <span>{{ 'For a missing or unscannable customer pass. A reason is required and logged.'|t }}</span></p>
 
   {% if doc.empty %}
     <div class="mel-vendor-addon-orders__empty mel-empty">
@@ -129,6 +130,21 @@
                             <li><span class="mel-vendor-addon-orders__chip mel-vendor-addon-orders__chip--{{ chip.tone|default('muted') }}">{{ chip.label }}</span></li>
                           {% endfor %}
                         </ul>
+                      {% endif %}
+                      {% if line.entitlements|default([])|length > 0 %}
+                        <ul class="mel-vendor-addon-orders__passes" aria-label="{{ 'Collection passes'|t }}">
+                          {% for entitlement in line.entitlements %}
+                            <li class="mel-vendor-addon-orders__pass">
+                              <span class="mel-vendor-addon-orders__pass-code">{{ entitlement.code_label }}</span>
+                              <span class="mel-vendor-addon-orders__chip mel-vendor-addon-orders__chip--{{ entitlement.status == 'ready' ? 'success' : 'muted' }}">{{ entitlement.status_label }}</span>
+                              {% if entitlement.transition_url|default('') %}
+                                <a class="mel-button mel-button--secondary mel-button--small" href="{{ entitlement.transition_url }}">{{ entitlement.next_label }}</a>
+                              {% endif %}
+                            </li>
+                          {% endfor %}
+                        </ul>
+                      {% else %}
+                        <p class="mel-vendor-addon-orders__pass-missing">{{ 'Pass pending payment confirmation or issuance.'|t }}</p>
                       {% endif %}
                       </div>
                     </li>
