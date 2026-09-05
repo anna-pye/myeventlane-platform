@@ -475,7 +475,13 @@
 /* Keep anchored information groups clear of the sticky Event Workspace bar. */
 .mel-event-studio--workspace
   :is(#mel-es-details, #mel-es-schedule, #mel-es-venue-location) {
-  scroll-margin-top: 8rem;
+  scroll-margin-top: var(--mel-event-studio-anchor-offset, 18rem);
+}
+
+@media (max-width: 767px) {
+  .mel-event-studio--workspace {
+    --mel-event-studio-anchor-offset: 1rem;
+  }
 }
 
 /* Table-style checkout questions workspace (Slice 1) */

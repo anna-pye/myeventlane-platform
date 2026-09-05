@@ -123,6 +123,7 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
     $form = file_get_contents($moduleRoot . '/src/Form/EventInformationForm.php');
     $legacyForm = file_get_contents($moduleRoot . '/src/Form/EventStudioForm.php');
     $css = file_get_contents($moduleRoot . '/css/mel-event-studio-shell.css');
+    $shellJs = file_get_contents($moduleRoot . '/js/mel-event-studio-shell.js');
 
     $this->assertIsString($manager);
     $this->assertStringContainsString("'information' => 'mel-es-details'", $manager);
@@ -147,7 +148,16 @@ final class EventWorkspaceNavIaTest extends UnitTestCase {
       ':is(#mel-es-details, #mel-es-schedule, #mel-es-venue-location)',
       $css,
     );
-    $this->assertStringContainsString('scroll-margin-top: 8rem;', $css);
+    $this->assertStringContainsString(
+      'scroll-margin-top: var(--mel-event-studio-anchor-offset, 18rem);',
+      $css,
+    );
+    $this->assertStringContainsString('--mel-event-studio-anchor-offset: 1rem;', $css);
+
+    $this->assertIsString($shellJs);
+    $this->assertStringContainsString('bindInformationAnchorOffset', $shellJs);
+    $this->assertStringContainsString("typeof ResizeObserver === 'function'", $shellJs);
+    $this->assertStringContainsString("scrollIntoView({ block: 'start' })", $shellJs);
   }
 
   /**
