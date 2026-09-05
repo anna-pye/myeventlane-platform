@@ -45,6 +45,8 @@
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalMerchandiseManagerTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalMerchandiseGovernanceManagerTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalMerchandiseKernelTest.php</file>
+      <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalStockLifecycleKernelTest.php</file>
+      <file>modules/custom/myeventlane_tickets/tests/src/Kernel/TicketCheckinServiceTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalCheckoutOrchestrationManagerTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Kernel/OperationalCheckoutKernelTest.php</file>
       <file>modules/custom/myeventlane_commerce/tests/src/Unit/OperationalCheckoutGovernanceManagerTest.php</file>

@@ -663,3 +663,36 @@ function myeventlane_tickets_update_8014(): string {
 
   return sprintf('Preserved %d existing ticket group(s) as booking-page sections.', $backfilled);
 }
+
+/**
+ * Adds the stored Preparing state and fulfilment audit actions.
+ */
+function myeventlane_tickets_update_8016(): string {
+  $manager = \Drupal::entityDefinitionUpdateManager();
+
+  $ticket_type = \Drupal::entityTypeManager()->getDefinition('myeventlane_ticket');
+  $ticket_fields = Ticket::baseFieldDefinitions($ticket_type);
+  $installed_ticket_field = $manager->getFieldStorageDefinition('fulfilment_status', 'myeventlane_ticket');
+  if ($installed_ticket_field === NULL) {
+    throw new \RuntimeException('The fulfilment_status field storage is not installed.');
+  }
+  $installed_ticket_field->setSetting(
+    'allowed_values',
+    $ticket_fields['fulfilment_status']->getSetting('allowed_values'),
+  );
+  $manager->updateFieldStorageDefinition($installed_ticket_field);
+
+  $log_type = \Drupal::entityTypeManager()->getDefinition('mel_redemption_log');
+  $log_fields = \Drupal\myeventlane_tickets\Entity\RedemptionLog::baseFieldDefinitions($log_type);
+  $installed_log_field = $manager->getFieldStorageDefinition('action_type', 'mel_redemption_log');
+  if ($installed_log_field === NULL) {
+    throw new \RuntimeException('The action_type field storage is not installed.');
+  }
+  $installed_log_field->setSetting(
+    'allowed_values',
+    $log_fields['action_type']->getSetting('allowed_values'),
+  );
+  $manager->updateFieldStorageDefinition($installed_log_field);
+
+  return 'Added Preparing fulfilment state and organiser fulfilment audit actions.';
+}

@@ -1,12 +1,13 @@
 # Schema for MyEventLane Commerce module configuration.
 # This file defines the structure of config objects used by this module.
 
-# If the module defines any config objects, add them here.
-# Example:
-# myeventlane_commerce.settings:
-#   type: config_object
-#   label: 'MyEventLane Commerce settings'
-#   mapping:
-#     example_setting:
-#       type: string
-#       label: 'Example setting'
+myeventlane_commerce.operational_stock:
+  type: config_object
+  label: 'MyEventLane operational add-on stock settings'
+  mapping:
+    paid_stock_enabled:
+      type: boolean
+      label: 'Use payment-confirmed, organiser-scoped stock'
+    hold_ttl:
+      type: integer
+      label: 'Cart hold lifetime in seconds'

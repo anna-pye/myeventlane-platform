@@ -20,6 +20,7 @@ use Drupal\image\Entity\ImageStyle;
 use Drupal\Core\Site\Settings;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_messaging\Service\OrderConfirmationAttachmentResolver;
+use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifierStubTrait;
 use Drupal\myeventlane_tickets\Entity\Ticket;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
@@ -30,6 +31,7 @@ use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Psr\Log\NullLogger;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use ZipArchive;
 
@@ -104,6 +106,12 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $container->register('myeventlane_commerce.operational_merchandise_manager', OperationalMerchandiseManager::class)
+      ->setArguments([
+        new Reference('entity_type.manager'),
+        new Reference('string_translation'),
+        new Reference('logger.channel.default'),
+      ]);
     $this->registerTicketBackedClassifierStub($container);
   }
 
@@ -519,6 +527,7 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $tickets = $this->loadTicketsForOrder((int) $order->id());
     $ticket = $tickets[0];
     $ticket->set('entitlement_type', Ticket::ENTITLEMENT_MERCH);
+    $ticket->set('metadata_json', ['display_label' => 'Community T-shirt']);
     $ticket->save();
 
     /** @var \Drupal\myeventlane_wallet\Service\PkPassBuilder $builder */
@@ -526,6 +535,17 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $path = $builder->generate($item, $ticket);
     $pass = $this->readPkPassJson($path);
     $this->assertStringStartsWith('mel:v1:json:', (string) $pass['barcode']['message']);
+    $this->assertArrayHasKey('generic', $pass);
+    $this->assertArrayNotHasKey('eventTicket', $pass);
+    $this->assertSame('Community T-shirt', $pass['generic']['primaryFields'][0]['value']);
+    $this->assertSame('Pending', $pass['generic']['auxiliaryFields'][0]['value']);
+    $this->assertStringContainsString('.order.', $pass['groupingIdentifier']);
+
+    $ticket->set('fulfilment_status', Ticket::FULFILMENT_COLLECTED)->save();
+    $completed_path = $builder->generate($item, $ticket);
+    $completed = $this->readPkPassJson($completed_path);
+    $this->assertTrue($completed['voided']);
+    $this->assertSame('Collected', $completed['generic']['auxiliaryFields'][0]['value']);
   }
 
   public function testParkingEntitlementWalletScaffoldPreservesStructuredQr(): void {
@@ -591,6 +611,8 @@ final class IssuancePipelineConvergenceTest extends KernelTestBase {
     $this->assertArrayHasKey('genericClasses', $payload['payload']);
     $this->assertArrayHasKey('genericObjects', $payload['payload']);
     $this->assertSame($expected, $payload['payload']['genericObjects'][0]['barcode']['value']);
+    $this->assertSame('ACTIVE', $payload['payload']['genericObjects'][0]['state']);
+    $this->assertStringContainsString('.order.', $payload['payload']['genericObjects'][0]['groupingInfo']['groupingId']);
     $this->assertArrayNotHasKey('heroImage', $payload['payload']['genericObjects'][0]);
     $this->assertSame('#FFF0F5', $payload['payload']['genericObjects'][0]['hexBackgroundColor']);
   }

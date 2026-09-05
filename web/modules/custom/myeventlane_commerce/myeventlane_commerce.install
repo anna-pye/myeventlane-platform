@@ -80,6 +80,89 @@ function myeventlane_commerce_schema(): array {
     ],
   ];
 
+  $schema['myeventlane_commerce_operational_stock_hold'] = [
+    'description' => 'Expiring cart holds for finite operational add-on stock.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'reservation_key' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'order_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'variation_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'quantity' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'expires' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'reservation_key' => ['reservation_key'],
+    ],
+    'indexes' => [
+      'variation_expires' => ['variation_id', 'expires'],
+      'order_id' => ['order_id'],
+    ],
+  ];
+
+  $schema['myeventlane_commerce_operational_stock_return'] = [
+    'description' => 'Capped return ledger for operational add-on refunds and cancellations.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'source_key' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE],
+      'source_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE],
+      'source_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'order_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'order_item_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'variation_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'quantity' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'created' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'source_key' => ['source_key'],
+    ],
+    'indexes' => [
+      'variation_id' => ['variation_id'],
+      'order_item_id' => ['order_item_id'],
+      'order_id' => ['order_id'],
+    ],
+  ];
+
+  $schema['myeventlane_commerce_operational_stock_sale'] = [
+    'description' => 'Immutable stock confirmation receipts, including unlimited extras.',
+    'fields' => [
+      'order_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'signature' => ['type' => 'varchar_ascii', 'length' => 64, 'not null' => TRUE],
+      'source' => ['type' => 'varchar_ascii', 'length' => 32, 'not null' => TRUE],
+    ],
+    'primary key' => ['order_id'],
+  ];
+
   return $schema;
 }
 
@@ -271,4 +354,45 @@ function myeventlane_commerce_update_10005(): string {
   $schema = myeventlane_commerce_schema();
   $schema_handler->createTable($table, $schema[$table]);
   return 'Created the ticket-tier cart hold table.';
+}
+
+/**
+ * Adds durable cart holds for finite operational add-on inventory.
+ */
+function myeventlane_commerce_update_10006(): string {
+  $table = 'myeventlane_commerce_operational_stock_hold';
+  $schema_handler = \Drupal::database()->schema();
+  if ($schema_handler->tableExists($table)) {
+    return 'The operational add-on stock hold table already exists.';
+  }
+
+  $schema = myeventlane_commerce_schema();
+  $schema_handler->createTable($table, $schema[$table]);
+  return 'Created the operational add-on stock hold table.';
+}
+
+/**
+ * Adds a capped ledger for add-on refund and cancellation stock returns.
+ */
+function myeventlane_commerce_update_10007(): string {
+  $table = 'myeventlane_commerce_operational_stock_return';
+  $schema_handler = \Drupal::database()->schema();
+  if ($schema_handler->tableExists($table)) {
+    return 'The operational add-on stock return ledger already exists.';
+  }
+  $schema = myeventlane_commerce_schema();
+  $schema_handler->createTable($table, $schema[$table]);
+  return 'Created the operational add-on stock return ledger.';
+}
+
+/**
+ * Adds durable paid-stock receipts without altering existing stock or orders.
+ */
+function myeventlane_commerce_update_10008(): string {
+  $table = 'myeventlane_commerce_operational_stock_sale';
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists($table)) {
+    $schema->createTable($table, myeventlane_commerce_schema()[$table]);
+  }
+  return 'Created the operational paid-stock receipt table; activation requires the stock hardening deploy hook.';
 }

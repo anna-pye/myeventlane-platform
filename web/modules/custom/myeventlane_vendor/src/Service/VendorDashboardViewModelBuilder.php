@@ -17,6 +17,7 @@ use Drupal\Core\Url;
 use Drupal\myeventlane_boost\BoostManager;
 use Drupal\myeventlane_boost\Service\BoostMetricsService;
 use Drupal\myeventlane_event\Service\FeaturedEventReadinessRenderBuilder;
+use Drupal\myeventlane_commerce\Service\EventOperationalStockSummaryBuilder;
 use Drupal\myeventlane_event_state\Service\EventStateResolverInterface as LifecycleStateResolverInterface;
 use Drupal\myeventlane_core\Service\DomainDetector;
 use Drupal\myeventlane_core\Service\EventStateResolver;
@@ -75,6 +76,7 @@ final class VendorDashboardViewModelBuilder {
     private readonly BoostStatusService $boostStatusService,
     private readonly BoostManager $boostManager,
     private readonly FeaturedEventReadinessRenderBuilder $homepageReadinessRender,
+    private readonly EventOperationalStockSummaryBuilder $operationalStockSummaryBuilder,
     private readonly ?DomainDetector $domainDetector = NULL,
     private readonly ?HomepageVisibilityReportService $homepageVisibilityReport = NULL,
     private readonly ?BoostMetricsService $boostMetricsService = NULL,
@@ -852,6 +854,23 @@ final class VendorDashboardViewModelBuilder {
     }
     $metricLabel = $metricParts !== [] ? implode(' · ', $metricParts) : NULL;
 
+    $addOnStock = NULL;
+    try {
+      $addOnStock = $this->operationalStockSummaryBuilder->buildForEvent($node);
+      if ($addOnStock !== NULL) {
+        $addOnStock['manage_url'] = $this->safeUrlFromRoute(
+          'myeventlane_event_studio.workspace_extras',
+          ['node' => $nid],
+        );
+      }
+    }
+    catch (\Throwable $e) {
+      $this->loggerFactory->get('myeventlane_vendor')->warning('Add-on stock summary failed for nid @nid: @message', [
+        '@nid' => (string) $nid,
+        '@message' => $e->getMessage(),
+      ]);
+    }
+
     return [
       'nid' => $nid,
       'title' => (string) $node->getTitle(),
@@ -864,6 +883,7 @@ final class VendorDashboardViewModelBuilder {
       'booking_state_label' => $this->bookingStateLabel($eventType),
       'capacity_label' => $capacityLabel,
       'metric_label' => $metricLabel,
+      'add_on_stock' => $addOnStock,
       'revenue_label' => $revenueLabel,
       'attendee_summary' => $this->attendeeSummary($ticketsSold, $rsvpCount),
       'operation_summary' => $this->eventOperationSummary($status, $eventType),

@@ -62,15 +62,23 @@
         <header class="mel-ticket-pass__header">
           <div class="mel-ticket-pass__event">
             {% if event and event.title %}
-              <p class="mel-ticket-pass__eyebrow">{{ 'Digital Pass'|t }}</p>
+              <p class="mel-ticket-pass__eyebrow">{{ ticket.ticket.is_extra ? 'Your extras pass'|t : 'Digital Pass'|t }}</p>
               <h2 class="mel-ticket-pass__event-title" id="mel-pass-title-{{ loop.index }}">
-                {% if event.url %}
+                {% if ticket.ticket.is_extra %}
+                  {{ ticket.ticket.display_label|default(ticket.ticket.entitlement_label) }}
+                {% elseif event.url %}
                   <a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>
                 {% else %}
                   {{ event.title }}
                 {% endif %}
               </h2>
               <dl class="mel-ticket-pass__event-meta">
+                {% if ticket.ticket.is_extra %}
+                  <div class="mel-ticket-pass__meta-row">
+                    <dt>{{ 'Event'|t }}</dt>
+                    <dd>{% if event.url %}<a href="{{ event.url }}" class="mel-link">{{ event.title }}</a>{% else %}{{ event.title }}{% endif %}</dd>
+                  </div>
+                {% endif %}
                 {% if event.start_date %}
                   <div class="mel-ticket-pass__meta-row">
                     <dt>{{ 'Date'|t }}</dt>
@@ -91,12 +99,12 @@
                 {% endif %}
               </dl>
             {% else %}
-              <p class="mel-ticket-pass__eyebrow">{{ 'Digital Pass'|t }}</p>
-              <h2 class="mel-ticket-pass__event-title" id="mel-pass-title-{{ loop.index }}">{{ ticket.ticket.entitlement_label }}</h2>
+              <p class="mel-ticket-pass__eyebrow">{{ ticket.ticket.is_extra ? 'Your extras pass'|t : 'Digital Pass'|t }}</p>
+              <h2 class="mel-ticket-pass__event-title" id="mel-pass-title-{{ loop.index }}">{{ ticket.ticket.display_label|default(ticket.ticket.entitlement_label) }}</h2>
             {% endif %}
           </div>
           <span
-            class="mel-badge mel-badge--{% if status_key == 'ticket_ready' %}success{% elseif status_key in ['cancelled', 'expired'] %}neutral{% elseif status_key == 'checked_in' %}info{% else %}info{% endif %} mel-ticket-pass__status"
+            class="mel-badge mel-badge--{% if status_key in ['ticket_ready', 'ready_to_collect'] %}success{% elseif status_key in ['cancelled', 'expired', 'collected'] %}neutral{% else %}info{% endif %} mel-ticket-pass__status"
             role="status"
             aria-label="{{ 'Ticket status: @status'|t({'@status': pass.status_label|default(ticket.ticket.status_label)}) }}"
           >
@@ -111,10 +119,10 @@
             id="{% if loop.first %}mel-pass-entry{% else %}mel-pass-entry-{{ loop.index }}{% endif %}"
             aria-labelledby="mel-pass-qr-{{ loop.index }}"
           >
-            <h3 class="visually-hidden" id="mel-pass-qr-{{ loop.index }}">{{ 'Entry QR code'|t }}</h3>
+            <h3 class="visually-hidden" id="mel-pass-qr-{{ loop.index }}">{{ ticket.ticket.is_extra ? 'Collection QR code'|t : 'Entry QR code'|t }}</h3>
             <img
               src="{{ ticket.qr.data_uri }}"
-              alt="{{ 'QR code for entry. Ticket code @code. Show this screen at the door.'|t({'@code': ticket.ticket.code|default('')}) }}"
+              alt="{{ ticket.ticket.is_extra ? 'QR code for collection. Pass code @code. Show this screen to collection staff.'|t({'@code': ticket.ticket.code|default('')}) : 'QR code for entry. Ticket code @code. Show this screen at the door.'|t({'@code': ticket.ticket.code|default('')}) }}"
               width="280"
               height="280"
               decoding="async"
@@ -138,7 +146,7 @@
 
         {# ---- Ticket meta ---- #}
         <section class="mel-ticket-pass__ticket" aria-labelledby="mel-pass-ticket-{{ loop.index }}">
-          <h3 class="mel-ticket-pass__section-title" id="mel-pass-ticket-{{ loop.index }}">{{ 'Ticket'|t }}</h3>
+          <h3 class="mel-ticket-pass__section-title" id="mel-pass-ticket-{{ loop.index }}">{{ ticket.ticket.is_extra ? 'Your extra'|t : 'Ticket'|t }}</h3>
           <dl class="mel-ticket-pass__ticket-meta">
             {% if ticket.holder.name or ticket.holder.email %}
               <div class="mel-ticket-pass__meta-row">
@@ -152,8 +160,8 @@
               </div>
             {% endif %}
             <div class="mel-ticket-pass__meta-row">
-              <dt>{{ 'Ticket type'|t }}</dt>
-              <dd>{{ ticket.ticket.entitlement_label }}</dd>
+              <dt>{{ ticket.ticket.is_extra ? 'Extra'|t : 'Ticket type'|t }}</dt>
+              <dd>{{ ticket.ticket.display_label|default(ticket.ticket.entitlement_label) }}</dd>
             </div>
             <div class="mel-ticket-pass__meta-row">
               <dt>{{ 'Status'|t }}</dt>

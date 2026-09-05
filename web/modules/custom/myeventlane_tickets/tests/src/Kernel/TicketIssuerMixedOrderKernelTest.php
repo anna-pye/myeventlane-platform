@@ -19,6 +19,10 @@ use Drupal\field\Entity\FieldConfig;
 use Drupal\field\Entity\FieldStorageConfig;
 use Drupal\KernelTests\KernelTestBase;
 use Drupal\myeventlane_tickets\Ticket\TicketIssuer;
+use Drupal\myeventlane_tickets\Ticket\OperationalEntitlementIssuer;
+use Drupal\myeventlane_tickets\Entity\Ticket;
+use Drupal\myeventlane_tickets\Service\OperationalEntitlementFulfilmentManager;
+use Drupal\myeventlane_commerce\Service\OperationalMerchandiseManager;
 use Drupal\myeventlane_vendor\Service\EventVendorAccessChecker;
 use Drupal\node\Entity\Node;
 use Drupal\node\Entity\NodeType;
@@ -26,9 +30,10 @@ use Drupal\Tests\myeventlane_tickets\Kernel\Traits\RegistersTicketBackedClassifi
 use Drupal\user\Entity\User;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\DependencyInjection\Reference;
 
 /**
- * Mixed-cart ticket issuance safety: operational extras must not issue tickets.
+ * Mixed-cart issuance keeps admission and operational entitlements separate.
  *
  * @group myeventlane_tickets
  */
@@ -42,6 +47,7 @@ final class TicketIssuerMixedOrderKernelTest extends KernelTestBase {
     'user',
     'field',
     'text',
+    'filter',
     'link',
     'path',
     'path_alias',
@@ -87,11 +93,17 @@ final class TicketIssuerMixedOrderKernelTest extends KernelTestBase {
     $container->register('myeventlane_analytics.order_item_classifier', \stdClass::class);
     $container->register('myeventlane_core.entity_id_normalizer', \stdClass::class);
     $container->register('myeventlane_boost.manager', \stdClass::class);
+    $container->register('myeventlane_commerce.operational_merchandise_manager', OperationalMerchandiseManager::class)
+      ->setArguments([
+        new Reference('entity_type.manager'),
+        new Reference('string_translation'),
+        new Reference('logger.channel.default'),
+      ]);
     $this->registerTicketBackedClassifierStub($container);
   }
 
   /**
-   * Two ticket lines plus parking and T-shirt operational lines issue two tickets only.
+   * Admission issuer creates two tickets; operational issuer creates two extras.
    */
   public function testMixedOrderIssuesTicketsForTicketLinesOnly(): void {
     $this->installEntitySchema('user');
@@ -104,6 +116,7 @@ final class TicketIssuerMixedOrderKernelTest extends KernelTestBase {
     $this->installEntitySchema('commerce_order');
     $this->installEntitySchema('commerce_order_item');
     $this->installEntitySchema('myeventlane_ticket');
+    $this->installEntitySchema('mel_redemption_log');
     $this->installConfig(['commerce_store', 'commerce_product', 'commerce_order', 'user']);
 
     NodeType::create(['type' => 'event', 'name' => 'Event'])->save();
@@ -195,6 +208,69 @@ final class TicketIssuerMixedOrderKernelTest extends KernelTestBase {
     $issuer->issueForOrder($order);
 
     $this->assertSame(2, $this->countTicketsForOrder((int) $order->id()));
+
+    $operational_issuer = new OperationalEntitlementIssuer(
+      $this->container->get('entity_type.manager'),
+      $this->container->get('myeventlane_tickets.ticket_code_generator'),
+      $this->container->get('logger.factory'),
+      $this->container->get('lock'),
+      new OperationalMerchandiseManager(
+        $this->container->get('entity_type.manager'),
+        $this->container->get('string_translation'),
+        $this->container->get('logger.channel.myeventlane_tickets'),
+      ),
+    );
+    $this->assertInstanceOf(OperationalEntitlementIssuer::class, $operational_issuer);
+    $operational_issuer->issueForOrder($order);
+    $operational_issuer->issueForOrder($order);
+
+    $this->assertSame(4, $this->countTicketsForOrder((int) $order->id()), 'Paid-event replay does not duplicate admission or add-on entitlements.');
+    $storage = $this->container->get('entity_type.manager')->getStorage('myeventlane_ticket');
+    $extra_ids = $storage->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('order_id', (int) $order->id())
+      ->condition('entitlement_type', Ticket::ENTITLEMENT_TICKET, '<>')
+      ->sort('id', 'ASC')
+      ->execute();
+    $this->assertCount(2, $extra_ids);
+
+    /** @var \Drupal\myeventlane_tickets\Entity\Ticket[] $extras */
+    $extras = array_values($storage->loadMultiple($extra_ids));
+    $this->assertSame(Ticket::ENTITLEMENT_MERCH, $extras[0]->getEntitlementType());
+    $this->assertSame(Ticket::FULFILMENT_PENDING, $extras[0]->getFulfilmentStatus());
+    $capabilities = $this->container->get('mel_ticket_capability.manager');
+    $this->assertFalse($capabilities->canBeScanned($extras[0]), 'A pickup QR is blocked until the organiser marks it ready.');
+
+    $fulfilment = new OperationalEntitlementFulfilmentManager(
+      $this->container->get('entity_type.manager'),
+      $this->container->get('lock'),
+      $this->container->get('database'),
+      $this->container->get('current_user'),
+      $this->container->get('request_stack'),
+      $this->container->get('datetime.time'),
+      $this->container->get('logger.channel.myeventlane_tickets'),
+    );
+    $updated = $fulfilment->transition($extras[0], $event, Ticket::FULFILMENT_PREPARING);
+    $updated = $fulfilment->transition($updated, $event, Ticket::FULFILMENT_READY);
+    $this->assertTrue($capabilities->canBeScanned($updated));
+    $updated = $fulfilment->transition($updated, $event, Ticket::FULFILMENT_COLLECTED);
+    $this->assertSame(Ticket::FULFILMENT_COLLECTED, $updated->getFulfilmentStatus());
+    $this->assertSame(1, $updated->getRedemptionCount());
+    $this->assertFalse($capabilities->canBeScanned($updated));
+
+    $recovered = $fulfilment->transition(
+      $extras[1],
+      $event,
+      Ticket::FULFILMENT_READY,
+      'Customer phone was unavailable; booking checked.',
+      TRUE,
+    );
+    $this->assertSame(Ticket::FULFILMENT_READY, $recovered->getFulfilmentStatus());
+    $log_count = (int) $this->container->get('entity_type.manager')->getStorage('mel_redemption_log')->getQuery()
+      ->accessCheck(FALSE)
+      ->count()
+      ->execute();
+    $this->assertSame(4, $log_count, 'Normal and recovery actions are append-only audited.');
   }
 
   private function createVariation(

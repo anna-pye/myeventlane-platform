@@ -124,6 +124,13 @@ final class PkPassBuilder {
 
     // Cohesive MEL branding: organisationName + logoText always match platform
     // config (never per-organiser). Description stays event-scoped for clarity.
+    $is_admission = $ticket->getEntitlementType() === Ticket::ENTITLEMENT_TICKET;
+    $pass_style = $is_admission ? 'eventTicket' : 'generic';
+    $pass_fields = $is_admission
+      ? $presentation['event_ticket']
+      : $this->buildGenericExtraFields($model, $presentation);
+    $order_id = $ticket->get('order_id')->isEmpty() ? 0 : (int) $ticket->get('order_id')->target_id;
+
     $pass = [
       'formatVersion' => 1,
       'passTypeIdentifier' => $pass_type_id,
@@ -147,8 +154,14 @@ final class PkPassBuilder {
           'messageEncoding' => 'iso-8859-1',
         ],
       ],
-      'eventTicket' => $presentation['event_ticket'],
+      $pass_style => $pass_fields,
     ];
+    if ($order_id > 0) {
+      $pass['groupingIdentifier'] = 'mel.event.' . (int) ($model['event']['id'] ?? 0) . '.order.' . $order_id;
+    }
+    if (!$is_admission && in_array($ticket->getFulfilmentStatus(), [Ticket::FULFILMENT_COLLECTED, Ticket::FULFILMENT_REDEEMED], TRUE)) {
+      $pass['voided'] = TRUE;
+    }
 
     $relevant_date = $presentation['relevant_date'];
     if ($relevant_date !== NULL) {
@@ -173,6 +186,54 @@ final class PkPassBuilder {
     catch (JsonException $e) {
       throw new RuntimeException('Unable to encode Apple Wallet pass.json.', 0, $e);
     }
+  }
+
+  /**
+   * Apple recommends Generic passes for collection claims and memberships.
+   *
+   * @param array<string, mixed> $model
+   * @param array<string, mixed> $presentation
+   *
+   * @return array<string, mixed>
+   */
+  private function buildGenericExtraFields(array $model, array $presentation): array {
+    $display_label = trim((string) ($model['ticket']['display_label'] ?? $model['ticket']['entitlement_label'] ?? 'Extra'));
+    $status = trim((string) ($model['fulfilment']['status_label'] ?? 'Order received'));
+    $event = trim((string) ($presentation['event_label'] ?? 'Event'));
+    $location = trim((string) ($model['fulfilment']['collect_location'] ?? ''));
+    $back = is_array($presentation['event_ticket']['backFields'] ?? NULL)
+      ? $presentation['event_ticket']['backFields']
+      : [];
+    $back[] = [
+      'key' => 'collection_status',
+      'label' => 'Collection status',
+      'value' => $status,
+    ];
+    if ($location !== '') {
+      $back[] = [
+        'key' => 'collection_location',
+        'label' => 'Collection point',
+        'value' => $location,
+      ];
+    }
+    return [
+      'primaryFields' => [[
+        'key' => 'extra',
+        'label' => 'YOUR EXTRA',
+        'value' => $display_label,
+      ]],
+      'secondaryFields' => [[
+        'key' => 'event',
+        'label' => 'EVENT',
+        'value' => $event,
+      ]],
+      'auxiliaryFields' => [[
+        'key' => 'status',
+        'label' => 'STATUS',
+        'value' => $status,
+      ]],
+      'backFields' => $back,
+    ];
   }
 
   /**

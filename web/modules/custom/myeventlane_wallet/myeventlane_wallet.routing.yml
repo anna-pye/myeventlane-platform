@@ -8,6 +8,15 @@ myeventlane_wallet.apple:
     _permission: 'access content'
     order_item_id: '\d+'
 
+myeventlane_wallet.apple_ticket:
+  path: '/wallet/apple/pass/{ticket_uuid}'
+  defaults:
+    _controller: '\Drupal\myeventlane_wallet\Controller\WalletAppleController::downloadTicket'
+    _title: 'Apple Wallet Pass'
+  requirements:
+    _permission: 'access content'
+    ticket_uuid: '[0-9a-fA-F-]{36}'
+
 # Google Wallet pass link.
 myeventlane_wallet.google:
   path: '/wallet/google/{order_item_id}'
@@ -17,6 +26,15 @@ myeventlane_wallet.google:
   requirements:
     _permission: 'access content'
     order_item_id: '\d+'
+
+myeventlane_wallet.google_ticket:
+  path: '/wallet/google/pass/{ticket_uuid}'
+  defaults:
+    _controller: '\Drupal\myeventlane_wallet\Controller\WalletGoogleController::linkTicket'
+    _title: 'Google Wallet'
+  requirements:
+    _permission: 'access content'
+    ticket_uuid: '[0-9a-fA-F-]{36}'
 
 # Admin settings page.
 myeventlane_wallet.settings:
