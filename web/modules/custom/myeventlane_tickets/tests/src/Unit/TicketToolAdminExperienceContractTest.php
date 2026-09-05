@@ -42,6 +42,8 @@ final class TicketToolAdminExperienceContractTest extends TestCase {
     $this->assertIsString($css);
     $this->assertStringContainsString('@media (max-width: 700px)', $css);
     $this->assertStringContainsString('max-width: none', $css);
+    $this->assertStringContainsString('var(--mel-button-primary-bg, #c24132)', $css);
+    $this->assertStringContainsString('var(--mel-button-primary-hover, #9f3126)', $css);
   }
 
   /**

@@ -113,15 +113,15 @@
 }
 
 .mel-ticket-widget-button--primary {
-  background: var(--mel-widget-coral);
-  color: #fff;
+  background: var(--mel-button-primary-bg, #c24132);
+  color: var(--mel-button-primary-text, #fff);
   box-shadow: 0 8px 18px rgba(242, 109, 91, 0.2);
 }
 
 .mel-ticket-widget-button--primary:hover,
 .mel-ticket-widget-button--primary:focus-visible {
-  background: #df5b4b;
-  color: #fff;
+  background: var(--mel-button-primary-hover, #9f3126);
+  color: var(--mel-button-primary-text, #fff);
 }
 
 .mel-ticket-widget-button--secondary {

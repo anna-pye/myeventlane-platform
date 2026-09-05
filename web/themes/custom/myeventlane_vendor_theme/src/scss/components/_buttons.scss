@@ -61,35 +61,35 @@
 // BUTTON VARIANTS
 // ============================================================================
 
-// Primary button (coral accent)
+// Primary button (accessible deep coral; 5.1:1 with white text).
 .mel-btn--primary {
-  background-color: $primary;
-  color: $text-inverse;
-  border-color: $primary;
+  background-color: var(--mel-button-primary-bg);
+  color: var(--mel-button-primary-text);
+  border-color: var(--mel-button-primary-bg);
 
   &:hover {
-    background-color: $primary-dark;
-    border-color: $primary-dark;
-    color: $text-inverse;
+    background-color: var(--mel-button-primary-hover);
+    border-color: var(--mel-button-primary-hover);
+    color: var(--mel-button-primary-text);
   }
 }
 
-// Coral accent button
+// Legacy coral alias follows the same primary action contract.
 .mel-btn--coral {
-  background-color: $ml-color-accent;
-  color: $text-inverse;
-  border-color: $ml-color-accent;
+  background-color: var(--mel-button-primary-bg);
+  color: var(--mel-button-primary-text);
+  border-color: var(--mel-button-primary-bg);
 
   &:hover {
-    background-color: color.adjust($ml-color-accent, $lightness: -8%);
-    border-color: color.adjust($ml-color-accent, $lightness: -8%);
-    color: $text-inverse;
+    background-color: var(--mel-button-primary-hover);
+    border-color: var(--mel-button-primary-hover);
+    color: var(--mel-button-primary-text);
   }
 }
 
-// CTA (Coral) - conversion moments (Create, Boost, Checkout).
+// CTA alias uses the same primary visual language.
 .mel-btn--cta {
-  @extend .mel-btn--coral;
+  @extend .mel-btn--primary;
 }
 
 // Secondary/outline button
@@ -119,13 +119,13 @@
 
 // Danger button
 .mel-btn--danger {
-  background-color: $danger;
-  color: $text-inverse;
-  border-color: $danger;
+  background-color: var(--mel-button-danger-bg);
+  color: var(--mel-button-primary-text);
+  border-color: var(--mel-button-danger-bg);
 
   &:hover {
-    background-color: color.adjust($danger, $lightness: -10%);
-    border-color: color.adjust($danger, $lightness: -10%);
+    background-color: var(--mel-button-danger-hover);
+    border-color: var(--mel-button-danger-hover);
   }
   
   &:focus {
@@ -151,13 +151,13 @@
 
 // Success button
 .mel-btn--success {
-  background-color: $success;
-  color: $text-inverse;
-  border-color: $success;
+  background-color: var(--mel-button-success-bg);
+  color: var(--mel-button-primary-text);
+  border-color: var(--mel-button-success-bg);
 
   &:hover {
-    background-color: color.adjust($success, $lightness: -10%);
-    border-color: color.adjust($success, $lightness: -10%);
+    background-color: var(--mel-button-success-hover);
+    border-color: var(--mel-button-success-hover);
   }
   
   &:focus {
@@ -348,4 +348,3 @@ a.button {
 .mel-button--danger {
   @extend .mel-btn--danger;
 }
-

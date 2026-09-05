@@ -97,6 +97,43 @@ final class OrganiserShellFocusContractTest extends TestCase {
     self::assertStringContainsString('background: #f26d5b;', $navigation);
   }
 
+  public function testLinkStatesDoNotOverrideButtonComponentContrast(): void {
+    $webRoot = dirname(__DIR__, 6);
+    $reset = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/base/_reset.scss',
+    );
+    $buttons = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_buttons.scss',
+    );
+    $headerFooter = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_mel-header-footer.scss',
+    );
+    $tokens = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/_root-tokens.scss',
+    );
+    $navigation = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/layout/_navigation.scss',
+    );
+    $support = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_vendor_theme/src/scss/components/_support.scss',
+    );
+
+    self::assertStringContainsString(':where(body.mel-vendor a)', $reset);
+    self::assertStringContainsString('body.mel-vendor a:visited', $reset);
+    self::assertStringNotContainsString("body.mel-vendor a {\n", $reset);
+    self::assertStringContainsString('.mel-btn--primary {', $buttons);
+    self::assertStringContainsString('background-color: var(--mel-button-primary-bg);', $buttons);
+    self::assertStringContainsString('color: var(--mel-button-primary-text);', $buttons);
+    self::assertStringContainsString(':is(.mel-site-header, .mel-site-footer) {', $headerFooter);
+    self::assertStringContainsString('--mel-button-primary-bg: #c24132;', $tokens);
+    self::assertStringContainsString('--mel-button-primary-hover: #9f3126;', $tokens);
+    self::assertStringContainsString('.mel-button.mel-button--primary,', $navigation);
+    self::assertStringContainsString('background: var(--mel-button-primary-bg);', $navigation);
+    self::assertStringContainsString('.mel-support-page .mel-button {', $support);
+    self::assertStringNotContainsString("\n.mel-button {", $support);
+    self::assertStringContainsString('background: var(--mel-button-primary-bg);', $support);
+  }
+
   public function testStudioContentUsesWiderLeftAlignedDesktopLayout(): void {
     $webRoot = dirname(__DIR__, 6);
     $studioStyles = (string) file_get_contents(

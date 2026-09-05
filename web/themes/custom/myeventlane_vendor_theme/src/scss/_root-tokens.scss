@@ -23,6 +23,15 @@
   --mel-accent: #6b46ff;
   --mel-brand-purple: #6b46ff;
 
+  /* Accessible button fills; brand accent colours remain unchanged elsewhere. */
+  --mel-button-primary-bg: #c24132;
+  --mel-button-primary-hover: #9f3126;
+  --mel-button-primary-text: #ffffff;
+  --mel-button-danger-bg: #b42318;
+  --mel-button-danger-hover: #8f1c13;
+  --mel-button-success-bg: #237a4b;
+  --mel-button-success-hover: #195c38;
+
   --mel-radius-1: 8px;
   --mel-radius-2: 14px;
   --mel-radius-3: 20px;

@@ -49,19 +49,21 @@ body.mel-vendor h4 { font-size: $font-size-xl; }
 body.mel-vendor h5 { font-size: $font-size-lg; }
 body.mel-vendor h6 { font-size: $font-size-base; }
 
-body.mel-vendor a {
+:where(body.mel-vendor a) {
   color: $primary;
   text-decoration: none;
   transition: color 0.15s ease-in-out;
+}
 
-  &:hover,
-  &:focus,
-  &:focus-visible,
-  &:active,
-  &:visited {
-    color: $primary-dark;
-    text-decoration: none;
-  }
+:where(
+  body.mel-vendor a:hover,
+  body.mel-vendor a:focus,
+  body.mel-vendor a:focus-visible,
+  body.mel-vendor a:active,
+  body.mel-vendor a:visited
+) {
+  color: $primary-dark;
+  text-decoration: none;
 }
 
 body.mel-vendor :where(ul, ol) {
