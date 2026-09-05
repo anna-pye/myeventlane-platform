@@ -81,7 +81,7 @@ final class EventStudioTicketsAppContractTest extends TestCase {
 
     $this->assertNotFalse($libraries);
     $this->assertStringContainsString("mel_event_studio:\n  version: 1.33", $libraries);
-    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.22", $libraries);
+    $this->assertStringContainsString("mel_event_studio_shell_only:\n  version: 1.23", $libraries);
 
     $this->assertNotFalse($theme_scss);
     $this->assertStringContainsString('.mel-event-studio--workspace .mel-event-studio-tickets-app', $theme_scss);

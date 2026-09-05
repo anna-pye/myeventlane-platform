@@ -20,14 +20,28 @@ final class EventStudioWorkspaceLibraryAttachmentTest extends TestCase {
     $this->moduleRoot = dirname(__DIR__, 3);
   }
 
-  public function testWorkspaceRouteHelperExistsAndListsCoreSections(): void {
+  public function testWorkspaceRouteHelperListsEveryDeclaredWorkspaceRoute(): void {
     $module = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.module');
+    $routing = file_get_contents($this->moduleRoot . '/myeventlane_event_studio.routing.yml');
     $this->assertIsString($module);
+    $this->assertIsString($routing);
     $this->assertStringContainsString('function _myeventlane_event_studio_is_workspace_route', $module);
-    $this->assertStringContainsString("'myeventlane_event_studio.workspace_information'", $module);
-    $this->assertStringContainsString("'myeventlane_event_studio.workspace_tickets'", $module);
-    $this->assertStringContainsString("'myeventlane_event_studio.workspace_settings'", $module);
-    $this->assertStringContainsString("'myeventlane_event_studio.workspace_add_ons'", $module);
+
+    preg_match_all(
+      '/^(myeventlane_event_studio\.workspace(?:_[a-z0-9_]+)?):/m',
+      $routing,
+      $matches,
+    );
+    $workspace_routes = array_values(array_unique($matches[1] ?? []));
+    $this->assertNotEmpty($workspace_routes);
+
+    foreach ($workspace_routes as $route_name) {
+      $this->assertStringContainsString(
+        "'{$route_name}'",
+        $module,
+        "Workspace route {$route_name} must be recognised by the shared route helper.",
+      );
+    }
   }
 
   public function testBaseFormSkipsWizardNavOnWorkspaceRoutes(): void {

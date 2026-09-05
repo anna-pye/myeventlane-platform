@@ -8,6 +8,40 @@
     return drupalSettings.myeventlaneEventStudio || {};
   }
 
+  function bindInformationAnchorOffset(shell) {
+    const topbar = shell.querySelector('.mel-event-studio-topbar');
+    if (!topbar) {
+      return;
+    }
+
+    const syncOffset = () => {
+      const topbarStyle = window.getComputedStyle(topbar);
+      const isSticky = topbarStyle.position === 'sticky';
+      const stickyTop = Math.max(0, Number.parseFloat(topbarStyle.top) || 0);
+      const clearance = isSticky
+        ? Math.ceil(topbar.getBoundingClientRect().height + stickyTop + 16)
+        : 16;
+      shell.style.setProperty('--mel-event-studio-anchor-offset', `${clearance}px`);
+    };
+
+    syncOffset();
+    window.addEventListener('resize', syncOffset, { passive: true });
+
+    if (typeof ResizeObserver === 'function') {
+      const observer = new ResizeObserver(syncOffset);
+      observer.observe(topbar);
+    }
+
+    const anchorIds = ['mel-es-details', 'mel-es-schedule', 'mel-es-venue-location'];
+    const activeAnchorId = window.location.hash.slice(1);
+    if (anchorIds.includes(activeAnchorId)) {
+      const activeAnchor = document.getElementById(activeAnchorId);
+      if (activeAnchor && shell.contains(activeAnchor)) {
+        window.requestAnimationFrame(() => activeAnchor.scrollIntoView({ block: 'start' }));
+      }
+    }
+  }
+
   function getCsrfToken() {
     if (!tokenPromise) {
       tokenPromise = fetch(Drupal.url('session/token'), { credentials: 'same-origin' })
@@ -1523,6 +1557,10 @@
         if (handoff) {
           renderPublishSuccessFeedback(shell, handoff);
         }
+      });
+
+      once('mel-event-studio-information-anchor-offset', '[data-mel-studio-shell]', context).forEach((shell) => {
+        bindInformationAnchorOffset(shell);
       });
 
       once('mel-event-studio-sidebar-toggle', '[data-mel-studio-sidebar-toggle]', context).forEach((button) => {
