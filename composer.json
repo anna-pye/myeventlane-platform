@@ -37,7 +37,7 @@
     "drupal/core-recipe-unpack": "^11.2",
     "drupal/ctools": "^4.1",
     "drupal/field_group": "^4.0",
-    "drupal/flag": "^5.0",
+    "drupal/flag": "^5.1",
     "drupal/focal_point": "^2.1",
     "drupal/fullcalendar_view": "^5.2",
     "drupal/geofield": "^10.3",
