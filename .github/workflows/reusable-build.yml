@@ -147,6 +147,9 @@ jobs:
       - name: Test stale deployment guard
         run: bash scripts/deploy/test-stale-release-guard.sh
 
+      - name: Test post-switch cache rebuild ordering
+        run: bash scripts/deploy/test-post-switch-cache-rebuild.sh
+
       - name: Set artifact metadata
         id: meta
         run: echo "artifact_name=${ARTIFACT_NAME}" >> "$GITHUB_OUTPUT"

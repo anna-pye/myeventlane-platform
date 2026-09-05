@@ -1098,6 +1098,14 @@ cd "$CURRENT_PATH"
 
 mel_verify_drush_bootstrap "Post-switch (current release)"
 
+# Rebuild against the newly activated code before updates or config import.
+# This is required when a previous failed import updated core.extension and the
+# rollback restored code that did not contain the newly enabled module. Without
+# this rebuild, Drupal can keep stale plugin definitions and reject field config
+# supplied by the module that is present in the new release.
+mel_drush_run "Post-switch: drush cr before updates/config import" \
+  mel_drush cr --uri="$SITE_URI"
+
 # ---- CONFIG SYNC: mirror artifact → shared sync directory (single source of truth per release) ----
 # Staging uses a shared path (e.g. /home/mel/staging/config/sync) referenced by settings.php.
 # Without this step, an incomplete or stale sync dir causes cim to report "no changes" while
