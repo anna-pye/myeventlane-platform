@@ -660,18 +660,19 @@
   }
 
   .mel-btn.mel-btn--primary,
+  .mel-button.mel-button--primary,
   .mel-vendor-console__primary-action.mel-btn--primary {
-    background: #f26d5b;
-    border-color: #f26d5b;
-    color: $text-inverse;
+    background: var(--mel-button-primary-bg);
+    border-color: var(--mel-button-primary-bg);
+    color: var(--mel-button-primary-text);
     border-radius: 12px;
     min-height: 44px;
     padding-inline: $spacing-4;
 
     &:hover {
-      background: #e55c49;
-      border-color: #e55c49;
-      color: $text-inverse;
+      background: var(--mel-button-primary-hover);
+      border-color: var(--mel-button-primary-hover);
+      color: var(--mel-button-primary-text);
     }
 
     &:focus-visible {

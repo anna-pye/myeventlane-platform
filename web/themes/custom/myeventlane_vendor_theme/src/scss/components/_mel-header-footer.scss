@@ -70,35 +70,37 @@
 // Buttons (tap targets >= 44px)
 // ---------------------------------------------------------------------------
 
-.mel-btn {
-  min-height: 44px;
-  padding: 10px 14px;
-  border-radius: var(--mel-radius-3);
-  border: 1px solid var(--mel-border);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-weight: 700;
-  text-decoration: none;
-  cursor: pointer;
-  background: var(--mel-surface);
-  color: var(--mel-text);
-}
+:is(.mel-site-header, .mel-site-footer) {
+  .mel-btn {
+    min-height: 44px;
+    padding: 10px 14px;
+    border-radius: var(--mel-radius-3);
+    border: 1px solid var(--mel-border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    background: var(--mel-surface);
+    color: var(--mel-text);
+  }
 
-.mel-btn--primary {
-  background: var(--mel-coral);
-  color: #fff;
-  border-color: transparent;
-}
+  .mel-btn--primary {
+    background: var(--mel-button-primary-bg);
+    color: var(--mel-button-primary-text);
+    border-color: var(--mel-button-primary-bg);
+  }
 
-.mel-btn--secondary {
-  background: #fff;
-  color: var(--mel-text);
-}
+  .mel-btn--secondary {
+    background: #fff;
+    color: var(--mel-text);
+  }
 
-.mel-btn--ghost {
-  background: transparent;
+  .mel-btn--ghost {
+    background: transparent;
+  }
 }
 
 // ---------------------------------------------------------------------------

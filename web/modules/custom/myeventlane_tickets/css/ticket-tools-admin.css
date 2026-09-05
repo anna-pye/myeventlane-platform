@@ -210,8 +210,8 @@
 }
 
 .mel-ticket-tool-button--primary {
-  background: var(--mel-ticket-coral);
-  color: #fff;
+  background: var(--mel-button-primary-bg, #c24132);
+  color: var(--mel-button-primary-text, #fff);
 }
 
 .mel-ticket-tool-button--secondary {
@@ -224,6 +224,12 @@
 .mel-ticket-tool-button:focus-visible {
   text-decoration: none;
   transform: translateY(-1px);
+}
+
+.mel-ticket-tool-button--primary:hover,
+.mel-ticket-tool-button--primary:focus-visible {
+  background: var(--mel-button-primary-hover, #9f3126);
+  color: var(--mel-button-primary-text, #fff);
 }
 
 .mel-ticket-tool-button:focus-visible {

@@ -72,7 +72,7 @@
   }
 }
 
-.mel-button {
+.mel-support-page .mel-button {
   padding: $spacing-2 $spacing-4;
   border-radius: 6px;
   font-size: 0.9375rem;
@@ -88,17 +88,15 @@
   }
 
   &--primary {
-    background: $ml-color-accent;
-    border-color: $ml-color-accent;
-    color: #fff;
+    background: var(--mel-button-primary-bg);
+    border-color: var(--mel-button-primary-bg);
+    color: var(--mel-button-primary-text);
 
     &:hover,
     &:focus {
-      $accent-hover: color.adjust($ml-color-accent, $lightness: -8%);
-
-      background: $accent-hover;
-      border-color: $accent-hover;
-      color: #fff;
+      background: var(--mel-button-primary-hover);
+      border-color: var(--mel-button-primary-hover);
+      color: var(--mel-button-primary-text);
     }
   }
 

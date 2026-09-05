@@ -71,6 +71,8 @@ final class PurchaseSurfaceWidgetExperienceContractTest extends TestCase {
 
     $this->assertStringContainsString('@media (max-width: 700px)', $css);
     $this->assertStringContainsString('min-height: 46px', $css);
+    $this->assertStringContainsString('var(--mel-button-primary-bg, #c24132)', $css);
+    $this->assertStringContainsString('var(--mel-button-primary-hover, #9f3126)', $css);
     $this->assertStringContainsString('navigator.clipboard.writeText', $js);
     $this->assertStringContainsString("Drupal.t('Copied')", $js);
   }
