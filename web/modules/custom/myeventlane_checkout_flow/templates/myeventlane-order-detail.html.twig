@@ -314,9 +314,29 @@
           {% if order.refund_actions|length > 1 and refund_action.event_title %}
             <h3 class="mel-order-detail__refund-event">{{ refund_action.event_title }}</h3>
           {% endif %}
+          {% set latest_request = refund_action.latest_request|default(null) %}
+          {% if latest_request %}
+            {% if latest_request.status == 'rejected' %}
+              <p class="mel-event-refund-note">
+                <strong>{{ 'Latest refund request declined.'|t }}</strong>
+                {% if latest_request.decision_reason %}{{ latest_request.decision_reason }}{% endif %}
+              </p>
+              {% if order.refund_summary %}
+                <p class="mel-event-refund-note mel-text--muted">
+                  {{ 'Any refund shown above was processed from an earlier approved request.'|t }}
+                </p>
+              {% endif %}
+            {% elseif latest_request.status == 'requested' %}
+              <p class="mel-event-refund-note"><strong>{{ 'Refund request awaiting organiser review.'|t }}</strong></p>
+            {% elseif latest_request.status == 'approved' %}
+              <p class="mel-event-refund-note"><strong>{{ 'Refund approved and awaiting final processing.'|t }}</strong></p>
+            {% elseif latest_request.status == 'completed' %}
+              <p class="mel-event-refund-note"><strong>{{ 'Latest refund request processed.'|t }}</strong></p>
+            {% endif %}
+          {% endif %}
           {% if refund_action.can_refund and refund_action.refund_url %}
             <a href="{{ refund_action.refund_url }}" class="mel-button mel-button--secondary">
-              {{ 'Request refund'|t }}
+              {{ latest_request ? 'Request another refund'|t : 'Request refund'|t }}
             </a>
           {% elseif refund_action.ineligible_reason %}
             <p class="mel-event-refund-note mel-text--muted">

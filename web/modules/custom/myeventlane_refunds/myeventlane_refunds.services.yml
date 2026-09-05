@@ -13,7 +13,7 @@ services:
 
   myeventlane_refunds.refund_request_storage:
     class: Drupal\myeventlane_refunds\Service\RefundRequestStorage
-    arguments: ['@database', '@datetime.time']
+    arguments: ['@database', '@datetime.time', '@cache_tags.invalidator']
 
   myeventlane_refunds.adjustment_note:
     class: Drupal\myeventlane_refunds\Service\RefundAdjustmentNoteService

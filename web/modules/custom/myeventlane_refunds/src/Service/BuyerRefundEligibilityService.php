@@ -37,7 +37,7 @@ final class BuyerRefundEligibilityService {
   /**
    * Constructs BuyerRefundEligibilityService.
    *
-   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspector $orderInspector
+   * @param \Drupal\myeventlane_refunds\Service\RefundOrderInspectorInterface $orderInspector
    *   The order inspector.
    * @param \Drupal\Component\Datetime\TimeInterface $time
    *   The request time service.
@@ -45,7 +45,7 @@ final class BuyerRefundEligibilityService {
    *   Resolves event wall-clock values in each event's timezone.
    */
   public function __construct(
-    private readonly RefundOrderInspector $orderInspector,
+    private readonly RefundOrderInspectorInterface $orderInspector,
     private readonly TimeInterface $time,
     private readonly EventDateTimeResolver $eventDateTime,
   ) {}
@@ -74,6 +74,10 @@ final class BuyerRefundEligibilityService {
 
     $eventId = (int) $event->id();
     if (empty($this->orderInspector->extractItemsForEvent($order, $eventId))) {
+      return FALSE;
+    }
+
+    if (!$this->hasRefundableTicketValue($order, $eventId)) {
       return FALSE;
     }
 
@@ -115,6 +119,10 @@ final class BuyerRefundEligibilityService {
       return 'This order does not contain tickets for this event.';
     }
 
+    if (!$this->hasRefundableTicketValue($order, $eventId)) {
+      return 'There are no active tickets left to refund for this event.';
+    }
+
     if (!$this->policyAllowsRefund($event)) {
       return 'This event does not allow refunds.';
     }
@@ -124,6 +132,25 @@ final class BuyerRefundEligibilityService {
     }
 
     return NULL;
+  }
+
+  /**
+   * Ensures an active ticket amount fits the remaining payment balance.
+   */
+  private function hasRefundableTicketValue(OrderInterface $order, int $eventId): bool {
+    $availableCents = $this->orderInspector->calculateRefundableAmountCents($order);
+    if ($availableCents <= 0) {
+      return FALSE;
+    }
+
+    foreach ($this->orderInspector->getRefundableTicketAttendeeBreakdown($order, $eventId) as $entry) {
+      $ticketCents = (int) ($entry['amount_cents'] ?? 0);
+      if ($ticketCents > 0 && $ticketCents <= $availableCents) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**
