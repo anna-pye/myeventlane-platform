@@ -5,4 +5,5 @@
 // Keep shared tokens and generic form controls in main.scss.
 
 @use 'commerce/commerce';
+@use 'commerce/ticket-bundle-remove';
 @use 'components/checkout';

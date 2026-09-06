@@ -1,0 +1,34 @@
+{#
+/**
+ * @file
+ * MEL presentation for the atomic ticket-bundle removal confirmation.
+ *
+ * ConfirmFormBase provides the dynamic question, description, CSRF fields and
+ * actions. This template changes presentation only; it preserves every form
+ * element and the normal Drupal submission flow.
+ */
+#}
+<form{{ attributes }}>
+  {{ element.form_build_id }}
+  {{ element.form_token }}
+  {{ element.form_id }}
+
+  <section class="mel-ticket-bundle-remove" aria-labelledby="mel-ticket-bundle-remove-title">
+    <span class="mel-ticket-bundle-remove__icon" aria-hidden="true">!</span>
+    <p class="mel-ticket-bundle-remove__eyebrow">{{ 'Cart update'|t }}</p>
+    <h1 id="mel-ticket-bundle-remove-title" class="mel-ticket-bundle-remove__title">
+      {{ element['#title'] }}
+    </h1>
+
+    <div class="mel-ticket-bundle-remove__description">
+      {{ element.description }}
+    </div>
+
+    <p class="mel-ticket-bundle-remove__reassurance">
+      <span aria-hidden="true">✓</span>
+      <span>{{ 'Your other cart items will not be affected.'|t }}</span>
+    </p>
+
+    {{ element.actions }}
+  </section>
+</form>

@@ -1961,6 +1961,7 @@ function _myeventlane_theme_build_mobile_bottom_nav(bool $auth_minimal = FALSE):
 function _myeventlane_theme_is_commerce_styled_route(string $route_name): bool {
   return str_starts_with($route_name, 'commerce_cart.')
     || str_starts_with($route_name, 'commerce_checkout.')
+    || $route_name === 'myeventlane_commerce.ticket_bundle_remove'
     || $route_name === 'entity.commerce_order.user_view'
     || in_array($route_name, [
       'entity.commerce_payment_method.collection',
@@ -1990,7 +1991,8 @@ function myeventlane_theme_preprocess_html(array &$variables): void {
       $variables['attributes']['class'][] = 'mel-commerce';
     }
 
-    if (str_starts_with($route_name, 'commerce_cart.')) {
+    if (str_starts_with($route_name, 'commerce_cart.')
+      || $route_name === 'myeventlane_commerce.ticket_bundle_remove') {
       $variables['attributes']['class'][] = 'mel-commerce-cart';
     }
 
@@ -2099,6 +2101,7 @@ function myeventlane_theme_preprocess_page(array &$variables): void {
   ];
   $variables['mel_footer_compact'] = str_starts_with($route_name, 'commerce_cart.')
     || str_starts_with($route_name, 'commerce_checkout.')
+    || $route_name === 'myeventlane_commerce.ticket_bundle_remove'
     || in_array($route_name, $transactional_routes, TRUE);
 
   // Footer navigation (single preprocess source; shared with /sitemap).

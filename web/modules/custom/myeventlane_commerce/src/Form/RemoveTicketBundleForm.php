@@ -18,10 +18,19 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class RemoveTicketBundleForm extends ConfirmFormBase {
 
+  /**
+   * The current draft cart.
+   */
   private ?OrderInterface $cart = NULL;
 
+  /**
+   * The bundle instance being removed.
+   */
   private string $bundleInstance = '';
 
+  /**
+   * The customer-facing bundle name.
+   */
   private string $bundleName = 'ticket bundle';
 
   public function __construct(
@@ -98,7 +107,15 @@ final class RemoveTicketBundleForm extends ConfirmFormBase {
       throw new AccessDeniedHttpException();
     }
 
-    return parent::buildForm($form, $form_state);
+    $form = parent::buildForm($form, $form_state);
+    $form['actions']['cancel']['#attributes']['class'][] = 'mel-btn';
+    $form['actions']['cancel']['#attributes']['class'][] = 'mel-btn--secondary';
+    $form['actions']['cancel']['#attributes']['class'][] = 'mel-btn--pill';
+    $form['actions']['submit']['#attributes']['class'][] = 'mel-btn';
+    $form['actions']['submit']['#attributes']['class'][] = 'mel-btn--destructive';
+    $form['actions']['submit']['#attributes']['class'][] = 'mel-btn--pill';
+
+    return $form;
   }
 
   /**
