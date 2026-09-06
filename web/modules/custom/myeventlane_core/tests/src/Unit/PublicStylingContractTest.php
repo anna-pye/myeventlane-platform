@@ -55,6 +55,29 @@ final class PublicStylingContractTest extends TestCase {
   }
 
   /**
+   * Bundle removal must use the transactional visual and safety hierarchy.
+   */
+  public function testTicketBundleRemovalUsesMelConfirmationPresentation(): void {
+    $theme = $this->source('web/themes/custom/myeventlane_theme/myeventlane_theme.theme');
+    $commerce = $this->source('web/themes/custom/myeventlane_theme/src/scss/commerce.scss');
+    $styles = $this->source('web/themes/custom/myeventlane_theme/src/scss/commerce/_ticket-bundle-remove.scss');
+    $template = $this->source('web/themes/custom/myeventlane_theme/templates/form/form--myeventlane-remove-ticket-bundle-form.html.twig');
+    $form = $this->source('web/modules/custom/myeventlane_commerce/src/Form/RemoveTicketBundleForm.php');
+
+    self::assertStringContainsString("'myeventlane_commerce.ticket_bundle_remove'", $theme);
+    self::assertStringContainsString("@use 'commerce/ticket-bundle-remove'", $commerce);
+    self::assertStringContainsString('.mel-commerce-cart .myeventlane-remove-ticket-bundle-form', $styles);
+    self::assertStringContainsString('aria-labelledby="mel-ticket-bundle-remove-title"', $template);
+    self::assertStringContainsString("{{ element['#title'] }}", $template);
+    self::assertStringContainsString('{{ element.form_build_id }}', $template);
+    self::assertStringContainsString('{{ element.form_token }}', $template);
+    self::assertStringContainsString('{{ element.form_id }}', $template);
+    self::assertStringNotContainsString('element|without', $template);
+    self::assertStringContainsString('Your other cart items will not be affected.', $template);
+    self::assertStringContainsString("'mel-btn--destructive'", $form);
+  }
+
+  /**
    * Account card fields must override Commerce Stripe's fixed em widths.
    */
   public function testStripeCardFieldsUseReadableResponsivePresentation(): void {

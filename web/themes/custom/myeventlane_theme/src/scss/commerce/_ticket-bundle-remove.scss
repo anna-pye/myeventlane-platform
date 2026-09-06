@@ -1,0 +1,135 @@
+// ==========================================================================
+// Ticket bundle removal confirmation
+// ==========================================================================
+// Route-scoped by .mel-commerce-cart. This keeps the destructive confirmation
+// visually distinct without changing Drupal Commerce form behaviour.
+
+@use 'sass:color';
+@use '../tokens/colors';
+@use '../tokens/typography';
+@use '../tokens/spacing';
+@use '../tokens/radii';
+@use '../tokens/shadows';
+@use '../tokens/breakpoints';
+
+.mel-commerce-cart .myeventlane-remove-ticket-bundle-form {
+  max-width: 44rem;
+  margin: spacing.mel-space(4) auto spacing.mel-space(8);
+
+  .mel-ticket-bundle-remove {
+    position: relative;
+    overflow: hidden;
+    padding: clamp(#{spacing.mel-space(5)}, 5vw, #{spacing.mel-space(7)});
+    border: 1px solid rgba(colors.$mel-color-highlight, 0.25);
+    border-radius: radii.$mel-radius-xl;
+    background:
+      radial-gradient(circle at 100% 0, rgba(colors.$mel-color-pastel-lavender, 0.72), transparent 38%),
+      colors.$mel-color-surface;
+    box-shadow: shadows.$mel-shadow-lg;
+  }
+
+  .mel-ticket-bundle-remove__icon {
+    display: grid;
+    place-items: center;
+    width: 3.5rem;
+    height: 3.5rem;
+    margin-bottom: spacing.mel-space(4);
+    border: 1px solid rgba(colors.$mel-color-highlight, 0.3);
+    border-radius: radii.$mel-radius-md;
+    background: colors.$mel-color-pastel-peach;
+    color: color.adjust(colors.$mel-color-highlight, $lightness: -24%);
+    font-size: typography.mel-font-size(xl);
+    font-weight: typography.$mel-font-extrabold;
+    line-height: 1;
+  }
+
+  .mel-ticket-bundle-remove__eyebrow {
+    margin: 0 0 spacing.mel-space(2);
+    color: colors.$mel-color-primary;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-bold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .mel-ticket-bundle-remove__title {
+    max-width: 18ch;
+    margin: 0;
+    color: colors.$mel-color-text;
+    font-size: clamp(#{typography.mel-font-size(2xl)}, 5vw, #{typography.mel-font-size(3xl)});
+    font-weight: typography.$mel-font-extrabold;
+    letter-spacing: typography.$mel-tracking-tight;
+    line-height: typography.$mel-leading-tight;
+  }
+
+  .mel-ticket-bundle-remove__description {
+    max-width: 36rem;
+    margin-top: spacing.mel-space(4);
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(md);
+    line-height: typography.$mel-leading-relaxed;
+  }
+
+  .mel-ticket-bundle-remove__description > * {
+    margin: 0;
+  }
+
+  .mel-ticket-bundle-remove__reassurance {
+    display: flex;
+    gap: spacing.mel-space(2);
+    margin: spacing.mel-space(4) 0 0;
+    padding: spacing.mel-space(3) spacing.mel-space(4);
+    border-radius: radii.$mel-radius-md;
+    background: colors.$mel-color-pastel-sky;
+    color: colors.$mel-color-text;
+    font-size: typography.mel-font-size(sm);
+    line-height: typography.$mel-leading-normal;
+  }
+
+  .form-actions {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: spacing.mel-space(3);
+    margin: spacing.mel-space(6) 0 0;
+    padding: spacing.mel-space(5) 0 0;
+    border-top: 1px solid colors.$mel-color-border;
+    background: transparent;
+  }
+
+  .form-actions .mel-btn {
+    min-width: 10rem;
+    margin: 0;
+    font-weight: typography.$mel-font-bold;
+  }
+
+  .form-actions .mel-btn--destructive {
+    border: 1px solid rgba(colors.$mel-color-error, 0.48);
+    background: colors.$mel-color-error-bg;
+    color: color.adjust(colors.$mel-color-error, $lightness: -27%);
+    box-shadow: none;
+  }
+
+  .form-actions .mel-btn--destructive:hover {
+    border-color: rgba(colors.$mel-color-error, 0.7);
+    background: color.adjust(colors.$mel-color-error-bg, $lightness: -4%);
+  }
+
+  @include breakpoints.mel-break(sm, max) {
+    margin-top: 0;
+
+    .mel-ticket-bundle-remove {
+      border-radius: radii.$mel-radius-lg;
+    }
+
+    .form-actions {
+      align-items: stretch;
+      flex-direction: column-reverse;
+    }
+
+    .form-actions .mel-btn {
+      width: 100%;
+    }
+  }
+}
