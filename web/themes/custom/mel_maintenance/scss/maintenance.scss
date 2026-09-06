@@ -209,3 +209,19 @@ body {
     transition: none;
   }
 }
+
+.mel-mm__character {
+  float: right;
+  width: 107px;
+  height: 179px;
+  margin: 0 0 1rem 1.5rem;
+  object-fit: contain;
+}
+
+@media (max-width: 30rem) {
+  .mel-mm__character {
+    width: 80px;
+    height: auto;
+    margin-left: 1rem;
+  }
+}

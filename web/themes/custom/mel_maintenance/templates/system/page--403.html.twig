@@ -6,11 +6,12 @@
 #}
 {{ attach_library('mel_maintenance/errors') }}
 
-<main class="mel-err mel-err--403" data-mel-error-page>
+<main id="main-content" tabindex="-1" class="mel-err mel-err--403" data-mel-error-page>
   <div class="mel-err__decoration" aria-hidden="true"></div>
   <section class="mel-err__panel" aria-labelledby="mel-403-title">
+    <img class="mel-err__character" src="{{ base_path }}{{ directory }}/images/mel-thinking.png" width="107" height="179" alt="">
     <p class="mel-err__code" aria-hidden="true">403</p>
-    <p class="mel-err__eyebrow">{{ 'MyEventLane'|t }}</p>
+    <p class="mel-err__eyebrow"><img class="mel-err__logo" src="{{ base_path }}{{ directory }}/logo.svg" width="200" height="80" alt="MyEventLane"></p>
     <h1 id="mel-403-title" class="mel-err__title">{{ "You can't access this page"|t }}</h1>
     <p class="mel-err__lede">
       {{ 'You may need to sign in with the account that owns this booking or organiser workspace.'|t }}

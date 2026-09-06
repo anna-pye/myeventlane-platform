@@ -6,11 +6,11 @@
 #}
 {{ attach_library('mel_maintenance/maintenance') }}
 {% set mel_brand = site_name ?: 'MyEventLane' %}
-{% set maintenance_title = title ?: 'MyEventLane is briefly unavailable'|t %}
+{% set maintenance_title = 'A little pause. More good times soon.'|t %}
 
 <div class="mel-mm" data-mel-maintenance>
   <a href="#mel-maintenance-message" class="mel-mm__skip-link">{{ 'Skip to maintenance message'|t }}</a>
-  <main class="mel-mm__main">
+  <main id="main-content" class="mel-mm__main" tabindex="-1">
     <header class="mel-mm__brand">
       {# Release-owned logo avoids stale managed-file references in maintenance. #}
       <img class="mel-mm__logo" src="{{ base_path }}{{ directory }}/logo.svg" width="200" height="80" alt="{{ mel_brand }}">
@@ -20,10 +20,11 @@
     </header>
 
     <section id="mel-maintenance-message" class="mel-mm__panel" tabindex="-1">
+      <img class="mel-mm__character" src="{{ base_path }}{{ directory }}/images/mel-thinking.png" width="107" height="179" alt="">
       <p class="mel-mm__eyebrow">{{ 'A short pause'|t }}</p>
       <h1 class="mel-mm__title">{{ maintenance_title }}</h1>
       <p class="mel-mm__lede">
-        {{ 'We are applying an update and expect to be back shortly. Thanks for your patience.'|t }}
+        {{ 'MEL is taking a quick breather. Thanks for sticking with us.'|t }}
       </p>
       <div class="mel-mm__message">
         {{ page.highlighted }}
@@ -35,7 +36,7 @@
     <a class="mel-mm__staff-sign-in" href="{{ path('user.login') }}">{{ 'Staff sign in'|t }}</a>
 
     <p class="mel-mm__help">
-      {{ 'If you need your ticket now, use the link in your confirmation email.'|t }}
+      {{ 'Need your ticket? Check your confirmation email for your ticket details.'|t }}
     </p>
   </main>
   <footer class="mel-mm__footer">© {{ "now"|date("Y") }} {{ mel_brand }}</footer>

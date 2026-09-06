@@ -5,34 +5,60 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\PageCache\ResponsePolicy\KillSwitch;
+use Drupal\Core\Render\BareHtmlPageRendererInterface;
+use Drupal\Core\Render\HtmlResponse;
+use Drupal\Core\Theme\ThemeInitializationInterface;
+use Drupal\Core\Theme\ThemeManagerInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Controller for custom error pages.
+ * Renders standalone recovery pages, including exception subrequests.
  */
 final class ErrorController extends ControllerBase {
 
-  /**
-   * Renders the custom 403 page.
-   */
-  public function accessDenied(): array {
-    return [
-      '#theme' => 'mel_403',
-      '#cache' => [
-        'max-age' => 0,
-      ],
-    ];
+  public function __construct(
+    private readonly BareHtmlPageRendererInterface $bareRenderer,
+    private readonly ThemeManagerInterface $themeManager,
+    private readonly ThemeInitializationInterface $themeInitialization,
+    private readonly KillSwitch $pageCacheKillSwitch,
+  ) {}
+
+  public static function create(ContainerInterface $container): static {
+    return new static(
+      $container->get('bare_html_page_renderer'),
+      $container->get('theme.manager'),
+      $container->get('theme.initialization'),
+      $container->get('page_cache_kill_switch'),
+    );
   }
 
-  /**
-   * Renders the custom 404 page.
-   */
-  public function pageNotFound(): array {
-    return [
-      '#theme' => 'mel_404',
-      '#cache' => [
-        'max-age' => 0,
-      ],
-    ];
+  public function accessDenied(): HtmlResponse {
+    return $this->renderError(403, $this->t('Access denied'));
+  }
+
+  public function pageNotFound(): HtmlResponse {
+    return $this->renderError(404, $this->t('Page not found'));
+  }
+
+  private function renderError(int $status, $title): HtmlResponse {
+    // Exception subrequests can inherit an already initialised public/vendor
+    // theme. A route negotiator alone cannot replace that active theme.
+    $previous = $this->themeManager->getActiveTheme();
+    try {
+      $this->themeManager->setActiveTheme($this->themeInitialization->initTheme('mel_maintenance'));
+      $response = $this->bareRenderer->renderBarePage([], $title, 'page__' . $status, ['#show_messages' => FALSE]);
+      $response->setStatusCode($status);
+      $response->addCacheableDependency((new CacheableMetadata())->setCacheMaxAge(0));
+      // Internal Page Cache ignores response max-age, so deny both caches.
+      $this->pageCacheKillSwitch->trigger();
+      $response->headers->set('Cache-Control', 'no-store, private');
+      return $response;
+    }
+    finally {
+      $this->themeManager->setActiveTheme($previous);
+    }
   }
 
 }

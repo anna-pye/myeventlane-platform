@@ -171,3 +171,29 @@ $border: #e9e3de;
     transition: none;
   }
 }
+
+// Standalone theme layout. Public-theme fallback keeps its existing dimensions.
+body:has(> .dialog-off-canvas-main-canvas > .mel-err) .mel-err,
+body > .mel-err {
+  min-height: 100svh;
+}
+
+.mel-err__character {
+  float: right;
+  width: 107px;
+  height: 179px;
+  margin: 0 0 1.5rem 1rem;
+  object-fit: contain;
+}
+
+.mel-err__logo {
+  width: 160px;
+  height: auto;
+}
+
+@media (max-width: 30rem) {
+  .mel-err__character {
+    width: 80px;
+    height: auto;
+  }
+}
