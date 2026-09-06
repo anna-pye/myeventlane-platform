@@ -1,0 +1,32 @@
+{# Keep field formatter output so text filtering, access and cache metadata apply. #}
+{{ attach_library('myeventlane_staff_playbooks/playbook_page') }}
+<article{{ attributes.addClass('mel-playbook') }}>
+  <header class="mel-playbook__header">
+    <p class="mel-playbook__eyebrow">{{ 'MEL staff playbook'|t }}</p>
+    {{ title_prefix }}
+    <h1{{ title_attributes.addClass('mel-playbook__title') }}>{{ label }}</h1>
+    {{ title_suffix }}
+    <p class="mel-playbook__intro">{{ 'Internal guidance for the MyEventLane team.'|t }}</p>
+    <span class="mel-playbook__badge">{{ 'Staff only'|t }}</span>
+  </header>
+
+  <div class="mel-playbook__layout">
+    <div{{ content_attributes.addClass('mel-playbook__guidance') }}>
+      {{ content.body }}
+      {{ content.field_reply_snippets }}
+    </div>
+    <aside class="mel-playbook__details" aria-label="{{ 'Playbook details'|t }}">
+      <h2>{{ 'At a glance'|t }}</h2>
+      {{ content.field_playbook_category }}
+      {{ content.field_playbook_type }}
+      {{ content.field_applicable_priority }}
+      {{ content.field_playbook_urgency }}
+      {{ content.field_refund_involved }}
+      {{ content.field_related_escalation_type }}
+      <details class="mel-playbook__more">
+        <summary>{{ 'Additional details'|t }}</summary>
+        {{ content|without('body', 'field_reply_snippets', 'field_playbook_category', 'field_playbook_type', 'field_applicable_priority', 'field_playbook_urgency', 'field_refund_involved', 'field_related_escalation_type') }}
+      </details>
+    </aside>
+  </div>
+</article>

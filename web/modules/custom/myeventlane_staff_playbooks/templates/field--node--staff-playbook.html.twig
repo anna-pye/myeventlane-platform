@@ -1,0 +1,11 @@
+{# Provide consistent field classes across Stable, MEL and admin themes. #}
+<div{{ attributes.addClass('field', 'field--name-' ~ field_name|clean_class) }}>
+  {% if not label_hidden %}
+    <div{{ title_attributes.addClass('field__label', label_display == 'visually_hidden' ? 'visually-hidden') }}>{{ label }}</div>
+  {% endif %}
+  <div class="field__items">
+    {% for item in items %}
+      <div{{ item.attributes.addClass('field__item') }}>{{ item.content }}</div>
+    {% endfor %}
+  </div>
+</div>

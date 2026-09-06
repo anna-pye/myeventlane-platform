@@ -43,6 +43,14 @@ function myeventlane_staff_playbooks_node_create_access($account, array $context
  */
 function myeventlane_staff_playbooks_theme(array $existing, string $type, string $theme, string $path): array {
   return [
+    'field__node__staff_playbook' => [
+      'base hook' => 'field',
+      'template' => 'field--node--staff-playbook',
+    ],
+    'node__staff_playbook__full' => [
+      'base hook' => 'node',
+      'template' => 'node--staff-playbook--full',
+    ],
     'staff_playbooks_panel' => [
       'variables' => [
         'playbooks' => [],
