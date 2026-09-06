@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_core\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Cache\CacheableMetadata;
+use Drupal\Core\PageCache\ResponsePolicy\KillSwitch;
 use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Theme\ThemeInitializationInterface;
@@ -20,6 +22,7 @@ final class ErrorController extends ControllerBase {
     private readonly BareHtmlPageRendererInterface $bareRenderer,
     private readonly ThemeManagerInterface $themeManager,
     private readonly ThemeInitializationInterface $themeInitialization,
+    private readonly KillSwitch $pageCacheKillSwitch,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -27,6 +30,7 @@ final class ErrorController extends ControllerBase {
       $container->get('bare_html_page_renderer'),
       $container->get('theme.manager'),
       $container->get('theme.initialization'),
+      $container->get('page_cache_kill_switch'),
     );
   }
 
@@ -46,6 +50,9 @@ final class ErrorController extends ControllerBase {
       $this->themeManager->setActiveTheme($this->themeInitialization->initTheme('mel_maintenance'));
       $response = $this->bareRenderer->renderBarePage([], $title, 'page__' . $status, ['#show_messages' => FALSE]);
       $response->setStatusCode($status);
+      $response->addCacheableDependency((new CacheableMetadata())->setCacheMaxAge(0));
+      // Internal Page Cache ignores response max-age, so deny both caches.
+      $this->pageCacheKillSwitch->trigger();
       $response->headers->set('Cache-Control', 'no-store, private');
       return $response;
     }

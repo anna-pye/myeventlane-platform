@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Drupal\Tests\myeventlane_core\Unit;
 
 use Drupal\Core\Render\BareHtmlPageRendererInterface;
+use Drupal\Core\PageCache\ResponsePolicy\KillSwitch;
 use Drupal\Core\Render\HtmlResponse;
 use Drupal\Core\Theme\ActiveTheme;
 use Drupal\Core\Theme\ThemeInitializationInterface;
@@ -31,10 +32,13 @@ final class ErrorControllerTest extends UnitTestCase {
       $initialization->expects($this->once())->method('initTheme')->with('mel_maintenance')->willReturn($recovery);
       $renderer = $this->createMock(BareHtmlPageRendererInterface::class);
       $renderer->expects($this->once())->method('renderBarePage')->with([], $this->anything(), 'page__' . $status, ['#show_messages' => FALSE])->willReturn(new HtmlResponse('Recovery'));
-      $controller = new ErrorController($renderer, $manager, $initialization);
+      $killSwitch = $this->createMock(KillSwitch::class);
+      $killSwitch->expects($this->once())->method('trigger');
+      $controller = new ErrorController($renderer, $manager, $initialization, $killSwitch);
       $controller->setStringTranslation($this->getStringTranslationStub());
       $response = $controller->$method();
       self::assertSame($status, $response->getStatusCode());
+      self::assertSame(0, $response->getCacheableMetadata()->getCacheMaxAge());
       self::assertTrue($response->headers->hasCacheControlDirective('no-store'));
       self::assertSame([$recovery, $previous], $selected);
     }
