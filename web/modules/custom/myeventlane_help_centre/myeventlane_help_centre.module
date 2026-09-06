@@ -28,9 +28,14 @@ function myeventlane_help_centre_theme(): array {
   $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_help_centre');
 
   return [
+    'help_contact' => [
+      'variables' => ['bookings_url' => NULL, 'support_url' => NULL, 'contact_url' => NULL],
+      'template' => 'help-contact',
+    ],
     'help_centre_home' => [
       'variables' => [
         'help_search' => [],
+        'help_topics' => [],
         'help_assistant' => NULL,
         'context' => NULL,
         'featured_articles' => [],
@@ -752,6 +757,15 @@ function _myeventlane_help_centre_apply_browse_listing_policy(ViewExecutable $vi
  * Enforces audience on help browse listings before SQL runs.
  */
 function myeventlane_help_centre_views_pre_view(ViewExecutable $view, string $display_id, ?array &$args): void {
+  // Views treats q as a legacy system parameter unless explicitly supplied.
+  if ($view->id() === 'mel_help_search' && $display_id === 'block_search') {
+    $input = $view->getExposedInput();
+    $query = \Drupal::request()->query->all();
+    if (isset($query['q']) && is_string($query['q'])) {
+      $input['q'] = $query['q'];
+      $view->setExposedInput($input);
+    }
+  }
   _myeventlane_help_centre_apply_browse_listing_policy($view);
 }
 
@@ -1039,12 +1053,7 @@ function myeventlane_help_centre_preprocess_node(array &$variables): void {
   }
 
   // Full-page article enhancements (module-level so vendor + public themes share).
-  $variables['mel_help_related_articles'] = [
-    '#type' => 'view',
-    '#name' => 'mel_help_related_articles',
-    '#display_id' => 'block_related',
-    '#arguments' => [(int) $node->id()],
-  ];
+  $variables['mel_help_related_articles'] = \Drupal::service('myeventlane_help_centre.related_help')->build($node);
   $variables['mel_contact_support_url'] = _myeventlane_help_centre_contact_support_url();
   $contact_support_href = htmlspecialchars($variables['mel_contact_support_url'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   $variables['mel_help_support_panel'] = [

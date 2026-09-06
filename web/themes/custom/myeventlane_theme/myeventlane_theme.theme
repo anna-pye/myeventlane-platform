@@ -61,6 +61,7 @@ function _myeventlane_theme_header_primary_excluded_routes(): array {
   return [
     'myeventlane_escalations_portal.customer_support',
     'myeventlane_escalations_portal.customer_support_tickets',
+    // Rebuilt once below as a permanent public Help entry.
     'myeventlane_help_centre.home',
   ];
 }
@@ -235,6 +236,15 @@ function _myeventlane_theme_prepare_header_primary_menu_items(array $items): arr
   if (!_myeventlane_theme_menu_has_organisers_item($items)) {
     $items['mel_header_organisers'] = _myeventlane_theme_build_organisers_menu_item();
   }
+  $items['mel_header_help'] = [
+    'title' => t('Help'),
+    'url' => Url::fromRoute('myeventlane_help_centre.home'),
+    'attributes' => new Attribute(['class' => ['mel-nav__link']]),
+    'below' => [],
+    'in_active_trail' => str_starts_with(\Drupal::request()->getPathInfo(), '/help'),
+    'is_expanded' => FALSE,
+    'is_collapsed' => FALSE,
+  ];
   return $items;
 }
 
@@ -4407,7 +4417,7 @@ function _myeventlane_theme_get_category_term_hero_file(TermInterface $term): ?F
  */
 function myeventlane_theme_preprocess_help_centre_home(array &$variables): void {
   if (\Drupal::routeMatch()->getRouteName() === 'myeventlane_help_centre.home') {
-    $variables['mel_discovery_hero_active'] = TRUE;
+    $variables['mel_discovery_hero_active'] = FALSE;
   }
 }
 

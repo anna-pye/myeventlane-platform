@@ -23,6 +23,7 @@ services:
       - '@file_url_generator'
       - '@module_handler'
       - '@current_user'
+      - '@?myeventlane_help_centre.journey_links'
 
   mel_guide.asset_media_manager:
     class: Drupal\mel_guide\Service\MelGuideAssetMediaManager

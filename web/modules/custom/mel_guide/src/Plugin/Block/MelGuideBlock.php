@@ -51,6 +51,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
   public function getCacheContexts(): array {
     return Cache::mergeContexts(parent::getCacheContexts(), [
       'user.roles',
+      'user.permissions',
       'route',
       'mel_guide_device_class',
     ]);
@@ -64,6 +65,8 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
       'config:mel_guide.settings',
       'config:myeventlane_help_assistant.settings',
       'mel_guide:assets',
+      'node_list:help_article',
+      'path_alias_list',
     ]);
   }
 
@@ -93,6 +96,8 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
     return [
       '#theme' => 'mel_guide',
       '#state' => $variables['state'],
+      '#booking_help' => $variables['booking_help'],
+      '#help_topics' => $variables['help_topics'],
       '#message' => $variables['message'],
       '#image_url' => $variables['image_url'],
       '#image_alt' => $variables['image_alt'],
@@ -103,6 +108,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
         'drupalSettings' => [
           'melGuide' => [
             'appearanceDelay' => $variables['appearance_delay'],
+            'manualOnly' => $variables['booking_help'],
             'maxMessagesPerSession' => $variables['max_messages_per_session'],
             'hideDaysAfterDismiss' => $variables['hide_days_after_dismiss'],
             'debugForceDisplay' => $variables['debug_force_display'],

@@ -168,3 +168,12 @@ myeventlane_help.feedback_panel:
   requirements:
     _csrf_token: 'TRUE'
   methods: [POST]
+
+# Public contact guidance contains no booking or account data.
+myeventlane_help_centre.contact:
+  path: '/help/contact'
+  defaults:
+    _controller: '\Drupal\myeventlane_help_centre\Controller\HelpContactController::build'
+    _title: 'Contact support'
+  requirements:
+    _permission: 'access content'

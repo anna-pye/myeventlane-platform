@@ -1,4 +1,12 @@
 services:
+  myeventlane_help_centre.related_help:
+    class: Drupal\myeventlane_help_centre\Service\RelatedHelpBuilder
+    arguments: ['@entity_type.manager', '@current_user', '@myeventlane_help_centre.help_browse_policy', '@path_alias.manager']
+
+  myeventlane_help_centre.journey_links:
+    class: Drupal\myeventlane_help_centre\Service\HelpJourneyLinks
+    arguments: ['@path.validator']
+
   logger.channel.myeventlane_help_centre:
     class: Drupal\Core\Logger\LoggerChannel
     factory: ['@logger.factory', 'get']

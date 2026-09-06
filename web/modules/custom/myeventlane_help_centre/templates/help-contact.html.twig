@@ -1,0 +1,23 @@
+{{ attach_library('myeventlane_help_centre/customer_help') }}
+<section class="mel-help-contact">
+  <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Back to Help Centre'|t }}</a>
+  <h1>{{ 'Who can help?'|t }}</h1>
+  <p>{{ 'Choose the right contact for your question. You can read help articles without signing in.'|t }}</p>
+  <div class="mel-help-topics">
+    <section class="mel-help-topic">
+      <h2>{{ 'An event question'|t }}</h2>
+      <p>{{ 'For event times, access arrangements, guest changes or a refund request, check the event page and contact its organiser. You can also find the event from your booking.'|t }}</p>
+      <a href="{{ bookings_url }}">{{ 'Find your booking'|t }}</a>
+    </section>
+    <section class="mel-help-topic">
+      <h2>{{ 'A booking or account problem'|t }}</h2>
+      <p>{{ 'Contact MEL about booking access or a problem using the platform. Sign in to open a support request or follow an existing conversation.'|t }}</p>
+      <a href="{{ support_url }}">{{ 'Open my support requests'|t }}</a>
+    </section>
+    <section class="mel-help-topic">
+      <h2>{{ 'Cannot sign in?'|t }}</h2>
+      <p>{{ 'If you cannot access your account or used the wrong email, use our contact page. Do not send passwords or full card details.'|t }}</p>
+      <a href="{{ contact_url }}">{{ 'Contact MEL without signing in'|t }}</a>
+    </section>
+  </div>
+</section>

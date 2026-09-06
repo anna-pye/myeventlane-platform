@@ -9,11 +9,14 @@
     <div{{ bubble_attributes }}>
       <p class="mel-guide__message">{{ message }}</p>
       <nav class="mel-guide__actions" aria-label="{{ 'MEL guide actions'|t }}">
-        {% if actions.events %}
+        {% if not booking_help and actions.events %}
           <a class="mel-guide__action mel-guide__action--primary" href="{{ actions.events }}">
             {{ 'Browse events'|t }}
           </a>
         {% endif %}
+        {% for topic in help_topics %}
+          <a class="mel-guide__action" href="{{ topic.url }}">{{ topic.title }}</a>
+        {% endfor %}
         {% if actions.help %}
           <a class="mel-guide__action mel-guide__action--secondary" href="{{ actions.help }}">
             {{ 'Ask MEL for help'|t }}
@@ -38,7 +41,7 @@
     type="button"
     class="mel-guide__character"
     data-mel-guide-character
-    aria-label="{{ 'Open MEL guide message'|t }}"
+    aria-label="{{ booking_help ? 'Need help with this booking?'|t : 'Open MEL guide message'|t }}"
     aria-controls="mel-guide-bubble"
     aria-expanded="false"
   >
@@ -51,5 +54,6 @@
       loading="lazy"
       decoding="async"
     >
+    {% if booking_help %}<span class="mel-guide__booking-label">{{ 'Help with this booking'|t }}</span>{% endif %}
   </button>
 </div>

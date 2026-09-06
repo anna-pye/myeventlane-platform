@@ -38,3 +38,8 @@ contextual_help_card:
   css:
     theme:
       css/contextual-help-card.css: {}
+
+customer_help:
+  css:
+    theme:
+      css/customer-help.css: {}
