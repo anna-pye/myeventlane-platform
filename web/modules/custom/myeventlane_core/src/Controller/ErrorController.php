@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Controller;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\PageCache\ResponsePolicy\KillSwitch;
@@ -54,6 +55,7 @@ final class ErrorController extends ControllerBase {
       // Internal Page Cache ignores response max-age, so deny both caches.
       $this->pageCacheKillSwitch->trigger();
       $response->headers->set('Cache-Control', 'no-store, private');
+      $response->addCacheableDependency((new CacheableMetadata())->setCacheMaxAge(0));
       return $response;
     }
     finally {
