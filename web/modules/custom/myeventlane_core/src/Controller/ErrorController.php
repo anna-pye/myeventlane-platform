@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_core\Controller;
 
+use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Render\BareHtmlPageRendererInterface;
 use Drupal\Core\Render\HtmlResponse;
@@ -47,6 +48,7 @@ final class ErrorController extends ControllerBase {
       $response = $this->bareRenderer->renderBarePage([], $title, 'page__' . $status, ['#show_messages' => FALSE]);
       $response->setStatusCode($status);
       $response->headers->set('Cache-Control', 'no-store, private');
+      $response->addCacheableDependency((new CacheableMetadata())->setCacheMaxAge(0));
       return $response;
     }
     finally {
