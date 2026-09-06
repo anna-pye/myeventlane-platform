@@ -1,3 +1,8 @@
+playbook_page:
+  css:
+    theme:
+      css/staff-playbook-page.css: {}
+
 snippets:
   js:
     js/staff-playbook-snippets.js: {}
