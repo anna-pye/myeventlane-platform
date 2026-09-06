@@ -326,7 +326,7 @@ function myeventlane_help_link(string $text, string $url): array {
  */
 function _myeventlane_help_centre_vendor_help_url(): string {
   try {
-    return Url::fromRoute('myeventlane_help_centre.contact')->toString();
+    return Url::fromRoute('myeventlane_help_centre.home')->toString();
   }
   catch (\Throwable) {
     return '/help';
