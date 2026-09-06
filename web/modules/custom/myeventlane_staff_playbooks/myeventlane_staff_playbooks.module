@@ -79,6 +79,28 @@ function myeventlane_staff_playbooks_theme(array $existing, string $type, string
 }
 
 /**
+ * Implements hook_preprocess_node().
+ */
+function myeventlane_staff_playbooks_preprocess_node(array &$variables): void {
+  if ($variables['node']->bundle() !== 'staff_playbook' || $variables['view_mode'] !== 'full') {
+    return;
+  }
+
+  if (!\Drupal::moduleHandler()->moduleExists('myeventlane_support_console')) {
+    return;
+  }
+
+  $url = Url::fromRoute('myeventlane_support_console.dashboard');
+  $variables['support_console_link'] = [
+    '#type' => 'link',
+    '#title' => t('Back to Support Console'),
+    '#url' => $url,
+    '#access' => $url->access(NULL, TRUE),
+    '#attributes' => ['class' => ['mel-playbook__back']],
+  ];
+}
+
+/**
  * Implements hook_form_alter().
  *
  * Injects "Communication Guide" help link into escalation reply form and
