@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\mel_guide\Service;
 
+use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -106,6 +107,12 @@ final class MelGuideVisibility {
       return FALSE;
     }
 
+    // On their own booking, organisers are acting as customers. This only
+    // controls the Guide; the existing route still controls order access.
+    if ($this->isOwnBooking()) {
+      return (bool) $config->get('show_for_customers');
+    }
+
     $roles = $account->getRoles(TRUE);
     $is_organiser = array_intersect(self::ORGANISER_ROLES, $roles) !== [];
 
@@ -114,6 +121,26 @@ final class MelGuideVisibility {
     }
 
     return (bool) $config->get('show_for_customers');
+  }
+
+  /**
+   * Whether this is the signed-in customer's own booking detail page.
+   */
+  private function isOwnBooking(): bool {
+    if ($this->routeMatch->getRouteName() !== 'myeventlane_checkout_flow.order_detail') {
+      return FALSE;
+    }
+    $order = $this->routeMatch->getParameter('commerce_order');
+    return $order instanceof OrderInterface
+      && (int) $order->getCustomerId() === (int) $this->currentUser->id();
+  }
+
+  /**
+   * Invalidate visibility if the booking's owner changes.
+   */
+  public function getCacheTags(): array {
+    $order = $this->routeMatch->getParameter('commerce_order');
+    return $order instanceof OrderInterface ? $order->getCacheTags() : [];
   }
 
   /**
