@@ -50,6 +50,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
    */
   public function getCacheContexts(): array {
     return Cache::mergeContexts(parent::getCacheContexts(), [
+      'user',
       'user.roles',
       'user.permissions',
       'route',
@@ -67,7 +68,7 @@ final class MelGuideBlock extends BlockBase implements ContainerFactoryPluginInt
       'mel_guide:assets',
       'node_list:help_article',
       'path_alias_list',
-    ]);
+    ], $this->visibility->getCacheTags());
   }
 
   /**
