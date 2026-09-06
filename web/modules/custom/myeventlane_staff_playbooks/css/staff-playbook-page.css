@@ -19,6 +19,24 @@
   box-sizing: border-box;
 }
 
+.mel-playbook .mel-playbook__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  border: 1px solid var(--playbook-border);
+  border-radius: 12px;
+  background: #fff;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+.mel-playbook__back::before {
+  content: '\2190';
+}
+
 .mel-playbook__header {
   position: relative;
   padding: clamp(24px, 4vw, 48px);

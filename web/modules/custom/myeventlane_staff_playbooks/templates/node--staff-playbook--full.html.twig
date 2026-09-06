@@ -1,6 +1,7 @@
 {# Keep field formatter output so text filtering, access and cache metadata apply. #}
 {{ attach_library('myeventlane_staff_playbooks/playbook_page') }}
 <article{{ attributes.addClass('mel-playbook') }}>
+  {{ support_console_link }}
   <header class="mel-playbook__header">
     <p class="mel-playbook__eyebrow">{{ 'MEL staff playbook'|t }}</p>
     {{ title_prefix }}
