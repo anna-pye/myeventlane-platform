@@ -1,3 +1,4 @@
+{{ attach_library('myeventlane_help_centre/customer_help') }}
 {#
 /**
  * @file
@@ -5,6 +6,12 @@
  */
 #}
 <article{{ attributes.addClass('node', 'node--type-help-article', 'mel-help-node') }}>
+  {% if page %}
+    <nav class="mel-help-breadcrumb" aria-label="{{ 'Help navigation'|t }}">
+      <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre'|t }}</a>
+      <span aria-hidden="true"> / </span><span>{{ label }}</span>
+    </nav>
+  {% endif %}
   {{ title_prefix }}
   {% if not page %}
     <h2{{ title_attributes.addClass('mel-help-node__title') }}>
@@ -63,15 +70,16 @@
     </div>
   {% endif %}
 
-  {% if page and mel_help_related_articles %}
-    <section class="mel-help-node__related" aria-labelledby="mel-help-related-title">
-      <h2 id="mel-help-related-title">{{ 'Related articles'|t }}</h2>
-      {{ mel_help_related_articles }}
-    </section>
-  {% endif %}
-
   {% if page and mel_help_support_panel %}
     {{ mel_help_support_panel }}
+  {% endif %}
+
+  {% set related_output = mel_help_related_articles|render %}
+  {% if page and related_output|striptags|trim %}
+    <section class="mel-help-node__related" aria-labelledby="mel-help-related-title">
+      <h2 id="mel-help-related-title">{{ 'Related articles'|t }}</h2>
+      {{ related_output }}
+    </section>
   {% endif %}
 
   {% if page and mel_help_feedback_endpoint and mel_help_feedback_token %}

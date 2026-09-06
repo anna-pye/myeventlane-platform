@@ -23,7 +23,7 @@ final class HelpCentreHomePresentationContractTest extends TestCase {
       $moduleRoot . '/src/Controller/HelpCentreController.php',
     );
 
-    self::assertStringContainsString('mel-help-home__ia-grid', $template);
+    self::assertStringContainsString('mel-help-topics', $template);
     self::assertStringContainsString('{{ mel_support_layer }}', $template);
     self::assertStringNotContainsString("'Start by audience'|t", $template);
     self::assertStringNotContainsString('mel-help-home__section--support-final', $template);

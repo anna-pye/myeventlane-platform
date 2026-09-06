@@ -8,6 +8,7 @@ use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_help_centre\Service\HelpJourneyLinks;
 use Drupal\myeventlane_core\VendorConsoleTrust;
 use Drupal\myeventlane_help_centre\Service\HelpAnalyticsService;
 use Drupal\myeventlane_help_centre\Service\MelSupportSettingsBuilder;
@@ -29,6 +30,7 @@ final class HelpCentreController extends ControllerBase {
     private readonly LoggerInterface $logger,
     private readonly HelpAnalyticsService $analyticsService,
     private readonly MelSupportSettingsBuilder $melSupportSettingsBuilder,
+    private readonly HelpJourneyLinks $journeyLinks,
   ) {}
 
   /**
@@ -41,6 +43,7 @@ final class HelpCentreController extends ControllerBase {
       $container->get('logger.factory')->get('myeventlane_help_centre'),
       $container->get('myeventlane_help_centre.analytics'),
       $container->get('myeventlane_help_centre.mel_support_settings_builder'),
+      $container->get('myeventlane_help_centre.journey_links'),
     );
   }
 
@@ -67,6 +70,7 @@ final class HelpCentreController extends ControllerBase {
 
     $build = [
       '#theme' => 'help_centre_home',
+      '#help_topics' => $this->journeyLinks->topics(),
       '#context' => $isVendorContext ? 'vendor' : NULL,
       '#help_search' => [
         'action' => Url::fromRoute('myeventlane_help_centre.search')->toString(),
@@ -119,6 +123,7 @@ final class HelpCentreController extends ControllerBase {
     $cacheability = new CacheableMetadata();
     $cacheability->setCacheTags([
       'node_list:help_article',
+      'path_alias_list',
       'node_list:faq',
       'config:taxonomy.vocabulary.help_topic',
     ]);

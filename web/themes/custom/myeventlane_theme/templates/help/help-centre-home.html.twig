@@ -1,3 +1,4 @@
+{{ attach_library('myeventlane_help_centre/customer_help') }}
 {#
 /**
  * @file
@@ -62,7 +63,7 @@
   </div>
   {% endif %}
 
-  {% if mel_support_layer %}
+  {% if is_vendor_context and mel_support_layer %}
     <div class="mel-help-home__support-layer-wrap">
       {{ mel_support_layer }}
     </div>
@@ -76,44 +77,27 @@
     </section>
   {% endif %}
 
-  {% if help_assistant is defined and help_assistant %}
-    <section id="mel-help-assistant" class="mel-help-home__section mel-help-home__section--assistant" aria-labelledby="mel-help-assistant-title">
-      <div class="mel-help-home__section-head">
-        <h2 id="mel-help-assistant-title">{{ 'Help Assistant'|t }}</h2>
-        <p class="mel-help-home__section-lead">{{ 'Answers from our Help Centre articles — with links you can open with confidence.'|t }}</p>
-      </div>
-      <div class="mel-help-home__assistant-shell">
-        {{ help_assistant }}
-      </div>
-    </section>
-  {% endif %}
-
-  {% if not is_vendor_context and ia_sections is defined and ia_sections is not empty %}
-    <section class="mel-help-home__section" aria-labelledby="mel-help-ia-title">
-      <div class="mel-help-home__section-head">
-        <h2 id="mel-help-ia-title">{{ 'Find your way'|t }}</h2>
-        <p class="mel-help-home__section-lead">{{ 'Pick a lane: discover content, book tickets, manage events, or read policies.'|t }}</p>
-      </div>
-      <div class="mel-help-home__ia-grid">
-        {% for section in ia_sections %}
-          <article class="mel-help-home__ia-block" data-ia="{{ section.id }}">
-            <h3 class="mel-help-home__ia-title">{{ section.title }}</h3>
-            {% if section.description %}
-              <p class="mel-help-home__ia-desc">{{ section.description }}</p>
-            {% endif %}
-            <div class="mel-help-home__grid mel-help-home__grid--categories mel-help-home__grid--tight">
-              {% for card in section.cards %}
-                <article class="mel-help-home__card mel-help-home__card--compact">
-                  <h4 class="mel-help-home__card-title"><a href="{{ card.url }}">{{ card.title }}</a></h4>
-                  {% if card.excerpt %}
-                    <p class="mel-help-home__card-excerpt">{{ card.excerpt }}</p>
-                  {% endif %}
-                </article>
-              {% endfor %}
-            </div>
-          </article>
+  {% if not is_vendor_context %}
+    <section class="mel-help-home__section" aria-labelledby="mel-help-topics-title">
+      <h2 id="mel-help-topics-title">{{ 'Start with what you need'|t }}</h2>
+      <div class="mel-help-topics">
+        {% for topic in help_topics %}
+          <a class="mel-help-topic" href="{{ topic.url }}">
+            <h3>{{ topic.title }}</h3>
+            <p>{{ topic.summary }}</p>
+            <span class="mel-help-topic__arrow" aria-hidden="true">→</span>
+          </a>
         {% endfor %}
       </div>
+      <nav class="mel-help-browse" aria-label="{{ 'Browse help'|t }}">
+        <a href="{{ path('myeventlane_help_centre.attendees_index') }}">{{ 'All attendee help'|t }}</a>
+        <a href="{{ path('myeventlane_help_centre.organisers_index') }}">{{ 'All organiser help'|t }}</a>
+        <a href="{{ path('myeventlane_help_centre.policies_index') }}">{{ 'Policies and safety'|t }}</a>
+      </nav>
+    </section>
+    <section class="mel-help-contact-strip">
+      <div><h2>{{ 'Need a person?'|t }}</h2><p>{{ 'Find the right contact for your event, booking or account.'|t }}</p></div>
+      <a href="{{ path('myeventlane_help_centre.contact') }}">{{ 'Contact support'|t }} →</a>
     </section>
   {% endif %}
 
@@ -124,6 +108,18 @@
     </div>
     {{ featured_articles }}
   </section>
+  {% endif %}
+
+  {% if help_assistant is defined and help_assistant %}
+    <section id="mel-help-assistant" class="mel-help-home__section mel-help-home__section--assistant" aria-labelledby="mel-help-assistant-title">
+      <div class="mel-help-home__section-head">
+        <h2 id="mel-help-assistant-title">{{ 'Help Assistant'|t }}</h2>
+        <p class="mel-help-home__section-lead">{{ 'Ask a question and get an answer with links to our help articles.'|t }}</p>
+      </div>
+      <div class="mel-help-home__assistant-shell">
+        {{ help_assistant }}
+      </div>
+    </section>
   {% endif %}
 
   {% if is_vendor_context %}

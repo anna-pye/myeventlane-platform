@@ -14,6 +14,7 @@ use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Url;
+use Drupal\myeventlane_help_centre\Service\HelpJourneyLinks;
 use Drupal\file\FileInterface;
 use Drupal\media\MediaInterface;
 use Drupal\node\NodeInterface;
@@ -47,6 +48,7 @@ final class MelGuideContext {
     private readonly FileUrlGeneratorInterface $fileUrlGenerator,
     private readonly ModuleHandlerInterface $moduleHandler,
     private readonly AccountProxyInterface $currentUser,
+    private readonly ?HelpJourneyLinks $journeyLinks = NULL,
   ) {}
 
   /**
@@ -73,7 +75,9 @@ final class MelGuideContext {
 
     return [
       'state' => $state,
-      'message' => $message,
+      'booking_help' => $this->isBookingHelp(),
+      'help_topics' => $this->isBookingHelp() && $this->journeyLinks ? array_intersect_key($this->journeyLinks->topics(), array_flip(['tickets', 'guests', 'refunds', 'contact'])) : [],
+      'message' => $this->isBookingHelp() ? (string) new \Drupal\Core\StringTranslation\TranslatableMarkup('Need help with this booking? Choose a topic to find your next step.') : $message,
       'image_url' => $image['url'],
       'cache_tags' => $image['cache_tags'],
       'image_alt' => $this->resolveImageAlt($state),
@@ -84,6 +88,13 @@ final class MelGuideContext {
       'debug_force_display' => (bool) $config->get('debug_force_display'),
       'position' => $this->resolvePosition(),
     ];
+  }
+
+  /**
+   * The pilot uses only the route name, never private booking data.
+   */
+  private function isBookingHelp(): bool {
+    return $this->routeMatch->getRouteName() === 'myeventlane_checkout_flow.order_detail';
   }
 
   /**

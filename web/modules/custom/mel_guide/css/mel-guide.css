@@ -226,3 +226,20 @@
     animation: none;
   }
 }
+
+/* Booking pilot: a labelled, user-opened entry point. */
+.mel-guide--booking .mel-guide__character {
+  width: 144px;
+  height: auto;
+  border-radius: 16px;
+  background: #fff;
+}
+
+.mel-guide__booking-label {
+  display: block;
+  padding: 4px 8px 10px;
+  color: #604394;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}

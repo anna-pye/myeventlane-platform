@@ -1,9 +1,9 @@
-{#
-/**
- * @file
- * Help Centre landing — unified discovery shell.
- *
- * @see includes/mel-discovery-page-shell.html.twig
- */
-#}
-{% include '@myeventlane_theme/includes/mel-discovery-page-shell.html.twig' %}
+{{ attach_library('myeventlane_help_centre/customer_help') }}
+<div class="mel-page mel-help-shell">
+  {{ site_header }}
+  <main id="main-content" class="mel-help-shell__main">
+    {{ page.content }}
+  </main>
+  {% include '@myeventlane_theme/includes/footer.html.twig' %}
+  {{ mel_mobile_bottom_nav }}
+</div>

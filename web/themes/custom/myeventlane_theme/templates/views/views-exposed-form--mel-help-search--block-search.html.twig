@@ -4,13 +4,12 @@
  * Exposed form for MEL Help Search — hero search field + compact filter pills.
  */
 #}
-{% if q is not empty %}
-  {{ q }}
-{% endif %}
 
 <div class="mel-help-search-exposed">
+  <a class="mel-help-search-back" href="{{ path('myeventlane_help_centre.home') }}">{{ '← Help Centre'|t }}</a>
   <div class="mel-help-search-hero">
     <h1 class="mel-help-search__title">{{ mel_help_search_page_title|default('Help'|t) }}</h1>
+    <p>{{ 'Find answers about tickets, bookings and running your event.'|t }}</p>
     <div class="mel-search-box">
       {{ form.q }}
     </div>

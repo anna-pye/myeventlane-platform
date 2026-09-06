@@ -265,7 +265,7 @@
 
     document.addEventListener('keydown', onKeydown);
 
-    if (!debug && !hasSessionBudget(maxPerSession)) {
+    if (settings.manualOnly || (!debug && !hasSessionBudget(maxPerSession))) {
       return;
     }
 

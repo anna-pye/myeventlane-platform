@@ -5,6 +5,7 @@
  */
 #}
 {{ attach_library('myeventlane_theme/help_search') }}
+{{ attach_library('myeventlane_help_centre/customer_help') }}
 {%
   set classes = [
     'view',
@@ -41,24 +42,18 @@
   {% else %}
     <div class="mel-help-empty" role="status">
       <h2 class="mel-help-empty__title">{{ 'No results found'|t }}</h2>
-      <p class="mel-help-empty__text">{{ 'Try a simpler search, browse help topics, or discover events on MyEventLane.'|t }}</p>
+      <p class="mel-help-empty__text">{{ 'Try a shorter phrase such as “Pride” or “tickets”, check the spelling, or change your filters.'|t }}</p>
       <p class="mel-help-empty__links">
         <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Browse help topics'|t }}</a>
         <span aria-hidden="true"> · </span>
-        <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Explore events'|t }}</a>
+        <a href="{{ path('myeventlane_help_centre.contact') }}">{{ 'Contact support'|t }}</a>
       </p>
       <div class="mel-chip-group">
         <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Refunds' } }) }}">{{ 'Refunds'|t }}</a>
         <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Tickets' } }) }}">{{ 'Tickets'|t }}</a>
         <a class="mel-chip" href="{{ path('myeventlane_help_centre.search', {}, { query: { q: 'Payouts' } }) }}">{{ 'Payouts'|t }}</a>
       </div>
-      <p class="mel-help-empty__next">
-        <a href="{{ path('myeventlane_help_centre.home') }}">{{ 'Help Centre home'|t }}</a>
-        <span aria-hidden="true"> · </span>
-        <a href="{{ path('view.upcoming_events.page_events') }}">{{ 'Browse events'|t }}</a>
-        <span aria-hidden="true"> · </span>
-        <a href="{{ path('<front>') }}">{{ 'Return to homepage'|t }}</a>
-      </p>
+
     </div>
   {% endif %}
 
