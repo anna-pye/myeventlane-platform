@@ -246,6 +246,21 @@
   }
 }
 
+// The global form rules load after this component and have greater selector
+// weight than a single class. Keep hero inputs visually inside one search bar
+// and preserve enough space for the leading icons.
+.mel-home-hero__search-field .mel-home-hero__search-input {
+  min-height: 52px;
+  padding-right: 18px;
+  padding-left: 48px;
+  border: 0;
+  background: transparent;
+
+  @include breakpoints.mel-break(sm) {
+    min-height: 56px;
+  }
+}
+
 .mel-home-hero__search-submit {
   flex: 0 0 auto;
   min-height: 52px;

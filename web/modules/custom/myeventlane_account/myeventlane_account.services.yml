@@ -11,6 +11,15 @@ services:
       - '@myeventlane_surface.state_readiness_helper'
       - '@file_system'
 
+  myeventlane_account.calendar_personalisation_builder:
+    class: Drupal\myeventlane_account\Service\CalendarPersonalisationBuilder
+    arguments:
+      - '@current_user'
+      - '@myeventlane_account.customer_hub_data_builder'
+      - '@datetime.time'
+      - '@request_stack'
+      - '@url_generator'
+
   myeventlane_account.account_links:
     class: Drupal\myeventlane_account\Service\AccountLinksService
     arguments:

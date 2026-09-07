@@ -23,6 +23,7 @@ use Drupal\Core\StringTranslation\TranslatableMarkup;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
 use Drupal\file\FileInterface;
+use Drupal\image\ImageStyleInterface;
 use Drupal\media\MediaInterface;
 use Drupal\taxonomy\TermInterface;
 use Drupal\views\ViewExecutable;
@@ -2791,6 +2792,16 @@ function myeventlane_theme_preprocess_page__events__category(array &$variables):
  */
 function myeventlane_theme_preprocess_page__calendar(array &$variables): void {
   $variables['mel_calendar_this_week_rail'] = _myeventlane_theme_build_calendar_this_week_rail();
+  $variables['mel_calendar_personalisation'] = NULL;
+  if (\Drupal::hasService('myeventlane_account.calendar_personalisation_builder')) {
+    $variables['mel_calendar_personalisation'] = [
+      '#lazy_builder' => [
+        'myeventlane_account.calendar_personalisation_builder:build',
+        [],
+      ],
+      '#create_placeholder' => TRUE,
+    ];
+  }
 }
 
 /**
@@ -4325,9 +4336,8 @@ function _myeventlane_theme_discovery_copy_for_route(string $route, array $varia
   if ($route === 'view.events_calendar.page_calendar') {
     return [
       'variant' => 'calendar',
-      'title' => (string) t('Events Calendar'),
-      'description' => (string) t('Discover what’s happening near you this month.'),
-      'subtitle' => (string) t('Browse by date to see what’s on this month.'),
+      'title' => (string) t('Plan something worth looking forward to'),
+      'description' => (string) t('Discover what’s on, keep ideas for later and find everything you’ve booked.'),
     ];
   }
   if ($route === 'myeventlane_help_centre.home') {
@@ -4415,10 +4425,10 @@ function _myeventlane_theme_apply_page_visual_hero(array &$variables, ?string $r
   $route = $route ?? \Drupal::routeMatch()->getRouteName();
 
   if ($route === 'view.upcoming_events.page_category') {
-    $term_url = _myeventlane_theme_get_category_term_hero_url();
-    if ($term_url !== NULL) {
-      $variables['mel_hero_image_url'] = $term_url;
-      $variables['mel_hero_image_url_mobile'] = NULL;
+    $term_urls = _myeventlane_theme_get_category_term_hero_urls();
+    if ($term_urls !== NULL) {
+      $variables['mel_hero_image_url'] = $term_urls['desktop'];
+      $variables['mel_hero_image_url_mobile'] = $term_urls['mobile'];
       $variables['mel_hero_hide_on_mobile'] = FALSE;
       return;
     }
@@ -4440,6 +4450,17 @@ function _myeventlane_theme_apply_page_visual_hero(array &$variables, ?string $r
  * Category term hero image from Media, with the legacy file as rollback.
  */
 function _myeventlane_theme_get_category_term_hero_url(?TermInterface $term = NULL): ?string {
+  $urls = _myeventlane_theme_get_category_term_hero_urls($term);
+  return $urls['desktop'] ?? NULL;
+}
+
+/**
+ * Category term hero URLs sized for desktop and mobile viewports.
+ *
+ * @return array{desktop: string, mobile: string}|null
+ *   Responsive hero derivative URLs, or NULL when no source image exists.
+ */
+function _myeventlane_theme_get_category_term_hero_urls(?TermInterface $term = NULL): ?array {
   $term = $term ?? _myeventlane_theme_get_active_category_term();
   if (!$term instanceof TermInterface || $term->bundle() !== 'categories') {
     return NULL;
@@ -4449,7 +4470,24 @@ function _myeventlane_theme_get_category_term_hero_url(?TermInterface $term = NU
   if (!$file instanceof FileInterface) {
     return NULL;
   }
-  return \Drupal::service('file_url_generator')->generateAbsoluteString($file->getFileUri());
+
+  return [
+    'desktop' => _myeventlane_theme_get_styled_hero_url($file, 'mel_page_visual_hero_desktop'),
+    'mobile' => _myeventlane_theme_get_styled_hero_url($file, 'mel_page_visual_hero_mobile'),
+  ];
+}
+
+/**
+ * Builds a hero image-style URL, retaining the original as a safe fallback.
+ */
+function _myeventlane_theme_get_styled_hero_url(FileInterface $file, string $style_id): string {
+  $uri = $file->getFileUri();
+  $style = \Drupal::entityTypeManager()->getStorage('image_style')->load($style_id);
+  if ($style instanceof ImageStyleInterface) {
+    return $style->buildUrl($uri);
+  }
+
+  return \Drupal::service('file_url_generator')->generateAbsoluteString($uri);
 }
 
 /**

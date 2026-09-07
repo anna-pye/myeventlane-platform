@@ -65,11 +65,86 @@ import './card-carousel.js';
     });
   }
 
+  /**
+   * Connect the Discover, My planner and My bookings panels.
+   */
+  function initMelEventPlanner(context) {
+    var scope = context || document;
+    scope.querySelectorAll('[data-mel-event-planner]').forEach(function (planner) {
+      if (planner.getAttribute('data-mel-event-planner-init') === '1') {
+        return;
+      }
+
+      var tabs = Array.prototype.slice.call(planner.querySelectorAll('[data-mel-event-planner-tab]'));
+      var panels = Array.prototype.slice.call(planner.querySelectorAll('[data-mel-event-planner-panel]'));
+      if (!tabs.length || panels.length < 3) {
+        return;
+      }
+      planner.setAttribute('data-mel-event-planner-init', '1');
+
+      function activate(mode, focusTab, updateHash) {
+        var activeTab = null;
+        tabs.forEach(function (tab) {
+          var selected = tab.getAttribute('data-mel-event-planner-tab') === mode;
+          tab.classList.toggle('is-active', selected);
+          tab.setAttribute('aria-selected', selected ? 'true' : 'false');
+          tab.setAttribute('tabindex', selected ? '0' : '-1');
+          if (selected) {
+            activeTab = tab;
+          }
+        });
+        panels.forEach(function (panel) {
+          var selected = panel.getAttribute('data-mel-event-planner-panel') === mode;
+          panel.hidden = !selected;
+          panel.classList.toggle('is-active', selected);
+        });
+        if (focusTab && activeTab) {
+          activeTab.focus();
+        }
+        if (updateHash && window.history && window.history.replaceState) {
+          window.history.replaceState(null, '', '#' + mode);
+        }
+        if (mode === 'discover') {
+          window.dispatchEvent(new Event('resize'));
+        }
+      }
+
+      tabs.forEach(function (tab, index) {
+        tab.addEventListener('click', function () {
+          activate(tab.getAttribute('data-mel-event-planner-tab'), false, true);
+        });
+        tab.addEventListener('keydown', function (event) {
+          var targetIndex = null;
+          if (event.key === 'ArrowRight') {
+            targetIndex = (index + 1) % tabs.length;
+          } else if (event.key === 'ArrowLeft') {
+            targetIndex = (index - 1 + tabs.length) % tabs.length;
+          } else if (event.key === 'Home') {
+            targetIndex = 0;
+          } else if (event.key === 'End') {
+            targetIndex = tabs.length - 1;
+          }
+          if (targetIndex !== null) {
+            event.preventDefault();
+            activate(tabs[targetIndex].getAttribute('data-mel-event-planner-tab'), true, true);
+          }
+        });
+      });
+
+      var initialMode = window.location.hash.replace('#', '');
+      if (!tabs.some(function (tab) { return tab.getAttribute('data-mel-event-planner-tab') === initialMode; })) {
+        initialMode = 'discover';
+      }
+      activate(initialMode, false, false);
+    });
+  }
+
   function initializeTheme(context) {
     initMobileOverlays(context);
     initMobileDrawer(context);
 
     initMelCalendarTabs(context);
+    initMelEventPlanner(context);
   }
 
   // Register as Drupal behavior if Drupal is available

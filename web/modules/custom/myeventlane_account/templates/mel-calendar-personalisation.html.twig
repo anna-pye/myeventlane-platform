@@ -1,0 +1,113 @@
+{#
+/**
+ * @file
+ * User-specific planner and booking panels for the public calendar page.
+ */
+#}
+<section
+  id="mel-event-planner-panel-planner"
+  class="mel-event-planner__panel"
+  role="tabpanel"
+  aria-labelledby="mel-event-planner-tab-planner"
+  data-mel-event-planner-panel="planner"
+  tabindex="0"
+  hidden
+>
+  {% if authenticated %}
+    <header class="mel-event-planner__section-heading">
+      <div>
+        <span class="mel-event-planner__eyebrow">{{ 'My planner'|t }}</span>
+        <h2>{{ 'Ideas I’m considering'|t }}</h2>
+        <p>{{ 'Saved events, sorted by date. Nothing is booked until you complete checkout or RSVP.'|t }}</p>
+      </div>
+      <a href="{{ discover_url }}">{{ 'Discover more events'|t }}</a>
+    </header>
+
+    {% if saved_event_cards %}
+      <div class="mel-event-planner__personal-layout">
+        <div class="mel-event-planner__event-list">
+          {% for card in saved_event_cards %}
+            {{ card }}
+          {% endfor %}
+        </div>
+        <aside class="mel-event-planner__summary-card">
+          <span class="mel-event-planner__eyebrow">{{ 'Your shortlist'|t }}</span>
+          <strong>{{ 'Saved events: @count'|t({'@count': saved_event_count}) }}</strong>
+          <p>{{ 'Check availability before booking. Saved events can still sell out or change.'|t }}</p>
+          <a class="mel-btn mel-btn--secondary" href="{{ saved_events_url }}">{{ 'Open all saved events'|t }}</a>
+        </aside>
+      </div>
+    {% else %}
+      <div class="mel-event-planner__empty">
+        <span class="mel-event-planner__empty-icon" aria-hidden="true">♡</span>
+        <h3>{{ 'Your planner is ready'|t }}</h3>
+        <p>{{ 'Save an event while you browse and it will appear here.'|t }}</p>
+        <a class="mel-btn mel-btn--primary" href="{{ discover_url }}">{{ 'Find events'|t }}</a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="mel-event-planner__empty">
+      <span class="mel-event-planner__empty-icon" aria-hidden="true">♡</span>
+      <h2>{{ 'Keep your event ideas together'|t }}</h2>
+      <p>{{ 'Sign in to see events you’ve saved and continue planning.'|t }}</p>
+      <div class="mel-event-planner__empty-actions">
+        <a class="mel-btn mel-btn--primary" href="{{ login_url }}">{{ 'Sign in'|t }}</a>
+        <a class="mel-btn mel-btn--secondary" href="{{ register_url }}">{{ 'Create an account'|t }}</a>
+      </div>
+    </div>
+  {% endif %}
+</section>
+
+<section
+  id="mel-event-planner-panel-bookings"
+  class="mel-event-planner__panel"
+  role="tabpanel"
+  aria-labelledby="mel-event-planner-tab-bookings"
+  data-mel-event-planner-panel="bookings"
+  tabindex="0"
+  hidden
+>
+  {% if authenticated %}
+    <header class="mel-event-planner__section-heading">
+      <div>
+        <span class="mel-event-planner__eyebrow">{{ 'My bookings'|t }}</span>
+        <h2>{{ 'What I’m going to'|t }}</h2>
+        <p>{{ 'Your paid tickets and free RSVPs in one simple upcoming agenda.'|t }}</p>
+      </div>
+      <a href="{{ bookings_url }}">{{ 'View all bookings'|t }}</a>
+    </header>
+
+    {% if upcoming_booking_cards %}
+      <div class="mel-event-planner__personal-layout">
+        <div class="mel-event-planner__event-list mel-event-planner__event-list--agenda">
+          {% for card in upcoming_booking_cards %}
+            {{ card }}
+          {% endfor %}
+        </div>
+        <aside class="mel-event-planner__summary-card">
+          <span class="mel-event-planner__eyebrow">{{ 'Coming up'|t }}</span>
+          <strong>{{ 'Upcoming events: @count'|t({'@count': upcoming_booking_count}) }}</strong>
+          <p>{{ 'Open My bookings for ticket details, booking actions and your full history.'|t }}</p>
+          <a class="mel-btn mel-btn--primary" href="{{ bookings_url }}">{{ 'Open My bookings'|t }}</a>
+        </aside>
+      </div>
+    {% else %}
+      <div class="mel-event-planner__empty">
+        <span class="mel-event-planner__empty-icon" aria-hidden="true">◎</span>
+        <h3>{{ 'No upcoming bookings yet'|t }}</h3>
+        <p>{{ 'When you book a ticket or RSVP, it will appear here.'|t }}</p>
+        <a class="mel-btn mel-btn--primary" href="{{ discover_url }}">{{ 'Find events'|t }}</a>
+      </div>
+    {% endif %}
+  {% else %}
+    <div class="mel-event-planner__empty">
+      <span class="mel-event-planner__empty-icon" aria-hidden="true">◎</span>
+      <h2>{{ 'Your bookings will be here'|t }}</h2>
+      <p>{{ 'Sign in to see paid tickets and free RSVPs in one upcoming agenda.'|t }}</p>
+      <div class="mel-event-planner__empty-actions">
+        <a class="mel-btn mel-btn--primary" href="{{ login_url }}">{{ 'Sign in'|t }}</a>
+        <a class="mel-btn mel-btn--secondary" href="{{ discover_url }}">{{ 'Find events'|t }}</a>
+      </div>
+    </div>
+  {% endif %}
+</section>

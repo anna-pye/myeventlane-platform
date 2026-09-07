@@ -12,8 +12,439 @@
 @use '../tokens/typography';
 @use '../tokens/breakpoints';
 
+// ---------------------------------------------------------------------------
+// Calendar journey hero
+// ---------------------------------------------------------------------------
+
+.mel-home-hero--calendar {
+  .mel-home-hero__banner {
+    min-height: clamp(220px, 30vw, 310px);
+    color: colors.$mel-color-text-inverse;
+    background: #111827;
+  }
+
+  .mel-home-hero__banner-inner {
+    justify-content: center;
+    padding-block: clamp(2rem, 5vw, 3.5rem);
+  }
+
+  .mel-home-hero__copy {
+    max-width: min(100%, 42rem);
+  }
+
+  .mel-home-hero__title,
+  .mel-home-hero__text {
+    color: colors.$mel-color-text-inverse;
+    text-shadow: none;
+  }
+
+  .mel-home-hero__title {
+    max-width: 22ch;
+  }
+
+  .mel-home-hero__text {
+    max-width: 38rem;
+  }
+
+  .mel-home-hero__scrim {
+    display: block;
+    background: linear-gradient(
+      90deg,
+      rgba(10, 16, 28, 0.98) 0%,
+      rgba(10, 16, 28, 0.94) 34%,
+      rgba(10, 16, 28, 0.68) 50%,
+      rgba(10, 16, 28, 0.18) 70%,
+      transparent 84%
+    );
+  }
+
+  .mel-home-hero__media--calendar {
+    display: block;
+    padding: 0;
+    pointer-events: none;
+
+    .mel-home-hero__media-img {
+      object-position: center center;
+    }
+  }
+
+  @include breakpoints.mel-break(md, max) {
+    .mel-home-hero__banner {
+      min-height: 245px;
+    }
+
+    .mel-home-hero__media--calendar {
+      display: block;
+
+      .mel-home-hero__media-img {
+        object-position: 64% center;
+      }
+    }
+
+    .mel-home-hero__banner--hide-mobile-art .mel-home-hero__media--calendar {
+      display: none;
+    }
+
+    .mel-home-hero__scrim {
+      background: linear-gradient(
+        90deg,
+        rgba(10, 16, 28, 0.98) 0%,
+        rgba(10, 16, 28, 0.92) 58%,
+        rgba(10, 16, 28, 0.55) 80%,
+        rgba(10, 16, 28, 0.2) 100%
+      );
+    }
+
+    .mel-home-hero__copy {
+      max-width: min(78%, 32rem);
+    }
+  }
+}
+
+/* stylelint-disable no-duplicate-selectors -- FullCalendar sections stay grouped by purpose. */
 .mel-calendar-page {
-  padding-bottom: spacing.mel-space(8);
+  overflow: hidden;
+  margin-bottom: spacing.mel-space(8);
+  border: 1px solid colors.$mel-color-border;
+  border-radius: radii.$mel-radius-lg;
+  background: colors.$mel-color-surface;
+  box-shadow: shadows.$mel-shadow-1;
+}
+
+// ---------------------------------------------------------------------------
+// Discover / planner / bookings journey switcher
+// ---------------------------------------------------------------------------
+
+.mel-event-planner__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  padding: spacing.mel-space(3) spacing.mel-space(4) 0;
+  border-bottom: 1px solid colors.$mel-color-border;
+}
+
+.mel-event-planner__tab {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 64px;
+  align-items: center;
+  justify-content: center;
+  gap: spacing.mel-space(3);
+  padding: spacing.mel-space(2) spacing.mel-space(3) spacing.mel-space(4);
+  border: 0;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: colors.$mel-color-text;
+  text-align: left;
+  cursor: pointer;
+
+  > span:last-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+  }
+
+  strong,
+  small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  strong {
+    font-size: typography.mel-font-size(base);
+  }
+
+  small {
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(xs);
+  }
+
+  &:hover {
+    background: colors.$mel-color-surface-alt;
+  }
+
+  &:focus-visible {
+    @include colors.mel-focus-ring;
+  }
+
+  &.is-active {
+    border-bottom-color: colors.$mel-color-primary;
+    color: colors.$mel-color-primary;
+  }
+}
+
+.mel-event-planner__tab-icon {
+  flex: 0 0 auto;
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.mel-event-planner__panel {
+  min-height: 28rem;
+  padding: clamp(1rem, 3vw, 2rem);
+
+  &[hidden] {
+    display: none;
+  }
+
+  &:focus-visible {
+    outline: 0;
+  }
+}
+
+.mel-event-planner__quick-links {
+  display: flex;
+  align-items: center;
+  gap: spacing.mel-space(2);
+  margin-bottom: spacing.mel-space(6);
+  overflow-x: auto;
+  scrollbar-width: thin;
+
+  > span {
+    flex: 0 0 auto;
+    margin-right: spacing.mel-space(1);
+    color: colors.$mel-color-text-muted;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+  }
+
+  a {
+    display: inline-flex;
+    min-height: 44px;
+    flex: 0 0 auto;
+    align-items: center;
+    padding: spacing.mel-space(2) spacing.mel-space(4);
+    border: 1px solid colors.$mel-color-border;
+    border-radius: radii.$mel-radius-pill;
+    color: colors.$mel-color-text;
+    font-size: typography.mel-font-size(sm);
+    font-weight: typography.$mel-font-semibold;
+    text-decoration: none;
+
+    &:hover {
+      border-color: colors.$mel-color-primary;
+      background: colors.$mel-color-pastel-lavender;
+      color: colors.$mel-color-primary;
+    }
+
+    &:focus-visible {
+      @include colors.mel-focus-ring;
+    }
+  }
+}
+
+.mel-event-planner__coming-up {
+  margin-bottom: spacing.mel-space(7);
+}
+
+.mel-event-planner__section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: spacing.mel-space(5);
+  margin-bottom: spacing.mel-space(5);
+
+  h2 {
+    margin: 0 0 spacing.mel-space(1);
+    color: colors.$mel-color-text;
+    font-size: clamp(1.35rem, 3vw, 1.8rem);
+  }
+
+  p {
+    max-width: 42rem;
+    margin: 0;
+    color: colors.$mel-color-text-muted;
+  }
+
+  > a {
+    display: inline-flex;
+    min-height: 44px;
+    flex: 0 0 auto;
+    align-items: center;
+    color: colors.$mel-color-primary;
+    font-weight: typography.$mel-font-semibold;
+  }
+}
+
+.mel-event-planner__eyebrow {
+  display: block;
+  margin-bottom: spacing.mel-space(1);
+  color: colors.$mel-color-highlight-hover;
+  font-size: typography.mel-font-size(xs);
+  font-weight: typography.$mel-font-bold;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.mel-event-planner__month {
+  padding-top: spacing.mel-space(6);
+  border-top: 1px solid colors.$mel-color-border;
+}
+
+.mel-event-planner__personal-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(16rem, 0.65fr);
+  gap: spacing.mel-space(6);
+  align-items: start;
+}
+
+.mel-event-planner__event-list {
+  display: grid;
+  gap: spacing.mel-space(3);
+}
+
+.mel-event-planner__event-list--agenda {
+  position: relative;
+
+  &::before {
+    position: absolute;
+    top: spacing.mel-space(4);
+    bottom: spacing.mel-space(4);
+    left: 1.35rem;
+    width: 2px;
+    background: colors.$mel-color-pastel-lavender;
+    content: '';
+  }
+
+  .mel-account-event-card {
+    position: relative;
+    margin-left: spacing.mel-space(5);
+
+    &::before {
+      position: absolute;
+      top: 2rem;
+      left: calc(-1.5rem - 5px);
+      z-index: 1;
+      width: 10px;
+      height: 10px;
+      border: 3px solid colors.$mel-color-surface;
+      border-radius: 50%;
+      background: colors.$mel-color-primary;
+      box-shadow: 0 0 0 2px colors.$mel-color-primary;
+      content: '';
+    }
+  }
+}
+
+.mel-event-planner__summary-card {
+  position: sticky;
+  top: spacing.mel-space(5);
+  padding: spacing.mel-space(5);
+  border-radius: radii.$mel-radius-lg;
+  background: colors.$mel-color-pastel-lavender;
+
+  strong {
+    display: block;
+    margin-bottom: spacing.mel-space(3);
+    color: colors.$mel-color-text;
+    font-size: typography.mel-font-size(xl);
+  }
+
+  p {
+    margin-bottom: spacing.mel-space(5);
+    color: colors.$mel-color-text-muted;
+  }
+
+  .mel-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+.mel-event-planner__empty {
+  max-width: 34rem;
+  margin: spacing.mel-space(7) auto;
+  padding: spacing.mel-space(6);
+  text-align: center;
+
+  h2,
+  h3 {
+    margin: 0 0 spacing.mel-space(2);
+    color: colors.$mel-color-text;
+  }
+
+  p {
+    margin: 0 0 spacing.mel-space(5);
+    color: colors.$mel-color-text-muted;
+  }
+}
+
+.mel-event-planner__empty-icon {
+  display: grid;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto spacing.mel-space(4);
+  place-items: center;
+  border-radius: 50%;
+  background: colors.$mel-color-pastel-lavender;
+  color: colors.$mel-color-primary;
+  font-size: 2rem;
+}
+
+.mel-event-planner__empty-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: spacing.mel-space(3);
+}
+
+@include breakpoints.mel-break(md, max) {
+  .mel-event-planner__personal-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .mel-event-planner__summary-card {
+    position: static;
+    grid-row: 1;
+  }
+}
+
+@include breakpoints.mel-break(sm, max) {
+  .mel-calendar-page {
+    border-inline: 0;
+    border-radius: 0;
+  }
+
+  .mel-event-planner__tabs {
+    padding-inline: spacing.mel-space(2);
+  }
+
+  .mel-event-planner__tab {
+    min-height: 56px;
+    gap: spacing.mel-space(1);
+    padding-inline: spacing.mel-space(1);
+
+    small,
+    .mel-event-planner__tab-icon {
+      display: none;
+    }
+
+    strong {
+      font-size: typography.mel-font-size(sm);
+      text-align: center;
+    }
+  }
+
+  .mel-event-planner__panel {
+    min-height: 24rem;
+    padding-inline: spacing.mel-space(4);
+  }
+
+  .mel-event-planner__section-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: spacing.mel-space(2);
+  }
+
+  .mel-event-planner__quick-links {
+    margin-inline: calc(spacing.mel-space(4) * -1);
+    padding-inline: spacing.mel-space(4);
+  }
+
+  .mel-event-planner__empty {
+    padding-inline: 0;
+  }
 }
 
 // Category discovery strip (legacy; discovery shell uses unified hero).
@@ -212,6 +643,7 @@
     background: color-mix(in srgb, colors.$mel-color-pastel-lavender 35%, colors.$mel-color-surface);
   }
 }
+/* stylelint-enable no-duplicate-selectors */
 
 // ---------------------------------------------------------------------------
 // Empty state
@@ -256,7 +688,7 @@
 
   .mel-empty__actions {
     display: flex;
-    flex-direction: column;
+    flex-flow: column nowrap;
     gap: spacing.mel-space(3);
     justify-content: center;
     align-items: stretch;
@@ -265,8 +697,7 @@
     margin-inline: auto;
 
     @include breakpoints.mel-break(sm) {
-      flex-direction: row;
-      flex-wrap: wrap;
+      flex-flow: row wrap;
       align-items: center;
       max-width: none;
     }
@@ -310,7 +741,53 @@
     }
   }
 
-  .mel-event-card {
-    height: 100%;
+  .mel-event-grid.mel-grid--events .mel-event-card--compact.mel-event-card--poster {
+    height: auto;
+    min-height: 0;
+
+    .mel-event-card__link {
+      display: grid;
+      grid-template-columns: 118px minmax(0, 1fr);
+      height: auto;
+      min-height: 148px;
+    }
+
+    .mel-event-card__image,
+    .mel-event-card__media {
+      width: 118px;
+      height: 100%;
+      min-height: 148px;
+      aspect-ratio: auto;
+      flex: none;
+      border-radius: radii.$mel-radius-md 0 0 radii.$mel-radius-md;
+    }
+
+    .mel-event-card__body,
+    .mel-event-card__content {
+      justify-content: center;
+      padding: spacing.mel-space(3);
+    }
+
+    .mel-event-card__title {
+      min-height: 0;
+      font-size: typography.mel-font-size(base);
+    }
+
+    .mel-event-card__badge-stack {
+      inset: spacing.mel-space(2) auto auto spacing.mel-space(2);
+    }
+
+    @include breakpoints.mel-break(sm, max) {
+      .mel-event-card__link {
+        grid-template-columns: 104px minmax(0, 1fr);
+        min-height: 136px;
+      }
+
+      .mel-event-card__image,
+      .mel-event-card__media {
+        width: 104px;
+        min-height: 136px;
+      }
+    }
   }
 }

@@ -1,11 +1,11 @@
 {#
 /**
  * @file
- * Calendar page — upcoming this week rail (3 event cards).
+ * Calendar page — next three events rail.
  */
 #}
 {% include '@myeventlane_theme/includes/mel-event-rows-wrapper.html.twig' with {
   rows: rows,
   mel_is_event_view: true,
-  wrapper_aria_label: 'Upcoming events this week'|t,
+  wrapper_aria_label: 'Next three upcoming events'|t,
 } only %}

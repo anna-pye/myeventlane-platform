@@ -222,6 +222,10 @@ final class PageVisualResolver {
     }
 
     $uri = $file->getFileUri();
+    if (!file_exists($uri)) {
+      return NULL;
+    }
+
     $cache_tags = array_merge($media->getCacheTags(), $file->getCacheTags());
 
     $style = $this->entityTypeManager->getStorage('image_style')->load($style_id);

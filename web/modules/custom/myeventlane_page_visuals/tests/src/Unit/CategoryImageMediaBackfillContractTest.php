@@ -63,6 +63,42 @@ final class CategoryImageMediaBackfillContractTest extends UnitTestCase {
     self::assertNotFalse($legacy_position);
     self::assertLessThan($legacy_position, $media_position);
     self::assertStringContainsString('file_exists($file->getFileUri())', $theme);
+    self::assertStringContainsString("'mel_page_visual_hero_desktop'", $theme);
+    self::assertStringContainsString("'mel_page_visual_hero_mobile'", $theme);
+    self::assertStringContainsString(
+      '$variables[\'mel_hero_image_url_mobile\'] = $term_urls[\'mobile\'];',
+      $theme,
+    );
+  }
+
+  /**
+   * Hero derivatives are size-limited and converted to WebP.
+   */
+  public function testHeroDerivativeOptimisationContract(): void {
+    $root = dirname(__DIR__, 7);
+    $desktop = file_get_contents($root . '/config/sync/image.style.mel_page_visual_hero_desktop.yml');
+    $mobile = file_get_contents($root . '/config/sync/image.style.mel_page_visual_hero_mobile.yml');
+
+    self::assertIsString($desktop);
+    self::assertIsString($mobile);
+    self::assertStringContainsString('width: 2048', $desktop);
+    self::assertStringContainsString('width: 960', $mobile);
+    self::assertStringContainsString('id: image_convert_avif', $desktop);
+    self::assertStringContainsString('extension: webp', $desktop);
+    self::assertStringContainsString('id: image_convert_avif', $mobile);
+    self::assertStringContainsString('extension: webp', $mobile);
+  }
+
+  /**
+   * Page Visuals fail closed when a Media entity outlives its source file.
+   */
+  public function testPageVisualResolverRejectsMissingSourceFiles(): void {
+    $module = dirname(__DIR__, 3);
+    $resolver = file_get_contents($module . '/src/Service/PageVisualResolver.php');
+
+    self::assertIsString($resolver);
+    self::assertStringContainsString('if (!file_exists($uri))', $resolver);
+    self::assertStringContainsString("return NULL;", $resolver);
   }
 
 }
