@@ -1,12 +1,12 @@
 // ==========================================================================
 // Site Header Component
 // ==========================================================================
-// Compact global header (desktop + mobile).
+// Mobile-first global header with compact mobile/tablet and full desktop modes.
 // Uses BEM: .site-header, .site-header__inner, etc.
 //
 // Duplicated chrome on staging is usually from Layout Builder / block regions
 // (e.g. branding + menu blocks in content) — page.html.twig only renders
-// {{ site_header }} once. Desktop nav hidden at mel-break(md, max); drawer below.
+// {{ site_header }} once. Full navigation starts at the canonical xl breakpoint.
 
 @use '../tokens/breakpoints';
 
@@ -96,42 +96,11 @@
   }
 
   &__create-event--desktop {
-    display: flex;
-    align-items: center;
-
-    @include breakpoints.mel-break(md, max) {
-      display: none;
-    }
-  }
-
-  &__create-event--mobile {
     display: none;
     align-items: center;
 
-    @include breakpoints.mel-break(md, max) {
+    @include breakpoints.mel-break(md) {
       display: flex;
-    }
-  }
-
-  &__create-event-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: var(--mel-radius-1);
-    color: var(--mel-coral, #f26d5b);
-    text-decoration: none;
-    transition: background 0.15s ease;
-
-    &:hover {
-      background: rgba(242, 109, 91, 0.1);
-      color: var(--mel-coral-hover, #e05a48);
-    }
-
-    &:focus-visible {
-      outline: 2px solid var(--mel-coral, #f26d5b);
-      outline-offset: 2px;
     }
   }
 
@@ -178,12 +147,12 @@
   }
 
   &__nav {
-    display: flex;
+    display: none;
     align-items: center;
     gap: 12px;
 
-    @include breakpoints.mel-break(md, max) {
-      display: none;
+    @include breakpoints.mel-break(xl) {
+      display: flex;
     }
 
     // Reset list styling from Drupal menu output
@@ -309,8 +278,10 @@
   }
 
   &__organiser {
-    @include breakpoints.mel-break(md, max) {
-      display: none;
+    display: none;
+
+    @include breakpoints.mel-break(xl) {
+      display: block;
     }
   }
 
@@ -445,11 +416,11 @@
   }
 
   &__burger {
-    display: none;
+    display: flex;
+    align-items: center;
 
-    @include breakpoints.mel-break(md, max) {
-      display: flex;
-      align-items: center;
+    @include breakpoints.mel-break(xl) {
+      display: none;
     }
   }
 }

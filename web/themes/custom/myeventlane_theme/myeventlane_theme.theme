@@ -249,13 +249,95 @@ function _myeventlane_theme_prepare_header_primary_menu_items(array $items): arr
 }
 
 /**
- * Builds mobile drawer menu render array (Organisers, Support, Help).
+ * Builds a standard link item for the compact navigation.
+ *
+ * @param \Drupal\Core\StringTranslation\TranslatableMarkup $title
+ *   Link title.
+ * @param \Drupal\Core\Url $url
+ *   Link URL.
+ * @param bool $active
+ *   Whether the link represents the current public surface.
+ * @param list<string> $classes
+ *   Optional item classes.
  *
  * @return array<string, mixed>
+ *   A menu item render structure.
+ */
+function _myeventlane_theme_build_drawer_link(TranslatableMarkup $title, Url $url, bool $active = FALSE, array $classes = []): array {
+  return [
+    'title' => $title,
+    'url' => $url,
+    'attributes' => new Attribute(['class' => $classes]),
+    'below' => [],
+    'in_active_trail' => $active,
+    'is_expanded' => FALSE,
+    'is_collapsed' => FALSE,
+  ];
+}
+
+/**
+ * Builds a visual section heading for the compact navigation.
+ *
+ * @param \Drupal\Core\StringTranslation\TranslatableMarkup $title
+ *   Heading title.
+ *
+ * @return array<string, mixed>
+ *   A non-interactive menu heading.
+ */
+function _myeventlane_theme_build_drawer_heading(TranslatableMarkup $title): array {
+  return [
+    'title' => $title,
+    'mel_section_heading' => TRUE,
+  ];
+}
+
+/**
+ * Builds the complete compact navigation for mobile and tablet viewports.
+ *
+ * @return array<string, mixed>
+ *   A themed menu render array.
  */
 function _myeventlane_theme_build_drawer_menu_render_array(): array {
+  $route_match = \Drupal::routeMatch();
+  $current_route = $route_match->getRouteName() ?? '';
+  $current_path = \Drupal::request()->getPathInfo();
+  $event_active = FALSE;
+  if (\Drupal::hasService('myeventlane_front.mobile_bottom_navigation')) {
+    $event_active = \Drupal::service('myeventlane_front.mobile_bottom_navigation')
+      ->isEventsActive($current_route);
+  }
+
   $items = [
+    'mel_drawer_discover_heading' => _myeventlane_theme_build_drawer_heading(t('Discover')),
+    'mel_drawer_home' => _myeventlane_theme_build_drawer_link(
+      t('Home'),
+      Url::fromRoute('<front>'),
+      $current_path === '/' || $current_route === 'view.frontpage.page_1',
+    ),
+    'mel_drawer_events' => _myeventlane_theme_build_drawer_link(
+      t('Browse events'),
+      Url::fromRoute('view.upcoming_events.page_events'),
+      $event_active,
+    ),
+    'mel_drawer_calendar' => _myeventlane_theme_build_drawer_link(
+      t('Calendar'),
+      Url::fromRoute('view.events_calendar.page_calendar'),
+      $current_route === 'view.events_calendar.page_calendar',
+    ),
+    'mel_drawer_community' => _myeventlane_theme_build_drawer_link(
+      t('Community'),
+      Url::fromRoute('view.upcoming_events.page_popular'),
+      $current_route === 'view.upcoming_events.page_popular',
+    ),
+    'mel_drawer_organiser_heading' => _myeventlane_theme_build_drawer_heading(t('For organisers')),
     'mel_drawer_organisers' => _myeventlane_theme_build_organisers_menu_item(),
+    'mel_drawer_create_event' => _myeventlane_theme_build_drawer_link(
+      t('Create event'),
+      Url::fromRoute('myeventlane_vendor.create_event_gateway'),
+      $current_route === 'myeventlane_vendor.create_event_gateway',
+      ['mobile-drawer__create-event-item'],
+    ),
+    'mel_drawer_help_heading' => _myeventlane_theme_build_drawer_heading(t('Help & support')),
   ];
 
   $account = \Drupal::currentUser()->getAccount();
@@ -267,15 +349,11 @@ function _myeventlane_theme_build_drawer_menu_render_array(): array {
     try {
       $url = Url::fromRoute($support_route);
       if ($url->access($account)) {
-        $items['mel_drawer_support'] = [
-          'title' => t('Support'),
-          'url' => $url,
-          'attributes' => new Attribute(['class' => ['mel-nav__link']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ];
+        $items['mel_drawer_support'] = _myeventlane_theme_build_drawer_link(
+          t('Support'),
+          $url,
+          $current_route === $support_route,
+        );
         $support_added = TRUE;
         break;
       }
@@ -288,15 +366,11 @@ function _myeventlane_theme_build_drawer_menu_render_array(): array {
     try {
       $url = Url::fromRoute('myeventlane_support.page');
       if ($url->access($account)) {
-        $items['mel_drawer_support'] = [
-          'title' => t('Support'),
-          'url' => $url,
-          'attributes' => new Attribute(['class' => ['mel-nav__link']]),
-          'below' => [],
-          'in_active_trail' => FALSE,
-          'is_expanded' => FALSE,
-          'is_collapsed' => FALSE,
-        ];
+        $items['mel_drawer_support'] = _myeventlane_theme_build_drawer_link(
+          t('Support'),
+          $url,
+          $current_route === 'myeventlane_support.page',
+        );
       }
     }
     catch (\Throwable) {
@@ -306,15 +380,11 @@ function _myeventlane_theme_build_drawer_menu_render_array(): array {
   try {
     $help_url = Url::fromRoute('myeventlane_help_centre.home');
     if ($help_url->access($account)) {
-      $items['mel_drawer_help'] = [
-        'title' => t('Help'),
-        'url' => $help_url,
-        'attributes' => new Attribute(['class' => ['mel-nav__link']]),
-        'below' => [],
-        'in_active_trail' => FALSE,
-        'is_expanded' => FALSE,
-        'is_collapsed' => FALSE,
-      ];
+      $items['mel_drawer_help'] = _myeventlane_theme_build_drawer_link(
+        t('Help Centre'),
+        $help_url,
+        str_starts_with($current_path, '/help'),
+      );
     }
   }
   catch (\Throwable) {

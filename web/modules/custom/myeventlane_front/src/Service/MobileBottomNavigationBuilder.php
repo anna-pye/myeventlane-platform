@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_front\Service;
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -15,7 +16,8 @@ use Symfony\Component\HttpFoundation\RequestStack;
 /**
  * Canonical mobile bottom navigation for the public marketplace theme.
  *
- * Route names and active-state rules live here only — Twig renders labels/icons.
+ * Route names and active-state rules live here only. Twig renders labels and
+ * icons.
  */
 final class MobileBottomNavigationBuilder {
 
@@ -127,7 +129,7 @@ final class MobileBottomNavigationBuilder {
         'title' => $this->t('Events'),
         'route_name' => 'view.upcoming_events.page_events',
         'icon' => 'ticket',
-        'active' => in_array($currentRoute, self::EVENTS_ROUTE_NAMES, TRUE),
+        'active' => $this->isEventsActive($currentRoute),
       ],
       [
         'id' => 'calendar',
@@ -166,7 +168,21 @@ final class MobileBottomNavigationBuilder {
   }
 
   /**
-   * Resolves an internal URL for a route name, skipping missing optional routes.
+   * Whether the current route belongs to public event discovery.
+   */
+  public function isEventsActive(string $current_route): bool {
+    if (in_array($current_route, self::EVENTS_ROUTE_NAMES, TRUE)) {
+      return TRUE;
+    }
+
+    $node = $this->routeMatch->getParameter('node');
+    return $current_route === 'entity.node.canonical'
+      && $node instanceof EntityInterface
+      && $node->bundle() === 'event';
+  }
+
+  /**
+   * Resolves a route URL, skipping optional routes that are not available.
    */
   private function routeUrl(string $route_name): ?string {
     try {

@@ -37,6 +37,11 @@
       <ul class="mel-nav-dropdown-menu">
     {% endif %}
     {% for item in items %}
+      {% if item.mel_section_heading %}
+        <li class="mobile-drawer__heading" role="presentation">
+          <span>{{ item.title }}</span>
+        </li>
+      {% else %}
       {# Determine if this is a dropdown parent (level 0 with children) #}
       {% set has_dropdown = menu_level == 0 and item.below %}
       {%
@@ -69,6 +74,7 @@
           {{ link(item.title, item.url, {'class': link_classes}) }}
         {% endif %}
       </li>
+      {% endif %}
     {% endfor %}
     </ul>
   {% endif %}

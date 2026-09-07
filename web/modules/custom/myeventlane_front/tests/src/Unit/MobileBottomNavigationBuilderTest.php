@@ -6,6 +6,7 @@ namespace Drupal\Tests\myeventlane_front\Unit;
 
 require_once dirname(__DIR__, 3) . '/src/Service/MobileBottomNavigationBuilder.php';
 
+use Drupal\Core\Entity\EntityInterface;
 use Drupal\Core\Path\PathMatcherInterface;
 use Drupal\Core\Routing\RouteMatchInterface;
 use Drupal\Core\Session\AccountProxyInterface;
@@ -20,6 +21,26 @@ use Symfony\Component\HttpFoundation\RequestStack;
  * @group myeventlane_front
  */
 final class MobileBottomNavigationBuilderTest extends TestCase {
+
+  /**
+   * Event detail pages remain part of event discovery.
+   */
+  public function testEventDetailHighlightsEvents(): void {
+    $event = $this->createMock(EntityInterface::class);
+    $event->method('bundle')->willReturn('event');
+
+    $route_match = $this->createMock(RouteMatchInterface::class);
+    $route_match->method('getParameter')->with('node')->willReturn($event);
+
+    $builder = new MobileBottomNavigationBuilder(
+      $route_match,
+      $this->createMock(PathMatcherInterface::class),
+      new RequestStack(),
+      $this->createMock(AccountProxyInterface::class),
+    );
+
+    self::assertTrue($builder->isEventsActive('entity.node.canonical'));
+  }
 
   /**
    * Transactional and recovery routes must not show marketplace navigation.
