@@ -55,7 +55,7 @@ final class TrustContentFoundation {
     $feePayer = (string) ($config->get('fee_payer') ?? 'buyer');
     $feePayerText = $feePayer === 'organizer_absorbs'
       ? 'The organiser absorbs the MEL platform fee, so it is not added to the attendee total.'
-      : 'The GST-inclusive MEL platform fee is shown to attendees at checkout before they pay.';
+      : 'The MEL platform fee, including GST, is included in displayed ticket prices when attendees pay the fee.';
 
     return [
       'title' => 'Pricing & Fees',
@@ -71,7 +71,7 @@ final class TrustContentFoundation {
         . '</ul>'
         . '<h3>Who pays fees</h3>'
         . '<p>' . htmlspecialchars($feePayerText, ENT_QUOTES, 'UTF-8') . '</p>'
-        . '<p>Exact totals are always shown to the buyer before payment is completed. We do not add hidden checkout surprises.</p>'
+        . '<p>Displayed ticket prices include mandatory fees. Select your quantities to see the order total and fee breakdown before payment. Optional extras and discounts may change your total.</p>'
         . '<h3>What we do not charge for here</h3>'
         . '<p>This page describes public-facing fee transparency. It is not a live quote for your specific event — taxes, refunds, and payout timing depend on your event setup and Stripe account status.</p>'
         . '<h3>Need more detail?</h3>'

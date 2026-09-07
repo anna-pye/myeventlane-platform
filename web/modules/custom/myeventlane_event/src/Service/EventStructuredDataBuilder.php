@@ -241,15 +241,11 @@ final class EventStructuredDataBuilder {
       return $offer;
     }
 
-    $prices = $this->ticketTypeManager->loadPublishedPaidTicketPrices($event);
-    if ($prices === []) {
-      return $offer;
+    $pricing = $this->bookingFlowResolver->getDisplayPricing($event);
+    if (isset($pricing['price_number'], $pricing['currency_code'])) {
+      $offer['price'] = $pricing['price_number'];
+      $offer['priceCurrency'] = $pricing['currency_code'];
     }
-
-    usort($prices, static fn (Price $a, Price $b): int => $a->compareTo($b));
-    $lowest = $prices[0];
-    $offer['price'] = $lowest->getNumber();
-    $offer['priceCurrency'] = $lowest->getCurrencyCode();
 
     return $offer;
   }

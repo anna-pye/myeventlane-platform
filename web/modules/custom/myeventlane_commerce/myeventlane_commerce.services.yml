@@ -1,4 +1,8 @@
 services:
+  myeventlane_commerce.public_price:
+    class: Drupal\myeventlane_commerce\Service\PublicPriceCalculator
+    arguments: ['@config.factory', '@myeventlane_core.platform_fee_settings', '@commerce_price.rounder']
+
   # Lazy proxy for currency formatter to break circular dependency with serializer.
   # @see \Drupal\myeventlane_commerce\MyeventlaneCommerceServiceProvider
   myeventlane_commerce.currency_formatter.lazy:

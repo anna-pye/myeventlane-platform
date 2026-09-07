@@ -70,6 +70,7 @@ final class TicketSelectionForm extends FormBase {
     protected TimeInterface $time,
     protected CapacityOrderInspector $orderInspector,
     protected TicketTypeManager $ticketTypeManager,
+    protected \Drupal\myeventlane_commerce\Service\PublicPriceCalculator $publicPrice,
     protected ?EventCapacityServiceInterface $capacityService = NULL,
     protected ?CustomerTicketTierDisplayBuilder $customerTicketTierDisplay = NULL,
     protected ?CartTicketHoldManager $cartTicketHold = NULL,
@@ -93,6 +94,7 @@ final class TicketSelectionForm extends FormBase {
       $container->get('datetime.time'),
       $container->get('myeventlane_capacity.order_inspector'),
       $container->get('myeventlane_event.ticket_type_manager'),
+      $container->get('myeventlane_commerce.public_price'),
       $container->has('myeventlane_capacity.service')
         ? $container->get('myeventlane_capacity.service')
         : NULL,
@@ -120,6 +122,7 @@ final class TicketSelectionForm extends FormBase {
       return $form;
     }
 
+    $form['#cache']['tags'][] = 'config:myeventlane_core.settings';
     $form['#node'] = $node;
     $form['#product'] = $product;
 
@@ -276,7 +279,8 @@ final class TicketSelectionForm extends FormBase {
         $variation_id = $variation->id();
         $variation_uuid = $variation->uuid();
         $price = $variation->getPrice();
-        $price_formatted = $price ? $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode()) : '';
+        $display_price = $price ? $this->publicPrice->total($price) : NULL;
+        $price_formatted = $display_price ? $this->currencyFormatter->format($display_price->getNumber(), $display_price->getCurrencyCode()) : '';
 
         $ticket_label = $ticket_type_labels[$variation_uuid] ?? $variation->label();
         if (strpos($ticket_label, ' – ') !== FALSE) {
@@ -389,6 +393,8 @@ final class TicketSelectionForm extends FormBase {
           '#attributes' => [
             'class' => $row_classes,
             'data-variation-id' => $variation_id,
+            'data-ticket-price-number' => $price ? $price->getNumber() : '0',
+            'data-ticket-row' => '1',
             'data-mel-ticket-recommended' => ($default_variation_id !== NULL && (int) $variation_id === $default_variation_id) ? '1' : '0',
             'data-mel-ticket-best-value' => ($best_value_variation_id !== NULL && (int) $variation_id === $best_value_variation_id) ? '1' : '0',
           ],
@@ -1244,7 +1250,8 @@ final class TicketSelectionForm extends FormBase {
 
     foreach ($bundles as $group_id => $bundle) {
       $price = $bundle['price'];
-      $formatted_price = $this->currencyFormatter->format($price->getNumber(), $price->getCurrencyCode());
+      $display_price = $this->publicPrice->total($price);
+      $formatted_price = $this->currencyFormatter->format($display_price->getNumber(), $display_price->getCurrencyCode());
       $items = [];
       foreach ($bundle['components'] as $component) {
         $items[] = $this->formatPlural(

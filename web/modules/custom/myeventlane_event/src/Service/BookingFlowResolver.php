@@ -58,6 +58,7 @@ final class BookingFlowResolver {
     private readonly CurrencyRepositoryInterface $currencyRepository,
     private readonly LanguageManagerInterface $languageManager,
     private readonly LoggerInterface $logger,
+    private readonly \Drupal\myeventlane_commerce\Service\PublicPriceCalculator $publicPrice,
     private readonly ?AttendanceWaitlistManager $waitlistManager = NULL,
   ) {}
 
@@ -270,6 +271,7 @@ final class BookingFlowResolver {
       return NULL;
     }
 
+    $prices = array_map(fn (Price $price): Price => $this->publicPrice->total($price), $prices);
     $currencyCode = $prices[0]->getCurrencyCode();
     foreach ($prices as $price) {
       if (strtoupper($price->getCurrencyCode()) !== strtoupper($currencyCode)) {
@@ -310,6 +312,8 @@ final class BookingFlowResolver {
 
     return [
       'label' => $label,
+      'price_number' => ($lowestNonZero ?? $lowest)->getNumber(),
+      'currency_code' => $lowest->getCurrencyCode(),
       'is_free' => $isFree,
       'type' => self::MODE_PAID,
     ];
