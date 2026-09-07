@@ -34,7 +34,7 @@ $mel-breakpoints: (
   xl: $breakpoint-xl,
 );
 
-// Desktop nav / mobile drawer: width >= md (768px).
+// Shared public layout threshold. The full site header uses xl (1280px).
 $mel-breakpoint-md: map.get($mel-breakpoints, md);
 
 @mixin mel-break($size, $direction: min) {

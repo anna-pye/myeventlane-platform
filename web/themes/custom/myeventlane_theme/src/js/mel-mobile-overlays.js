@@ -459,7 +459,7 @@ export function initMobileOverlays(context) {
     const drawerToggle = event.target.closest('.mobile-drawer__toggle');
     if (drawerToggle) {
       const drawer = drawerToggle.closest('.mobile-drawer');
-      if (drawer && !drawer.open) {
+      if (drawer && !drawer.open && isMobileViewport()) {
         closeAllMobileOverlays('drawer');
         markOverlayOpen('drawer', drawerToggle);
       }
@@ -475,7 +475,7 @@ export function initMobileOverlays(context) {
   }, true);
 
   document.addEventListener('keydown', (event) => {
-    if (!isMobileViewport() || event.key !== 'Escape') {
+    if (event.key !== 'Escape') {
       return;
     }
 
@@ -491,7 +491,7 @@ export function initMobileOverlays(context) {
       return;
     }
 
-    if (!activeOverlay) {
+    if (!isMobileViewport() || !activeOverlay) {
       return;
     }
 

@@ -50,8 +50,9 @@
   &__label {
     font-size: 0.9rem;
 
-    @include breakpoints.mel-break(md, max) {
-      // Icon-only burger on mobile — utilities need the horizontal space.
+    // Preserve 44px targets on very narrow phones while keeping the control's
+    // purpose visible at MEL's 390px mobile design baseline and above.
+    @media (width < 390px) {
       display: none;
     }
   }
@@ -69,12 +70,12 @@
 
   &__panel {
     position: fixed;
-    left: 12px;
-    right: 12px;
+    left: max(24px, env(safe-area-inset-left, 0px));
+    right: auto;
     top: 76px;
-    width: auto;
+    width: min(360px, calc(100vw - 48px));
     max-width: 360px;
-    margin: 0 auto;
+    margin: 0;
     background: #fffdf9;
     border: 1px solid var(--mel-border);
     border-radius: 16px;
@@ -108,10 +109,25 @@
     gap: 4px;
   }
 
+  &__heading {
+    width: 100%;
+    margin: 12px 0 2px;
+    padding: 0 14px;
+    color: rgba(41, 50, 65, 0.68);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+    text-transform: uppercase;
+
+    &:first-child {
+      margin-top: 4px;
+    }
+  }
+
   // Vertical mobile navigation — override horizontal .mel-nav defaults.
   .mel-nav {
-    flex-direction: column;
-    flex-wrap: nowrap;
+    flex-flow: column nowrap;
     align-items: stretch;
     gap: 4px;
     width: 100%;
@@ -119,6 +135,20 @@
 
   .mel-nav__item {
     width: 100%;
+  }
+
+  .mobile-drawer__create-event-item > .mel-nav__link {
+    justify-content: center;
+    margin-top: 4px;
+    background: var(--mel-coral, #f26d5b);
+    color: #fff;
+    font-weight: 700;
+
+    &:hover,
+    &:focus-visible {
+      background: var(--mel-coral-hover, #e05a48);
+      color: #fff;
+    }
   }
 
   .mel-nav__link,

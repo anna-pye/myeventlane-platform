@@ -112,4 +112,27 @@ final class PublicMobileConversionContractTest extends TestCase {
     self::assertStringContainsString('mel-home-hero mel-home-hero--discovery', $discoveryHeroTemplate);
   }
 
+  /**
+   * The compact header exposes a clear, complete public menu.
+   */
+  public function testCompactHeaderUsesCompleteLabelledNavigation(): void {
+    $moduleRoot = dirname(__DIR__, 3);
+    $webRoot = dirname($moduleRoot, 3);
+    $header = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/src/scss/components/_site-header.scss',
+    );
+    $drawer = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/templates/components/mobile-drawer/mobile-drawer.html.twig',
+    );
+    $theme = (string) file_get_contents(
+      $webRoot . '/themes/custom/myeventlane_theme/myeventlane_theme.theme',
+    );
+
+    self::assertStringContainsString('@include breakpoints.mel-break(xl)', $header);
+    self::assertStringContainsString("{{ 'Menu'|t }}", $drawer);
+    self::assertStringContainsString("t('Browse events')", $theme);
+    self::assertStringContainsString("t('Create event')", $theme);
+    self::assertStringContainsString("t('Help & support')", $theme);
+  }
+
 }
