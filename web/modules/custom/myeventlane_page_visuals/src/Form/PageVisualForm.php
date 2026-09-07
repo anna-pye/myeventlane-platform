@@ -177,7 +177,7 @@ final class PageVisualForm extends EntityForm {
     $form['image_upload_desktop'] = [
       '#type' => 'managed_file',
       '#title' => $this->t('Desktop image'),
-      '#description' => $this->t('Upload an image for desktop viewports (PNG, JPG, JPEG, GIF, WebP). Required when enabled.'),
+      '#description' => $this->t('Upload a landscape image for desktop viewports (PNG, JPG, JPEG, GIF or WebP). We recommend around 2048 px wide, with important artwork on the right and no text inside the image. MEL automatically resizes and optimises it.'),
       '#upload_location' => PageVisualMediaManager::UPLOAD_DIRECTORY . '/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],
@@ -189,7 +189,7 @@ final class PageVisualForm extends EntityForm {
     $form['image_upload_mobile'] = [
       '#type' => 'managed_file',
       '#title' => $this->t('Mobile image'),
-      '#description' => $this->t('Optional: upload a different image for mobile viewports. If empty, desktop image is used.'),
+      '#description' => $this->t('Optional: upload a mobile-specific crop at least 960 px wide. If empty, MEL serves a smaller optimised version of the desktop image.'),
       '#upload_location' => PageVisualMediaManager::UPLOAD_DIRECTORY . '/',
       '#upload_validators' => [
         'FileExtension' => ['extensions' => 'png jpg jpeg gif webp'],

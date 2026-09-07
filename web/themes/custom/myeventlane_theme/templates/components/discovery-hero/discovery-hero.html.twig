@@ -17,10 +17,10 @@
 
 {{ attach_library('myeventlane_theme/mel-discovery-hero') }}
 
-<section class="mel-home-hero mel-home-hero--discovery" aria-labelledby="mel-discovery-hero-title">
+<section class="mel-home-hero mel-home-hero--discovery mel-home-hero--{{ variant|clean_class }} mel-home-hero--{{ show_search ? 'has-search' : 'no-search' }}" aria-labelledby="mel-discovery-hero-title">
   <div class="mel-home-hero__banner{% if hero_hide_on_mobile %} mel-home-hero__banner--hide-mobile-art{% endif %}">
     {% if hero_image_url %}
-      <div class="mel-home-hero__media" aria-hidden="true">
+      <div class="mel-home-hero__media{% if variant == 'calendar' %} mel-home-hero__media--calendar{% endif %}" aria-hidden="true">
         {% if hero_image_url_mobile and not hero_hide_on_mobile %}
           <picture>
             <source media="(max-width: 767px)" srcset="{{ hero_image_url_mobile }}">
@@ -48,7 +48,7 @@
           />
         {% endif %}
       </div>
-    {% else %}
+    {% elseif variant != 'calendar' %}
       <div class="mel-home-hero__media mel-home-hero__media--placeholder" aria-hidden="true"></div>
     {% endif %}
 
@@ -65,16 +65,21 @@
         {% endif %}
       </div>
 
-      {% if show_search %}
+    </div>
+  </div>
+
+  {% if show_search %}
+    <div class="mel-home-hero__search-dock">
+      <div class="mel-home-hero__search-dock-inner mel-container mel-container--wide">
         <div class="mel-home-hero__search-shell">
           {% include '@myeventlane_theme/components/discovery-hero/_discovery-hero-search.html.twig' with {
             search_query: search_query|default(null),
             search_mode: search_mode
           } only %}
         </div>
-      {% endif %}
+      </div>
     </div>
-  </div>
+  {% endif %}
 
   {% if show_category_nav and categories %}
     <div class="mel-home-hero__categories-bar">

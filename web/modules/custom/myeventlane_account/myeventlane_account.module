@@ -61,6 +61,21 @@ function myeventlane_account_theme(): array {
       ],
       'template' => 'mel-account-followed-organisers',
     ],
+    'mel_calendar_personalisation' => [
+      'variables' => [
+        'authenticated' => FALSE,
+        'saved_event_cards' => [],
+        'upcoming_booking_cards' => [],
+        'saved_event_count' => 0,
+        'upcoming_booking_count' => 0,
+        'saved_events_url' => '',
+        'bookings_url' => '',
+        'discover_url' => '',
+        'login_url' => '',
+        'register_url' => '',
+      ],
+      'template' => 'mel-calendar-personalisation',
+    ],
     'myeventlane_my_account_past_events' => [
       'variables' => [
         'display_name' => '',

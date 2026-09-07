@@ -13,7 +13,7 @@ field_name: field_category_media
 entity_type: taxonomy_term
 bundle: categories
 label: 'Category image'
-description: 'Choose an image from Media Library or upload a reusable platform category image.'
+description: 'Choose an image from Media Library or upload a reusable platform category image. For the best result, use a landscape image around 2048 px wide, keep important artwork on the right, and avoid text inside the image. MEL automatically serves smaller optimised versions on mobile.'
 required: false
 translatable: false
 default_value: {  }

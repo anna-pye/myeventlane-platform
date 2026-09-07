@@ -110,6 +110,10 @@ final class PublicMobileConversionContractTest extends TestCase {
     );
     self::assertStringContainsString('mel-home-hero mel-home-hero--front', $homeHeroTemplate);
     self::assertStringContainsString('mel-home-hero mel-home-hero--discovery', $discoveryHeroTemplate);
+    self::assertStringContainsString('.mel-home-hero__search-field .mel-home-hero__search-input', $hero);
+    self::assertStringContainsString('padding-left: 48px;', $hero);
+    self::assertStringContainsString("{{ 'Event or category'|t }}", $homeHeroTemplate);
+    self::assertStringContainsString("{{ 'Suburb or city'|t }}", $homeHeroTemplate);
   }
 
   /**

@@ -15,4 +15,10 @@ effects:
       width: 960
       height: null
       upscale: false
+  9a3e594c-fb3a-49ea-a15b-f04e46190795:
+    uuid: 9a3e594c-fb3a-49ea-a15b-f04e46190795
+    id: image_convert_avif
+    weight: 1
+    data:
+      extension: webp
 pipeline: __default__

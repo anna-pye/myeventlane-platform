@@ -11,9 +11,11 @@
 {% set search_mode = search_mode|default('events') %}
 {% set search_events_url = path('view.upcoming_events.page_events') %}
 {% set search_site_url = path('mel_search.view') %}
+{% set search_label = search_mode == 'site' ? 'Search MyEventLane'|t : 'Search events'|t %}
+{% set search_placeholder = search_mode == 'site' ? 'Search MyEventLane'|t : 'Search events or categories'|t %}
 
 <form
-  class="mel-home-hero__search"
+  class="mel-home-hero__search mel-home-hero__search--{{ search_mode|clean_class }}"
   role="search"
   action="{{ search_mode == 'site' ? search_site_url : search_events_url }}"
   method="get"
@@ -23,14 +25,14 @@
 >
   <div class="mel-home-hero__search-fields">
     <div class="mel-home-hero__search-field mel-home-hero__search-field--query">
-      <label class="visually-hidden" for="mel-discovery-hero-search">{{ 'Search events'|t }}</label>
+      <label class="visually-hidden" for="mel-discovery-hero-search">{{ search_label }}</label>
       <span class="mel-home-hero__search-icon mel-home-hero__search-icon--query" aria-hidden="true"></span>
       <input
         id="mel-discovery-hero-search"
         class="mel-home-hero__search-input mel-home-hero__search-input--query"
         name="{{ search_mode == 'site' ? 'q' : 'search' }}"
         type="search"
-        placeholder="{{ 'Search events, locations or categories'|t }}"
+        placeholder="{{ search_placeholder }}"
         autocomplete="off"
         {% if search_query|default('') %}value="{{ search_query|e('html_attr') }}"{% endif %}
       />
@@ -52,6 +54,6 @@
     {% endif %}
   </div>
   <button type="submit" class="mel-home-hero__search-submit">
-    <span class="mel-home-hero__search-submit-label">{{ 'Search Events'|t }}</span>
+    <span class="mel-home-hero__search-submit-label">{{ search_label }}</span>
   </button>
 </form>
