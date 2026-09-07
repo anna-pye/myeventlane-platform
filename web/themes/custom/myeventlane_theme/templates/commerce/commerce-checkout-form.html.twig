@@ -75,21 +75,25 @@
       </div>
     {% endif %}
 
+    {% set checkout_step = form['#step_id']|default('checkout') %}
+    <nav class="mel-checkout-stage-progress" aria-label="{{ 'Checkout progress'|t }}">
+      <ol>
+        <li class="mel-checkout-stage-progress__item{% if checkout_step == 'checkout' %} is-current{% else %} is-complete{% endif %}"{% if checkout_step == 'checkout' %} aria-current="step"{% endif %}>
+          <span class="mel-checkout-stage-progress__number">1</span>
+          <span>{{ 'Details'|t }}</span>
+        </li>
+        <li class="mel-checkout-stage-progress__item{% if checkout_step != 'checkout' %} is-current{% endif %}"{% if checkout_step != 'checkout' %} aria-current="step"{% endif %}>
+          <span class="mel-checkout-stage-progress__number">2</span>
+          <span>{{ 'Payment'|t }}</span>
+        </li>
+      </ol>
+    </nav>
+
     <header class="mel-checkout__hero mel-checkout-hero-trust" role="region" aria-labelledby="mel-checkout-hero-heading">
       <div class="mel-checkout-hero-trust__surface">
         <p class="mel-checkout-hero-trust__eyebrow" id="mel-checkout-hero-heading">{{ mcp_hero.heading|default('') }}</p>
         <h2 class="mel-checkout-hero-trust__title">{{ mcp_hero.intro_primary|default('') }}</h2>
         <p class="mel-checkout-hero-trust__lead">{{ mcp_hero.intro_secondary|default('') }}</p>
-        {% if mcp.trust_chips is defined %}
-          <ul class="mel-checkout-hero-trust__chips"{% if chip_region_label %} aria-label="{{ chip_region_label }}"{% endif %}>
-            {% for chip in mcp.trust_chips %}
-              <li class="mel-checkout-hero-trust__chip">
-                <span class="mel-checkout-hero-trust__chip-mark" aria-hidden="true">✓</span>
-                <span>{{ chip.text }}</span>
-              </li>
-            {% endfor %}
-          </ul>
-        {% endif %}
       </div>
     </header>
 
@@ -142,7 +146,7 @@
             {{ form.mel_fast_checkout }}
           {% endif %}
 
-          {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence', 'mel_fast_checkout') }}
+          {{ form|without('progress', 'sidebar', 'actions', 'payment_information', 'mel_buyer_details', 'mel_donation', 'mel_legal_consent', 'ticket_holder_paragraph', 'mel_checkout_confidence', 'mel_fast_checkout', 'mel_checkout_extras') }}
 
           {% if form.mel_buyer_details is defined %}
             <div class="mel-checkout-subsection mel-checkout-subsection--buyer">
@@ -161,12 +165,6 @@
                 {{ donation_pane_content }}
               </div>
             {% endif %}
-          {% endif %}
-
-          {% if form.mel_legal_consent is defined %}
-            <div class="mel-checkout-subsection mel-checkout-subsection--legal">
-              {{ form.mel_legal_consent }}
-            </div>
           {% endif %}
 
           {% if mel_contextual_help_checkout is not defined or not mel_contextual_help_checkout %}
@@ -216,18 +214,19 @@
               <h2 id="mel-checkout-step-payment-title" class="mel-checkout-heading">{{ payment_step.heading|default('') }}</h2>
               <p class="mel-checkout-section__intro">{{ payment_step.intro|default('') }}</p>
             </div>
-            <div class="mel-checkout-payment-trust"{% if mcp.payment_region_label %} aria-label="{{ mcp.payment_region_label }}"{% endif %}>
-              <p class="mel-checkout-payment-trust__item">
-                <span class="mel-checkout-payment-trust__icon" aria-hidden="true">Lock</span>
-                {{ pay_trust.text|default('') }}
-              </p>
-              <p class="mel-checkout-payment-trust__item">
-                <span class="mel-checkout-payment-trust__icon mel-checkout-payment-trust__icon--stripe" aria-hidden="true">Stripe</span>
-                {{ pay_trust.charge_timing|default('') }}
-              </p>
-              <p class="mel-checkout-payment-trust__item mel-checkout-payment-trust__item--muted">{{ pay_trust.stripe_note|default('') }}</p>
-            </div>
             {{ form.payment_information }}
+          </section>
+        {% endif %}
+
+        {% if form.mel_checkout_extras is defined %}
+          <section class="mel-checkout-section mel-card-surface mel-checkout-section--extras" data-step="extras">
+            {{ form.mel_checkout_extras }}
+          </section>
+        {% endif %}
+
+        {% if form.mel_legal_consent is defined %}
+          <section class="mel-checkout-section mel-card-surface mel-checkout-section--legal" data-step="legal" aria-label="{{ 'Terms and conditions'|t }}">
+            {{ form.mel_legal_consent }}
           </section>
         {% endif %}
 

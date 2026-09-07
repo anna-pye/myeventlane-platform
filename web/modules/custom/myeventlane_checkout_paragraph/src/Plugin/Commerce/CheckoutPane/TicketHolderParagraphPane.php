@@ -167,6 +167,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
 
     $holder_total = $this->getCollectableTicketHolderCount();
     $holder_position = 0;
+    $opened_incomplete = FALSE;
     $prev_event_key = NULL;
 
     foreach ($this->order->getItems() as $index => $order_item) {
@@ -223,7 +224,8 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
           $logged_in_defaults,
           $holder_position,
           $holder_total,
-          $ticket_label
+          $ticket_label,
+          $opened_incomplete,
         );
       }
 
@@ -261,6 +263,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     int $holderPosition,
     int $holderTotal,
     string $ticketTypeLabel,
+    bool &$openedIncomplete,
   ): array {
     $missing = AttendeeHolderMissingEvaluator::missingForHolder(
       $order_item,
@@ -269,6 +272,10 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       $itemIndex
     );
     $is_complete = $missing === [];
+    $open_by_default = !$is_complete && !$openedIncomplete;
+    if ($open_by_default) {
+      $openedIncomplete = TRUE;
+    }
     $status_id = Html::getId('mel-holder-status-' . $itemIndex . '-' . $delta);
 
     $summary_title = (string) $this->t('Ticket @current of @total — @type', [
@@ -280,7 +287,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
     $fieldset = [
       '#type' => 'details',
       '#title' => $summary_title,
-      '#open' => TRUE,
+      '#open' => $open_by_default,
       '#attributes' => [
         'class' => array_values(array_unique(array_filter([
           'mel-attendee-card',
@@ -328,6 +335,30 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#weight' => -5,
     ];
 
+    $fieldset['copy_buyer_details'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mel-attendee-copy']],
+      'button' => [
+        '#type' => 'html_tag',
+        '#tag' => 'button',
+        '#value' => Html::escape((string) $this->t('Use buyer details')),
+        '#attributes' => [
+          'type' => 'button',
+          'class' => ['mel-attendee-copy__button'],
+        ],
+      ],
+      'status' => [
+        '#type' => 'html_tag',
+        '#tag' => 'span',
+        '#value' => '',
+        '#attributes' => [
+          'class' => ['mel-attendee-copy__status', 'visually-hidden'],
+          'aria-live' => 'polite',
+        ],
+      ],
+      '#weight' => -4,
+    ];
+
     // Required fields: first_name, last_name, email.
     $fieldset['field_first_name'] = [
       '#type' => 'textfield',
@@ -337,6 +368,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
         'autocomplete' => 'section-checkout given-name',
+        'data-mel-attendee-field' => 'first-name',
       ],
     ];
     $fieldset['field_last_name'] = [
@@ -347,6 +379,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
         'autocomplete' => 'section-checkout family-name',
+        'data-mel-attendee-field' => 'last-name',
       ],
     ];
     $fieldset['field_email'] = [
@@ -357,6 +390,7 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
       '#attributes' => [
         'class' => ['mel-attendee-identity-field'],
         'autocomplete' => 'section-checkout email',
+        'data-mel-attendee-field' => 'email',
       ],
     ];
     $fieldset['field_phone'] = [
@@ -368,9 +402,11 @@ final class TicketHolderParagraphPane extends CheckoutPaneBase {
         'class' => ['mel-attendee-identity-field'],
         'autocomplete' => 'section-checkout tel',
         'inputmode' => 'tel',
+        'data-mel-attendee-field' => 'phone',
       ],
       '#wrapper_attributes' => [
-        'class' => ['mel-attendee-field--phone-secondary'],
+        'class' => ['mel-attendee-field--phone-secondary', 'mel-attendee-field--optional-phone'],
+        'data-mel-optional-phone' => 'true',
       ],
     ];
 
