@@ -2,20 +2,20 @@
 /**
  * @component Mobile Drawer
  *
- * Secondary mobile menu (Organisers, Support, Help). Browse IA lives in bottom nav.
+ * Complete compact navigation for mobile and tablet viewports.
  *
  * Variables:
  * - drawer_menu (drawer navigation links)
  */
 #}
 <details class="mobile-drawer">
-  <summary class="mobile-drawer__toggle" aria-label="{{ 'Open more menu'|t }}" aria-expanded="false" aria-controls="mobile-drawer-panel">
+  <summary class="mobile-drawer__toggle" aria-label="{{ 'Open main menu'|t }}" aria-expanded="false" aria-controls="mobile-drawer-panel">
     <span class="mobile-drawer__icon" aria-hidden="true">☰</span>
-    <span class="mobile-drawer__label">{{ 'More'|t }}</span>
+    <span class="mobile-drawer__label">{{ 'Menu'|t }}</span>
   </summary>
 
-  <div id="mobile-drawer-panel" class="mobile-drawer__panel" role="dialog" aria-label="{{ 'More menu'|t }}">
-    <nav class="mobile-drawer__section" aria-label="{{ 'More'|t }}">
+  <div id="mobile-drawer-panel" class="mobile-drawer__panel" role="dialog" aria-label="{{ 'Main menu'|t }}">
+    <nav class="mobile-drawer__section" aria-label="{{ 'Main menu'|t }}">
       {{ drawer_menu }}
     </nav>
   </div>

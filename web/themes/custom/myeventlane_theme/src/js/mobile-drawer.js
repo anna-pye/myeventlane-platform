@@ -69,11 +69,15 @@ export function initMobileDrawer(context) {
       syncMobileOverlayLayout();
 
       if (drawer.open) {
-        if (isMobileViewport()) {
+        const mobile = isMobileViewport();
+        if (mobile) {
           closeAllMobileOverlays('drawer');
+          panel.setAttribute('aria-modal', 'true');
+        }
+        else {
+          panel.removeAttribute('aria-modal');
         }
         previousActiveElement = document.activeElement;
-        panel.setAttribute('aria-modal', 'true');
         summary.setAttribute('aria-expanded', 'true');
         drawer.classList.add('is-open');
         document.body.classList.add('mel-drawer-open');
