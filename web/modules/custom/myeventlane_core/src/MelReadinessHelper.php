@@ -322,7 +322,7 @@ final class MelReadinessHelper {
   }
 
   public function customerCheckoutStructuredIntroBodyAttendeeQuestions(): string {
-    return (string) $this->t("Complete each ticket holder's details on this page—including any organiser questions—then pay securely.");
+    return (string) $this->t("Add the buyer and ticket holder details, then continue to secure payment.");
   }
 
   public function customerCheckoutStructuredIntroBodyLight(): string {
@@ -330,7 +330,7 @@ final class MelReadinessHelper {
   }
 
   public function customerCheckoutOnePageHelperLine(): string {
-    return (string) $this->t('Your order stays on one secure checkout page. Totals refresh when checkout updates.');
+    return (string) $this->t('You can review your booking total at any time.');
   }
 
   public function customerCheckoutErrorSummaryLine(): string {
@@ -421,9 +421,9 @@ final class MelReadinessHelper {
    */
   public function customerCheckoutStepBuyer(): array {
     return [
-      'eyebrow' => (string) $this->t('Step 1'),
+      'eyebrow' => (string) $this->t('Contact details'),
       'heading' => (string) $this->t('Your details'),
-      'intro' => (string) $this->t('Tell us where to send tickets plus anything the organiser needs before payment.'),
+      'intro' => (string) $this->t('Tell us where to send the booking confirmation and tickets.'),
     ];
   }
 
@@ -432,9 +432,9 @@ final class MelReadinessHelper {
    */
   public function customerCheckoutStepAttendees(): array {
     return [
-      'eyebrow' => (string) $this->t('Step 2'),
-      'heading' => (string) $this->t('Attendees'),
-      'intro' => (string) $this->t('Add each ticket holder once. Sections fold closed as you finish so the next ticket stays in focus.'),
+      'eyebrow' => (string) $this->t('Ticket details'),
+      'heading' => (string) $this->t('Ticket holders'),
+      'intro' => (string) $this->t('Complete one section for each ticket. Finished sections fold closed so you can focus on the next person.'),
     ];
   }
 
@@ -443,9 +443,9 @@ final class MelReadinessHelper {
    */
   public function customerCheckoutStepPayment(): array {
     return [
-      'eyebrow' => (string) $this->t('Step 3'),
+      'eyebrow' => (string) $this->t('Secure checkout'),
       'heading' => (string) $this->t('Payment'),
-      'intro' => (string) $this->t('Review Stripe’s secure payment form, then complete your booking.'),
+      'intro' => (string) $this->t('Choose how you would like to pay. You will confirm the booking before you are charged.'),
     ];
   }
 

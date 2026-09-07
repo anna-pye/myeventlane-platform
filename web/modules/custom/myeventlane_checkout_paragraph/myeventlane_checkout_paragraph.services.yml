@@ -15,3 +15,4 @@ services:
     arguments:
       - '@myeventlane_commerce.ticket_availability'
       - '@logger.channel.myeventlane_checkout_paragraph'
+      - '@myeventlane_commerce.ticket_backed_order_item_classifier'

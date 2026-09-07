@@ -10,6 +10,9 @@
       attachSummaryDisclosure(context);
       attachGuidedCheckout(context);
       attachAttendeeCards(context);
+      attachAttendeeUtilities(context);
+      attachPromoDisclosure(context);
+      attachSavedCardDisclosure(context);
 
       const forms = once(
         'mel-checkout-error-scroll',
@@ -116,6 +119,7 @@
         return;
       }
 
+      let firstUpdate = true;
       const updateCards = (sourceCard = null, advance = false) => {
         const firstIncomplete = cards.find((card) => !isSectionComplete(card));
 
@@ -127,6 +131,11 @@
 
           if (hasErrors(card)) {
             card.open = true;
+            return;
+          }
+
+          if (firstUpdate && card !== firstIncomplete) {
+            card.open = false;
             return;
           }
 
@@ -146,6 +155,8 @@
             scrollToSection(nextCard);
           }
         }
+
+        firstUpdate = false;
       };
 
       updateCards();
@@ -156,11 +167,165 @@
     });
   }
 
+  function attachAttendeeUtilities(context) {
+    const cards = once(
+      'mel-checkout-attendee-utilities',
+      'details.mel-attendee-card',
+      context
+    );
+
+    cards.forEach((card) => {
+      const copyButton = card.querySelector('.mel-attendee-copy__button');
+      const copyStatus = card.querySelector('.mel-attendee-copy__status');
+
+      if (copyButton) {
+        copyButton.addEventListener('click', () => {
+          const checkout = card.closest('.mel-checkout--structured');
+          const buyerFields = checkout ? getMappedFields(checkout, 'data-mel-buyer-field') : {};
+          const attendeeFields = getMappedFields(card, 'data-mel-attendee-field');
+          const requiredKeys = ['first-name', 'last-name', 'email'];
+          const firstMissing = requiredKeys.find((key) => !buyerFields[key] || !buyerFields[key].value.trim());
+
+          if (firstMissing) {
+            if (copyStatus) {
+              copyStatus.textContent = Drupal.t('Enter the buyer details first.');
+            }
+            buyerFields[firstMissing]?.focus();
+            return;
+          }
+
+          Object.keys(attendeeFields).forEach((key) => {
+            const source = buyerFields[key];
+            const destination = attendeeFields[key];
+            if (!source || !destination || !source.value.trim()) {
+              return;
+            }
+            destination.value = source.value;
+            destination.dispatchEvent(new Event('input', { bubbles: true }));
+          });
+
+          revealOptionalPhone(card);
+          if (copyStatus) {
+            copyStatus.textContent = Drupal.t('Buyer details copied to this ticket.');
+          }
+        });
+      }
+
+      const phoneWrapper = card.querySelector('[data-mel-optional-phone]');
+      const phoneInput = phoneWrapper?.querySelector('input[type="tel"]');
+      if (!phoneWrapper || !phoneInput || phoneInput.value.trim() || hasErrors(phoneWrapper)) {
+        return;
+      }
+
+      phoneWrapper.hidden = true;
+      const revealButton = document.createElement('button');
+      revealButton.type = 'button';
+      revealButton.className = 'mel-attendee-phone-toggle';
+      revealButton.textContent = Drupal.t('Add phone number');
+      revealButton.addEventListener('click', () => {
+        phoneWrapper.hidden = false;
+        revealButton.hidden = true;
+        phoneInput.focus();
+      });
+      phoneWrapper.parentNode.insertBefore(revealButton, phoneWrapper);
+    });
+  }
+
+  function getMappedFields(scope, attribute) {
+    return Array.from(scope.querySelectorAll(`[${attribute}]`)).reduce((fields, input) => {
+      fields[input.getAttribute(attribute)] = input;
+      return fields;
+    }, {});
+  }
+
+  function revealOptionalPhone(card) {
+    const phoneWrapper = card.querySelector('[data-mel-optional-phone]');
+    const phoneInput = phoneWrapper?.querySelector('input[type="tel"]');
+    if (!phoneWrapper || !phoneInput || !phoneInput.value.trim()) {
+      return;
+    }
+    phoneWrapper.hidden = false;
+    const toggle = card.querySelector('.mel-attendee-phone-toggle');
+    if (toggle) {
+      toggle.hidden = true;
+    }
+  }
+
+  function attachPromoDisclosure(context) {
+    const promotions = once(
+      'mel-checkout-promo-disclosure',
+      '.mel-checkout__summary .checkout-pane-coupon-redemption, .mel-checkout__summary .commerce-checkout-pane-coupon-redemption, .mel-checkout__summary .coupon-redemption-form, .mel-checkout__summary .commerce-coupon-redemption-form',
+      context
+    );
+
+    promotions.forEach((promotion) => {
+      if (promotion.closest('.mel-checkout-promo')) {
+        return;
+      }
+
+      const disclosure = document.createElement('details');
+      disclosure.className = 'mel-checkout-promo';
+      disclosure.open = hasErrors(promotion) || Boolean(promotion.querySelector('input:not([type="hidden"])')?.value.trim());
+
+      const summary = document.createElement('summary');
+      summary.textContent = Drupal.t('Have a promo code?');
+      disclosure.appendChild(summary);
+
+      promotion.parentNode.insertBefore(disclosure, promotion);
+      disclosure.appendChild(promotion);
+    });
+  }
+
+  function attachSavedCardDisclosure(context) {
+    const toggles = once(
+      'mel-checkout-saved-card-disclosure',
+      '[data-mel-saved-card-toggle]',
+      context
+    );
+
+    toggles.forEach((toggle) => {
+      const paymentSection = toggle.closest('.mel-checkout-section--payment');
+      const list = paymentSection?.querySelector('[data-mel-saved-card-list]');
+      if (!list) {
+        toggle.hidden = true;
+        return;
+      }
+
+      const olderChoices = Array.from(
+        list.querySelectorAll('[data-mel-saved-card-older]')
+      );
+      const rows = olderChoices
+        .map((choice) => choice.closest('.form-type-radio, .js-form-item, .form-item'))
+        .filter(Boolean);
+      if (!rows.length) {
+        toggle.hidden = true;
+        return;
+      }
+
+      const setExpanded = (expanded) => {
+        rows.forEach((row) => {
+          row.hidden = !expanded;
+        });
+        toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+        toggle.textContent = expanded
+          ? toggle.dataset.hideLabel
+          : toggle.dataset.showLabel;
+      };
+
+      toggle.addEventListener('click', () => {
+        setExpanded(toggle.getAttribute('aria-expanded') !== 'true');
+      });
+      setExpanded(false);
+    });
+  }
+
   function getGuidedSections(checkout) {
     return {
       details: checkout.querySelector('.mel-checkout-section[data-step="details"]'),
       attendees: checkout.querySelector('.mel-checkout-section[data-step="attendees"]'),
       payment: checkout.querySelector('.mel-checkout-section[data-step="payment"]'),
+      extras: checkout.querySelector('.mel-checkout-section[data-step="extras"]'),
+      legal: checkout.querySelector('.mel-checkout-section[data-step="legal"]'),
     };
   }
 
@@ -171,6 +336,8 @@
     revealSection(sections.details, true);
     revealSection(sections.attendees, detailsComplete, allowScroll);
     revealSection(sections.payment, detailsComplete && attendeesComplete, allowScroll);
+    revealSection(sections.extras, detailsComplete && attendeesComplete, false);
+    revealSection(sections.legal, detailsComplete && attendeesComplete, false);
 
     checkout.classList.toggle('is-ready-for-payment', detailsComplete && attendeesComplete);
   }

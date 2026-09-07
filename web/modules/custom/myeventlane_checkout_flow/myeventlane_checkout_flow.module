@@ -55,6 +55,12 @@ function myeventlane_checkout_flow_form_commerce_checkout_flow_mel_event_checkou
   $attacher = \Drupal::service('myeventlane_checkout_flow.checkout_ux_attacher');
   $attacher->attach($form);
 
+  if (isset($form['payment_information']) && is_array($form['payment_information'])) {
+    /** @var \Drupal\myeventlane_checkout_flow\Service\SavedPaymentMethodPresenter $payment_method_presenter */
+    $payment_method_presenter = \Drupal::service('myeventlane_checkout_flow.saved_payment_method_presenter');
+    $payment_method_presenter->apply($form['payment_information']);
+  }
+
   myeventlane_checkout_flow_attach_fast_checkout($form, $form_state);
 }
 

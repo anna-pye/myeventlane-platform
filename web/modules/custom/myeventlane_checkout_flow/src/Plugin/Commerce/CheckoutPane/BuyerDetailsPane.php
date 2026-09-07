@@ -64,6 +64,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#attributes' => [
         'autocomplete' => 'email',
         'class' => ['mel-buyer-email', 'mel-contact-field'],
+        'data-mel-buyer-field' => 'email',
       ],
     ];
 
@@ -75,6 +76,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#attributes' => [
         'autocomplete' => 'given-name',
         'class' => ['mel-buyer-first-name', 'mel-contact-field'],
+        'data-mel-buyer-field' => 'first-name',
       ],
     ];
 
@@ -86,6 +88,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#attributes' => [
         'autocomplete' => 'family-name',
         'class' => ['mel-buyer-last-name', 'mel-contact-field'],
+        'data-mel-buyer-field' => 'last-name',
       ],
     ];
 
@@ -100,6 +103,7 @@ final class BuyerDetailsPane extends CheckoutPaneBase {
       '#attributes' => [
         'autocomplete' => 'tel',
         'class' => ['mel-buyer-mobile', 'mel-contact-field'],
+        'data-mel-buyer-field' => 'phone',
       ],
     ];
 

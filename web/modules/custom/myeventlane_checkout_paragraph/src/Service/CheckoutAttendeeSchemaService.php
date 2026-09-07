@@ -11,7 +11,8 @@ use Drupal\Core\Entity\FieldableEntityInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\mel_ticket\Entity\TicketTypeInterface;
 use Drupal\myeventlane_checkout_paragraph\CheckoutAttendeeSchemaInspectorInterface;
-use Drupal\myeventlane_commerce\Service\TicketAvailabilityService;
+use Drupal\myeventlane_commerce\Service\CartTicketAvailabilityInterface;
+use Drupal\myeventlane_commerce\Service\TicketBackedOrderItemClassifierInterface;
 use Drupal\node\NodeInterface;
 use Drupal\paragraphs\ParagraphInterface;
 
@@ -21,8 +22,9 @@ use Drupal\paragraphs\ParagraphInterface;
 final class CheckoutAttendeeSchemaService implements CheckoutAttendeeSchemaInspectorInterface {
 
   public function __construct(
-    private readonly TicketAvailabilityService $ticketAvailability,
+    private readonly CartTicketAvailabilityInterface $ticketAvailability,
     private readonly LoggerChannelInterface $logger,
+    private readonly TicketBackedOrderItemClassifierInterface $ticketBackedOrderItemClassifier,
   ) {}
 
   /**
@@ -33,7 +35,7 @@ final class CheckoutAttendeeSchemaService implements CheckoutAttendeeSchemaInspe
       return FALSE;
     }
 
-    return !$this->isProSubscriptionOrderItem($order_item);
+    return $this->ticketBackedOrderItemClassifier->isTicketBackedOrderItem($order_item);
   }
 
   /**
@@ -275,33 +277,6 @@ final class CheckoutAttendeeSchemaService implements CheckoutAttendeeSchemaInspe
     }
 
     return $event instanceof FieldableEntityInterface ? $event : NULL;
-  }
-
-  private function isProSubscriptionOrderItem(OrderItemInterface $order_item): bool {
-    $purchased_entity = $order_item->getPurchasedEntity();
-    if ($purchased_entity === NULL) {
-      return FALSE;
-    }
-
-    if (method_exists($purchased_entity, 'bundle') && $purchased_entity->bundle() === 'mel_pro_subscription_variation') {
-      return TRUE;
-    }
-
-    if (method_exists($purchased_entity, 'getSku')) {
-      $sku = strtolower(trim((string) $purchased_entity->getSku()));
-      if ($sku !== '' && str_starts_with($sku, 'mel-pro')) {
-        return TRUE;
-      }
-    }
-
-    if (method_exists($purchased_entity, 'getProduct')) {
-      $product = $purchased_entity->getProduct();
-      if ($product !== NULL && method_exists($product, 'bundle') && $product->bundle() === 'mel_pro_subscription_product') {
-        return TRUE;
-      }
-    }
-
-    return FALSE;
   }
 
 }
