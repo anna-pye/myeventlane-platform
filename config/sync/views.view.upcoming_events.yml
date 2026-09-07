@@ -713,6 +713,23 @@ display:
             value: ''
             format: full_html
           tokenize: false
+      sorts:
+        field_event_start_value:
+          id: field_event_start_value
+          table: node__field_event_start
+          field: field_event_start_value
+          relationship: none
+          group_type: group
+          admin_label: ''
+          entity_type: node
+          entity_field: field_event_start
+          plugin_id: datetime
+          order: ASC
+          expose:
+            label: ''
+            field_identifier: ''
+          exposed: false
+          granularity: second
       filters:
         status:
           id: status
@@ -815,23 +832,6 @@ display:
           plugin_id: mel_event_no_end_upcoming
           group: 2
           exposed: false
-      sorts:
-        field_event_start_value:
-          id: field_event_start_value
-          table: node__field_event_start
-          field: field_event_start_value
-          relationship: none
-          group_type: group
-          admin_label: ''
-          entity_type: node
-          entity_field: field_event_start
-          plugin_id: datetime
-          order: ASC
-          expose:
-            label: ''
-            field_identifier: ''
-          exposed: false
-          granularity: second
       filter_groups:
         operator: AND
         groups:
@@ -845,8 +845,8 @@ display:
         empty: false
         pager: false
         row: false
-        filters: false
         sorts: false
+        filters: false
       display_extenders: {  }
       block_description: 'Calendar: Next three events'
       block_category: MyEventLane

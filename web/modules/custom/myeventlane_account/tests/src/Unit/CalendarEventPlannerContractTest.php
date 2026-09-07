@@ -64,13 +64,30 @@ final class CalendarEventPlannerContractTest extends TestCase {
   public function testComingUpUsesNextThreeUpcomingEvents(): void {
     $moduleRoot = dirname(__DIR__, 3);
     $repositoryRoot = dirname($moduleRoot, 4);
-    $config = Yaml::parseFile($repositoryRoot . '/config/sync/views.view.upcoming_events.yml');
+    $configPath = $repositoryRoot . '/config/sync/views.view.upcoming_events.yml';
+    $config = Yaml::parseFile($configPath);
     $display = $config['display']['embed_calendar_this_week']['display_options'];
 
     self::assertSame(3, $display['pager']['options']['items_per_page']);
     self::assertArrayNotHasKey('field_event_start_value_2', $display['filters']);
     self::assertFalse($display['defaults']['sorts']);
     self::assertSame('ASC', $display['sorts']['field_event_start_value']['order']);
+
+    $rawConfig = (string) file_get_contents($configPath);
+    $displayStart = strpos($rawConfig, '  embed_calendar_this_week:');
+    $displayEnd = strpos($rawConfig, '  homepage_hidden_gems:', $displayStart ?: 0);
+    self::assertNotFalse($displayStart);
+    self::assertNotFalse($displayEnd);
+    $rawDisplay = substr($rawConfig, $displayStart, $displayEnd - $displayStart);
+    $sortsPosition = strpos($rawDisplay, "\n      sorts:");
+    $filtersPosition = strpos($rawDisplay, "\n      filters:");
+    self::assertNotFalse($sortsPosition);
+    self::assertNotFalse($filtersPosition);
+    self::assertLessThan(
+      $filtersPosition,
+      $sortsPosition,
+      'Views must export sorts before filters so config import converges.',
+    );
   }
 
   /**
