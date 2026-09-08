@@ -506,6 +506,16 @@
                   </div>
                 </div>
 
+                <section class="mel-builder-card__subsection" aria-labelledby="mel-refunds-heading">
+                  <header class="mel-builder-card__header mel-builder-card__header--compact">
+                    <h3 class="mel-builder-card__title" id="mel-refunds-heading">{{ 'Refunds and consumer rights'|t }}</h3>
+                    <p>{{ 'Complete before publishing. A policy is required for paid tickets.'|t }}</p>
+                  </header>
+                  {{ element.mel.refund_acl_statement }}
+                  {{ element.mel.field_refund_policy }}
+                  {{ element.mel.refund_acl_acknowledged }}
+                </section>
+
                 <div data-mel-reveal-section="mel-advanced">
                   <details id="mel-builder-more-options" class="mel-builder-more-options mel-builder-progressive mel-builder-progressive--advanced-slot" data-mel-progressive-slot="advanced">
                     <summary class="mel-builder-more-options__summary">{{ 'More options, if you need them'|t }}</summary>
@@ -536,12 +546,6 @@
                           {{ element.mel.field_age_policy_note }}
                         </div>
                         {{ element.mel.field_age_restriction }}
-                      </div>
-                      <div class="mel-builder-card__subsection" aria-labelledby="mel-more-refund-heading">
-                        <header class="mel-builder-card__header mel-builder-card__header--compact">
-                          <h4 class="mel-builder-card__title" id="mel-more-refund-heading">{{ 'Refund policy'|t }}</h4>
-                        </header>
-                        {{ element.mel.field_refund_policy }}
                       </div>
                       <div class="mel-builder-card__subsection" aria-labelledby="mel-more-a11y-heading">
                         <header class="mel-builder-card__header mel-builder-card__header--compact">

@@ -98,6 +98,11 @@ final class PublishEligibilityEvaluator {
       }
     }
 
+    $refundErrors = RefundPolicyRequirement::errors($event, $this->getStringTranslation());
+    if ($refundErrors !== []) {
+      return ['allowed' => FALSE, 'reason' => 'refund_obligations', 'messages' => $refundErrors];
+    }
+
     $readiness = $this->eventReadiness->evaluate($event, $account);
     if (!$readiness->ready) {
       return [

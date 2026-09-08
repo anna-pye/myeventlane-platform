@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\myeventlane_event_studio\Service\RefundPolicyRequirement;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\NodeInterface;
 
@@ -179,7 +180,7 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
       ],
       '#default_value' => $melDefaults['field_age_policy'] ?? 'all_ages',
       '#attributes' => ['class' => ['mel-input']],
-      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--policies" aria-labelledby="mel-es-policies-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-policies-title">' . $this->t('Guest policies') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Set age and refund expectations in one readable group.') . '</p></header><div class="mel-es-field-group__body">',
+      '#prefix' => '<section class="mel-es-field-group mel-es-field-group--policies" aria-labelledby="mel-es-policies-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-policies-title">' . $this->t('Guest policies') . '</h3><p class="mel-es-field-group__hint">' . $this->t('Set age requirements for your event.') . '</p></header><div class="mel-es-field-group__body">',
     ];
 
     $form['mel']['field_age_policy_note'] = [
@@ -201,14 +202,18 @@ class EventStudioDescriptionForm extends EventStudioBaseForm {
 
     $form['mel']['field_refund_policy'] = [
       '#type' => 'select',
-      '#title' => $this->t('Refund policy'),
-      '#options' => $this->listStringFieldOptions('field_refund_policy'),
-      '#empty_option' => $this->t('- Not specified -'),
+      '#title' => $this->t('Change-of-mind refund policy'),
+      '#options' => RefundPolicyRequirement::options($this->listStringFieldOptions('field_refund_policy')),
+      '#empty_option' => $this->t('- Choose a policy -'),
       '#empty_value' => '',
       '#default_value' => $melDefaults['field_refund_policy'] ?? '',
       '#attributes' => ['class' => ['mel-input']],
-      '#suffix' => '</div></section>',
+      '#prefix' => '</div></section><section class="mel-es-field-group" aria-labelledby="mel-es-refunds-title"><header class="mel-es-field-group__header"><h3 class="mel-es-field-group__title" id="mel-es-refunds-title">' . $this->t('Refunds and consumer rights') . '</h3><p>' . $this->t('Complete before publishing. A policy is required for paid tickets.') . '</p></header><div class="mel-es-field-group__body">',
     ];
+    $form['mel']['refund_acl_statement'] = ['#markup' => RefundPolicyRequirement::statement()];
+    $form['mel']['refund_acl_acknowledged'] = RefundPolicyRequirement::checkbox(!empty($melDefaults['refund_acl_acknowledged']));
+    $form['mel']['refund_acl_acknowledged']['#suffix'] = '</div></section>';
+
   }
 
   /**

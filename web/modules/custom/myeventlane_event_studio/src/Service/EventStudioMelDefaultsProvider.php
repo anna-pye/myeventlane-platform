@@ -434,6 +434,8 @@ final class EventStudioMelDefaultsProvider {
       '#default_value' => $field_age_restriction_default,
     ];
 
+    $mel['refund_acl_acknowledged'] = RefundPolicyRequirement::checkbox(RefundPolicyRequirement::acknowledged($event));
+
     $mel['field_refund_policy'] = [
       '#type' => 'select',
       '#options' => $this->listStringFieldOptions('field_refund_policy'),

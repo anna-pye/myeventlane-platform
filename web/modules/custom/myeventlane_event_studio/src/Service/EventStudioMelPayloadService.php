@@ -307,6 +307,7 @@ final class EventStudioMelPayloadService {
       'field_age_policy' => trim((string) ($mel['field_age_policy'] ?? 'all_ages')),
       'field_age_policy_note' => trim((string) ($mel['field_age_policy_note'] ?? '')),
       'field_age_restriction' => trim((string) ($mel['field_age_restriction'] ?? '')),
+      'refund_acl_acknowledged' => array_key_exists('refund_acl_acknowledged', $mel) ? !empty($mel['refund_acl_acknowledged']) : NULL,
       'field_refund_policy' => trim((string) ($mel['field_refund_policy'] ?? '')),
       'field_event_type' => $ticket_type,
       'ticket_type' => $ticket_type,

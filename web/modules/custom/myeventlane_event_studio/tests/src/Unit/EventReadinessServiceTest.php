@@ -98,6 +98,7 @@ final class EventReadinessServiceTest extends UnitTestCase {
         'field_capacity', 'field_event_capacity_total' => $capacity,
         'field_attendee_questions' => $questions,
         'field_ticket_types' => $ticket_types,
+        'field_refund_policy', 'field_refund_acknowledgement' => $capacity,
         default => throw new \InvalidArgumentException($field),
       };
     });
