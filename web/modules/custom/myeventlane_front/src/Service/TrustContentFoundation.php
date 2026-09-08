@@ -67,7 +67,7 @@ final class TrustContentFoundation {
         . '<p>Paid events use secure checkout powered by <strong>Stripe</strong>. When you sell tickets, two types of fees may apply:</p>'
         . '<ul>'
         . '<li><strong>MyEventLane platform fee</strong> — currently <strong>' . htmlspecialchars($platformFee, ENT_QUOTES, 'UTF-8') . '</strong>, including GST, on ticket sales. This supports hosting, support, and platform development.</li>'
-        . '<li><strong>Stripe payment processing</strong> — Stripe charges the organiser\'s connected Stripe account according to its pricing and payment method. MyEventLane does not add a fixed Stripe amount to its platform fee. See <a href="https://stripe.com/au/pricing" rel="noopener noreferrer" target="_blank">Stripe pricing</a> for current details.</li>'
+        . '<li><strong>Stripe payment processing</strong> — Stripe processing fees are separate from the MyEventLane platform fee. Rates depend on your Stripe account pricing and the payment method used. Check your Stripe account and <a href="https://stripe.com/au/pricing" rel="noopener noreferrer" target="_blank">Stripe’s Australian pricing page</a> for applicable rates. MyEventLane does not add a separate Stripe processing charge at checkout.</li>'
         . '</ul>'
         . '<h3>Who pays fees</h3>'
         . '<p>' . htmlspecialchars($feePayerText, ENT_QUOTES, 'UTF-8') . '</p>'
