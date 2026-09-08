@@ -537,7 +537,11 @@ final class EventStudioSectionRenderer {
     $params = ['node' => $nid];
     $fix_label = (string) $this->t('Fix → Details');
 
-    if (str_contains($lower, 'stripe') || str_contains($lower, 'payment') || str_contains($lower, 'get paid')) {
+    if (str_contains($lower, 'refund') || str_contains($lower, 'consumer rights')) {
+      $route = 'myeventlane_event_studio.workspace_content';
+      $fix_label = (string) $this->t('Fix → Refunds');
+    }
+    elseif (str_contains($lower, 'stripe') || str_contains($lower, 'payment') || str_contains($lower, 'get paid')) {
       $route = 'myeventlane_vendor.console.payments';
       $params = [];
       $fix_label = (string) $this->t('Connect Stripe');

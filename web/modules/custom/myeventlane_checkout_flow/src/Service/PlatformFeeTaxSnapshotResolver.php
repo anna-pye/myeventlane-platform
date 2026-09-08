@@ -113,7 +113,7 @@ final class PlatformFeeTaxSnapshotResolver {
     }
 
     return [
-      'platform_name' => trim((string) $settings->get('platform_legal_name')) ?: 'MyEventLane Inc',
+      'platform_name' => trim((string) $settings->get('platform_legal_name')) ?: 'My EventLane',
       'platform_abn' => trim((string) $settings->get('platform_abn')),
       'fee_lines' => $feeLines,
     ];

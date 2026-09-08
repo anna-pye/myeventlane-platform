@@ -1,0 +1,19 @@
+uuid: 296beaa9-286b-4eee-bd01-6d1b4b76baed
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.node.field_refund_acknowledgement
+    - node.type.event
+id: node.event.field_refund_acknowledgement
+field_name: field_refund_acknowledgement
+entity_type: node
+bundle: event
+label: 'Refund obligations acknowledgement'
+description: 'Statement version, acknowledging user and time, recorded by Event Studio.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string_long

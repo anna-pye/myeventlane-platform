@@ -141,7 +141,7 @@ body_html: |
           {% endif %}
           {% if platform_fee_lines|default([])|length > 0 %}
             <h3 style="color:#2c3e50; font-size:16px; margin:18px 0 8px; border-top:2px solid #fef5ec; padding-top:14px;">MyEventLane platform charges</h3>
-            <p style="color:#34495e; font-size:14px; line-height:1.6; margin:0 0 12px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'MyEventLane Inc' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
+            <p style="color:#34495e; font-size:14px; line-height:1.6; margin:0 0 12px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'My EventLane' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
             {% for fee in platform_fee_lines|default([]) %}
               <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;"><span>{{ fee.label }}</span><span style="font-weight:600;">{{ fee.amount }}</span></div>
               <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;"><span>GST included in this fee</span><span style="font-weight:600;">{{ fee.gst }}</span></div>

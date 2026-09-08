@@ -61,7 +61,7 @@ final class GeneralSettingsForm extends ConfigFormBase {
       '#type' => 'textfield',
       '#title' => $this->t('MEL legal supplier name'),
       '#description' => $this->t('Legal name shown for MEL-owned fees on buyer tax invoices and receipts.'),
-      '#default_value' => $config->get('platform_legal_name') ?? 'MyEventLane Inc',
+      '#default_value' => $config->get('platform_legal_name') ?? 'My EventLane',
       '#maxlength' => 128,
       '#required' => TRUE,
     ];

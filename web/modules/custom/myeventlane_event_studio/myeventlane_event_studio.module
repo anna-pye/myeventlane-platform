@@ -635,3 +635,20 @@ function myeventlane_event_studio_preprocess_mel_event_studio(&$variables): void
   $variables['mel_studio_governance'] = $element['#mel_studio_governance'] ?? ['enabled' => FALSE];
   $variables['mel_hero_placeholder_url'] = myeventlane_event_studio_hero_placeholder_url();
 }
+
+/**
+ * Implements hook_entity_field_access().
+ *
+ * Acknowledgement evidence is written by the authenticated Studio save path.
+ */
+function myeventlane_event_studio_entity_field_access($operation, \Drupal\Core\Field\FieldDefinitionInterface $field_definition, \Drupal\Core\Session\AccountInterface $account, ?\Drupal\Core\Field\FieldItemListInterface $items = NULL) {
+  if ($field_definition->getName() !== \Drupal\myeventlane_event_studio\Service\RefundPolicyRequirement::FIELD) {
+    return \Drupal\Core\Access\AccessResult::neutral();
+  }
+  if ($operation === 'edit') {
+    return \Drupal\Core\Access\AccessResult::forbidden('Acknowledgements must be recorded through Event Studio.');
+  }
+  return ($account->hasPermission('administer nodes')
+    ? \Drupal\Core\Access\AccessResult::allowed()
+    : \Drupal\Core\Access\AccessResult::forbidden())->cachePerPermissions();
+}

@@ -60,7 +60,7 @@ final class PlatformFeeTaxSnapshotResolverTest extends TestCase {
     $config = $this->createMock(Config::class);
     $config->method('get')->willReturnMap([
       ['platform_fee_gst_inclusive', TRUE],
-      ['platform_legal_name', 'MyEventLane Inc'],
+      ['platform_legal_name', 'My EventLane'],
       ['platform_abn', '11 304 813 593'],
     ]);
 
@@ -108,7 +108,7 @@ final class PlatformFeeTaxSnapshotResolverTest extends TestCase {
     $resolver = new PlatformFeeTaxSnapshotResolver($configFactory, $rounder);
     $snapshot = $resolver->capture($order);
 
-    self::assertSame('MyEventLane Inc', $snapshot['platform_name']);
+    self::assertSame('My EventLane', $snapshot['platform_name']);
     self::assertSame('11 304 813 593', $snapshot['platform_abn']);
     self::assertSame('0.30', $snapshot['fee_lines'][0]['amount_number']);
     self::assertSame('0.03', $snapshot['fee_lines'][0]['gst_number']);
@@ -116,6 +116,21 @@ final class PlatformFeeTaxSnapshotResolverTest extends TestCase {
       'myeventlane_platform_fee',
       $snapshot['fee_lines'][0]['source_id'],
     );
+  }
+
+  /**
+   * Renaming the platform must not rewrite recorded supplier evidence.
+   */
+  public function testExistingSupplierSnapshotIsPreserved(): void {
+    $existing = ['platform_name' => 'MyEventLane Inc', 'platform_abn' => '11 304 813 593', 'fee_lines' => []];
+    $order = $this->createMock(OrderInterface::class);
+    $order->method('getData')->with(PlatformFeeTaxSnapshotResolver::ORDER_DATA_KEY)->willReturn($existing);
+    $order->expects(self::never())->method('setData');
+    $factory = $this->createMock(ConfigFactoryInterface::class);
+    $factory->expects(self::never())->method('get');
+    $resolver = new PlatformFeeTaxSnapshotResolver($factory, $this->createMock(RounderInterface::class));
+    self::assertSame($existing, $resolver->capture($order));
+    self::assertSame($existing, $resolver->resolve($order));
   }
 
 }

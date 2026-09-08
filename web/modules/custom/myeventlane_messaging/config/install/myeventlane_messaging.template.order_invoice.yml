@@ -31,7 +31,7 @@ body_html: |
     {% if platform_fee_lines|default([])|length > 0 %}
       <div style="page-break-inside:avoid;break-inside:avoid;margin:14px 0;padding-top:10px;border-top:1px solid #dddddd;">
         <h2 style="font-size:17px;margin:0 0 4px;">MyEventLane platform charges</h2>
-        <p style="margin:0 0 6px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'MyEventLane Inc' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
+        <p style="margin:0 0 6px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'My EventLane' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{% for fee in platform_fee_lines %}
           <tr><td style="padding:3px 0;">{{ fee.label }}</td><td align="right"><strong>{{ fee.amount }}</strong></td></tr>
           <tr><td style="padding:3px 0;font-size:13px;">GST included in this fee</td><td align="right" style="font-size:13px;">{{ fee.gst }}</td></tr>

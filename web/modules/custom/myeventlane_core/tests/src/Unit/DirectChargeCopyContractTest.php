@@ -72,12 +72,26 @@ final class DirectChargeCopyContractTest extends TestCase {
       'web/modules/custom/myeventlane_vendor/src/Controller/VendorOnboardStripeController.php',
       'web/modules/custom/myeventlane_vendor/src/Service/PaidPublishStripeGate.php',
       'web/modules/custom/myeventlane_refunds/src/Form/VendorRefundRequestApproveForm.php',
-      'web/modules/custom/myeventlane_legal/src/Service/LegalPolicyPageContent.php',
     ] as $relativePath) {
       $source = file_get_contents($root . '/' . $relativePath);
       self::assertIsString($source);
       self::assertStringContainsString('DirectChargeCopy::', $source, $relativePath);
     }
+  }
+
+  /**
+   * The separately approved terms retain seller and platform responsibilities.
+   */
+  public function testLegalTermsRetainSupplierAndConsumerRights(): void {
+    require_once dirname(__DIR__, 4) . '/myeventlane_legal/src/Service/LegalPolicyPageContent.php';
+    $pages = \Drupal\myeventlane_legal\Service\LegalPolicyPageContent::getDefinitions();
+    $terms = $pages['/terms']['body'];
+    self::assertStringContainsString('supplies the event and sells its tickets', $terms);
+    self::assertStringContainsString('connected Stripe account', $terms);
+    self::assertStringContainsString('My EventLane remains responsible for its own services', $terms);
+    self::assertStringContainsString('cannot lawfully be excluded under Australian Consumer Law', $terms);
+    self::assertStringContainsString('href="/contact"', $terms);
+    self::assertStringNotContainsString('Limits and disclaimers', $terms);
   }
 
 }

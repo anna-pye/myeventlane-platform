@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event_studio\Form;
 
+use Drupal\myeventlane_event_studio\Service\RefundPolicyRequirement;
 use Drupal\Core\Cache\CacheableMetadata;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Entity\EntityFieldManagerInterface;
@@ -774,13 +775,16 @@ final class EventStudioForm extends FormBase {
 
     $form['mel']['field_refund_policy'] = [
       '#type' => 'select',
-      '#title' => $this->t('Refund policy'),
-      '#options' => $this->listStringFieldOptions('field_refund_policy'),
-      '#empty_option' => $this->t('- Not specified -'),
+      '#title' => $this->t('Change-of-mind refund policy'),
+      '#options' => RefundPolicyRequirement::options($this->listStringFieldOptions('field_refund_policy')),
+      '#empty_option' => $this->t('- Choose a policy -'),
       '#empty_value' => '',
       '#default_value' => $field_refund_policy_default,
       '#attributes' => ['class' => ['mel-input']],
     ];
+    $form['mel']['refund_acl_statement'] = ['#markup' => RefundPolicyRequirement::statement()];
+    $form['mel']['refund_acl_acknowledged'] = RefundPolicyRequirement::checkbox(RefundPolicyRequirement::acknowledged($event));
+
 
     $form['mel']['venue_mode'] = [
       '#type' => 'radios',

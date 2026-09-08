@@ -54,10 +54,12 @@ final class CustomerRefundActionContractTest extends TestCase {
       'event_title' => 'Community Workshop',
       'can_refund' => FALSE,
       'refund_url' => NULL,
-      'ineligible_reason' => 'The refund window for this event has closed.',
+      'ineligible_reason' => 'This event’s online refund request window has closed. Your rights under Australian Consumer Law still apply. Contact the organiser or My EventLane support if you believe you are entitled to a refund.',
     ]);
     self::assertStringNotContainsString('href="/my-tickets/order/623/refund', $html);
-    self::assertStringContainsString('The refund window for this event has closed.', $html);
+    self::assertStringContainsString('href="/contact"', $html);
+    self::assertStringContainsString('Contact My EventLane support', $html);
+    self::assertStringContainsString('This event’s online refund request window has closed. Your rights under Australian Consumer Law still apply. Contact the organiser or My EventLane support if you believe you are entitled to a refund.', $html);
   }
 
   /**
