@@ -70,6 +70,7 @@ function &_myeventlane_commerce_get_qty_ref(array &$form) {
  * this cannot be implemented in myeventlane_theme.module.
  */
 function myeventlane_commerce_page_attachments(array &$attachments): void {
+  $attachments['#cache']['tags'][] = 'config:myeventlane_core.settings';
   $route = \Drupal::routeMatch()->getRouteName();
   if ($route !== 'myeventlane_commerce.event_book') {
     return;
@@ -112,8 +113,12 @@ function myeventlane_commerce_page_attachments(array &$attachments): void {
     'currencyCode' => $currency,
     'locale' => $locale,
     'cartExtras' => $cart_extras,
+    'ticketFeePercent' => \Drupal::service('myeventlane_commerce.public_price')->buyerFeePercent(),
+    'extrasFeePercent' => \Drupal::service('myeventlane_commerce.public_price')->buyerFeePercent(TRUE),
+    'fractionDigits' => \Drupal::service('commerce_price.currency_repository')->get($currency)->getFractionDigits(),
     'strings' => [
-      'subtotal' => (string) t('Subtotal'),
+      'subtotal' => (string) t('Total'),
+      'platformFee' => (string) t('Platform fees'),
       'ticketCount' => (string) t('@count tickets'),
       'noTicketsYet' => (string) t('No tickets selected'),
       'ticketFallback' => (string) t('Ticket'),
@@ -508,6 +513,7 @@ function myeventlane_commerce_entity_view_alter(array &$build, EntityInterface $
   if (!$entity instanceof NodeInterface || $entity->bundle() !== 'event') {
     return;
   }
+  $build['#cache']['tags'][] = 'config:myeventlane_core.settings';
   if (!method_exists($display, 'getMode')) {
     return;
   }
@@ -716,6 +722,36 @@ function myeventlane_commerce_form_alter(array &$form, FormStateInterface $form_
     $cart = $order_id > 0
       ? \Drupal::entityTypeManager()->getStorage('commerce_order')->load($order_id)
       : NULL;
+    if ($cart instanceof OrderInterface && $cart->getTotalPrice() !== NULL) {
+      $formatter = \Drupal::service('commerce_price.currency_formatter');
+      $total = $cart->getTotalPrice();
+      $form['mel_buyer_total'] = [
+        '#type' => 'container',
+        '#weight' => 35,
+        '#attributes' => ['class' => ['mel-cart-buyer-total']],
+        'total' => [
+          '#type' => 'html_tag',
+          '#tag' => 'h2',
+          '#value' => t('Total: @total', ['@total' => $formatter->format($total->getNumber(), $total->getCurrencyCode())]),
+        ],
+        'note' => ['#markup' => '<p>' . t('Includes mandatory fees. Optional extras and discounts are reflected in your order total.') . '</p>'],
+      ];
+      foreach ($cart->collectAdjustments() as $index => $adjustment) {
+        if ($adjustment->isIncluded() || $adjustment->getAmount()->isZero()) {
+          continue;
+        }
+        $amount = $adjustment->getAmount();
+        $form['mel_buyer_total']['adjustment_' . $index] = [
+          '#type' => 'html_tag',
+          '#tag' => 'p',
+          '#value' => t('@label: @amount', [
+            '@label' => $adjustment->getLabel(),
+            '@amount' => $formatter->format($amount->getNumber(), $amount->getCurrencyCode()),
+          ]),
+        ];
+      }
+      \Drupal\Core\Cache\CacheableMetadata::createFromObject($cart)->applyTo($form['mel_buyer_total']);
+    }
     if ($cart instanceof OrderInterface && \Drupal::hasService('myeventlane_commerce.cart_ticket_hold')) {
       $hold = \Drupal::service('myeventlane_commerce.cart_ticket_hold')->summary($cart);
       $form['#mel_ticket_hold'] = $hold;

@@ -444,7 +444,7 @@
         : 'mel-booking-summary__item';
       const label = document.createElement('span');
       label.className = 'mel-booking-summary__item-label';
-      label.textContent = `${line.qty} × ${line.title}`;
+      label.textContent = line.qty === null ? line.title : `${line.qty} × ${line.title}`;
       const amt = document.createElement('span');
       amt.className = 'mel-booking-summary__item-amount';
       amt.textContent = fmt.format(line.line);
@@ -457,6 +457,8 @@
       const rows = getTicketRows(ticketForm);
       let ticketQty = 0;
       let subtotal = 0;
+      let ticketSubtotal = 0;
+      let extrasSubtotal = 0;
       /** @type {{ title: string, qty: number, line: number }[]} */
       const ticketLines = [];
 
@@ -474,6 +476,7 @@
         ticketQty += qty;
         const line = qty * unit;
         subtotal += line;
+        ticketSubtotal += line;
         ticketLines.push({ title, qty, line });
       });
 
@@ -484,13 +487,19 @@
       extraLines.forEach((l) => {
         extraQty += l.qty;
         subtotal += l.line;
+        extrasSubtotal += l.line;
       });
 
       const hasTickets = ticketQty > 0;
       const hasExtras = extraLines.length > 0;
       const hasSelection = hasTickets || hasExtras;
       const donationLine = hasTickets ? getOptionalDonation(ticketForm) : 0;
-      const displayTotal = subtotal + donationLine;
+      // Commerce rounds each category fee on its subtotal, not per ticket.
+      const scale = 10 ** (settings.fractionDigits ?? 2);
+      const feeFor = (base, percent) => Math.round((base * Number(percent || 0) / 100 + Number.EPSILON) * scale) / scale;
+      const platformFee = feeFor(ticketSubtotal, settings.ticketFeePercent)
+        + feeFor(extrasSubtotal, settings.extrasFeePercent);
+      const displayTotal = subtotal + platformFee + donationLine;
 
       if (targets.empty) {
         targets.empty.hidden = hasSelection;
@@ -509,6 +518,9 @@
               { title: strings.donationLine || 'Contribution', qty: 1, line: donationLine },
               'mel-booking-summary__item--donation',
             );
+          }
+          if (platformFee > 0) {
+            appendSummaryLine(ul, { title: strings.platformFee || 'Platform fees', qty: null, line: platformFee }, 'mel-booking-summary__item--fee');
           }
           targets.items.innerHTML = '';
           targets.items.appendChild(ul);

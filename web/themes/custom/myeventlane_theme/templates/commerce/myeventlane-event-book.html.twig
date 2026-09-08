@@ -281,7 +281,7 @@
             {% endif %}
           </h2>
           {% if event_mode == 'paid' %}
-            <p class="mel-ticket-panel__lead">{{ 'Select ticket quantities below. Payment comes after you review your cart.'|t }}</p>
+            <p class="mel-ticket-panel__lead">{{ 'Ticket prices include mandatory fees. Select quantities to see your total before payment.'|t }}</p>
           {% elseif event_mode == 'rsvp' %}
             <p class="mel-ticket-panel__lead">{{ 'Free RSVP — no payment required. Complete the form to reserve your place.'|t }}</p>
             {% if mel_signal_remaining_spots is defined and mel_signal_remaining_spots is not null and mel_signal_remaining_spots > 0 %}
@@ -355,7 +355,7 @@
                 </div>
                 <div class="mel-booking-summary__items" data-mel-summary-items aria-live="polite" aria-atomic="true"></div>
                 <div class="mel-booking-summary__subtotal" data-mel-summary-subtotal hidden>
-                  <span class="mel-booking-summary__subtotal-label">{{ 'Subtotal'|t }}</span>
+                  <span class="mel-booking-summary__subtotal-label">{{ 'Total including mandatory fees'|t }}</span>
                   <span class="mel-booking-summary__subtotal-value" data-mel-summary-subtotal-value></span>
                 </div>
               </div>
