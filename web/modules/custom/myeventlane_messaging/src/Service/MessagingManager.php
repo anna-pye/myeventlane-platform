@@ -133,6 +133,7 @@ final class MessagingManager {
     private readonly ?BrandResolverInterface $vendorBrandResolver = NULL,
     private readonly ?VendorCommsResolver $vendorCommsResolver = NULL,
     private readonly ?OrderConfirmationAttachmentResolver $orderConfirmationAttachmentResolver = NULL,
+    private readonly ?ReceiptPaymentContext $receiptPaymentContext = NULL,
   ) {}
 
   /**
@@ -439,6 +440,12 @@ final class MessagingManager {
       ]);
       return;
     }
+    // ORDER_PAID can precede placement. Resolve the final reference before
+    // claiming delivery so an unfinished order can retry without a stale claim.
+    $receiptContext = [];
+    if ($message->template === 'order_invoice' && $this->receiptPaymentContext) {
+      $receiptContext = $this->receiptPaymentContext->resolve((int) ($message->context['order_id'] ?? 0));
+    }
     if ($message->status !== 'processing'
       && !$this->messageStorage->claimForDelivery($messageId, $now)) {
       $this->logger->info('Message delivery claim was not acquired. message_id=@id', [
@@ -451,6 +458,7 @@ final class MessagingManager {
     $type = $message->template;
     $to = $message->recipient;
     $ctx = is_array($message->context ?? NULL) ? $message->context : [];
+    $ctx = array_replace($ctx, $receiptContext);
 
     $queuedAttachments = $ctx['_attachments'] ?? [];
 

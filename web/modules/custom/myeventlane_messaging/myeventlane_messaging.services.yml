@@ -64,6 +64,10 @@ services:
       - '@logger.channel.myeventlane_messaging'
       - '@?myeventlane_tickets.ticket_pdf_generator'
 
+  myeventlane_messaging.receipt_payment_context:
+    class: Drupal\myeventlane_messaging\Service\ReceiptPaymentContext
+    arguments: ['@entity_type.manager', '@commerce_price.currency_formatter']
+
   myeventlane_messaging.manager:
     class: Drupal\myeventlane_messaging\Service\MessagingManager
     arguments:
@@ -80,6 +84,7 @@ services:
       - '@myeventlane_messaging.vendor_brand_resolver'
       - '@?myeventlane_pro.vendor_comms_resolver'
       - '@myeventlane_messaging.order_confirmation_attachment_resolver'
+      - '@myeventlane_messaging.receipt_payment_context'
 
   myeventlane_messaging.order_confirmation_queue:
     class: Drupal\myeventlane_messaging\Service\OrderConfirmationQueueBuilder
