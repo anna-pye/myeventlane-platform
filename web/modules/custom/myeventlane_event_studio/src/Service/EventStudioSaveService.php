@@ -287,7 +287,7 @@ final class EventStudioSaveService {
     }
 
     $this->applySalesWindowPayload($node, $payload);
-    $this->applyAgeRefundPolicyPayload($node, $payload);
+    $this->applyAgeRefundPolicyPayload($node, $payload, $account);
     $this->applyAccessibilityTextPayload($node, $payload);
 
     if ($node->hasField('field_event_type') && isset($payload['field_event_type'])) {
@@ -1056,7 +1056,7 @@ final class EventStudioSaveService {
   /**
    * @param array<string, mixed> $payload
    */
-  private function applyAgeRefundPolicyPayload(NodeInterface $node, array $payload): void {
+  private function applyAgeRefundPolicyPayload(NodeInterface $node, array $payload, AccountInterface $account): void {
     if ($node->hasField('field_age_policy') && array_key_exists('field_age_policy', $payload)) {
       $v = trim((string) $payload['field_age_policy']);
       $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_age_policy'));
@@ -1089,6 +1089,19 @@ final class EventStudioSaveService {
       else {
         $allowed = $this->listStringValueKeys($node->getFieldDefinition('field_age_restriction'));
         $node->set('field_age_restriction', in_array($v, $allowed, TRUE) ? $v : NULL);
+      }
+    }
+
+    if (isset($payload['refund_acl_acknowledged']) && $node->hasField(RefundPolicyRequirement::FIELD)) {
+      if (empty($payload['refund_acl_acknowledged'])) {
+        $node->set(RefundPolicyRequirement::FIELD, NULL);
+      }
+      elseif (!RefundPolicyRequirement::acknowledged($node)) {
+        $node->set(RefundPolicyRequirement::FIELD, json_encode([
+          'version' => RefundPolicyRequirement::VERSION,
+          'uid' => (int) $account->id(),
+          'accepted_at' => time(),
+        ], JSON_THROW_ON_ERROR));
       }
     }
 

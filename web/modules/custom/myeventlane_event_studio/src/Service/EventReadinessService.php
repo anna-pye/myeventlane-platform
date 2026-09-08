@@ -53,7 +53,7 @@ final class EventReadinessService {
       return EventReadinessResult::create([(string) $this->t('Invalid event.')]);
     }
 
-    $errors = [];
+    $errors = RefundPolicyRequirement::errors($event, $this->getStringTranslation());
     $warnings = [];
     $completed = [];
     $recommendations = [];
