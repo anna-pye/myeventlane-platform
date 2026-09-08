@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Drupal\myeventlane_legal\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\myeventlane_core\Policy\DirectChargeCopy;
 
 /**
  * Owner-approved legal policy page content for the direct-charge migration.
@@ -40,7 +39,7 @@ final class LegalPolicyPageContent {
       ],
       '/terms' => [
         'title' => 'Customer Terms of Service',
-        'body' => self::buildTermsBody($date, $contactBlock, $reviewNotice),
+        'body' => self::buildTermsBody('8 September 2026', $contactBlock, $reviewNotice),
       ],
       '/cookie-policy' => [
         'title' => 'Cookie Policy',
@@ -48,7 +47,7 @@ final class LegalPolicyPageContent {
       ],
       '/vendor-terms' => [
         'title' => 'Vendor Agreement',
-        'body' => self::buildVendorTermsBody($date, $contactBlock),
+        'body' => self::buildVendorTermsBody('8 September 2026', $contactBlock),
       ],
     ];
   }
@@ -58,7 +57,7 @@ final class LegalPolicyPageContent {
       . $reviewNotice
       . '<p><strong>Last updated:</strong> ' . $date . '</p>'
       . '<h3>What this page covers</h3>'
-      . '<p>This Privacy Policy describes how MyEventLane Pty Ltd (<strong>MyEventLane</strong>, <strong>we</strong>, <strong>us</strong>) handles personal information when you use our website, create an account, browse events, RSVP, or buy tickets. It is a practical summary for launch — not final legal advice.</p>'
+      . '<p>This Privacy Policy describes how My EventLane · ABN 11 304 813 593 (<strong>MyEventLane</strong>, <strong>we</strong>, <strong>us</strong>) handles personal information when you use our website, create an account, browse events, RSVP, or buy tickets. It is a practical summary for launch — not final legal advice.</p>'
       . '<h3>Information we collect</h3>'
       . '<p>Depending on how you use MyEventLane, we may collect:</p>'
       . '<ul>'
@@ -95,36 +94,30 @@ final class LegalPolicyPageContent {
   private static function buildTermsBody(string $date, string $contactBlock, string $reviewNotice): string {
     return '<h2>Terms of Service</h2>'
       . $reviewNotice
+      . '<p><strong>My EventLane · ABN 11 304 813 593</strong></p>'
       . '<p>These Terms govern your use of MyEventLane as an attendee, account holder, or visitor. By using the platform, you agree to these Terms and our <a href="/privacy">Privacy Policy</a>.</p>'
       . '<p><strong>Last updated:</strong> ' . $date . '</p>'
       . '<h3>Using MyEventLane</h3>'
       . '<p>MyEventLane helps people discover events and helps organisers publish listings, sell tickets, and manage RSVPs. You must use the platform lawfully, provide accurate information, and respect other users.</p>'
-      . '<h3>Platform role</h3>'
-      . '<p>' . DirectChargeCopy::CUSTOMER_SELLER . ' MyEventLane is <strong>not</strong> the organiser or host unless we clearly say otherwise. Organisers are responsible for their events, listings, pricing, attendee communication and compliance with applicable law.</p>'
+      . '<h3>Platform role</h3><p>The event organiser identified for your booking supplies the event and sells its tickets. My EventLane supplies the ticketing platform, including booking tools and support. Unless the event listing identifies My EventLane as the organiser, the organiser is responsible for delivering the event and communicating with attendees. My EventLane remains responsible for its own services, statements and obligations under applicable law.</p>'
       . '<h3>Accounts</h3>'
       . '<p>You are responsible for keeping your login details secure and for activity on your account. Tell us promptly if you suspect unauthorised access.</p>'
       . '<h3>Event listings</h3>'
       . '<p>Listing details (date, location, description, accessibility information, and policies) are provided by organisers. Check each event page before you book. MyEventLane may remove or restrict listings that breach these Terms or our community standards.</p>'
-      . '<h3>Tickets and RSVPs</h3>'
-      . '<p>When you RSVP or purchase a ticket, you enter an arrangement with the event organiser. MyEventLane facilitates booking and payment processing but does not guarantee that an event will proceed as described.</p>'
-      . '<h3>Payments and fees</h3>'
-      . '<p>Ticket payments are direct charges on the organiser\'s connected Stripe account. MyEventLane does not receive and later pay out the organiser\'s ticket revenue. Any MEL platform fee and applicable Stripe processing fee must be shown before you complete checkout. See our <a href="/pricing">Pricing &amp; fees</a> page for general information.</p>'
+      . '<h3>Tickets and RSVPs</h3><p>Your ticket purchase or RSVP is a booking with the event organiser. The event description and any event-specific conditions disclosed before you book form part of that booking. Those conditions cannot exclude or restrict rights that apply under Australian Consumer Law. My EventLane provides the booking service and helps you access your booking records.</p>'
+      . '<h3>Payments and fees</h3><p>Stripe processes ticket payments through the organiser’s connected Stripe account. Displayed ticket prices include mandatory attendee fees. Your order total and fee breakdown are shown before payment. My EventLane does not add a separate Stripe processing charge at checkout. See our <a href="/pricing">Pricing &amp; fees</a> page for details.</p>'
       . '<h3>GST on tickets and platform charges</h3>'
       . '<p>The organiser is the supplier of its tickets. Organiser GST is included and shown only where the organiser is currently registered for GST and the sale is taxable. An active ABN does not by itself mean the organiser is registered for GST. MyEventLane is the separate supplier of its platform charges, which may include GST even when the organiser is not registered. Your receipt identifies the relevant supplier and the GST recorded for each charge.</p>'
-      . '<h3>Refunds</h3>'
-      . '<p>The organiser is responsible for the event and its refund policy, subject to rights that cannot be excluded under Australian Consumer Law. MyEventLane may provide the refund workflow and support, but an approved refund is funded from the organiser\'s connected Stripe account and processed by Stripe. See our <a href="/help/policies/refund-policy">refund guidance</a>.</p>'
-      . '<h3>Disputes and chargebacks</h3>'
-      . '<p>The organiser, as seller, is responsible for responding to payment disputes about their event and providing requested evidence. Stripe controls the dispute process and outcome. MyEventLane may provide order or booking records but cannot decide a Stripe dispute.</p>'
+      . '<h3>Refunds</h3><p>The organiser is responsible for meeting its refund obligations for the event. Its change-of-mind policy operates in addition to your rights under Australian Consumer Law and cannot override them.</p><p>Open your booking from your account or confirmation email and use the refund or contact option shown. If you cannot submit a request, cannot reach the organiser, or need help with a disputed or delayed refund, <a href="/contact">contact My EventLane support</a> with your booking reference. We can investigate booking and refund records and help you contact the organiser. Contact us directly about a problem with My EventLane’s own service.</p><p>Event refunds are generally processed through Stripe using the organiser’s connected account. A right to a refund under applicable law does not depend on the organiser choosing to approve it or having sufficient funds available. See our <a href="/help/policies/refund-policy">refund policy</a>.</p>'
+      . '<h3>Disputes and chargebacks</h3><p>You may contact your bank or payment provider about any available payment dispute or chargeback process. Eligibility, time limits and outcomes depend on your payment method and the relevant provider and card network rules. My EventLane can provide booking records and help investigate payment information but does not decide a chargeback. These processes do not replace your rights under applicable law.</p>'
       . '<h3>Organiser responsibilities</h3>'
       . '<p>Organisers must provide accurate event information, comply with applicable laws, honour reasonable attendee expectations, and use attendee data only for legitimate event-related purposes. Separate <a href="/vendor-terms">Vendor Terms</a> apply when you host events on MyEventLane.</p>'
       . '<h3>Community standards</h3>'
       . '<p>We expect respectful behaviour. See our <a href="/help/policies/community-guidelines">Community guidelines</a> in the Help Centre.</p>'
       . '<h3>Prohibited use</h3>'
       . '<p>You must not misuse the platform — for example, by posting unlawful content, attempting fraud, scraping data without permission, interfering with security, or impersonating others.</p>'
-      . '<h3>Changes to events</h3>'
-      . '<p>Organisers may change or cancel events. If that happens, follow the organiser’s instructions and our Help Centre guidance. MyEventLane is not responsible for organiser decisions about postponement or cancellation.</p>'
-      . '<h3>Limits and disclaimers</h3>'
-      . '<p>The platform is provided on an &quot;as available&quot; basis. To the extent permitted by law, MyEventLane limits its liability for organiser conduct, event outcomes, and indirect loss. Nothing in these draft Terms excludes rights that cannot be excluded under Australian consumer law. Final liability wording requires legal review.</p>'
+      . '<h3>Changes to events</h3><p>If the organiser chooses to cancel an event or makes a major change, you are entitled to a refund under Australian Consumer Law. You may also have rights where the event cannot be delivered safely. Rights arising from other cancellations or changes depend on the circumstances, the ticket terms and applicable law. Organisers must tell attendees promptly about cancellations and major changes. Contact the organiser or My EventLane support for help with your booking.</p>'
+      . '<h3>Your consumer rights</h3><p>Nothing in these terms excludes, restricts or modifies any consumer guarantee, right or remedy that cannot lawfully be excluded under Australian Consumer Law or other applicable law. Depending on the circumstances, those remedies may include a refund and compensation for reasonably foreseeable loss. The organiser remains responsible for the event it supplies, and My EventLane remains responsible for its own services and conduct.</p>'
       . '<h3>Contact</h3>'
       . $contactBlock;
   }
@@ -132,9 +125,9 @@ final class LegalPolicyPageContent {
   private static function buildVendorTermsBody(string $date, string $contactBlock): string {
     return '<h2>Organiser Agreement</h2>'
       . '<p><strong>Last updated:</strong> ' . $date . '</p>'
+      . '<p><strong>My EventLane · ABN 11 304 813 593</strong></p>'
       . '<p>This agreement applies when you list or run an event, sell tickets, or manage RSVPs through MyEventLane.</p>'
-      . '<h3>Your role as seller</h3>'
-      . '<p>You are the seller for each paid event you publish. You are responsible for the event, ticket descriptions, pricing, delivery, attendee communication, cancellations, refunds and compliance with applicable law. MyEventLane provides the marketplace and booking workflow.</p>'
+      . '<h3>Your role as seller</h3><p>You supply the event and sell the tickets for each event you publish. You must have authority to sell those tickets and accurately identify the event supplier. You are responsible for event descriptions, prices, delivery, attendee communication and your obligations under applicable law. My EventLane supplies the ticketing platform and remains responsible for its own services and conduct.</p>'
       . '<h3>Stripe account and ticket revenue</h3>'
       . '<p>Paid ticket transactions are direct charges on your connected Stripe account. Your ticket revenue belongs to you and is managed through Stripe. Stripe sends available funds to your nominated bank account according to your Stripe payout schedule. MyEventLane does not hold or manually release your ticket-sale funds.</p>'
       . '<h3>Fees</h3>'
@@ -142,8 +135,7 @@ final class LegalPolicyPageContent {
       . '<h3>GST registration and tax information</h3>'
       . '<p>You must tell us whether your organisation is currently registered for GST with the Australian Taxation Office (ATO). An active ABN does not by itself mean you are registered for GST. If you are registered, you must provide a valid ABN and the GST registration effective date shown on <a href="https://abr.business.gov.au/">ABN Lookup</a>. You must keep this information current and confirm that it matches the Australian Business Register.</p>'
       . '<p>MyEventLane uses your recorded status to prepare invoices and apply organiser GST to taxable ticket sales. If you are not currently registered, MyEventLane will not include organiser GST in your ticket sales. MyEventLane\'s separate platform fee may still include GST. You remain responsible for your own registration and tax obligations; check the <a href="https://www.ato.gov.au/businesses-and-organisations/gst-excise-and-indirect-taxes/gst/registering-for-gst">current ATO guidance</a> or obtain professional advice if you are unsure.</p>'
-      . '<h3>Refunds, cancellations and disputes</h3>'
-      . '<p>You must handle refund requests fairly and meet obligations that cannot be excluded under Australian Consumer Law. Refunds processed through MyEventLane are funded from your connected Stripe account. Keep sufficient funds available for refunds, cancellations and disputes. Stripe controls dispute and chargeback processing; you must respond and provide requested evidence. MyEventLane may provide booking records but cannot decide a Stripe dispute.</p>'
+      . '<h3>Refunds, cancellations and disputes</h3><p>You must clearly disclose your event conditions and change-of-mind refund policy before a booking is made. They cannot exclude or restrict rights under Australian Consumer Law.</p><p>If you choose to cancel an event or make a major change, you must provide refunds required by Australian Consumer Law. You must promptly notify affected attendees, explain how to request a remedy, and respond to requests within a reasonable time. You must also consider any other remedy required by law, including compensation where applicable.</p><p>Refunds processed through My EventLane generally use your connected Stripe account. You must maintain access to sufficient funds to meet refunds and payment disputes, including after payouts have reached your bank. A lack of available funds does not remove your obligations to attendees. Keep My EventLane informed if you cannot complete a required refund.</p><p>You must cooperate with refund investigations and provide accurate records. Respond to payment disputes within the deadlines set by your payment provider. My EventLane can supply booking records and support the process; chargebacks are determined through the relevant payment provider and card network processes.</p>'
       . '<h3>Stripe verification and payouts</h3>'
       . '<p>You must keep your connected Stripe account, identity information and bank details accurate. Stripe controls verification, restrictions, payout timing and bank settlement. MyEventLane cannot release a payout, change your Stripe payout schedule or edit your bank account.</p>'
       . '<h3>Event and attendee responsibilities</h3>'

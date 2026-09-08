@@ -124,11 +124,11 @@ final class BuyerRefundEligibilityService {
     }
 
     if (!$this->policyAllowsRefund($event)) {
-      return 'This event does not allow refunds.';
+      return 'Online refund requests are unavailable under this event’s policy. Your rights under Australian Consumer Law still apply. Contact the organiser or My EventLane support if you believe you are entitled to a refund.';
     }
 
     if (!$this->withinRefundWindow($event)) {
-      return 'The refund window for this event has closed.';
+      return 'This event’s online refund request window has closed. Your rights under Australian Consumer Law still apply. Contact the organiser or My EventLane support if you believe you are entitled to a refund.';
     }
 
     return NULL;
