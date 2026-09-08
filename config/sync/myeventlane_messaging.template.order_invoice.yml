@@ -1,130 +1,52 @@
 enabled: true
 subject: '{{ document_title|default("Receipt") }} – Order #{{ order_number }}'
 body_html: |
-  <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #fef5ec; padding: 20px;">
-    <div style="background-color: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-      <div style="text-align: center; margin-bottom: 24px;">
-        <h1 style="color: #2c3e50; margin: 0; font-size: 26px;">{{ document_title|default('Receipt') }}</h1>
-      </div>
-
-      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 16px;">
-        Hi {{ first_name }},
-      </p>
-
-      <p style="color: #34495e; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-        Thank you for your payment. This is your {{ document_title|default('receipt')|lower }} for order <strong>#{{ order_number }}</strong>.
-      </p>
-
-      <div style="margin: 16px 0; padding: 12px 16px; background-color: #f9f9f9; border-radius: 6px; font-size: 14px; color: #34495e;">
-        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
-          <span><strong>Invoice date:</strong> {{ invoice_date }}</span>
-          <span><strong>Invoice #:</strong> #{{ order_number }}</span>
-        </div>
-      </div>
-
-      {% if events|length > 0 %}
-        <div style="margin: 24px 0;">
-          <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 12px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Event{% if events|length > 1 %}s{% endif %}</h2>
-          {% for event in events %}
-            <p style="color: #34495e; font-size: 15px; margin: 8px 0;">{{ event.title }}</p>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <div style="margin:16px 0; padding:14px 16px; background:#fff; border:1px solid #e0e0e0; border-radius:8px;">
-        <h2 style="color:#2c3e50; font-size:18px; margin:0 0 8px;">Tickets and organiser charges</h2>
-        <p style="color:#34495e; font-size:14px; line-height:1.6; margin:0;">{% if vendor_name %}<strong>Supplier:</strong> {{ vendor_name }}<br>{% endif %}<strong>ABN:</strong> {{ vendor_abn ?: 'ABN not provided' }}</p>
-      </div>
-
-      {% if line_items|length > 0 or invoice_lines|length > 0 %}
-        <div style="margin: 24px 0;">
-          <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 12px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Line items</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px; color: #34495e;">
-            <thead>
-              <tr style="border-bottom: 1px solid #e0e0e0; text-align: left;">
-                <th style="padding: 8px 4px;">Description</th>
-                <th style="padding: 8px 4px; text-align: center; width: 56px;">Qty</th>
-                <th style="padding: 8px 4px; text-align: right;">Unit</th>
-                {% if invoice_lines_include_gst_column|default(false) %}
-                <th style="padding: 8px 4px; text-align: right;">GST</th>
-                {% endif %}
-                <th style="padding: 8px 4px; text-align: right;">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for row in line_items|length > 0 ? line_items : invoice_lines|default([]) %}
-                <tr style="border-bottom: 1px solid #f0f0f0;">
-                  <td style="padding: 10px 4px; vertical-align: top;">{{ row.title }}</td>
-                  <td style="padding: 10px 4px; text-align: center;">{{ row.quantity }}</td>
-                  <td style="padding: 10px 4px; text-align: right; white-space: nowrap;">{{ row.unit_price }}</td>
-                  {% if invoice_lines_include_gst_column|default(false) %}
-                  <td style="padding: 10px 4px; text-align: right; white-space: nowrap;">{{ row.gst|default('—') }}</td>
-                  {% endif %}
-                  <td style="padding: 10px 4px; text-align: right; white-space: nowrap;">{{ row.line_total }}</td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      {% endif %}
-
-      {% if fee_lines|length > 0 or invoice_fee_lines|length > 0 %}
-        <div style="margin: 16px 0;">
-          <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 10px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Fees</h2>
-          {% for fee in fee_lines|length > 0 ? fee_lines : invoice_fee_lines|default([]) %}
-            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #34495e;">
-              <span>{{ fee.label }}</span>
-              <span style="font-weight: 600;">{{ fee.amount }}</span>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if tax_lines|length > 0 or invoice_tax_lines|length > 0 %}
-        <div style="margin: 16px 0;">
-          <h2 style="color: #2c3e50; font-size: 18px; margin-bottom: 10px; border-bottom: 2px solid #fef5ec; padding-bottom: 8px;">Tax</h2>
-          {% for tax in tax_lines|length > 0 ? tax_lines : invoice_tax_lines|default([]) %}
-            <div style="display: flex; justify-content: space-between; padding: 6px 0; font-size: 14px; color: #34495e;">
-              <span>{{ tax.label }}</span>
-              <span style="font-weight: 600;">{{ tax.amount }}</span>
-            </div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      {% if order_total_gst and tax_lines|length == 0 and invoice_tax_lines|length == 0 %}
-        <p style="margin: 12px 0; font-size: 14px; color: #34495e;"><strong>Organiser GST recorded:</strong> {{ order_total_gst }}</p>
-      {% endif %}
-
-      {% if platform_fee_lines|default([])|length > 0 %}
-        <div style="margin:16px 0; padding:14px 16px; background:#fff; border:1px solid #e0e0e0; border-radius:8px;">
-          <h2 style="color:#2c3e50; font-size:18px; margin:0 0 8px;">MyEventLane platform charges</h2>
-          <p style="color:#34495e; font-size:14px; line-height:1.6; margin:0 0 8px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'MyEventLane Inc' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
-          {% for fee in platform_fee_lines|default([]) %}
-            <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;"><span>{{ fee.label }}</span><span style="font-weight:600;">{{ fee.amount }}</span></div>
-            <div style="display:flex; justify-content:space-between; padding:6px 0; font-size:14px; color:#34495e;"><span>GST included in this fee</span><span style="font-weight:600;">{{ fee.gst }}</span></div>
-          {% endfor %}
-        </div>
-      {% endif %}
-
-      <div style="margin: 28px 0; padding: 18px 20px; background-color: #fef5ec; border-radius: 8px;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <span style="font-weight: 700; color: #2c3e50; font-size: 18px;">Total</span>
-          <span style="font-weight: 700; color: #2c3e50; font-size: 22px;">{{ order_total|default(total_paid) }}</span>
-        </div>
-      </div>
-
-      {% if is_tax_invoice %}
-        <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">This document is a tax invoice for the GST-bearing supplier charges identified above. Organiser GST reflects tax recorded when the order was placed.</p>
-      {% else %}
-        <p class="mel-invoice__legal" style="margin: 16px 0 0; font-size: 11px; color: #7f8c8d; line-height: 1.45;">No GST was recorded on this order.</p>
-      {% endif %}
-
-      <div style="margin-top: 28px; padding-top: 18px; border-top: 1px solid #e0e0e0; text-align: center; color: #7f8c8d; font-size: 12px;">
-        <p style="margin: 5px 0;">This email was sent to {{ order_email }}</p>
-        <p style="margin: 5px 0;">Please retain this invoice for your records.</p>
-      </div>
+  <div style="font-family:Arial,Helvetica,sans-serif;color:#293241;font-size:14px;line-height:1.45;">
+    <h1 style="font-size:24px;line-height:1.2;margin:0 0 12px;">{{ document_title|default('Receipt') }}</h1>
+    <p style="margin:0 0 10px;">{% if first_name|default('') %}Hi {{ first_name }},{% else %}Hello,{% endif %}</p>
+    <p style="margin:0 0 12px;">Thank you for your payment. Your receipt details are below.</p>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 14px;">
+      <tr><td style="padding:3px 0;"><strong>Order number</strong></td><td align="right">{{ order_number }}</td></tr>
+      <tr><td style="padding:3px 0;"><strong>Invoice date</strong></td><td align="right">{{ invoice_date_short|default(invoice_date) }}</td></tr>
+    </table>
+    {% for event in events|default([]) %}<p style="margin:0 0 12px;"><strong>Event:</strong> {{ event.title }}</p>{% endfor %}
+    <div style="page-break-inside:avoid;break-inside:avoid;margin:0 0 12px;">
+      <h2 style="font-size:17px;margin:0 0 4px;">Tickets and organiser charges</h2>
+      <p style="margin:0;"><strong>Supplier:</strong> {{ vendor_name }}<br><strong>ABN:</strong> {{ vendor_abn ?: 'ABN not provided' }}</p>
     </div>
+    <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;font-size:13px;">
+      <thead><tr style="border-bottom:1px solid #cccccc;">
+        <th align="left" style="padding:6px 2px;">Description</th><th align="center">Qty</th><th align="right">Unit price</th>
+        {% if invoice_lines_include_gst_column|default(false) %}<th align="right">{{ organiser_gst_inclusive|default(false) ? 'GST included' : 'GST' }}</th>{% endif %}<th align="right">Total</th>
+      </tr></thead>
+      <tbody>{% for row in line_items|default(invoice_lines|default([])) %}
+        <tr style="border-bottom:1px solid #eeeeee;page-break-inside:avoid;"><td style="padding:8px 2px;">{{ row.title }}</td><td align="center">{{ row.quantity }}</td><td align="right">{{ row.unit_price }}</td>
+        {% if invoice_lines_include_gst_column|default(false) %}<td align="right">{{ row.gst|default('—') }}</td>{% endif %}<td align="right">{{ row.line_total }}</td></tr>
+      {% endfor %}</tbody>
+    </table>
+    {% for fee in fee_lines|default(invoice_fee_lines|default([])) %}
+      <table role="presentation" width="100%" style="margin:6px 0;"><tr><td>{{ fee.label }}</td><td align="right">{{ fee.amount }}</td></tr></table>
+    {% endfor %}
+    {% if order_total_gst %}<p style="margin:8px 0 14px;font-size:13px;">{{ organiser_gst_inclusive|default(false) ? 'GST included in organiser charges' : 'Organiser GST' }}: <strong>{{ order_total_gst }}</strong></p>{% endif %}
+    {% if platform_fee_lines|default([])|length > 0 %}
+      <div style="page-break-inside:avoid;break-inside:avoid;margin:14px 0;padding-top:10px;border-top:1px solid #dddddd;">
+        <h2 style="font-size:17px;margin:0 0 4px;">MyEventLane platform charges</h2>
+        <p style="margin:0 0 6px;"><strong>Supplier:</strong> {{ (platform_name|default('')) ?: 'MyEventLane Inc' }}<br><strong>ABN:</strong> {{ (platform_abn|default('')) ?: 'ABN not provided' }}</p>
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{% for fee in platform_fee_lines %}
+          <tr><td style="padding:3px 0;">{{ fee.label }}</td><td align="right"><strong>{{ fee.amount }}</strong></td></tr>
+          <tr><td style="padding:3px 0;font-size:13px;">GST included in this fee</td><td align="right" style="font-size:13px;">{{ fee.gst }}</td></tr>
+        {% endfor %}</table>
+      </div>
+    {% endif %}
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0;page-break-inside:avoid;border-top:2px solid #dddddd;">
+      <tr><td style="padding:8px 0;">Order total</td><td align="right">{{ order_total|default(total_paid) }}</td></tr>
+      {% if amount_paid|default('') %}<tr><td style="padding:4px 0;font-size:18px;"><strong>Amount paid</strong></td><td align="right" style="font-size:18px;"><strong>{{ amount_paid }}</strong></td></tr>{% endif %}
+      {% if balance_due|default('') %}<tr><td style="padding:4px 0;">Balance due</td><td align="right">{{ balance_due }}</td></tr>{% endif %}
+    </table>
+    {% if is_tax_invoice %}
+      <p style="font-size:12px;margin:12px 0;">This document is a tax invoice for the GST-bearing supplier charges identified above. Organiser GST reflects tax recorded when the order was placed.</p>
+    {% else %}<p style="font-size:12px;margin:12px 0;">No GST was recorded on this order.</p>{% endif %}
+    <p style="font-size:12px;margin:12px 0 0;">Please retain this receipt for your records.</p>
   </div>
 utm:
   enable: true

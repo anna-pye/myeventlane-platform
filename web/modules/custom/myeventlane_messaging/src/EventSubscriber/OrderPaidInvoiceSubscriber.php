@@ -129,7 +129,8 @@ final class OrderPaidInvoiceSubscriber implements EventSubscriberInterface {
 
     $context = [
       'first_name' => $first_name,
-      'order_number' => $order->label(),
+      // The delivery worker resolves the final number after placement.
+      'order_number' => trim((string) $order->getOrderNumber()),
       'order_id' => $orderId,
       'order_email' => $recipientEmail,
       'total_paid' => $invoice['order_total'],
