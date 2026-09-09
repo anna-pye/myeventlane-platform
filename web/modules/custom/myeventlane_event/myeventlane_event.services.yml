@@ -266,10 +266,16 @@ services:
     class: Drupal\myeventlane_event\Service\EventStructuredDataBuilder
     arguments:
       - '@myeventlane_event.public_visibility'
-      - '@myeventlane_event.booking_flow_resolver'
-      - '@myeventlane_event.ticket_type_manager'
+      - '@myeventlane_event.metadata_builder'
+
+  myeventlane_event.metadata_builder:
+    class: Drupal\myeventlane_event\Service\EventMetadataBuilder
+    arguments:
+      - '@config.factory'
       - '@file_url_generator'
+      - '@image.factory'
       - '@myeventlane_core.event_datetime'
+      - '@myeventlane_event.booking_flow_resolver'
 
   myeventlane_event.event_card_view_model:
     class: Drupal\myeventlane_event\EventCard\EventCardViewModel

@@ -142,8 +142,8 @@ services:
   myeventlane_event_studio.seo_preview_builder:
     class: Drupal\myeventlane_event_studio\Service\EventSeoPreviewBuilder
     arguments:
-      - '@config.factory'
-      - '@file_url_generator'
+      - '@myeventlane_event.metadata_builder'
+      - '@string_translation'
 
   myeventlane_event_studio.highlight_helper:
     class: Drupal\myeventlane_event_studio\Service\EventHighlightHelper

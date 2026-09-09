@@ -6,13 +6,10 @@
 
 declare(strict_types=1);
 
-use Drupal\Component\Utility\Html;
-use Drupal\Component\Utility\Unicode;
 use Drupal\Core\Access\AccessResult;
 use Drupal\Core\Cache\Cache;
 use Drupal\Core\Entity\Display\EntityViewDisplayInterface;
 use Drupal\Core\Entity\EntityInterface;
-use Drupal\Core\Entity\EntityFormInterface;
 use Drupal\Core\Field\FieldDefinitionInterface;
 use Drupal\Core\Field\FieldItemListInterface;
 use Drupal\Core\Form\FormInterface;
@@ -20,7 +17,6 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\Core\Template\Attribute;
 use Drupal\Core\Url;
-use Drupal\file\FileInterface;
 use Drupal\myeventlane_core\Service\DiscoveryAttributionSources;
 use Drupal\myeventlane_event\Form\TicketTypeFormAlter;
 use Drupal\myeventlane_event\Service\BookingFlowResolver;
@@ -1832,30 +1828,12 @@ function myeventlane_event_metatags_alter(array &$metatags): void {
     return;
   }
 
-  $description = '';
-  foreach (['field_event_summary', 'field_event_intro', 'body'] as $field_name) {
-    if ($node->hasField($field_name) && !$node->get($field_name)->isEmpty()) {
-      $description = trim(strip_tags((string) $node->get($field_name)->value));
-      if ($description !== '') {
-        break;
-      }
-    }
-  }
-
-  if ($description === '') {
-    $description = $node->label();
-  }
-
-  if (str_contains($description, '[date]') && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-    try {
-      $event_date = new \DateTimeImmutable((string) $node->get('field_event_start')->value, new \DateTimeZone('Australia/Sydney'));
-      $description = str_replace('[date]', $event_date->format('j F Y'), $description);
-    }
-    catch (\Exception) {
-    }
-  }
-
-  $metatags['description'] = Unicode::truncate($description, 160, TRUE, TRUE);
+  /** @var \Drupal\myeventlane_event\Service\EventMetadataBuilderInterface $builder */
+  $builder = \Drupal::service('myeventlane_event.metadata_builder');
+  $metadata = $builder->build($node);
+  $metatags['description'] = $metadata['search_description'] !== ''
+    ? $metadata['search_description']
+    : $metadata['title'];
 }
 
 /**
@@ -1876,48 +1854,16 @@ function myeventlane_event_page_attachments(array &$attachments): void {
     return;
   }
 
-  $canonical = $node->toUrl()->setAbsolute()->toString();
-  $title = $node->label();
-
-  $description = '';
-  if ($node->hasField('field_event_summary') && !$node->get('field_event_summary')->isEmpty()) {
-    $description = strip_tags(trim((string) $node->get('field_event_summary')->value));
-  }
-  elseif ($node->hasField('field_event_intro') && !$node->get('field_event_intro')->isEmpty()) {
-    foreach ($node->get('field_event_intro') as $item) {
-      if (isset($item->value)) {
-        $description = strip_tags(trim((string) $item->value));
-        break;
-      }
-    }
-  }
-  elseif ($node->hasField('body') && !$node->get('body')->isEmpty()) {
-    foreach ($node->get('body') as $item) {
-      if (isset($item->value)) {
-        $description = strip_tags(trim((string) $item->value));
-        break;
-      }
-    }
-  }
-  if ($description === '') {
-    $description = $node->label();
-  }
-
-  if (str_contains($description, '[date]') && $node->hasField('field_event_start') && !$node->get('field_event_start')->isEmpty()) {
-    try {
-      $event_date = new \DateTimeImmutable((string) $node->get('field_event_start')->value, new \DateTimeZone('Australia/Sydney'));
-      $description = str_replace('[date]', $event_date->format('j F Y'), $description);
-    }
-    catch (\Exception) {
-    }
-  }
-
-  $description = Unicode::truncate($description, 300, TRUE, TRUE);
+  /** @var \Drupal\myeventlane_event\Service\EventMetadataBuilderInterface $builder */
+  $builder = \Drupal::service('myeventlane_event.metadata_builder');
+  $metadata = $builder->build($node);
+  $canonical = (string) $metadata['canonical_url'];
+  $title = (string) $metadata['title'];
+  $description = (string) ($metadata['social_description'] ?: $title);
 
   $attachments['#cache']['tags'][] = 'node:' . (int) $node->id();
 
-  $site_config = \Drupal::config('system.site');
-  $site_name = (string) ($site_config->get('name') ?? '');
+  $site_name = (string) $metadata['site_name'];
 
   $attachments['#attached']['html_head'][] = [
     [
@@ -1976,35 +1922,49 @@ function myeventlane_event_page_attachments(array &$attachments): void {
     ];
   }
 
-  /** @var \Drupal\Core\File\FileUrlGeneratorInterface $urls */
-  $urls = \Drupal::service('file_url_generator');
+  $image = $metadata['image'] ?? NULL;
+  if (is_array($image) && !empty($image['url'])) {
+    $absolute = (string) $image['url'];
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => [
+          'property' => 'og:image',
+          'content' => $absolute,
+        ],
+      ],
+      'mel_event_og_image',
+    ];
 
-  if ($node->hasField('field_event_image') && !$node->get('field_event_image')->isEmpty()) {
-    $file_entity = $node->get('field_event_image')->entity;
-    if ($file_entity instanceof FileInterface) {
-      $uri = $file_entity->getFileUri();
-      $absolute = $urls->generateAbsoluteString($uri);
+    $alt = trim((string) ($image['alt'] ?? ''));
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => [
+          'property' => 'og:image:alt',
+          'content' => $alt !== '' ? $alt : $node->label(),
+        ],
+      ],
+      'mel_event_og_image_alt',
+    ];
+
+    foreach ([
+      'og:image:type' => $image['mime'] ?? NULL,
+      'og:image:width' => $image['width'] ?? NULL,
+      'og:image:height' => $image['height'] ?? NULL,
+    ] as $property => $content) {
+      if ($content === NULL || $content === '' || $content === 0) {
+        continue;
+      }
       $attachments['#attached']['html_head'][] = [
         [
           '#tag' => 'meta',
           '#attributes' => [
-            'property' => 'og:image',
-            'content' => $absolute,
+            'property' => $property,
+            'content' => (string) $content,
           ],
         ],
-        'mel_event_og_image',
-      ];
-
-      $alt = trim((string) ($node->get('field_event_image')->alt ?? ''));
-      $attachments['#attached']['html_head'][] = [
-        [
-          '#tag' => 'meta',
-          '#attributes' => [
-            'property' => 'og:image:alt',
-            'content' => $alt !== '' ? $alt : $node->label(),
-          ],
-        ],
-        'mel_event_og_image_alt',
+        'mel_event_' . str_replace(':', '_', $property),
       ];
     }
   }
@@ -2036,6 +1996,17 @@ function myeventlane_event_page_attachments(array &$attachments): void {
         ],
       ],
       'mel_event_twitter_image',
+    ];
+
+    $attachments['#attached']['html_head'][] = [
+      [
+        '#tag' => 'meta',
+        '#attributes' => [
+          'name' => 'twitter:image:alt',
+          'content' => $alt !== '' ? $alt : $title,
+        ],
+      ],
+      'mel_event_twitter_image_alt',
     ];
   }
 
