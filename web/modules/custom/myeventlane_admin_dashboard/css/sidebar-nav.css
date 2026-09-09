@@ -41,3 +41,37 @@
   font-weight: 600;
   color: #003eaa;
 }
+
+@media (max-width: 860px) {
+  .mel-studio-shell__left:has(.mel-sidebar-nav) {
+    overflow-x: auto;
+    padding: 0.25rem;
+    scrollbar-width: thin;
+  }
+
+  .mel-sidebar-nav {
+    width: max-content;
+    min-width: 100%;
+    padding: 0;
+  }
+
+  .mel-sidebar-nav__list {
+    display: flex;
+    gap: 0.2rem;
+  }
+
+  .mel-sidebar-nav__item {
+    border-left: 0;
+    border-bottom: 3px solid transparent;
+  }
+
+  .mel-sidebar-nav__item--active {
+    border-bottom-color: #6b46ff;
+    background: #f1edff;
+  }
+
+  .mel-sidebar-nav__link {
+    padding: 0.55rem 0.7rem;
+    white-space: nowrap;
+  }
+}

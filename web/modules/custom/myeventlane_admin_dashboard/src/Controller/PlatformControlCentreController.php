@@ -82,6 +82,8 @@ final class PlatformControlCentreController extends ControllerBase {
     $vendor_ranking = $this->metricsService->getVendorRanking($days, 10);
     $payout_summary = $this->metricsService->getPayoutLiabilitySummary($days);
     $active_vendors_count = $this->getActiveVendorsCount();
+    $customer_accounts_count = $this->getCustomerAccountsCount();
+    $consent_records_count = $this->getConsentRecordsCount();
     $upcoming_events_count = $this->getUpcomingEventsCount();
     $open_escalations_count = $this->getOpenEscalationsCount();
     $export_url = Url::fromRoute('myeventlane_admin_dashboard.financial_export', [], [
@@ -95,6 +97,8 @@ final class PlatformControlCentreController extends ControllerBase {
       '#vendor_ranking' => $vendor_ranking,
       '#payout_summary' => $payout_summary,
       '#active_vendors_count' => $active_vendors_count,
+      '#customer_accounts_count' => $customer_accounts_count,
+      '#consent_records_count' => $consent_records_count,
       '#upcoming_events_count' => $upcoming_events_count,
       '#open_escalations_count' => $open_escalations_count,
       '#export_url' => $export_url,
@@ -124,7 +128,13 @@ final class PlatformControlCentreController extends ControllerBase {
         ],
       ],
       '#cache' => [
-        'tags' => ['platform:summary', 'escalation_list', 'commerce_order_list', 'myeventlane_payout_ledger', 'commerce_subscription_list'],
+        'tags' => [
+          'platform:summary',
+          'escalation_list',
+          'commerce_order_list',
+          'myeventlane_payout_ledger',
+          'commerce_subscription_list',
+        ],
         'contexts' => ['user.roles', 'url.query_args:days'],
         'max-age' => 300,
       ],
@@ -157,6 +167,30 @@ final class PlatformControlCentreController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Counts real customer accounts, excluding anonymous and the system owner.
+   */
+  private function getCustomerAccountsCount(): int {
+    return (int) $this->melEntityTypeManager->getStorage('user')->getQuery()
+      ->accessCheck(FALSE)
+      ->condition('uid', 1, '>')
+      ->count()
+      ->execute();
+  }
+
+  /**
+   * Counts immutable consent records across registration, RSVP, and checkout.
+   */
+  private function getConsentRecordsCount(): int {
+    if (!$this->melEntityTypeManager->hasDefinition('legal_consent_event')) {
+      return 0;
+    }
+    return (int) $this->melEntityTypeManager->getStorage('legal_consent_event')->getQuery()
+      ->accessCheck(FALSE)
+      ->count()
+      ->execute();
   }
 
   /**
@@ -211,6 +245,7 @@ final class PlatformControlCentreController extends ControllerBase {
 
     $payouts_url = Url::fromRoute('myeventlane_admin_dashboard.payouts')->toString();
     $reports_url = Url::fromRoute('myeventlane_reporting.admin.overview')->toString();
+    $unpaidTotal = number_format((float) ($payout_summary['unpaid_total'] ?? 0), 2);
 
     return [
       '#type' => 'container',
@@ -233,7 +268,7 @@ final class PlatformControlCentreController extends ControllerBase {
         '#items' => array_map(static fn(string $item): array => ['#markup' => $item], $recent_items),
       ],
       'payouts' => [
-        '#markup' => '<p><strong>' . $this->t('Unpaid liability') . ':</strong> $' . number_format((float) ($payout_summary['unpaid_total'] ?? 0), 2) . '</p>',
+        '#markup' => '<p><strong>' . $this->t('Unpaid liability:') . '</strong> $' . $unpaidTotal . '</p>',
       ],
       'links' => [
         '#theme' => 'item_list',

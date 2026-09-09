@@ -1,0 +1,96 @@
+{#
+/**
+ * @file
+ * Customer account register for the Admin Control Center.
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Customers'|t }}">
+  <header class="pcc__header">
+    <p class="pcc__subtitle">{{ '@count customer accounts'|t({'@count': total}) }}</p>
+  </header>
+
+  <form class="pcc-filters" method="get" action="{{ filters.action_url }}">
+    <div class="pcc-filters__field pcc-filters__field--search">
+      <label for="pcc-customer-search">{{ 'Search customers'|t }}</label>
+      <input id="pcc-customer-search" type="search" name="search" value="{{ filters.search }}" placeholder="{{ 'Name or email address'|t }}">
+    </div>
+    <div class="pcc-filters__field">
+      <label for="pcc-customer-status">{{ 'Account status'|t }}</label>
+      <select id="pcc-customer-status" name="status">
+        <option value="all"{{ filters.status == 'all' ? ' selected' : '' }}>{{ 'All statuses'|t }}</option>
+        <option value="active"{{ filters.status == 'active' ? ' selected' : '' }}>{{ 'Active'|t }}</option>
+        <option value="blocked"{{ filters.status == 'blocked' ? ' selected' : '' }}>{{ 'Blocked'|t }}</option>
+      </select>
+    </div>
+    <div class="pcc-filters__field">
+      <label for="pcc-customer-relationship">{{ 'Account relationship'|t }}</label>
+      <select id="pcc-customer-relationship" name="relationship">
+        <option value="all"{{ filters.relationship == 'all' ? ' selected' : '' }}>{{ 'All customers'|t }}</option>
+        <option value="customer"{{ filters.relationship == 'customer' ? ' selected' : '' }}>{{ 'Customers only'|t }}</option>
+        <option value="vendor"{{ filters.relationship == 'vendor' ? ' selected' : '' }}>{{ 'Also vendors'|t }}</option>
+      </select>
+    </div>
+    <div class="pcc-filters__actions">
+      <button type="submit" class="pcc__action-link pcc__action-link--primary">{{ 'Apply filters'|t }}</button>
+      <a href="{{ filters.clear_url }}" class="pcc__action-link">{{ 'Clear'|t }}</a>
+    </div>
+  </form>
+  <p class="pcc-results-summary" aria-live="polite">{{ 'Showing @matches of @total customer accounts'|t({'@matches': match_count, '@total': total}) }}</p>
+
+  <section class="pcc-panel">
+    <div class="pcc-table-wrap" tabindex="0" role="region" aria-label="{{ 'Customer accounts'|t }}">
+      <table class="pcc-table pcc-table--people">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Customer'|t }}</th>
+            <th scope="col">{{ 'Account'|t }}</th>
+            <th scope="col">{{ 'Customer terms'|t }}</th>
+            <th scope="col">{{ 'Privacy'|t }}</th>
+            <th scope="col">{{ 'Event news'|t }}</th>
+            <th scope="col">{{ 'Activity'|t }}</th>
+            <th scope="col">{{ 'Action'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for customer in customers %}
+            <tr>
+              <td data-label="{{ 'Customer'|t }}">
+                <strong>{{ customer.name }}</strong>
+                <span class="pcc-table__subline">{{ customer.email }}</span>
+                {% if customer.vendor_url %}
+                  <a class="pcc-badge pcc-badge--vendor" href="{{ customer.vendor_url }}">{{ 'Also a vendor'|t }}</a>
+                {% endif %}
+              </td>
+              <td data-label="{{ 'Account'|t }}">
+                <span class="pcc-badge pcc-badge--{{ customer.status_key }}">{{ customer.status }}</span>
+                <span class="pcc-table__subline">{{ customer.account_type }}</span>
+              </td>
+              <td data-label="{{ 'Customer terms'|t }}">
+                <strong>{{ customer.terms_version }}</strong>
+                <span class="pcc-table__subline">{{ customer.terms_accepted_at }}</span>
+              </td>
+              <td data-label="{{ 'Privacy'|t }}">
+                <strong>{{ customer.privacy_version }}</strong>
+                <span class="pcc-table__subline">{{ customer.privacy_accepted_at }}</span>
+              </td>
+              <td data-label="{{ 'Event news'|t }}">
+                <strong>{{ customer.marketing }}</strong>
+                {% if customer.marketing_recorded %}
+                  <span class="pcc-table__subline">{{ customer.marketing_recorded_at }}</span>
+                {% endif %}
+              </td>
+              <td data-label="{{ 'Activity'|t }}">
+                <span class="pcc-table__subline">{{ 'Joined @date'|t({'@date': customer.created}) }}</span>
+                <span class="pcc-table__subline">{{ 'Last seen @date'|t({'@date': customer.last_access}) }}</span>
+              </td>
+              <td data-label="{{ 'Action'|t }}"><a href="{{ customer.edit_url }}">{{ 'Manage'|t }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="7" class="pcc-panel__empty">{{ 'No customer accounts were found.'|t }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pager }}
+  </section>
+</div>

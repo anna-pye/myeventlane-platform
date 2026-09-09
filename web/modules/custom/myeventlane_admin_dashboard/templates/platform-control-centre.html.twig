@@ -42,6 +42,27 @@
     </div>
   </section>
 
+  <section class="pcc__section">
+    <h2 class="pcc__section-title">{{ 'People and consent'|t }}</h2>
+    <div class="pcc-kpis__grid pcc-kpis__grid--people">
+      <a class="pcc-kpis__tile pcc-kpis__tile--indigo pcc-kpis__tile--link" href="{{ path('myeventlane_admin_dashboard.customers') }}">
+        <div class="pcc-kpis__label">{{ 'Customer accounts'|t }}</div>
+        <div class="pcc-kpis__value">{{ customer_accounts_count|default(0) }}</div>
+        <span class="pcc-kpis__hint">{{ 'Review accounts and registration choices'|t }}</span>
+      </a>
+      <a class="pcc-kpis__tile pcc-kpis__tile--purple pcc-kpis__tile--link" href="{{ path('myeventlane_admin_dashboard.vendors') }}">
+        <div class="pcc-kpis__label">{{ 'Vendor accounts'|t }}</div>
+        <div class="pcc-kpis__value">{{ active_vendors_count|default(0) }}</div>
+        <span class="pcc-kpis__hint">{{ 'Review owners, stores and vendor terms'|t }}</span>
+      </a>
+      <a class="pcc-kpis__tile pcc-kpis__tile--green pcc-kpis__tile--link" href="{{ path('myeventlane_admin_dashboard.consents') }}">
+        <div class="pcc-kpis__label">{{ 'Consent records'|t }}</div>
+        <div class="pcc-kpis__value">{{ consent_records_count|default(0) }}</div>
+        <span class="pcc-kpis__hint">{{ 'Open the restricted consent history'|t }}</span>
+      </a>
+    </div>
+  </section>
+
   <section class="pcc__section pcc__section--split">
     <div class="pcc-panel">
       <h2 class="pcc-panel__title">{{ 'Priority actions'|t }}</h2>

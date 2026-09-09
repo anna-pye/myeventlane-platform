@@ -6,13 +6,65 @@
 #}
 <div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Vendors'|t }}">
   <header class="pcc__header">
-    <h1 class="pcc__title">{{ 'Vendors'|t }}</h1>
-    <p class="pcc__subtitle">
-      <a href="{{ vendor_url }}" class="pcc__link">{{ 'Manage vendors'|t }} →</a>
-    </p>
+    <p class="pcc__subtitle">{{ '@count vendor accounts'|t({'@count': total}) }}</p>
+    <a href="{{ vendor_url }}" class="pcc__action-link">{{ 'Full vendor administration'|t }}</a>
   </header>
-  <section class="pcc__section">
-    <p>{{ 'Manage vendor accounts, stores, and Stripe Connect setup.'|t }}</p>
-    <a href="{{ vendor_url }}" class="pcc__action-link">{{ 'View vendor list'|t }}</a>
+
+  <form class="pcc-filters" method="get" action="{{ filters.action_url }}">
+    <div class="pcc-filters__field pcc-filters__field--search">
+      <label for="pcc-vendor-search">{{ 'Search vendors'|t }}</label>
+      <input id="pcc-vendor-search" type="search" name="search" value="{{ filters.search }}" placeholder="{{ 'Vendor, business, owner or email'|t }}">
+    </div>
+    <div class="pcc-filters__field">
+      <label for="pcc-vendor-status">{{ 'Owner account'|t }}</label>
+      <select id="pcc-vendor-status" name="status">
+        <option value="all"{{ filters.status == 'all' ? ' selected' : '' }}>{{ 'All statuses'|t }}</option>
+        <option value="active"{{ filters.status == 'active' ? ' selected' : '' }}>{{ 'Active'|t }}</option>
+        <option value="blocked"{{ filters.status == 'blocked' ? ' selected' : '' }}>{{ 'Blocked'|t }}</option>
+      </select>
+    </div>
+    <div class="pcc-filters__actions">
+      <button type="submit" class="pcc__action-link pcc__action-link--primary">{{ 'Apply filters'|t }}</button>
+      <a href="{{ filters.clear_url }}" class="pcc__action-link">{{ 'Clear'|t }}</a>
+    </div>
+  </form>
+  <p class="pcc-results-summary" aria-live="polite">{{ 'Showing @matches of @total vendors'|t({'@matches': match_count, '@total': total}) }}</p>
+
+  <section class="pcc-panel">
+    <div class="pcc-table-wrap" tabindex="0" role="region" aria-label="{{ 'Vendor accounts'|t }}">
+      <table class="pcc-table pcc-table--people">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Vendor'|t }}</th>
+            <th scope="col">{{ 'Owner'|t }}</th>
+            <th scope="col">{{ 'Account'|t }}</th>
+            <th scope="col">{{ 'Commerce store'|t }}</th>
+            <th scope="col">{{ 'Vendor terms'|t }}</th>
+            <th scope="col">{{ 'Action'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for vendor in vendors %}
+            <tr>
+              <td data-label="{{ 'Vendor'|t }}"><strong>{{ vendor.name }}</strong></td>
+              <td data-label="{{ 'Owner'|t }}">
+                <strong>{{ vendor.owner }}</strong>
+                <span class="pcc-table__subline">{{ vendor.email }}</span>
+              </td>
+              <td data-label="{{ 'Account'|t }}"><span class="pcc-badge pcc-badge--{{ vendor.account_status_key }}">{{ vendor.account_status }}</span></td>
+              <td data-label="{{ 'Commerce store'|t }}">{{ vendor.store }}</td>
+              <td data-label="{{ 'Vendor terms'|t }}">
+                <strong>{{ vendor.terms_version }}</strong>
+                <span class="pcc-table__subline">{{ vendor.terms_accepted_at }}</span>
+              </td>
+              <td data-label="{{ 'Action'|t }}"><a href="{{ vendor.edit_url }}">{{ 'Manage'|t }}</a></td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="pcc-panel__empty">{{ 'No vendor accounts were found.'|t }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pager }}
   </section>
 </div>

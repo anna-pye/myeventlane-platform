@@ -9,3 +9,14 @@ social_login:
   css:
     theme:
       css/social-login.css: {}
+
+# MEL-owned presentation shell for Gin Login's public authentication routes.
+login_shell:
+  css:
+    theme:
+      css/login-shell.css: {}
+  js:
+    js/login-shell.js: { attributes: { defer: true } }
+  dependencies:
+    - core/drupal
+    - core/once

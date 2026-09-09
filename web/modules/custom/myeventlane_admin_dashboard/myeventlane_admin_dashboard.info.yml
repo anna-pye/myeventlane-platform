@@ -13,6 +13,7 @@ dependencies:
   - myeventlane_core:myeventlane_core
   - myeventlane_escalations:myeventlane_escalations
   - myeventlane_event:myeventlane_event
+  - myeventlane_legal:myeventlane_legal
   - myeventlane_pro:myeventlane_pro
   - myeventlane_reporting:myeventlane_reporting
   - myeventlane_summary:myeventlane_summary

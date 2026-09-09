@@ -1,0 +1,20 @@
+uuid: 82276025-37c3-4b7e-9b63-a2a2055f1741
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_privacy_accepted_at
+  module:
+    - user
+id: user.user.field_privacy_accepted_at
+field_name: field_privacy_accepted_at
+entity_type: user
+bundle: user
+label: 'Privacy policy acknowledged at'
+description: 'Time the privacy policy was acknowledged during registration.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

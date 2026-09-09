@@ -1,0 +1,20 @@
+uuid: f310e7a4-40f4-47a0-8984-445cebd6c8c3
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_marketing_choice_at
+  module:
+    - user
+id: user.user.field_marketing_choice_at
+field_name: field_marketing_choice_at
+entity_type: user
+bundle: user
+label: 'Event news preference recorded at'
+description: 'Time the customer made their event news choice during registration.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

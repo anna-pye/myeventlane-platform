@@ -1,0 +1,20 @@
+uuid: 246170d4-c0af-4b73-bdc7-ddbbbdcdfa9f
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_marketing_opt_in_at
+  module:
+    - user
+id: user.user.field_marketing_opt_in_at
+field_name: field_marketing_opt_in_at
+entity_type: user
+bundle: user
+label: 'Event news opt-in at'
+description: 'Time the customer opted in to updates, tips and event news.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

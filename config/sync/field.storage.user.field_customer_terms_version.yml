@@ -1,0 +1,21 @@
+uuid: 10543371-2a36-453d-ae38-25a76f18c4a8
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+id: user.field_customer_terms_version
+field_name: field_customer_terms_version
+entity_type: user
+type: string
+settings:
+  max_length: 255
+  case_sensitive: false
+  is_ascii: false
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false
