@@ -4,12 +4,7 @@ declare(strict_types=1);
 
 namespace Drupal\myeventlane_event\Service;
 
-use Drupal\address\Plugin\Field\FieldType\AddressItem;
-use Drupal\commerce_price\Price;
-use Drupal\Core\File\FileUrlGeneratorInterface;
 use Drupal\Core\Url;
-use Drupal\file\FileInterface;
-use Drupal\myeventlane_core\Service\EventDateTimeResolver;
 use Drupal\myeventlane_event_state\Service\EventStateResolver;
 use Drupal\node\NodeInterface;
 
@@ -20,10 +15,7 @@ final class EventStructuredDataBuilder {
 
   public function __construct(
     private readonly PublicEventVisibility $publicEventVisibility,
-    private readonly BookingFlowResolver $bookingFlowResolver,
-    private readonly TicketTypeManager $ticketTypeManager,
-    private readonly FileUrlGeneratorInterface $fileUrlGenerator,
-    private readonly EventDateTimeResolver $eventDateTime,
+    private readonly EventMetadataBuilderInterface $metadataBuilder,
   ) {}
 
   /**
@@ -37,50 +29,47 @@ final class EventStructuredDataBuilder {
       return NULL;
     }
 
+    $metadata = $this->metadataBuilder->build($event);
     $data = [
       '@context' => 'https://schema.org',
       '@type' => 'Event',
-      'name' => $event->label(),
-      'url' => $event->toUrl('canonical', ['absolute' => TRUE])->toString(),
+      'name' => $metadata['title'],
+      'url' => $metadata['canonical_url'],
       'eventStatus' => $this->resolveEventStatus($event),
+      'description' => $metadata['description'],
+      'startDate' => $metadata['start_iso'],
+      'endDate' => $metadata['end_iso'],
     ];
 
-    $description = $this->resolveDescription($event);
-    if ($description !== '') {
-      $data['description'] = $description;
-    }
-
-    if ($event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $start = $this->formatFieldValue((string) $event->get('field_event_start')->value, $event);
-      if ($start !== NULL) {
-        $data['startDate'] = $start;
+    $location = $metadata['location'] ?? NULL;
+    if (is_array($location)) {
+      $place = array_filter([
+        '@type' => 'Place',
+        'name' => $location['name'] ?? '',
+        'address' => $location['address'] ?? NULL,
+      ], static fn (mixed $value): bool => $value !== NULL && $value !== '');
+      if (count($place) > 1) {
+        $data['location'] = $place;
+        $data['eventAttendanceMode'] = 'https://schema.org/OfflineEventAttendanceMode';
       }
     }
 
-    if ($event->hasField('field_event_end') && !$event->get('field_event_end')->isEmpty()) {
-      $end = $this->formatFieldValue((string) $event->get('field_event_end')->value, $event);
-      if ($end !== NULL) {
-        $data['endDate'] = $end;
-      }
+    $image = $metadata['image'] ?? NULL;
+    if (is_array($image) && !empty($image['url'])) {
+      $data['image'] = (string) $image['url'];
     }
 
-    $location = $this->resolveLocation($event);
-    if ($location !== NULL) {
-      $data['location'] = $location;
-      $data['eventAttendanceMode'] = 'https://schema.org/OfflineEventAttendanceMode';
+    $organizer = $metadata['organizer'] ?? NULL;
+    if (is_array($organizer) && !empty($organizer['name'])) {
+      $data['organizer'] = array_filter([
+        '@type' => 'Organization',
+        'name' => $organizer['name'],
+        'url' => $organizer['url'] ?? NULL,
+      ], static fn (mixed $value): bool => $value !== NULL && $value !== '');
     }
 
-    $image = $this->resolveImage($event);
-    if ($image !== NULL) {
-      $data['image'] = $image;
-    }
-
-    $organizer = $this->resolveOrganizer($event);
-    if ($organizer !== NULL) {
-      $data['organizer'] = $organizer;
-    }
-
-    $offer = $this->resolveOffer($event);
+    $booking = is_array($metadata['booking'] ?? NULL) ? $metadata['booking'] : [];
+    $offer = $this->resolveOffer($event, $booking);
     if ($offer !== NULL) {
       $data['offers'] = $offer;
     }
@@ -103,132 +92,30 @@ final class EventStructuredDataBuilder {
   }
 
   /**
-   * Resolves plain event copy for search metadata.
-   */
-  private function resolveDescription(NodeInterface $event): string {
-    $description = '';
-    if ($event->hasField('field_event_summary') && !$event->get('field_event_summary')->isEmpty()) {
-      $description = trim(strip_tags((string) $event->get('field_event_summary')->value));
-    }
-    elseif ($event->hasField('field_event_intro') && !$event->get('field_event_intro')->isEmpty()) {
-      $description = trim(strip_tags((string) $event->get('field_event_intro')->value));
-    }
-    elseif ($event->hasField('body') && !$event->get('body')->isEmpty()) {
-      $description = trim(strip_tags((string) $event->get('body')->value));
-    }
-
-    if ($description !== '' && str_contains($description, '[date]') && $event->hasField('field_event_start') && !$event->get('field_event_start')->isEmpty()) {
-      $start = $this->parseFieldValue((string) $event->get('field_event_start')->value, $event);
-      if ($start !== NULL) {
-        $description = str_replace('[date]', $start->format('j F Y'), $description);
-      }
-    }
-
-    return $description;
-  }
-
-  /**
-   * Resolves the canonical event image URL.
-   */
-  private function resolveImage(NodeInterface $event): ?string {
-    if (!$event->hasField('field_event_image') || $event->get('field_event_image')->isEmpty()) {
-      return NULL;
-    }
-
-    $file = $event->get('field_event_image')->entity;
-    if (!$file instanceof FileInterface) {
-      return NULL;
-    }
-
-    return $this->fileUrlGenerator->generateAbsoluteString($file->getFileUri());
-  }
-
-  /**
-   * Resolves the public event organiser.
+   * Resolves the public booking offer from buyer-visible pricing.
    *
-   * @return array<string, string>|null
-   *   The schema.org organiser, or NULL when none is available.
-   */
-  private function resolveOrganizer(NodeInterface $event): ?array {
-    if (!$event->hasField('field_event_vendor') || $event->get('field_event_vendor')->isEmpty()) {
-      return NULL;
-    }
-
-    $vendor = $event->get('field_event_vendor')->entity;
-    if ($vendor === NULL || trim((string) $vendor->label()) === '') {
-      return NULL;
-    }
-
-    return [
-      '@type' => 'Organization',
-      'name' => trim((string) $vendor->label()),
-    ];
-  }
-
-  /**
-   * Resolves the physical event location.
-   *
-   * @return array<string, mixed>|null
-   *   The schema.org place, or NULL when no location is available.
-   */
-  private function resolveLocation(NodeInterface $event): ?array {
-    $name = '';
-    if ($event->hasField('field_venue_name') && !$event->get('field_venue_name')->isEmpty()) {
-      $name = trim((string) $event->get('field_venue_name')->value);
-    }
-
-    $place = ['@type' => 'Place'];
-    if ($name !== '') {
-      $place['name'] = $name;
-    }
-
-    if ($event->hasField('field_location') && !$event->get('field_location')->isEmpty()) {
-      $address = $event->get('field_location')->first();
-      if ($address instanceof AddressItem) {
-        $addressData = array_filter([
-          '@type' => 'PostalAddress',
-          'streetAddress' => $address->getAddressLine1(),
-          'addressLocality' => $address->getLocality(),
-          'addressRegion' => $address->getAdministrativeArea(),
-          'postalCode' => $address->getPostalCode(),
-          'addressCountry' => $address->getCountryCode(),
-        ]);
-        if (count($addressData) > 1) {
-          $place['address'] = $addressData;
-        }
-        if ($name === '' && $address->getLocality() !== NULL) {
-          $place['name'] = $address->getLocality();
-        }
-      }
-    }
-
-    return isset($place['name']) || isset($place['address']) ? $place : NULL;
-  }
-
-  /**
-   * Resolves the public booking offer.
+   * @param \Drupal\node\NodeInterface $event
+   *   The event being described.
+   * @param array<string, mixed> $booking
+   *   Shared booking metadata.
    *
    * @return array<string, mixed>|null
    *   The schema.org offer, or NULL when booking is unavailable.
    */
-  private function resolveOffer(NodeInterface $event): ?array {
-    $mode = $this->bookingFlowResolver->getBookingMode($event);
-    if ($mode === BookingFlowResolver::MODE_UNAVAILABLE) {
+  private function resolveOffer(NodeInterface $event, array $booking): ?array {
+    $mode = (string) ($booking['mode'] ?? BookingFlowResolver::MODE_UNAVAILABLE);
+    if (in_array($mode, [BookingFlowResolver::MODE_UNAVAILABLE, BookingFlowResolver::MODE_EXTERNAL], TRUE)) {
       return NULL;
     }
-
-    if ($mode === BookingFlowResolver::MODE_EXTERNAL) {
-      return NULL;
-    }
-
-    $bookUrl = Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()], [
-      'absolute' => TRUE,
-    ])->toString();
 
     $offer = [
       '@type' => 'Offer',
-      'url' => $bookUrl,
-      'availability' => $this->resolveOfferAvailability($event),
+      'url' => Url::fromRoute('myeventlane_commerce.event_book', ['node' => $event->id()], [
+        'absolute' => TRUE,
+      ])->toString(),
+      'availability' => ($booking['availability'] ?? '') === BookingFlowResolver::AVAILABILITY_SOLD_OUT
+        ? 'https://schema.org/SoldOut'
+        : 'https://schema.org/InStock',
     ];
 
     if ($mode === BookingFlowResolver::MODE_RSVP) {
@@ -237,42 +124,15 @@ final class EventStructuredDataBuilder {
       return $offer;
     }
 
-    if ($mode !== BookingFlowResolver::MODE_PAID) {
-      return $offer;
-    }
-
-    $pricing = $this->bookingFlowResolver->getDisplayPricing($event);
-    if (isset($pricing['price_number'], $pricing['currency_code'])) {
-      $offer['price'] = $pricing['price_number'];
-      $offer['priceCurrency'] = $pricing['currency_code'];
+    $pricing = $booking['pricing'] ?? NULL;
+    if ($mode === BookingFlowResolver::MODE_PAID && is_array($pricing)) {
+      if (isset($pricing['price_number'], $pricing['currency_code'])) {
+        $offer['price'] = (string) $pricing['price_number'];
+        $offer['priceCurrency'] = (string) $pricing['currency_code'];
+      }
     }
 
     return $offer;
-  }
-
-  /**
-   * Resolves schema.org ticket availability.
-   */
-  private function resolveOfferAvailability(NodeInterface $event): string {
-    if ($this->bookingFlowResolver->getAvailabilityState($event) === BookingFlowResolver::AVAILABILITY_SOLD_OUT) {
-      return 'https://schema.org/SoldOut';
-    }
-
-    return 'https://schema.org/InStock';
-  }
-
-  /**
-   * Formats a stored event wall-clock value with its event-local offset.
-   */
-  private function formatFieldValue(string $value, ?NodeInterface $event = NULL): ?string {
-    return $this->parseFieldValue($value, $event)?->format(\DateTimeInterface::ATOM);
-  }
-
-  /**
-   * Parses a stored event wall-clock value in the event timezone.
-   */
-  private function parseFieldValue(string $value, ?NodeInterface $event = NULL): ?\DateTimeImmutable {
-    return $this->eventDateTime->parseValue($value, $event);
   }
 
 }

@@ -48,7 +48,15 @@
           <p class="mel-launch-centre__preview-label">{{ 'Search result'|t }}</p>
           <p class="mel-launch-centre__preview-domain">{{ seo.domain }}</p>
           <h4>{{ seo.search_title }}</h4>
-          <p>{{ seo.description ?: 'Add an event summary to preview this description.'|t }}</p>
+          <dl class="mel-launch-centre__preview-details">
+            {% for detail in seo.preview_details|default([]) %}
+              <div class="mel-launch-centre__preview-detail is-{{ detail.status|clean_class }}">
+                <dt><span aria-hidden="true">{% if loop.first %}◷{% else %}⌖{% endif %}</span>{{ detail.label }}</dt>
+                <dd>{{ detail.value }}</dd>
+              </div>
+            {% endfor %}
+          </dl>
+          <p>{{ seo.search_description ?: 'Add an event summary to preview this description.'|t }}</p>
         </article>
         <article class="mel-launch-centre__social-preview">
           <p class="mel-launch-centre__preview-label">{{ 'Social share'|t }}</p>
@@ -60,10 +68,56 @@
           <div class="mel-launch-centre__social-copy">
             <p class="mel-launch-centre__preview-domain">{{ seo.domain }}</p>
             <h4>{{ seo.social_title }}</h4>
-            <p>{{ seo.description ?: 'Add an event summary to preview this description.'|t }}</p>
+            <dl class="mel-launch-centre__preview-details">
+              {% for detail in seo.preview_details|default([]) %}
+                <div class="mel-launch-centre__preview-detail is-{{ detail.status|clean_class }}">
+                  <dt><span aria-hidden="true">{% if loop.first %}◷{% else %}⌖{% endif %}</span>{{ detail.label }}</dt>
+                  <dd>{{ detail.value }}</dd>
+                </div>
+              {% endfor %}
+            </dl>
+            <p>{{ seo.social_description ?: 'Add an event summary to preview this description.'|t }}</p>
           </div>
         </article>
       </div>
+
+      {% for warning in seo.warnings|default([]) %}
+        <aside class="mel-launch-centre__seo-warning" aria-label="{{ 'SEO content warning'|t }}">
+          <span aria-hidden="true">!</span>
+          <p>{{ warning.message }} <a href="{{ warning.edit_url }}">{{ warning.edit_label }}</a></p>
+        </aside>
+      {% endfor %}
+
+      <section class="mel-launch-centre__seo-health" aria-labelledby="mel-launch-seo-health-heading">
+        <header class="mel-launch-centre__seo-health-header">
+          <div>
+            <h4 id="mel-launch-seo-health-heading">{{ 'Event search health'|t }}</h4>
+            <p>{{ 'These checks use the same event details sent to search and social services.'|t }}</p>
+          </div>
+          <div class="mel-launch-centre__seo-counts" aria-label="{{ 'SEO health summary'|t }}">
+            <span class="is-good">{{ 'Good'|t }} {{ seo.health_summary.good|default(0) }}</span>
+            {% if seo.health_summary.attention|default(0) %}
+              <span class="needs-attention">{{ 'Needs attention'|t }} {{ seo.health_summary.attention }}</span>
+            {% endif %}
+            {% if seo.health_summary.missing|default(0) %}
+              <span class="is-missing">{{ 'Missing'|t }} {{ seo.health_summary.missing }}</span>
+            {% endif %}
+          </div>
+        </header>
+        <ul class="mel-launch-centre__seo-health-list" role="list">
+          {% for item in seo.health|default([]) %}
+            <li class="mel-launch-centre__seo-health-item is-{{ item.status|clean_class }}">
+              <span class="mel-launch-centre__seo-health-mark" aria-hidden="true">{% if item.status == 'good' %}✓{% elseif item.status == 'missing' %}×{% else %}!{% endif %}</span>
+              <span class="mel-launch-centre__seo-health-copy">
+                <strong>{{ item.label }}</strong>
+                <span>{{ item.value }}</span>
+              </span>
+              <span class="mel-launch-centre__seo-health-status">{{ item.status_label }}</span>
+              <a class="mel-launch-centre__seo-health-edit" href="{{ item.edit_url }}">{{ item.edit_label }}<span class="visually-hidden"> {{ item.label }}</span></a>
+            </li>
+          {% endfor %}
+        </ul>
+      </section>
     </section>
   {% endif %}
 
