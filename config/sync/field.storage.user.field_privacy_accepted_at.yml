@@ -1,0 +1,18 @@
+uuid: c07e3349-258b-4b7a-817e-515e4ad2b679
+langcode: en
+status: true
+dependencies:
+  module:
+    - user
+id: user.field_privacy_accepted_at
+field_name: field_privacy_accepted_at
+entity_type: user
+type: timestamp
+settings: {  }
+module: core
+locked: false
+cardinality: 1
+translatable: true
+indexes: {  }
+persist_with_no_fields: false
+custom_storage: false

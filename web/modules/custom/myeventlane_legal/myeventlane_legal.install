@@ -17,38 +17,65 @@ function _myeventlane_legal_add_user_fields(): void {
     'field_customer_terms_version' => [
       'type' => 'string',
       'label' => 'Customer terms version',
+      'description' => 'Version of the customer terms accepted during registration.',
       'cardinality' => 1,
+      'storage_uuid' => '10543371-2a36-453d-ae38-25a76f18c4a8',
+      'field_uuid' => 'd2a932cd-f11a-464c-a55a-0e42326490b8',
     ],
     'field_customer_terms_accepted_at' => [
       'type' => 'timestamp',
       'label' => 'Customer terms accepted at',
+      'description' => 'Time the customer terms were accepted during registration.',
       'cardinality' => 1,
+      'storage_uuid' => '25aa516e-feb0-4333-bf40-3a58b2f808a6',
+      'field_uuid' => 'efeed30e-6380-44cc-9c8f-d6142fb78a24',
     ],
     'field_privacy_version' => [
       'type' => 'string',
-      'label' => 'Privacy version',
+      'label' => 'Privacy policy version',
+      'description' => 'Version of the privacy policy acknowledged during registration.',
       'cardinality' => 1,
+      'storage_uuid' => '9d658435-a9eb-4819-9eeb-d2925adcc2c1',
+      'field_uuid' => '310e7df5-7346-4a55-8700-7a2d6ecd5e8c',
     ],
     'field_privacy_accepted_at' => [
       'type' => 'timestamp',
-      'label' => 'Privacy accepted at',
+      'label' => 'Privacy policy acknowledged at',
+      'description' => 'Time the privacy policy was acknowledged during registration.',
       'cardinality' => 1,
+      'storage_uuid' => 'c07e3349-258b-4b7a-817e-515e4ad2b679',
+      'field_uuid' => '82276025-37c3-4b7e-9b63-a2a2055f1741',
     ],
     'field_marketing_opt_in' => [
       'type' => 'boolean',
-      'label' => 'Marketing opt-in',
+      'label' => 'Event news preference',
+      'description' => 'Whether the customer opted in to updates, tips and event news during registration.',
       'cardinality' => 1,
+      'storage_uuid' => '02a86c97-2ecf-4d50-ac25-ca53c9058364',
+      'field_uuid' => 'e244fb90-6d79-4b53-9619-d65042a9100d',
     ],
     'field_marketing_opt_in_at' => [
       'type' => 'timestamp',
-      'label' => 'Marketing opt-in at',
+      'label' => 'Event news opt-in at',
+      'description' => 'Time the customer opted in to updates, tips and event news.',
       'cardinality' => 1,
+      'storage_uuid' => '8a0486c4-b265-4d98-b7ae-957165211ff4',
+      'field_uuid' => '246170d4-c0af-4b73-bdc7-ddbbbdcdfa9f',
+    ],
+    'field_marketing_choice_at' => [
+      'type' => 'timestamp',
+      'label' => 'Event news preference recorded at',
+      'description' => 'Time the customer made their event news choice during registration.',
+      'cardinality' => 1,
+      'storage_uuid' => '81b3df24-ea25-4510-a54f-35058721f3b8',
+      'field_uuid' => 'f310e7a4-40f4-47a0-8984-445cebd6c8c3',
     ],
   ];
 
   foreach ($fields as $field_name => $info) {
     if (!FieldStorageConfig::loadByName('user', $field_name)) {
       FieldStorageConfig::create([
+        'uuid' => $info['storage_uuid'] ?? NULL,
         'field_name' => $field_name,
         'entity_type' => 'user',
         'type' => $info['type'],
@@ -57,10 +84,16 @@ function _myeventlane_legal_add_user_fields(): void {
     }
     if (!FieldConfig::loadByName('user', 'user', $field_name)) {
       FieldConfig::create([
+        'uuid' => $info['field_uuid'] ?? NULL,
         'field_name' => $field_name,
         'entity_type' => 'user',
         'bundle' => 'user',
         'label' => $info['label'],
+        'description' => $info['description'] ?? '',
+        'translatable' => FALSE,
+        'settings' => $field_name === 'field_marketing_opt_in'
+          ? ['on_label' => 'Opted in', 'off_label' => 'Declined']
+          : [],
       ])->save();
     }
   }
@@ -474,4 +507,34 @@ function myeventlane_legal_update_9011(): string {
 
   drupal_flush_all_caches();
   return 'Added GST registration wording to customer and organiser terms and advanced both terms versions to 1.1.';
+}
+
+/**
+ * Restore registration consent fields as deployment-managed configuration.
+ */
+function myeventlane_legal_update_9012(): string {
+  $displayNames = [
+    'core.entity_form_display.user.user.default',
+    'core.entity_form_display.user.user.register',
+    'core.entity_view_display.user.user.compact',
+    'core.entity_view_display.user.user.default',
+  ];
+  $configFactory = \Drupal::configFactory();
+  $displaySnapshots = [];
+  foreach ($displayNames as $displayName) {
+    $displaySnapshots[$displayName] = $configFactory->get($displayName)->getRawData();
+  }
+
+  _myeventlane_legal_add_user_fields();
+
+  // Field creation asks Entity Display to register every currently hidden user
+  // field, which creates unrelated display-config drift. Restore the exact
+  // pre-update displays; absent components remain hidden by Drupal.
+  foreach ($displaySnapshots as $displayName => $displayData) {
+    if ($displayData !== []) {
+      $configFactory->getEditable($displayName)->setData($displayData)->save(TRUE);
+    }
+  }
+  drupal_flush_all_caches();
+  return 'Restored user registration consent fields, including the marketing preference timestamp.';
 }

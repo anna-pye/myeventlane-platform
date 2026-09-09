@@ -13,6 +13,8 @@
 }
 
 .pcc--wrapper {
+  box-sizing: border-box;
+  min-width: 0;
   padding: 1rem;
   color: var(--pcc-text);
   background: var(--pcc-bg);
@@ -95,6 +97,65 @@
   color: #fff;
 }
 
+.pcc-filters {
+  display: grid;
+  grid-template-columns: minmax(220px, 2fr) repeat(2, minmax(150px, 1fr)) auto;
+  align-items: end;
+  gap: 0.65rem;
+  margin-bottom: 0.5rem;
+  padding: 0.85rem;
+  border: 1px solid var(--pcc-border);
+  border-radius: 14px;
+  background: var(--pcc-panel);
+  box-shadow: var(--pcc-shadow);
+}
+
+.pcc-filters__field {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.pcc-filters__field label {
+  color: var(--pcc-muted);
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.pcc-filters input,
+.pcc-filters select {
+  width: 100%;
+  min-height: 42px;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid #d9cfe4;
+  border-radius: 10px;
+  background: #fff;
+  color: var(--pcc-text);
+}
+
+.pcc-filters input:focus-visible,
+.pcc-filters select:focus-visible {
+  outline: 3px solid rgba(125, 99, 216, 0.24);
+  border-color: var(--pcc-purple);
+}
+
+.pcc-filters__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.pcc-filters button {
+  cursor: pointer;
+  font: inherit;
+}
+
+.pcc-results-summary {
+  margin: 0 0 0.75rem;
+  color: var(--pcc-muted);
+  font-size: 0.82rem;
+}
+
 .pcc__section {
   margin-bottom: 1rem;
 }
@@ -108,6 +169,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
+}
+
+.pcc-kpis__grid--people {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .pcc-kpis__tile {
@@ -145,6 +210,29 @@
   margin-top: 0.4rem;
   font-size: 1.35rem;
   font-weight: 700;
+}
+
+.pcc-kpis__tile--link {
+  color: var(--pcc-text);
+  text-decoration: none;
+  transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+.pcc-kpis__tile--link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(21, 23, 51, 0.11);
+}
+
+.pcc-kpis__tile--link:focus-visible {
+  outline: 3px solid rgba(125, 99, 216, 0.35);
+  outline-offset: 3px;
+}
+
+.pcc-kpis__hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--pcc-muted);
+  font-size: 0.8rem;
 }
 
 .pcc__section--split {
@@ -194,6 +282,66 @@
 .pcc-table {
   width: 100%;
   border-collapse: collapse;
+}
+
+.pcc-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  outline: none;
+}
+
+.pcc-table-wrap:focus-visible {
+  box-shadow: 0 0 0 3px rgba(125, 99, 216, 0.24);
+}
+
+.pcc-table--people {
+  min-width: 920px;
+}
+
+.pcc-table__subline {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--pcc-muted);
+  font-size: 0.78rem;
+}
+
+.pcc-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 0.25rem;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: #f1edff;
+  color: #5940b8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.pcc-badge--active {
+  background: #e4f6ee;
+  color: #14724f;
+}
+
+.pcc-badge--blocked {
+  background: #ffe7e2;
+  color: #9d382d;
+}
+
+.pcc-badge--vendor {
+  background: #fff0df;
+  color: #8d4b16;
+}
+
+.pcc-privacy-note {
+  margin: 0 0 0.8rem;
+  padding: 0.65rem 0.8rem;
+  border-left: 4px solid var(--pcc-purple);
+  border-radius: 8px;
+  background: #f8f5ff;
+  color: var(--pcc-muted);
+  font-size: 0.86rem;
 }
 
 .pcc-table th,
@@ -345,8 +493,16 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .pcc-kpis__grid--people {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .pcc__section--split {
     grid-template-columns: 1fr;
+  }
+
+  .pcc-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -355,7 +511,24 @@
     grid-template-columns: 1fr;
   }
 
+  .pcc-kpis__grid--people {
+    grid-template-columns: 1fr;
+  }
+
   .pcc__header {
     flex-direction: column;
+  }
+
+  .pcc-panel {
+    padding: 0.75rem;
+  }
+
+  .pcc-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .pcc-filters__actions .pcc__action-link {
+    flex: 1 1 auto;
+    justify-content: center;
   }
 }

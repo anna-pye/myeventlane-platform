@@ -1,0 +1,20 @@
+uuid: 310e7df5-7346-4a55-8700-7a2d6ecd5e8c
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_privacy_version
+  module:
+    - user
+id: user.user.field_privacy_version
+field_name: field_privacy_version
+entity_type: user
+bundle: user
+label: 'Privacy policy version'
+description: 'Version of the privacy policy acknowledged during registration.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

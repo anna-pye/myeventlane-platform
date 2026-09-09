@@ -41,6 +41,15 @@ services:
     class: Drupal\myeventlane_admin_dashboard\Controller\VendorController
     arguments:
       - '@myeventlane_core.mel_admin_shell_builder'
+      - '@entity_type.manager'
+      - '@date.formatter'
+
+  myeventlane_admin_dashboard.people_controller:
+    class: Drupal\myeventlane_admin_dashboard\Controller\PeopleController
+    arguments:
+      - '@myeventlane_core.mel_admin_shell_builder'
+      - '@entity_type.manager'
+      - '@date.formatter'
 
   myeventlane_admin_dashboard.payout_controller:
     class: Drupal\myeventlane_admin_dashboard\Controller\PayoutController

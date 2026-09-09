@@ -428,6 +428,25 @@ function myeventlane_auth_form_user_register_form_alter(array &$form, FormStateI
 
   $request = \Drupal::request();
 
+  $form['#attributes']['class'][] = 'mel-auth-form';
+  $form['#attributes']['class'][] = 'mel-auth-form--register';
+  $form['#attached']['library'][] = 'myeventlane_auth/login_shell';
+  if (isset($form['actions']['submit'])) {
+    $form['actions']['submit']['#value'] = t('Create my account');
+  }
+  if (isset($form['more-links']['login_link'])) {
+    $form['more-links']['#attributes']['class'][] = 'mel-auth-account-links';
+    $form['more-links']['login_prompt'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'span',
+      '#value' => t('Already have an account?'),
+      '#attributes' => ['class' => ['mel-auth-account-prompt']],
+      '#weight' => 0,
+    ];
+    $form['more-links']['login_link']['#title'] = t('Sign in');
+    $form['more-links']['login_link']['#weight'] = 1;
+  }
+
   // Gin Login: "Log in" link defaults to user.login with no query — preserve handoff.
   if (isset($form['more-links']['login_link']['#url'])) {
     $preserve_login = myeventlane_auth_auth_entry_preserved_query($request);
@@ -527,6 +546,9 @@ function myeventlane_auth_preprocess_ginlogin(array &$variables): void {
   $config = \Drupal::config('gin_login.settings');
   $base = rtrim($request->getSchemeAndHttpHost() . $request->getBasePath(), '/');
   $theme_path = \Drupal::service('extension.list.theme')->getPath('myeventlane_theme');
+  $module_path = \Drupal::service('extension.list.module')->getPath('myeventlane_auth');
+  $variables['mel_logo_url'] = $base . '/' . $theme_path . '/images/logo.webp';
+  $variables['mel_mobile_art_url'] = $base . '/' . $module_path . '/images/mel-waving.png';
 
   $logo_uri = (string) $config->get('logo.path');
   if (!$config->get('logo.use_default') && $logo_uri !== '' && !file_exists($logo_uri)) {
@@ -537,12 +559,21 @@ function myeventlane_auth_preprocess_ginlogin(array &$variables): void {
   if (!$config->get('brand_image.use_default') && $brand_uri !== '' && !file_exists($brand_uri)) {
     $variables['brand_image'] = [
       '#theme' => 'image',
-      '#uri' => $base . '/' . $theme_path . '/images/mel/mel-mascot-round.png',
+      '#uri' => $base . '/' . $theme_path . '/images/mel/hero/mel-hero-home-community.jpg',
       '#attributes' => [
-        'loading' => 'lazy',
+        'loading' => 'eager',
+        'fetchpriority' => 'high',
+        'decoding' => 'async',
         'alt' => '',
       ],
     ];
+  }
+
+  if (is_array($variables['brand_image'] ?? NULL) && isset($variables['brand_image']['#attributes'])) {
+    $variables['brand_image']['#attributes']['loading'] = 'eager';
+    $variables['brand_image']['#attributes']['fetchpriority'] = 'high';
+    $variables['brand_image']['#attributes']['decoding'] = 'async';
+    $variables['brand_image']['#attributes']['alt'] = '';
   }
 }
 
@@ -559,12 +590,23 @@ function myeventlane_auth_gin_login_route_definitions_alter(array &$route_defini
  * Implements hook_theme_registry_alter().
  */
 function myeventlane_auth_theme_registry_alter(array &$theme_registry): void {
-  if (!isset($theme_registry['page__user__password'])) {
-    return;
-  }
-  $theme_registry['page__user__password']['template'] = 'page--user--password-mel';
-  $theme_registry['page__user__password']['path'] = \Drupal::service('extension.list.module')
+  $template_path = \Drupal::service('extension.list.module')
     ->getPath('myeventlane_auth') . '/templates';
+
+  if (isset($theme_registry['page__user__login'])) {
+    $theme_registry['page__user__login']['template'] = 'page--user--login-mel';
+    $theme_registry['page__user__login']['path'] = $template_path;
+  }
+
+  if (isset($theme_registry['page__user__register'])) {
+    $theme_registry['page__user__register']['template'] = 'page--user--register-mel';
+    $theme_registry['page__user__register']['path'] = $template_path;
+  }
+
+  if (isset($theme_registry['page__user__password'])) {
+    $theme_registry['page__user__password']['template'] = 'page--user--password-mel';
+    $theme_registry['page__user__password']['path'] = $template_path;
+  }
 }
 
 /**
@@ -824,9 +866,43 @@ function myeventlane_auth_form_user_login_form_alter(array &$form, FormStateInte
     $form['name']['#attributes']['autocomplete'] = 'email';
     $form['name']['#attributes']['inputmode'] = 'email';
   }
+  if (isset($form['pass'])) {
+    $form['pass']['#attributes']['autocomplete'] = 'current-password';
+    $form['pass']['#attributes']['class'][] = 'mel-auth-password-input';
+  }
+  $form['#attributes']['class'][] = 'mel-auth-form';
   $form['#validate'][] = 'myeventlane_auth_email_login_error_validate';
 
   myeventlane_auth_add_social_login_controls($form, $request);
+
+  $form['#attached']['library'][] = 'myeventlane_auth/login_shell';
+  if (isset($form['actions']['submit'])) {
+    $form['actions']['submit']['#value'] = t('Sign in');
+  }
+
+  if (isset($form['more-links']['forgot_password_link'])) {
+    $form['mel_forgot_password'] = $form['more-links']['forgot_password_link'];
+    $form['mel_forgot_password']['#weight'] = 70;
+    $form['mel_forgot_password']['#attributes']['class'][] = 'mel-auth-forgot-password';
+    unset($form['more-links']['forgot_password_link']);
+  }
+
+  if (isset($form['more-links']['register_button'])) {
+    $form['more-links']['#attributes']['class'][] = 'mel-auth-account-links';
+    $register_classes = $form['more-links']['register_button']['#attributes']['class'] ?? [];
+    $form['more-links']['register_button']['#attributes']['class'] = array_values(array_diff(
+      $register_classes,
+      ['button', 'button--secondary'],
+    ));
+    $form['more-links']['new_account_prompt'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'span',
+      '#value' => t('New to MyEventLane?'),
+      '#attributes' => ['class' => ['mel-auth-account-prompt']],
+      '#weight' => 0,
+    ];
+    $form['more-links']['register_button']['#title'] = t('Create a free account');
+  }
 
   $raw_intent = myeventlane_auth_resolve_mel_intent_for_login_request($request);
 

@@ -1,0 +1,20 @@
+uuid: d2a932cd-f11a-464c-a55a-0e42326490b8
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_customer_terms_version
+  module:
+    - user
+id: user.user.field_customer_terms_version
+field_name: field_customer_terms_version
+entity_type: user
+bundle: user
+label: 'Customer terms version'
+description: 'Version of the customer terms accepted during registration.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string

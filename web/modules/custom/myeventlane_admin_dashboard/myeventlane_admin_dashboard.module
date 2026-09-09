@@ -25,7 +25,9 @@ function _myeventlane_admin_dashboard_is_pcc_route(?string $route_name): bool {
     'myeventlane_admin_dashboard.platform_control',
     'myeventlane_admin_dashboard.platform_studio',
     'myeventlane_admin_dashboard.financials',
+    'myeventlane_admin_dashboard.customers',
     'myeventlane_admin_dashboard.vendors',
+    'myeventlane_admin_dashboard.consents',
     'myeventlane_admin_dashboard.orders',
     'myeventlane_admin_dashboard.payouts',
     'myeventlane_admin_dashboard.payout_batches',
@@ -118,6 +120,8 @@ function myeventlane_admin_dashboard_theme(): array {
         'vendor_ranking' => [],
         'payout_summary' => ['unpaid_total' => 0.0, 'paid_total' => 0.0, 'unpaid_by_store' => []],
         'active_vendors_count' => 0,
+        'customer_accounts_count' => 0,
+        'consent_records_count' => 0,
         'upcoming_events_count' => 0,
         'open_escalations_count' => 0,
         'export_url' => '',
@@ -177,8 +181,34 @@ function myeventlane_admin_dashboard_theme(): array {
     'platform_control_centre_vendors' => [
       'variables' => [
         'vendor_url' => '',
+        'vendors' => [],
+        'total' => 0,
+        'match_count' => 0,
+        'filters' => [],
+        'pager' => NULL,
       ],
       'template' => 'platform-control-centre--vendors',
+    ],
+    'platform_control_centre_customers' => [
+      'variables' => [
+        'customers' => [],
+        'total' => 0,
+        'match_count' => 0,
+        'filters' => [],
+        'pager' => NULL,
+      ],
+      'template' => 'platform-control-centre--customers',
+    ],
+    'platform_control_centre_consents' => [
+      'variables' => [
+        'consents' => [],
+        'total' => 0,
+        'match_count' => 0,
+        'filters' => [],
+        'pager' => NULL,
+        'legal_settings_url' => '',
+      ],
+      'template' => 'platform-control-centre--consents',
     ],
     'platform_control_centre_payouts' => [
       'variables' => [

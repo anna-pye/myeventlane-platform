@@ -1,0 +1,20 @@
+uuid: efeed30e-6380-44cc-9c8f-d6142fb78a24
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.user.field_customer_terms_accepted_at
+  module:
+    - user
+id: user.user.field_customer_terms_accepted_at
+field_name: field_customer_terms_accepted_at
+entity_type: user
+bundle: user
+label: 'Customer terms accepted at'
+description: 'Time the customer terms were accepted during registration.'
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: timestamp

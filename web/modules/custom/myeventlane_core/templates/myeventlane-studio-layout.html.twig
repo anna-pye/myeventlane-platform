@@ -8,7 +8,7 @@
     <p class="mel-studio-shell__subtitle">{{ subtitle }}</p>
   {% endif %}
 
-  <div class="mel-studio-shell">
+  <div class="mel-studio-shell{{ right_panel ? '' : ' mel-studio-shell--standard' }}">
     <aside class="mel-studio-shell__left" aria-label="{{ 'Studio navigation'|t }}">
       {% if left_nav %}
         {{ left_nav }}
@@ -21,11 +21,11 @@
       {% endif %}
     </main>
 
-    <aside class="mel-studio-shell__right" aria-label="{{ 'Studio side panel'|t }}">
-      {% if right_panel %}
+    {% if right_panel %}
+      <aside class="mel-studio-shell__right" aria-label="{{ 'Studio side panel'|t }}">
         {{ right_panel }}
-      {% endif %}
-    </aside>
+      </aside>
+    {% endif %}
   </div>
 
   <div data-mel-support-root class="mel-studio-shell__support-mount" aria-live="polite"></div>

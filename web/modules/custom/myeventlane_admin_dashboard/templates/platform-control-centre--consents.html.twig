@@ -1,0 +1,66 @@
+{#
+/**
+ * @file
+ * Privacy-safe legal consent history for the Admin Control Center.
+ */
+#}
+<div class="pcc pcc--wrapper" role="main" aria-label="{{ 'Consent history'|t }}">
+  <header class="pcc__header">
+    <p class="pcc__subtitle">{{ '@count immutable consent records'|t({'@count': total}) }}</p>
+    <a href="{{ legal_settings_url }}" class="pcc__action-link">{{ 'Legal settings'|t }}</a>
+  </header>
+
+  <form class="pcc-filters" method="get" action="{{ filters.action_url }}">
+    <div class="pcc-filters__field pcc-filters__field--search">
+      <label for="pcc-consent-search">{{ 'Search consent history'|t }}</label>
+      <input id="pcc-consent-search" type="search" name="search" value="{{ filters.search }}" placeholder="{{ 'Email address'|t }}">
+    </div>
+    <div class="pcc-filters__field">
+      <label for="pcc-consent-source">{{ 'Source'|t }}</label>
+      <select id="pcc-consent-source" name="source">
+        <option value="all"{{ filters.source == 'all' ? ' selected' : '' }}>{{ 'All sources'|t }}</option>
+        <option value="registration"{{ filters.source == 'registration' ? ' selected' : '' }}>{{ 'Registration'|t }}</option>
+        <option value="checkout"{{ filters.source == 'checkout' ? ' selected' : '' }}>{{ 'Checkout'|t }}</option>
+        <option value="rsvp"{{ filters.source == 'rsvp' ? ' selected' : '' }}>{{ 'RSVP'|t }}</option>
+      </select>
+    </div>
+    <div class="pcc-filters__actions">
+      <button type="submit" class="pcc__action-link pcc__action-link--primary">{{ 'Apply filters'|t }}</button>
+      <a href="{{ filters.clear_url }}" class="pcc__action-link">{{ 'Clear'|t }}</a>
+    </div>
+  </form>
+  <p class="pcc-results-summary" aria-live="polite">{{ 'Showing @matches of @total consent records'|t({'@matches': match_count, '@total': total}) }}</p>
+
+  <section class="pcc-panel">
+    <p class="pcc-privacy-note">{{ 'This everyday view omits IP address, session ID and browser details. Those fields remain restricted audit data.'|t }}</p>
+    <div class="pcc-table-wrap" tabindex="0" role="region" aria-label="{{ 'Recorded legal consent events'|t }}">
+      <table class="pcc-table">
+        <thead>
+          <tr>
+            <th scope="col">{{ 'Record'|t }}</th>
+            <th scope="col">{{ 'Email'|t }}</th>
+            <th scope="col">{{ 'Source'|t }}</th>
+            <th scope="col">{{ 'Terms version'|t }}</th>
+            <th scope="col">{{ 'Privacy version'|t }}</th>
+            <th scope="col">{{ 'Accepted'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for consent in consents %}
+            <tr>
+              <td data-label="{{ 'Record'|t }}">#{{ consent.id }}</td>
+              <td data-label="{{ 'Email'|t }}">{{ consent.email }}</td>
+              <td data-label="{{ 'Source'|t }}"><span class="pcc-badge">{{ consent.source }}</span></td>
+              <td data-label="{{ 'Terms version'|t }}">{{ consent.terms_version }}</td>
+              <td data-label="{{ 'Privacy version'|t }}">{{ consent.privacy_version }}</td>
+              <td data-label="{{ 'Accepted'|t }}">{{ consent.accepted_at }}</td>
+            </tr>
+          {% else %}
+            <tr><td colspan="6" class="pcc-panel__empty">{{ 'No consent events have been recorded yet.'|t }}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {{ pager }}
+  </section>
+</div>

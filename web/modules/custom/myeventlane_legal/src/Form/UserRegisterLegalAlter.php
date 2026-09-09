@@ -194,6 +194,9 @@ final class UserRegisterLegalAlter {
     }
     if ($entity->hasField('field_marketing_opt_in')) {
       $entity->set('field_marketing_opt_in', $marketingOptIn);
+      if ($entity->hasField('field_marketing_choice_at')) {
+        $entity->set('field_marketing_choice_at', $time->getRequestTime());
+      }
       if ($marketingOptIn && $entity->hasField('field_marketing_opt_in_at')) {
         $entity->set('field_marketing_opt_in_at', $time->getRequestTime());
       }

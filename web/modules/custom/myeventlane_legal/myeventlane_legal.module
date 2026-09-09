@@ -6,6 +6,8 @@
  */
 
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\myeventlane_legal\Entity\LegalConsentEventInterface;
+use Drupal\user\UserInterface;
 
 /**
  * Implements hook_form_alter().
@@ -80,6 +82,42 @@ function myeventlane_legal_entity_presave(\Drupal\Core\Entity\EntityInterface $e
 
   \Drupal::service('myeventlane_legal.consent_helper')->applyConsentToEntity($entity, $consent);
   $entity->_myeventlaneLegalConsent = NULL;
+}
+
+/**
+ * Implements hook_user_insert().
+ *
+ * Registration consent is recorded only when the validated registration form
+ * populated both version fields. Admin-created accounts therefore do not gain
+ * a fabricated consent record.
+ */
+function myeventlane_legal_user_insert(UserInterface $account): void {
+  $required = [
+    'field_customer_terms_version',
+    'field_customer_terms_accepted_at',
+    'field_privacy_version',
+    'field_privacy_accepted_at',
+  ];
+  foreach ($required as $fieldName) {
+    if (!$account->hasField($fieldName) || $account->get($fieldName)->isEmpty()) {
+      return;
+    }
+  }
+
+  $email = trim((string) $account->getEmail());
+  if ($email === '') {
+    return;
+  }
+
+  \Drupal::service('myeventlane_legal.consent_audit')->record([
+    'user_id' => (int) $account->id(),
+    'email' => $email,
+    'source' => LegalConsentEventInterface::SOURCE_REGISTRATION,
+    'entity_type' => 'user',
+    'entity_id' => (int) $account->id(),
+    'terms_version' => (string) $account->get('field_customer_terms_version')->value,
+    'privacy_version' => (string) $account->get('field_privacy_version')->value,
+  ]);
 }
 
 /**

@@ -60,6 +60,7 @@ core/.phpstan-baseline.php text eol=lf whitespace=blank-at-eol,-blank-at-eof,-sp
 *.phar    -text diff
 *.png     -text diff
 web/modules/custom/myeventlane_auth/images/sign-in-with-apple@2x.png binary
+web/modules/custom/myeventlane_auth/images/mel-waving.png binary
 *.svgz    -text diff
 *.ttf     -text diff
 *.woff    -text diff

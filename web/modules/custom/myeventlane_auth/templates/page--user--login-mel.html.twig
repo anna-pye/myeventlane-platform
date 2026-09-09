@@ -1,0 +1,52 @@
+{#
+/**
+ * @file
+ * MEL presentation shell for Gin Login's user login route.
+ *
+ * Authentication, social provider and redirect behaviour remain in Drupal's
+ * user form and myeventlane_auth. This template owns presentation only.
+ */
+#}
+<div class="user-form-page mel-auth-shell">
+  <section class="user-form-page__user-form mel-auth-shell__form-panel">
+    <header class="content-header mel-auth-shell__header">
+      <div class="layout-container">
+        <a href="{{ path('<front>') }}" class="mel-auth-shell__brand" aria-label="{{ 'Back to MyEventLane'|t }}">
+          <img src="{{ mel_logo_url }}" alt="{{ site_name }}" class="mel-auth-shell__logo" width="1024" height="512">
+        </a>
+      </div>
+    </header>
+
+    <div class="layout-container mel-auth-shell__form-region">
+      {{ page.pre_content|without('claro_primary_local_tasks', 'gin_primary_local_tasks') }}
+      <main class="page-content mel-auth-shell__card" role="main">
+        <div class="visually-hidden"><a id="main-content" tabindex="-1"></a></div>
+
+        <div class="mel-auth-shell__mobile-art" aria-hidden="true">
+          <img src="{{ mel_mobile_art_url }}" alt="" width="120" height="198" loading="eager" decoding="async">
+        </div>
+
+        <div class="mel-auth-shell__intro">
+          <p class="mel-auth-shell__eyebrow">{{ 'Welcome back'|t }}</p>
+          <h1 class="page-title user-form-page__page-title">{{ 'Sign in to MyEventLane'|t }}</h1>
+          <p class="mel-auth-shell__summary">
+            {{ 'Manage your bookings, saved events and organiser tools.'|t }}
+          </p>
+        </div>
+
+        {{ page.highlighted }}
+        {% if page.help %}
+          <div class="help">
+            {{ page.help }}
+          </div>
+        {% endif %}
+        {{ page.content|without('claro_primary_local_tasks', 'gin_primary_local_tasks') }}
+      </main>
+    </div>
+  </section>
+
+  <aside class="user-form-page__wallpaper mel-auth-shell__visual" aria-hidden="true">
+    {{ brand_image }}
+    <div class="mel-auth-shell__visual-wash"></div>
+  </aside>
+</div>

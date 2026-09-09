@@ -41,7 +41,8 @@ final class ConsentAuditService {
    *
    * @param array $data
    *   Keys: email (required), source (required), entity_type (optional),
-   *   entity_id (optional), event_id (optional), terms_version (required),
+   *   entity_id (optional), event_id (optional), user_id (optional),
+   *   terms_version (required),
    *   privacy_version (required), refund_version (optional).
    *
    * @throws \InvalidArgumentException
@@ -73,7 +74,10 @@ final class ConsentAuditService {
       $session_id = $session ? $session->getId() : NULL;
     }
 
-    $user_id = $this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL;
+    $user_id = array_key_exists('user_id', $data)
+      ? (int) $data['user_id']
+      : ($this->currentUser->isAuthenticated() ? (int) $this->currentUser->id() : NULL);
+    $user_id = $user_id > 0 ? $user_id : NULL;
 
     try {
       $storage = $this->entityTypeManager->getStorage('legal_consent_event');

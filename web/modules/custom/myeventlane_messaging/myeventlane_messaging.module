@@ -7,6 +7,41 @@
 
 declare(strict_types=1);
 
+use Drupal\user\UserInterface;
+
+/**
+ * Implements hook_user_insert().
+ *
+ * Copies an explicit registration marketing choice to the preference table
+ * used by message delivery. Missing legacy values remain unknown and are not
+ * rewritten here.
+ */
+function myeventlane_messaging_user_insert(UserInterface $account): void {
+  if (!$account->hasField('field_marketing_opt_in') || $account->get('field_marketing_opt_in')->isEmpty()) {
+    return;
+  }
+
+  $email = trim((string) $account->getEmail());
+  if ($email === '') {
+    return;
+  }
+
+  $optedIn = (bool) $account->get('field_marketing_opt_in')->value;
+  try {
+    \Drupal::service('myeventlane_messaging.message_preference_storage')
+      ->setMarketingOptOut($email, 'email', !$optedIn);
+  }
+  catch (\Throwable $exception) {
+    \Drupal::logger('myeventlane_messaging')->error(
+      'Could not store the registration marketing preference for user @uid: @message',
+      [
+        '@uid' => (string) $account->id(),
+        '@message' => $exception->getMessage(),
+      ],
+    );
+  }
+}
+
 /**
  * Returns the key used in $message['headers'] for a header, if it exists.
  *

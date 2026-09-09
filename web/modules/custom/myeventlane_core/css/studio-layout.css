@@ -15,7 +15,16 @@
   padding: 1rem;
 }
 
+.mel-studio-shell__left,
+.mel-studio-shell__main {
+  min-width: 0;
+}
+
 .mel-studio-shell.mel-studio-shell--drawer {
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.mel-studio-shell.mel-studio-shell--standard {
   grid-template-columns: 240px minmax(0, 1fr);
 }
 
@@ -105,6 +114,10 @@
     grid-template-columns: 220px minmax(0, 1fr);
   }
 
+  .mel-studio-shell.mel-studio-shell--standard {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
   .mel-studio-shell__right {
     grid-column: 1 / -1;
   }
@@ -112,6 +125,10 @@
 
 @media (max-width: 860px) {
   .mel-studio-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .mel-studio-shell.mel-studio-shell--standard {
     grid-template-columns: 1fr;
   }
 }

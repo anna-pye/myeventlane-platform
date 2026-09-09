@@ -59,6 +59,32 @@ myeventlane_admin_dashboard.vendors:
     _admin_route: TRUE
     _menu_base_route: myeventlane_admin_dashboard.platform_control
 
+# Customer accounts and their recorded registration preferences.
+myeventlane_admin_dashboard.customers:
+  path: '/admin/myeventlane/customers'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.people_controller:customers'
+    _title: 'Customers'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\AdminConsoleAccess::access'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
+# Privacy-safe consent history. Sensitive request metadata is intentionally
+# omitted from this operational view.
+myeventlane_admin_dashboard.consents:
+  path: '/admin/myeventlane/consents'
+  defaults:
+    _controller: 'myeventlane_admin_dashboard.people_controller:consents'
+    _title: 'Consent history'
+  requirements:
+    _custom_access: '\Drupal\myeventlane_admin_dashboard\Access\AdminConsoleAccess::access'
+    _permission: 'view legal consent events'
+  options:
+    _admin_route: TRUE
+    _menu_base_route: myeventlane_admin_dashboard.platform_control
+
 # Orders tab (embeds View vendor_orders / admin_orders; route is module-owned).
 myeventlane_admin_dashboard.orders:
   path: '/admin/myeventlane/orders'
