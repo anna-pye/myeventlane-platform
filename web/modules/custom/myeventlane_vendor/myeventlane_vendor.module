@@ -82,6 +82,7 @@ function myeventlane_vendor_theme($existing, $type, $theme, $path): array {
         'vendor_id' => NULL,
         'banner' => NULL,
         'logo' => NULL,
+        'accent_color' => NULL,
         'tagline' => '',
         'description' => NULL,
         'contact' => [],

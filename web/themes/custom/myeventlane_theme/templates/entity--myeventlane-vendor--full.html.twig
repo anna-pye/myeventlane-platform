@@ -7,21 +7,41 @@
  * public layout and shared components.
  */
 #}
+{% set contact_labels = {
+  'field_email': 'Email'|t,
+  'field_phone': 'Phone'|t,
+  'field_address': 'Location'|t,
+  'field_website': 'Website'|t,
+  'field_social_links': 'Social links'|t,
+} %}
+{% set contact_icons = {
+  'field_email': '@',
+  'field_phone': '☎',
+  'field_address': '⌖',
+  'field_website': '↗',
+  'field_social_links': '#',
+} %}
+{% if accent_color %}
+  {% set attributes = attributes.setAttribute('style', '--mel-vendor-accent: ' ~ accent_color) %}
+{% endif %}
+
 <article{{ attributes }}>
-  {% if banner %}
-    <div class="mel-vendor__hero">
+  <div class="mel-vendor__hero{% if not banner %} mel-vendor__hero--placeholder{% endif %}" aria-hidden="true">
+    {% if banner %}
       {{ banner }}
-    </div>
-  {% endif %}
+    {% endif %}
+  </div>
 
   <header class="mel-vendor__header">
-    {% if logo %}
-      <div class="mel-vendor__logo">
+    <div class="mel-vendor__logo">
+      <span class="mel-vendor__logo-fallback" aria-hidden="true">{{ label|first|upper }}</span>
+      {% if logo %}
         {{ logo }}
-      </div>
-    {% endif %}
+      {% endif %}
+    </div>
 
     <div class="mel-vendor__title">
+      <p class="mel-vendor__eyebrow">{{ 'Organiser'|t }}</p>
       <h1{{ title_attributes.addClass('mel-vendor__name') }}>{{ label }}</h1>
       {% if tagline %}
         <p class="mel-subtle mel-vendor__tagline">{{ tagline }}</p>
@@ -46,27 +66,49 @@
     {% endif %}
   </header>
 
-  {% if description %}
-    <div class="mel-vendor__bio">
-      {{ description }}
+  {% if description or contact %}
+    <div class="mel-vendor__profile-grid">
+      {% if description %}
+        <section class="mel-vendor__about" aria-labelledby="vendor-about-heading">
+          <p class="mel-vendor__section-kicker">{{ 'Meet the organiser'|t }}</p>
+          <h2 id="vendor-about-heading">{{ 'About @organiser'|t({'@organiser': label}) }}</h2>
+          <div class="mel-vendor__bio">
+            {{ description }}
+          </div>
+        </section>
+      {% endif %}
+
+      {% if contact %}
+        <section class="mel-vendor__contact" aria-labelledby="vendor-contact-heading">
+          <p class="mel-vendor__section-kicker">{{ 'Get in touch'|t }}</p>
+          <h2 id="vendor-contact-heading">{{ 'Contact information'|t }}</h2>
+          <div class="mel-vendor__contact-grid">
+            {% for key, item in contact %}
+              <div class="mel-vendor__contact-item">
+                <span class="mel-vendor__contact-icon" aria-hidden="true">{{ contact_icons[key]|default('•') }}</span>
+                <div class="mel-vendor__contact-copy">
+                  <span class="mel-vendor__contact-label">{{ contact_labels[key]|default('Contact'|t) }}</span>
+                  <div class="mel-vendor__contact-value">{{ item }}</div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
     </div>
   {% endif %}
 
-  {% if contact %}
-    <section class="mel-vendor__contact" aria-labelledby="vendor-contact-heading">
-      <h2 id="vendor-contact-heading">{{ 'Contact information'|t }}</h2>
-      <div class="mel-vendor__contact-grid">
-        {% for item in contact %}
-          <div class="mel-vendor__contact-item">
-            {{ item }}
-          </div>
-        {% endfor %}
-      </div>
-    </section>
-  {% endif %}
-
   <section class="mel-vendor__events" aria-labelledby="vendor-events-heading">
-    <h2 id="vendor-events-heading">{{ 'Upcoming events'|t }}</h2>
+    <header class="mel-vendor__events-header">
+      <div>
+        <p class="mel-vendor__section-kicker">{{ 'Find your next experience'|t }}</p>
+        <h2 id="vendor-events-heading">{{ 'Upcoming events'|t }}</h2>
+        <p>{{ 'See what @organiser has coming up.'|t({'@organiser': label}) }}</p>
+      </div>
+      {% if events %}
+        <span class="mel-vendor__event-count">{{ events|length }} {{ events|length == 1 ? 'event'|t : 'events'|t }}</span>
+      {% endif %}
+    </header>
 
     {% if events %}
       <div class="mel-vendor__event-grid mel-event-grid mel-grid mel-grid--events">
@@ -75,7 +117,10 @@
         {% endfor %}
       </div>
     {% else %}
-      <p class="mel-vendor__empty-events">{{ 'No upcoming events from this organiser yet.'|t }}</p>
+      <div class="mel-vendor__empty-events">
+        <strong>{{ 'Nothing announced yet'|t }}</strong>
+        <p>{{ 'Check back soon for new events from this organiser.'|t }}</p>
+      </div>
     {% endif %}
   </section>
 </article>
