@@ -9,6 +9,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
+use Drupal\myeventlane_vendor\Entity\Vendor;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -80,6 +81,9 @@ final class VendorController extends ControllerBase {
     $vendors = [];
 
     foreach ($storage->loadMultiple($ids) as $vendor) {
+      if (!$vendor instanceof Vendor) {
+        continue;
+      }
       $owner = $vendor->getOwner();
       $store = $vendor->hasField('field_vendor_store')
         ? $vendor->get('field_vendor_store')->entity

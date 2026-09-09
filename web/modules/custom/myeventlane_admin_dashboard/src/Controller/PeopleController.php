@@ -10,6 +10,9 @@ use Drupal\Core\Entity\ContentEntityInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Url;
 use Drupal\myeventlane_core\Service\MelAdminShellBuilder;
+use Drupal\myeventlane_legal\Entity\LegalConsentEventInterface;
+use Drupal\myeventlane_vendor\Entity\Vendor;
+use Drupal\user\UserInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -69,6 +72,9 @@ final class PeopleController extends ControllerBase {
         ->execute();
       $vendorOwners = [];
       foreach ($this->melEntityTypeManager->getStorage('myeventlane_vendor')->loadMultiple($vendorOwnerIds) as $vendor) {
+        if (!$vendor instanceof Vendor) {
+          continue;
+        }
         $vendorOwners[] = (int) $vendor->getOwnerId();
       }
       if ($relationship === 'vendor') {
@@ -90,12 +96,18 @@ final class PeopleController extends ControllerBase {
         ->condition('uid', array_values($ids), 'IN')
         ->execute();
       foreach ($vendorStorage->loadMultiple($vendorIds) as $vendor) {
+        if (!$vendor instanceof Vendor) {
+          continue;
+        }
         $vendorOwners[(int) $vendor->getOwnerId()] = $vendor->toUrl('edit-form')->toString();
       }
     }
 
     $customers = [];
     foreach ($storage->loadMultiple($ids) as $account) {
+      if (!$account instanceof UserInterface) {
+        continue;
+      }
       $uid = (int) $account->id();
       $accountType = $account->hasField('field_mel_account_type')
         ? trim((string) $account->get('field_mel_account_type')->value)
@@ -185,6 +197,9 @@ final class PeopleController extends ControllerBase {
     $consents = [];
 
     foreach ($storage->loadMultiple($ids) as $consent) {
+      if (!$consent instanceof LegalConsentEventInterface) {
+        continue;
+      }
       $source = (string) $consent->get('source')->value;
       $consents[] = [
         'id' => (int) $consent->id(),
