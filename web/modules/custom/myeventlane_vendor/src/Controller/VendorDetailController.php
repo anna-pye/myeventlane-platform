@@ -87,6 +87,7 @@ final class VendorDetailController extends ControllerBase {
         ? $this->vendorCardBuilder->buildBanner($myeventlane_vendor)
         : NULL,
       '#logo' => $this->vendorCardBuilder->buildLogo($myeventlane_vendor),
+      '#accent_color' => $this->resolveAccentColor($myeventlane_vendor),
       '#tagline' => $this->vendorCardBuilder->fieldText($myeventlane_vendor, ['field_tagline', 'field_summary']),
       '#description' => $content['field_vendor_bio'] ?? $content['field_description'] ?? NULL,
       '#contact' => $this->buildContactContent($content),
@@ -191,6 +192,25 @@ final class VendorDetailController extends ControllerBase {
     return $vendor->hasField($visibilityField)
       && !$vendor->get($visibilityField)->isEmpty()
       && (bool) $vendor->get($visibilityField)->value;
+  }
+
+  /**
+   * Resolves a validated organiser accent colour for public presentation.
+   */
+  private function resolveAccentColor(Vendor $vendor): ?string {
+    foreach (['field_accent_colour', 'field_msg_accent_color'] as $fieldName) {
+      if (!$vendor->hasField($fieldName) || $vendor->get($fieldName)->isEmpty()) {
+        continue;
+      }
+
+      $raw = $vendor->get($fieldName)->value;
+      $candidate = is_scalar($raw) ? strtolower(trim((string) $raw)) : '';
+      if (preg_match('/^#[0-9a-f]{6}$/', $candidate) === 1) {
+        return $candidate;
+      }
+    }
+
+    return NULL;
   }
 
   /**
